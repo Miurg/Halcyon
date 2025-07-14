@@ -1,0 +1,25 @@
+BasedOnStyle: LLVM
+IndentWidth: 3
+UseTab: ForIndentation
+TabWidth: 4
+
+ColumnLimit: 120
+
+BreakBeforeBraces: Allman
+
+AllowShortIfStatementsOnASingleLine: true
+AllowShortLoopsOnASingleLine: true
+AllowShortFunctionsOnASingleLine: Empty
+
+PointerAlignment: Left
+
+SpaceBeforeParens: ControlStatements
+SpacesInParentheses: false
+
+SortIncludes: true
+IncludeBlocks: Regroup
+IncludeCategories:
+  - Regex: '^<'
+    Priority: 1
+  - Regex: '.*'
+    Priority: 2

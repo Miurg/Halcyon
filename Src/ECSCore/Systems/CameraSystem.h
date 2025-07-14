@@ -1,0 +1,38 @@
+#pragma once
+#include "../Components/Components.h"
+#include "System.h"
+#include "../../RenderCore/Camera.h"
+#include <GLFW/glfw3.h>
+
+class CameraSystem : public System
+{
+private:
+    bool* _keys;
+
+public:
+    CameraSystem(bool* keyArray) : _keys(keyArray) {}
+
+    void ProcessEntity(Entity entity, ComponentManager& cm, float deltaTime) override
+    {
+        CameraComponent* cameraComp = cm.GetComponent<CameraComponent>(entity);
+
+        if (cameraComp && cameraComp->Cam)
+        {
+            Camera* camera = cameraComp->Cam;
+
+            if (_keys[GLFW_KEY_W])
+                camera->ProcessKeyboard(Camera_Movement::FORWARD, deltaTime);
+            if (_keys[GLFW_KEY_S])
+                camera->ProcessKeyboard(Camera_Movement::BACKWARD, deltaTime);
+            if (_keys[GLFW_KEY_A])
+                camera->ProcessKeyboard(Camera_Movement::LEFT, deltaTime);
+            if (_keys[GLFW_KEY_D])
+                camera->ProcessKeyboard(Camera_Movement::RIGHT, deltaTime);
+        }
+    }
+
+    bool ShouldProcessEntity(Entity entity, ComponentManager& cm) override
+    {
+        return cm.GetComponent<CameraComponent>(entity) != nullptr;
+    }
+};
