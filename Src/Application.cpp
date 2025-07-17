@@ -3,6 +3,7 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <iostream>
+#include "Window.h"
 
 #include "RenderCore/Shader.h"
 #include "RenderCore/Camera.h"
@@ -100,42 +101,16 @@ namespace
     }
 } //anonymous namespace
 
-//=== Main loop implementation ===
 int Application::Run()
 {
-    //=== Initialize GLFW and create window ===
-    if (!glfwInit())
-    {
-        std::cerr << "Failed to initialize GLFW" << std::endl;
-        return -1;
-    }
-
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-
-    GLFWwindow* window = glfwCreateWindow(ScreenWidth, ScreenHeight, "VoxelParticleSimulator", nullptr, nullptr);
-    if (window == nullptr)
-    {
-        std::cerr << "Failed to create GLFW window" << std::endl;
-        glfwTerminate();
-        return -1;
-    }
+    //=== Initialize window and OpenGL context ===
+    Window windowWrapper(ScreenWidth, ScreenHeight, "VoxelParticleSimulator");
+    GLFWwindow* window = windowWrapper.GetHandle();
 
     glfwSetKeyCallback(window, KeyCallback);
     glfwSetCursorPosCallback(window, MouseCallback);
     glfwSetCursorPos(window, LastMousePositionX, LastMousePositionY);
 
-    glfwMakeContextCurrent(window);
-
-    if (!gladLoadGLLoader(reinterpret_cast<GLADloadproc>(glfwGetProcAddress)))
-    {
-        std::cerr << "Failed to initialize GLAD" << std::endl;
-        glfwTerminate();
-        return -1;
-    }
-
-    glViewport(0, 0, ScreenWidth, ScreenHeight);
     glfwSetFramebufferSizeCallback(window, FramebufferSizeCallback);
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
@@ -263,7 +238,6 @@ int Application::Run()
 
     //=== Cleanup resources ===
     assetManager.Cleanup();
-    glfwTerminate();
 
     return 0;
 } 
