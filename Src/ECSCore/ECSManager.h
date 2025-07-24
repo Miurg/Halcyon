@@ -28,51 +28,43 @@ public:
     {
         _componentManager.RemoveEntity(entity);
         _activeEntities.erase(entity);
-        _systemManager.UnsubscribeFromAllSystems(entity);
+        _systemManager.UnsubscribeFromAll(entity);
     }
 
     template<typename T, typename... Args>
-    T* AddComponentToEntity(Entity entity, Args&&... args)
+    T* AddComponent(Entity entity, Args&&... args)
     {
         T* component = _componentManager.AddComponent<T>(entity, std::forward<Args>(args)...);
         return component;
     }
 
     template<typename T>
-    void RemoveComponentFromEntity(Entity entity)
+    void RemoveComponent(Entity entity)
     {
         _componentManager.RemoveComponent<T>(entity);
-        for (auto& system : _systemManager.Systems)
-        {
-            if (!system->ShouldProceaw6ssEntity(entity, _componentManager))
-            {
-                system->UnsubscribeEntity(entity);
-                std::cerr << "Entity " << entity << " unsubscribed from system " 
-                         << typeid(*system).name() << " because it doesn't have all required components" << std::endl;
-            }
-        }
+	   _systemManager.CheckEntitySubscriptions(entity, _componentManager);
     }
 
     template<typename T>
-    T* GetComponentFromEntity(Entity entity)
+    T* GetComponent(Entity entity)
     {
         return _componentManager.GetComponent<T>(entity);
     }
 
     template<typename T, typename... Args>
-    void AddSystemToECSManager(Args&&... args)
+    void AddSystemToManager(Args&&... args)
     {
         _systemManager.AddSystem<T>(std::forward<Args>(args)...);
     }
 
     template<typename T>
-    void SubscribeEntityToSystem(Entity entity)
+    void SubscribeEntity(Entity entity)
     {
         _systemManager.Subscribe<T>(entity, _componentManager);
     }
 
     template<typename T>
-    void UnsubscribeEntityFromSystem(Entity entity)
+    void UnsubscribeEntity(Entity entity)
     {
         _systemManager.Unsubscribe<T>(entity);
     }

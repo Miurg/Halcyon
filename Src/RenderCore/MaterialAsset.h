@@ -48,7 +48,7 @@ public:
             glGenerateMipmap(GL_TEXTURE_2D);
         } else 
         {
-            std::cout << "Failed to load texture: " << texturePath << std::endl;
+            std::cout << "ERROR::MATERIAL::Failed to load texture: " << texturePath << std::endl;
         }
         
         stbi_image_free(data);

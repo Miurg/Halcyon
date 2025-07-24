@@ -76,8 +76,7 @@ void PrimitiveMeshFactory::GenerateCubeData(std::vector<Vertex>& vertices, std::
     indices.assign(kCubeIndices.begin(), kCubeIndices.end());
 }
 
-MeshAsset* PrimitiveMeshFactory::CreateSphere(AssetManager* assetManager, const std::string& name, 
-                                             int segments, int rings) 
+MeshAsset* PrimitiveMeshFactory::CreateSphere(AssetManager* assetManager, const std::string& name, int segments, int rings) 
 {
     if (assetManager->HasMesh(name)) 
     {

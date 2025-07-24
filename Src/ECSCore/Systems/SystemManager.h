@@ -41,7 +41,7 @@ public:
         }
         else
         {
-            std::cerr << "Entity " << entity << " does not meet the requirements for system " << systemType.name() << std::endl;
+            std::cerr << "WARNING::SYSTEM MANAGER::Entity " << entity << " does not meet the requirements for system " << systemType.name() << std::endl;
         }
     }
 
@@ -55,9 +55,12 @@ public:
         {
             auto& entities = systemIt->second;
             auto entityIt = std::find(entities.begin(), entities.end(), entity);
+		    std::cerr << "ERASE " << entity << std::endl;
             if (entityIt != entities.end())
             {
                 entities.erase(entityIt);
+			    std::cerr << "ERASE " << entity << std::endl;
+			   
             }
         }
 
@@ -73,7 +76,7 @@ public:
         }
     }
 
-    void UnsubscribeFromAllSystems(Entity entity)
+    void UnsubscribeFromAll(Entity entity)
     {
         auto it = EntityToSystems.find(entity);
         if (it != EntityToSystems.end())
@@ -85,6 +88,40 @@ public:
             }
             EntityToSystems.erase(it);
         }
+    }
+
+    void CheckEntitySubscriptions(Entity entity, ComponentManager& cm)
+    {
+	   std::vector<std::type_index> systemsToUnsubscribe;
+
+	   for (auto& system : Systems)
+	   {
+		  std::type_index systemType = typeid(*system);
+		  if (!system->ShouldProcessEntity(entity, cm))
+		  {
+			 systemsToUnsubscribe.push_back(systemType);
+		  }
+	   }
+
+	   for (const auto& systemType : systemsToUnsubscribe)
+	   {
+		  auto systemIt = SystemToEntities.find(systemType);
+		  if (systemIt != SystemToEntities.end())
+		  {
+			 auto& entities = systemIt->second;
+			 entities.erase(std::remove(entities.begin(), entities.end(), entity), entities.end());
+		  }
+
+		  auto entityIt = EntityToSystems.find(entity);
+		  if (entityIt != EntityToSystems.end())
+		  {
+			 auto& systems = entityIt->second;
+			 systems.erase(std::remove(systems.begin(), systems.end(), systemType), systems.end());
+		  }
+
+		  std::cerr << "WARNING::SYSTEM MANAGER::Entity " << entity << " unsubscribed from system " << systemType.name()
+		            << " because it doesn't have all required components" << std::endl;
+	   }
     }
 
     void UpdateSystems(float deltaTime, ComponentManager& cm)

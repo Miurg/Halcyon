@@ -75,6 +75,7 @@ public:
         if (typeIt != _components.end())
         {
             typeIt->second.erase(entity);
+            std::cout << "Remove component" << typeid(T).name() << " at entity " << entity << std::endl;
         }
     }
 

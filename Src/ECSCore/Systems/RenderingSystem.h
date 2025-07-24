@@ -36,30 +36,30 @@ public:
 
             if (!transform || !renderable)
             {
-                throw std::runtime_error("RENDER SYSTEM ERROR: at entity " + std::to_string(entity) + " missing components!");
+                throw std::runtime_error("ERROR::RENDER SYSTEM::Entity " + std::to_string(entity) + " has a missing components!");
             }
             if (!renderable->Mesh)
             {
-                throw std::runtime_error("RENDER SYSTEM ERROR: at entity " + std::to_string(entity) + " missing mesh!");
+                throw std::runtime_error("ERROR::RENDER SYSTEM::Entity " + std::to_string(entity) + " has a missing mesh!");
             }
             if (!renderable->Mesh->IsInitialized())
             {
-                throw std::runtime_error("RENDER SYSTEM ERROR: at entity " + std::to_string(entity) + " mesh not initialized!");
+                throw std::runtime_error("ERROR::RENDER SYSTEM::Entity " + std::to_string(entity) + " mesh not initialized!");
             }
             if (!renderable->Material)
             {
-                throw std::runtime_error("RENDER SYSTEM ERROR: at entity " + std::to_string(entity) + " missing material!");
+                throw std::runtime_error("ERROR::RENDER SYSTEM::Entity " + std::to_string(entity) + " has a missing material!");
             }
             if (!renderable->Material->IsInitialized())
             {
-                throw std::runtime_error("RENDER SYSTEM ERROR: at entity " + std::to_string(entity) + " material not initialized!");
+                throw std::runtime_error("ERROR::RENDER SYSTEM::Entity " + std::to_string(entity) + " material not initialized!");
             }
 
             _renderGroups[renderable->Mesh][renderable->Material].push_back(entity);
         } 
         catch (const std::exception& e) 
         {
-            std::cerr << "RENDER SYSTEM ERROR: at entity " << entity << ": " << e.what() << std::endl;
+            std::cerr << "ERROR::RENDER SYSTEM::Entity " << entity << ": " << e.what() << std::endl;
         }
     }
 
@@ -136,7 +136,7 @@ public:
         } 
         catch (const std::exception& e) 
         {
-            std::cerr << "RenderingSystem: ошибка при обновлении: " << e.what() << std::endl;
+            std::cerr << "ERROR::RENDER SYSTEM::" << e.what() << std::endl;
         }
     }
 };

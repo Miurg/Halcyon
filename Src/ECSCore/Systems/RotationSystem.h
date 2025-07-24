@@ -13,7 +13,7 @@ public:
         
         if (!transform || !rotationSpeed)
         {
-            throw std::runtime_error("ROTATION SYSTEM ERROR: at entity " + std::to_string(entity) + " missing components!");
+            throw std::runtime_error("ERROR::ROTATION SYSTEM::Entity " + std::to_string(entity) + " has a missing components!");
         }
         TransformUtils::RotateAroundAxis(*transform,
             deltaTime * rotationSpeed->Speed,
@@ -22,7 +22,23 @@ public:
 
     bool ShouldProcessEntity(Entity entity, ComponentManager& cm) override 
     {
-        return cm.GetComponent<TransformComponent>(entity) != nullptr && 
+        if (cm.GetComponent<TransformComponent>(entity) == nullptr)
+        {
+		   std::cerr << "WARNING::ROTATION SYSTEM::Entity " << entity << " should not be processed by "
+		             << typeid(*this).name() 
+                     << " because it doesn't have required component: " 
+                     <<  typeid(TransformComponent).name() 
+                     << std::endl;
+        }
+	    if (cm.GetComponent<RotationSpeedComponent>(entity) == nullptr)
+        {
+		   std::cerr << "WARNING::ROTATION SYSTEM::Entity " << entity << " should not be processed by "
+		             << typeid(*this).name()
+		             << " because it doesn't have required component: " 
+                     << typeid(RotationSpeedComponent).name()
+		             << std::endl;
+        }
+       return cm.GetComponent<TransformComponent>(entity) != nullptr && 
                cm.GetComponent<RotationSpeedComponent>(entity) != nullptr;
     }
 };

@@ -142,15 +142,15 @@ int Application::Run()
     //=== ECS ===
     ECSManager world;
 
-    world.AddSystemToECSManager<RenderingSystem>(ourShader, MainCamera, &ScreenWidth, &ScreenHeight);
-    world.AddSystemToECSManager<MovementSystem>();
-    world.AddSystemToECSManager<RotationSystem>();
-    world.AddSystemToECSManager<CameraSystem>(keys);
+    world.AddSystemToManager<RenderingSystem>(ourShader, MainCamera, &ScreenWidth, &ScreenHeight);
+    world.AddSystemToManager<MovementSystem>();
+    world.AddSystemToManager<RotationSystem>();
+    world.AddSystemToManager<CameraSystem>(keys);
 
     //Camera as entity
     Entity cameraEntity = world.CreateEntity();
-    world.AddComponentToEntity<CameraComponent>(cameraEntity, &MainCamera);
-    world.SubscribeEntityToSystem<CameraSystem>(cameraEntity);
+    world.AddComponent<CameraComponent>(cameraEntity, &MainCamera);
+    world.SubscribeEntity<CameraSystem>(cameraEntity);
 
     //=== Create entities ===
     for (GLuint i = 0; i < 100; ++i)
@@ -160,7 +160,7 @@ int Application::Run()
             for (GLuint k = 0; k < 10; ++k)
             {
                 Entity entity = world.CreateEntity();
-                world.AddComponentToEntity<TransformComponent>(entity, glm::vec3(i * 2.0f, k * 2.0f, j * 2.0f));
+                world.AddComponent<TransformComponent>(entity, glm::vec3(i * 2.0f, k * 2.0f, j * 2.0f));
 
                 //Mesh and material variety
                 MeshAsset* currentMesh      = cubeMesh;
@@ -181,24 +181,25 @@ int Application::Run()
                     currentMaterial = altMaterial;
                 }
 
-                world.AddComponentToEntity<RenderableComponent>(entity, currentMesh, currentMaterial);
+                world.AddComponent<RenderableComponent>(entity, currentMesh, currentMaterial);
 
                 if ((i + j + k) % 2 == 0)
                 {
-                    world.AddComponentToEntity<VelocityComponent>(entity, glm::vec3(0.5f, 0.0f, 0.5f));
-                    world.SubscribeEntityToSystem<MovementSystem>(entity);
+                    world.AddComponent<VelocityComponent>(entity, glm::vec3(0.5f, 0.0f, 0.5f));
+                    world.SubscribeEntity<MovementSystem>(entity);
                 }
 
                 if ((i + j + k) % 2 == 0)
                 {
-                    world.AddComponentToEntity<RotationSpeedComponent>(entity, 500.0f, glm::vec3(0.0f, 1.0f, 0.0f));
-                    world.SubscribeEntityToSystem<RotationSystem>(entity);
+                    world.AddComponent<RotationSpeedComponent>(entity, 500.0f, glm::vec3(0.0f, 1.0f, 0.0f));
+                    world.SubscribeEntity<RotationSystem>(entity);
                 }
 
-                world.SubscribeEntityToSystem<RenderingSystem>(entity);
+                world.SubscribeEntity<RenderingSystem>(entity);
             }
         }
     }
+    world.RemoveComponent<VelocityComponent>(2);
 
     //=== Main loop ===
     int   frames      = 0;

@@ -12,7 +12,7 @@ public:
 
         if (!transform || !velocity)
         {
-            throw std::runtime_error("MOVEMENT SYSTEM ERROR: at entity " + std::to_string(entity) + " missing components!");
+            throw std::runtime_error("ERROR::MOVEMENT SYSTEM::Entity " + std::to_string(entity) + " has a missing components!");
         }
         transform->Position += velocity->Velocity * deltaTime;
     }
