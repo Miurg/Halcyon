@@ -41,7 +41,8 @@ public:
         }
         else
         {
-            std::cerr << "WARNING::SYSTEM MANAGER::Entity " << entity << " does not meet the requirements for system " << systemType.name() << std::endl;
+		   std::cerr << "WARNING::SYSTEM MANAGER::Entity " << entity
+		             << " doesn't have all required components for system " << systemType.name() << " cant subscribe!" << std::endl;
         }
     }
 

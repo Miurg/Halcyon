@@ -27,7 +27,7 @@ public:
 		   std::cerr << "WARNING::ROTATION SYSTEM::Entity " << entity << " should not be processed by "
 		             << typeid(*this).name() 
                      << " because it doesn't have required component: " 
-                     <<  typeid(TransformComponent).name() 
+                     << typeid(TransformComponent).name() 
                      << std::endl;
         }
 	    if (cm.GetComponent<RotationSpeedComponent>(entity) == nullptr)
