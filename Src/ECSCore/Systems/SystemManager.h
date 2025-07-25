@@ -93,36 +93,42 @@ public:
 
     void CheckEntitySubscriptions(Entity entity, ComponentManager& cm)
     {
-	   std::vector<std::type_index> systemsToUnsubscribe;
-
-	   for (auto& system : Systems)
-	   {
-		  std::type_index systemType = typeid(*system);
-		  if (!system->ShouldProcessEntity(entity, cm))
-		  {
-			 systemsToUnsubscribe.push_back(systemType);
-		  }
-	   }
-
-	   for (const auto& systemType : systemsToUnsubscribe)
-	   {
-		  auto systemIt = SystemToEntities.find(systemType);
-		  if (systemIt != SystemToEntities.end())
-		  {
-			 auto& entities = systemIt->second;
-			 entities.erase(std::remove(entities.begin(), entities.end(), entity), entities.end());
-		  }
-
-		  auto entityIt = EntityToSystems.find(entity);
-		  if (entityIt != EntityToSystems.end())
-		  {
-			 auto& systems = entityIt->second;
-			 systems.erase(std::remove(systems.begin(), systems.end(), systemType), systems.end());
-		  }
-
-		  std::cerr << "WARNING::SYSTEM MANAGER::Entity " << entity << " unsubscribed from system " << systemType.name()
-		            << " because it doesn't have all required components" << std::endl;
-	   }
+        auto entityIt = EntityToSystems.find(entity);
+        if (entityIt == EntityToSystems.end()) return;
+        
+        auto& entitySystems = entityIt->second;
+        
+        for (auto it = entitySystems.begin(); it != entitySystems.end();)
+        {
+            std::type_index systemType = *it;
+            
+            bool shouldRemove = true;
+            for (auto& system : Systems)
+            {
+			    if (std::type_index(typeid(*system)) == systemType)
+                {
+                    shouldRemove = !system->ShouldProcessEntity(entity, cm);
+                    break;
+                }
+            }
+            
+            if (shouldRemove)
+            {
+                //Remove from SystemToEntities
+                auto& entities = SystemToEntities[systemType];
+                entities.erase(std::remove(entities.begin(), entities.end(), entity), entities.end());
+                
+                //Remove from EntityToSystems
+                it = entitySystems.erase(it);
+                
+                std::cerr << "WARNING::SYSTEM MANAGER::Entity " << entity << " unsubscribed from system " << systemType.name()
+                          << " because it doesn't have all required components" << std::endl;
+            }
+            else
+            {
+                ++it;
+            }
+        }
     }
 
     void UpdateSystems(float deltaTime, ComponentManager& cm)
