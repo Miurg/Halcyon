@@ -33,27 +33,6 @@ public:
             TransformComponent* transform = cm.GetComponent<TransformComponent>(entity);
             RenderableComponent* renderable = cm.GetComponent<RenderableComponent>(entity);
 
-            if (!transform || !renderable)
-            {
-                throw std::runtime_error("ERROR::RENDER SYSTEM::Entity " + std::to_string(entity) + " has a missing components!");
-            }
-            if (!renderable->Mesh)
-            {
-                throw std::runtime_error("ERROR::RENDER SYSTEM::Entity " + std::to_string(entity) + " has a missing mesh!");
-            }
-            if (!renderable->Mesh->IsInitialized())
-            {
-                throw std::runtime_error("ERROR::RENDER SYSTEM::Entity " + std::to_string(entity) + " mesh not initialized!");
-            }
-            if (!renderable->Material)
-            {
-                throw std::runtime_error("ERROR::RENDER SYSTEM::Entity " + std::to_string(entity) + " has a missing material!");
-            }
-            if (!renderable->Material->IsInitialized())
-            {
-                throw std::runtime_error("ERROR::RENDER SYSTEM::Entity " + std::to_string(entity) + " material not initialized!");
-            }
-
             _renderGroups[renderable->Mesh][renderable->Material].push_back(entity);
         } 
         catch (const std::exception& e) 
