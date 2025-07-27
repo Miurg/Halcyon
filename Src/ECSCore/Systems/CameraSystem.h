@@ -4,7 +4,7 @@
 #include "../../RenderCore/Camera.h"
 #include <GLFW/glfw3.h>
 
-class CameraSystem : public System
+class CameraSystem : public System<CameraSystem,CameraComponent>
 {
 private:
     bool* _keys;
@@ -29,10 +29,5 @@ public:
             if (_keys[GLFW_KEY_D])
                 camera->ProcessKeyboard(Camera_Movement::RIGHT, deltaTime);
         }
-    }
-
-    bool ShouldProcessEntity(Entity entity, ComponentManager& cm) override
-    {
-        return cm.GetComponent<CameraComponent>(entity) != nullptr;
     }
 };

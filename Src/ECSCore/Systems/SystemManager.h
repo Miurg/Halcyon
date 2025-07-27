@@ -8,14 +8,14 @@
 class SystemManager
 {
 public:
-    std::vector<std::unique_ptr<System>> Systems;
+    std::vector<std::unique_ptr<SystemBase>> Systems;
     std::unordered_map<std::type_index, std::vector<Entity>> SystemToEntities;
     std::unordered_map<Entity, std::vector<std::type_index>> EntityToSystems;
 
-    template<typename T, typename... Args>
+    template <typename T, typename... Args> 
     void AddSystem(Args&&... args)
     {
-        Systems.push_back(std::make_unique<T>(std::forward<Args>(args)...));
+	   Systems.push_back(std::make_unique<T>(std::forward<Args>(args)...));
     }
 
     template<typename T>
@@ -24,7 +24,7 @@ public:
         std::type_index systemType = typeid(T);
         
         // Находим систему в векторе
-        System* system = nullptr;
+	    SystemBase* system = nullptr;
         for (auto& sys : Systems)
         {
             if (std::type_index(typeid(*sys)) == systemType)

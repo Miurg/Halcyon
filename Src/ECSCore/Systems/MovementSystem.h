@@ -2,7 +2,7 @@
 #include "System.h"
 #include "../Components/Components.h"
 
-class MovementSystem : public System
+class MovementSystem : public System<MovementSystem,TransformComponent, VelocityComponent>
 {
 public:
     void ProcessEntity(Entity entity, ComponentManager& cm, float deltaTime) override
@@ -15,11 +15,5 @@ public:
             throw std::runtime_error("ERROR::MOVEMENT SYSTEM::Entity " + std::to_string(entity) + " has a missing components!");
         }
         transform->Position += velocity->Velocity * deltaTime;
-    }
-
-    bool ShouldProcessEntity(Entity entity, ComponentManager& cm) override
-    {
-        return cm.GetComponent<TransformComponent>(entity) != nullptr &&
-            cm.GetComponent<VelocityComponent>(entity) != nullptr;
     }
 };

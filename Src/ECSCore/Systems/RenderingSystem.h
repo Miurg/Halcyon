@@ -13,7 +13,7 @@
 #include <glm/gtc/type_ptr.hpp>
 
 
-class RenderingSystem : public System
+class RenderingSystem : public System<RenderingSystem, TransformComponent, RenderableComponent>
 {
 private:
     Shader& _shader;
@@ -63,12 +63,6 @@ public:
         }
     }
 
-    bool ShouldProcessEntity(Entity entity, ComponentManager& cm) override
-    {
-        return cm.GetComponent<TransformComponent>(entity) != nullptr &&
-            cm.GetComponent<RenderableComponent>(entity) != nullptr;
-    }
-
     void Update(float deltaTime, ComponentManager& cm, const std::vector<Entity>& entities) override
     {
         try 
@@ -76,7 +70,6 @@ public:
             _renderGroups.clear();
             System::Update(deltaTime, cm, entities);
             _shader.BindShader();
-
             MeshAsset* lastMesh = nullptr;
             MaterialAsset* lastMaterial = nullptr;
 
