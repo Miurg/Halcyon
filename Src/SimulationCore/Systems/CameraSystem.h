@@ -1,6 +1,6 @@
 #pragma once
-#include "../Components/Components.h"
-#include "System.h"
+#include "../../Core/Components/Components.h"
+#include "../../Core/Systems/System.h"
 #include "../../RenderCore/Camera.h"
 #include <GLFW/glfw3.h>
 

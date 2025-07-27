@@ -2,12 +2,11 @@
 #include <glad/glad.h>
 #include "../../RenderCore/Camera.h"
 #include "../../RenderCore/Shader.h"
-#include "../Components/ComponentManager.h"
-#include "../Components/Components.h"
+#include "../../Core/Components/Components.h"
 #include "../TransformUtils.h"
 #include "../../RenderCore/MeshAsset.h"
 #include "../../RenderCore/MaterialAsset.h"
-#include "System.h"
+#include "../../Core/Systems/System.h"
 #include <map>
 #include <vector>
 #include <glm/gtc/type_ptr.hpp>

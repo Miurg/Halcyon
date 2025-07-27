@@ -1,5 +1,5 @@
 #pragma once
-#include "Components/Components.h"
+#include "../Core/Components/Components.h"
 #include <cmath>
 #define _USE_MATH_DEFINES
 

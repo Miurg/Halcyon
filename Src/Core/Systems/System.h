@@ -20,7 +20,7 @@ public:
     {
 	   for (Entity entity : entities)
 	   {
-	        ProcessEntity(entity, cm, deltaTime);
+			ProcessEntity(entity, cm, deltaTime);
 	   }
     }
     
@@ -31,7 +31,7 @@ public:
 	   return HasAllComponents<RequiredComponents...>(entity, cm, typeid(Derived).name());
     }
 
-  protected:
+protected:
     template <typename Component, typename... Rest> 
     static bool HasAllComponents(Entity entity, ComponentManager& cm, const char* systemName)
     {

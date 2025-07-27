@@ -1,6 +1,6 @@
 #pragma once
-#include "System.h"
-#include "../Components/Components.h"
+#include "../../Core/Systems/System.h"
+#include "../../Core/Components/Components.h"
 
 class MovementSystem : public System<MovementSystem,TransformComponent, VelocityComponent>
 {

@@ -1,7 +1,7 @@
 #pragma once
-#include "System.h"
-#include "../Components/Components.h"
-#include "../TransformUtils.h"
+#include "../../Core/Systems/System.h"
+#include "../../Core/Components/Components.h"
+#include "../../RenderCore/TransformUtils.h"
 
 class RotationSystem : public System<RotationSystem,TransformComponent, RotationSpeedComponent>
 {

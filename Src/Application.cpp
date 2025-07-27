@@ -7,15 +7,15 @@
 
 #include "RenderCore/Shader.h"
 #include "RenderCore/Camera.h"
-#include "ECSCore/ECSManager.h"
+#include "Core/ECSManager.h"
 #include "RenderCore/AssetManager.h"
 #include "RenderCore/MeshAsset.h"
 #include "RenderCore/MaterialAsset.h"
 #include "RenderCore/PrimitiveMeshFactory.h"
-#include "ECSCore/Systems/CameraSystem.h"
-#include "ECSCore/Systems/RenderingSystem.h"
-#include "ECSCore/Systems/RotationSystem.h"
-#include "ECSCore/Systems/MovementSystem.h"
+#include "SimulationCore/Systems/CameraSystem.h"
+#include "RenderCore/Systems/RenderingSystem.h"
+#include "SimulationCore/Systems/RotationSystem.h"
+#include "SimulationCore/Systems/MovementSystem.h"
 
 namespace
 {
