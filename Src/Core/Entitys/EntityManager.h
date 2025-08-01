@@ -3,10 +3,15 @@
 
 using Entity = uint32_t;
 
-class EntityManager {
+class EntityManager
+{
 public:
-    EntityManager() : _nextEntity(1) {}
-    Entity CreateEntity() { return _nextEntity++; }
+   EntityManager() : _nextEntity(1) {}
+   Entity CreateEntity()
+   {
+	  return _nextEntity++;
+   }
+
 private:
-    Entity _nextEntity;
+   Entity _nextEntity;
 };

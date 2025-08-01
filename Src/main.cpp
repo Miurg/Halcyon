@@ -2,6 +2,6 @@
 
 int main()
 {
-    Application app;
-    return app.Run();
+	Application app;
+	return app.Run();
 }

@@ -1,15 +1,15 @@
 #pragma once
-#include "../../Core/Systems/System.h"
 #include "../../Core/Components/Components.h"
+#include "../../Core/Systems/System.h"
 
-class MovementSystem : public System<MovementSystem,TransformComponent, VelocityComponent>
+class MovementSystem : public System<MovementSystem, TransformComponent, VelocityComponent>
 {
 public:
-    void ProcessEntity(Entity entity, ComponentManager& cm, float deltaTime) override
-    {
-        TransformComponent* transform = cm.GetComponent<TransformComponent>(entity);
-        VelocityComponent* velocity = cm.GetComponent<VelocityComponent>(entity);
+	void ProcessEntity(Entity entity, ComponentManager& cm, float deltaTime) override
+	{
+		TransformComponent* transform = cm.GetComponent<TransformComponent>(entity);
+		VelocityComponent* velocity = cm.GetComponent<VelocityComponent>(entity);
 
-        transform->Position += velocity->Velocity * deltaTime;
-    }
+		transform->Position += velocity->Velocity * deltaTime;
+	}
 };
