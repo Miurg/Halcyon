@@ -5,8 +5,8 @@
 #include <vector>
 
 #include "../Entitys/EntityManager.h"
-
-class ComponentManager; // Forward declaration
+#include "ComponentArray.h"
+#include <functional>
 
 struct Component
 {
@@ -16,65 +16,52 @@ struct Component
 class ComponentManager
 {
 private:
-	std::unordered_map<std::type_index, std::unordered_map<Entity, std::unique_ptr<Component>>> _components;
+	template <typename T>
+	static ComponentArray<T>& GetComponentArray()
+	{
+		static ComponentArray<T> array;
+		return array;
+	}
+
+	static std::unordered_map<std::type_index, std::function<void(Entity)>> removeCallbacks;
 
 public:
 	template <typename T, typename... Args>
 	T* AddComponent(Entity entity, Args&&... args)
 	{
-		auto component = std::make_unique<T>(std::forward<Args>(args)...);
-		T* ptr = component.get();
-		_components[std::type_index(typeid(T))][entity] = std::move(component);
-		return ptr;
+		return GetComponentArray<T>().AddComponent(entity, T{std::forward<Args>(args)...});
 	}
 
 	template <typename T>
 	T* GetComponent(Entity entity)
 	{
-		auto typeIt = _components.find(std::type_index(typeid(T)));
-		if (typeIt != _components.end())
-		{
-			auto entityIt = typeIt->second.find(entity);
-			if (entityIt != typeIt->second.end())
-			{
-				return static_cast<T*>(entityIt->second.get());
-			}
-		}
-		return nullptr;
-	}
-
-	template <typename T>
-	std::vector<std::pair<Entity, T*>> GetAllComponents()
-	{
-		std::vector<std::pair<Entity, T*>> result;
-		auto typeIt = _components.find(std::type_index(typeid(T)));
-		if (typeIt != _components.end())
-		{
-			for (auto& pair : typeIt->second)
-			{
-				Entity entity = pair.first;
-				auto& component = pair.second;
-				result.emplace_back(entity, static_cast<T*>(component.get()));
-			}
-		}
-		return result;
-	}
-
-	void RemoveEntity(Entity entity)
-	{
-		for (auto& pair : _components)
-		{
-			pair.second.erase(entity);
-		}
+		return GetComponentArray<T>().GetComponent(entity);
 	}
 
 	template <typename T>
 	void RemoveComponent(Entity entity)
 	{
-		auto typeIt = _components.find(std::type_index(typeid(T)));
-		if (typeIt != _components.end())
+		GetComponentArray<T>().RemoveComponent(entity);
+	}
+
+	template <typename T>
+	ComponentArray<T>& GetAllComponents()
+	{
+		return GetComponentArray<T>();
+	}
+
+	void RemoveEntity(Entity entity)
+	{
+		for (auto& [type, callback] : removeCallbacks)
 		{
-			typeIt->second.erase(entity);
+			callback(entity);
 		}
+	}
+
+	template <typename T>
+	static void RegisterComponentType()
+	{
+		removeCallbacks[std::type_index(typeid(T))] = [](Entity entity)
+		{ GetComponentArray<T>().RemoveComponent(entity); };
 	}
 };

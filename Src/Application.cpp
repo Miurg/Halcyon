@@ -138,10 +138,16 @@ int Application::Run()
 	//=== ECS ===
 	ECSManager world;
 
-	world.AddSystemToManager<RenderingSystem>(ourShader, MainCamera, &ScreenWidth, &ScreenHeight);
-	world.AddSystemToManager<MovementSystem>();
-	world.AddSystemToManager<RotationSystem>();
-	world.AddSystemToManager<CameraSystem>(keys);
+	world.RegisterSystem<RenderingSystem>(ourShader, MainCamera, &ScreenWidth, &ScreenHeight);
+	world.RegisterSystem<MovementSystem>();
+	world.RegisterSystem<RotationSystem>();
+	world.RegisterSystem<CameraSystem>(keys);
+
+	world.RegisterComponentType<CameraComponent>();
+	world.RegisterComponentType<TransformComponent>();
+	world.RegisterComponentType<RenderableComponent>();
+	world.RegisterComponentType<RotationSpeedComponent>();
+	world.RegisterComponentType<VelocityComponent>();
 
 	// Camera as entity
 	Entity cameraEntity = world.CreateEntity();
