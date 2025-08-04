@@ -30,6 +30,12 @@ public:
 		_systemManager.UnsubscribeFromAll(entity);
 	}
 
+	template <typename T>
+	void RegisterComponentType()
+	{
+		_componentManager.RegisterComponentType<T>();
+	}
+
 	template <typename T, typename... Args>
 	T* AddComponent(Entity entity, Args&&... args)
 	{
@@ -51,7 +57,7 @@ public:
 	}
 
 	template <typename T, typename... Args>
-	void AddSystemToManager(Args&&... args)
+	void RegisterSystem(Args&&... args)
 	{
 		_systemManager.AddSystem<T>(std::forward<Args>(args)...);
 	}
