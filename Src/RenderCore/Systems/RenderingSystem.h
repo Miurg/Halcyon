@@ -20,7 +20,7 @@ private:
 	GLuint* _screenWidth;
 	GLuint* _screenHeight;
 
-	std::map<MeshAsset*, std::map<MaterialAsset*, std::vector<Entity>>> _renderGroups;
+	std::map<MeshAsset*, std::map<MaterialAsset*, std::vector<TransformComponent*>>> _renderGroups;
 
 public:
 	RenderingSystem(Shader& shader, Camera& camera, GLuint* width, GLuint* height)
@@ -35,7 +35,7 @@ public:
 			TransformComponent* transform = cm.GetComponent<TransformComponent>(entity);
 			RenderableComponent* renderable = cm.GetComponent<RenderableComponent>(entity);
 
-			_renderGroups[renderable->Mesh][renderable->Material].push_back(entity);
+			_renderGroups[renderable->Mesh][renderable->Material].push_back(transform);
 		}
 		catch (const std::exception& e)
 		{
@@ -71,7 +71,7 @@ public:
 					mesh->BindMesh();
 					lastMesh = mesh;
 				}
-				for (auto& [material, entities] : materialGroups)
+				for (auto& [material, transforms] : materialGroups)
 				{
 					if (material != lastMaterial)
 					{
@@ -84,7 +84,7 @@ public:
 						glUniform1i(glGetUniformLocation(_shader.ShaderID, uniformName.c_str()), i);
 					}
 
-					if (hasTexture1Loc != -1)
+					if (hasTexture1Loc != -1) 
 					{
 						glUniform1i(hasTexture1Loc, material->GetTextureCount() > 0 ? 1 : 0);
 					}
@@ -93,9 +93,8 @@ public:
 						glUniform1i(hasTexture2Loc, material->GetTextureCount() > 1 ? 1 : 0);
 					}
 
-					for (Entity entity : entities)
+					for (TransformComponent* transform : transforms)
 					{
-						TransformComponent* transform = cm.GetComponent<TransformComponent>(entity);
 						glm::mat4 model = TransformUtils::CreateTransformMatrix(*transform);
 						glUniformMatrix4fv(shaderModel, 1, GL_FALSE, glm::value_ptr(model));
 
