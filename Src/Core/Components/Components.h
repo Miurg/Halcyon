@@ -1,7 +1,6 @@
 #pragma once
 #include "ComponentManager.h"
 
-// Forward declarations
 class MeshAsset;
 class MaterialAsset;
 

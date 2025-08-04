@@ -8,11 +8,10 @@ template <typename T>
 class ComponentArray
 {
 private:
-	std::vector<T> dense;              // Компоненты в непрерывной памяти
-	std::vector<Entity> denseToEntity; // dense_index -> entity
+	std::vector<T> dense;
+	std::vector<Entity> denseToEntity;
 
-	// Разреженный массив для O(1) доступа
-	std::vector<uint32_t> sparse; // entity -> dense_index
+	std::vector<uint32_t> sparse;
 	static constexpr uint32_t INVALID_INDEX = std::numeric_limits<uint32_t>::max();
 
 	bool needsSorting = false;
@@ -37,26 +36,22 @@ public:
 		denseToEntity.push_back(entity);
 		sparse[entity] = newIndex;
 
-		needsSorting = true; // Помечаем что нужна сортировка
+		needsSorting = true;
 		return &dense[newIndex];
 	}
 
-	// Сортируем dense массив по Entity ID для последовательного доступа
 	void SortByEntityId()
 	{
-		if (!needsSorting) return;
+		if (!needsSorting) [[likely]]
+			return;
 
-		// Создаем пары (entity, index) для сортировки
 		std::vector<std::pair<Entity, uint32_t>> entityIndexPairs;
 		for (uint32_t i = 0; i < denseToEntity.size(); ++i)
 		{
 			entityIndexPairs.emplace_back(denseToEntity[i], i);
 		}
-
-		// Сортируем по Entity ID
 		std::sort(entityIndexPairs.begin(), entityIndexPairs.end());
 
-		// Переупорядочиваем dense и denseToEntity
 		std::vector<T> newDense;
 		std::vector<Entity> newDenseToEntity;
 		newDense.reserve(dense.size());
@@ -69,7 +64,7 @@ public:
 
 			newDense.emplace_back(std::move(dense[oldIndex]));
 			newDenseToEntity.push_back(entity);
-			sparse[entity] = newIndex; // Обновляем sparse mapping
+			sparse[entity] = newIndex;
 		}
 
 		dense = std::move(newDense);
@@ -89,7 +84,6 @@ public:
 		return &dense[index]; 
 	}
 
-	// O(1) удаление с сохранением плотности
 	void RemoveComponent(Entity entity)
 	{
 		if (entity >= sparse.size()) [[unlikely]]
@@ -119,14 +113,17 @@ public:
 		SortByEntityId();
 		return dense.begin();
 	}
+
 	auto end()
 	{
 		return dense.end();
 	}
+
 	const auto begin() const
 	{
 		return dense.begin();
 	}
+
 	const auto end() const
 	{
 		return dense.end();
@@ -141,6 +138,7 @@ public:
 	{
 		return dense.size();
 	}
+
 	void Reserve(size_t capacity)
 	{
 		dense.reserve(capacity);
