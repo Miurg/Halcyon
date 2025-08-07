@@ -41,7 +41,7 @@ public:
 		}
 		else
 		{
-			std::cerr << "WARNING::SYSTEM MANAGER::Entity " << entity
+			std::cerr << "WARNING::SYSTEM_MANAGER::Entity " << entity
 			          << " doesn't have all required components for system " << systemType.name() << ". Cant subscribe!"
 			          << std::endl;
 		}
@@ -112,14 +112,12 @@ public:
 
 			if (shouldRemove)
 			{
-				// Remove from SystemToEntities
 				auto& entities = SystemToEntities[systemType];
 				entities.erase(std::remove(entities.begin(), entities.end(), entity), entities.end());
 
-				// Remove from EntityToSystems
 				it = entitySystems.erase(it);
 
-				std::cerr << "WARNING::SYSTEM MANAGER::Entity " << entity << " unsubscribed from system "
+				std::cerr << "WARNING::SYSTEM_MANAGER::Entity " << entity << " unsubscribed from system "
 				          << systemType.name() << " because it doesn't have all required components" << std::endl;
 			}
 			else

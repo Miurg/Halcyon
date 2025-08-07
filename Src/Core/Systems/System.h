@@ -25,7 +25,7 @@ public:
 		}
 	}
 
-	virtual void ProcessEntity(Entity entity, ComponentManager& cm, float deltaTime) = 0;
+	virtual inline void ProcessEntity(Entity entity, ComponentManager& cm, float deltaTime) = 0;
 
 	virtual bool ShouldProcessEntity(Entity entity, ComponentManager& cm)
 	{

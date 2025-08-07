@@ -10,10 +10,11 @@
 #include "RenderCore/MeshAsset.h"
 #include "RenderCore/PrimitiveMeshFactory.h"
 #include "RenderCore/Shader.h"
-#include "RenderCore/Systems/RenderingSystem.h"
+#include "RenderCore/Components/TransformComponent.h"
 #include "SimulationCore/Systems/CameraSystem.h"
 #include "SimulationCore/Systems/MovementSystem.h"
 #include "SimulationCore/Systems/RotationSystem.h"
+#include "RenderCore/Systems/MultiDrawIndirectRenderingSystem.h"
 #include "Window.h"
 
 namespace
@@ -116,14 +117,14 @@ int Application::Run()
 	glEnable(GL_DEPTH_TEST);
 
 	//=== Create shader ===
-	Shader ourShader(RESOURCES_PATH "shader.vert", RESOURCES_PATH "shader.frag");
+	Shader ourShader(RESOURCES_PATH "instanced_shader.vert", RESOURCES_PATH "instanced_shader.frag");
 
 	//=== Resource manager ===
 	AssetManager assetManager;
 
 	//=== Create meshes ===
 	MeshAsset* cubeMesh = PrimitiveMeshFactory::CreateCube(&assetManager, "cube");
-	MeshAsset* sphereMesh = PrimitiveMeshFactory::CreateSphere(&assetManager, "sphere", 64, 64);
+	MeshAsset* sphereMesh = PrimitiveMeshFactory::CreateSphere(&assetManager, "sphere", 16, 16);
 	MeshAsset* planeMesh = PrimitiveMeshFactory::CreatePlane(&assetManager, "plane", 1.0f, 2.0f);
 	MeshAsset* cylinderMesh = PrimitiveMeshFactory::CreateCylinder(&assetManager, "cylinder", 0.5f, 1.0f, 16);
 	MeshAsset* coneMesh = PrimitiveMeshFactory::CreateCone(&assetManager, "cone", 0.5f, 1.0f, 16);
@@ -138,10 +139,11 @@ int Application::Run()
 	//=== ECS ===
 	ECSManager world;
 
-	world.RegisterSystem<RenderingSystem>(ourShader, MainCamera, &ScreenWidth, &ScreenHeight);
+	//world.RegisterSystem<RenderingSystem>(ourShader, MainCamera, &ScreenWidth, &ScreenHeight);
 	world.RegisterSystem<MovementSystem>();
 	world.RegisterSystem<RotationSystem>();
 	world.RegisterSystem<CameraSystem>(keys);
+	world.RegisterSystem<MultiDrawIndirectRenderingSystem>(ourShader, MainCamera, &ScreenWidth, &ScreenHeight);
 
 	world.RegisterComponentType<CameraComponent>();
 	world.RegisterComponentType<TransformComponent>();
@@ -155,11 +157,11 @@ int Application::Run()
 	world.SubscribeEntity<CameraSystem>(cameraEntity);
 
 	//=== Create entities ===
-	for (GLuint i = 0; i < 100; ++i)
+	for (int i = 0; i < 100; ++i)
 	{
-		for (GLuint j = 0; j < 10; ++j)
+		for (int j = 0; j < 100; ++j)
 		{
-			for (GLuint k = 0; k < 10; ++k)
+			for (int k = 0; k < 100; ++k)
 			{
 				Entity entity = world.CreateEntity();
 				world.AddComponent<TransformComponent>(entity, glm::vec3(i * 2.0f, k * 2.0f, j * 2.0f));
@@ -195,19 +197,16 @@ int Application::Run()
 
 				world.AddComponent<RenderableComponent>(entity, currentMesh, currentMaterial);
 
-				if ((i + j + k) % 2 == 0)
-				{
-					world.AddComponent<VelocityComponent>(entity, glm::vec3(0.5f, 0.0f, 0.5f));
-					world.SubscribeEntity<MovementSystem>(entity);
-				}
 
 				if ((i + j + k) % 2 == 0)
 				{
 					world.AddComponent<RotationSpeedComponent>(entity, 500.0f, glm::vec3(0.0f, 1.0f, 0.0f));
 					world.SubscribeEntity<RotationSystem>(entity);
+					world.AddComponent<VelocityComponent>(entity, glm::vec3(0.5f, 0.0f, 0.5f));
+					world.SubscribeEntity<MovementSystem>(entity);
 				}
 
-				world.SubscribeEntity<RenderingSystem>(entity);
+				world.SubscribeEntity<MultiDrawIndirectRenderingSystem>(entity);
 			}
 		}
 	}

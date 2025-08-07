@@ -20,7 +20,6 @@ public:
 		if (cameraComp && cameraComp->Cam)
 		{
 			Camera* camera = cameraComp->Cam;
-
 			if (_keys[GLFW_KEY_W]) camera->ProcessKeyboard(Camera_Movement::FORWARD, deltaTime);
 			if (_keys[GLFW_KEY_S]) camera->ProcessKeyboard(Camera_Movement::BACKWARD, deltaTime);
 			if (_keys[GLFW_KEY_A]) camera->ProcessKeyboard(Camera_Movement::LEFT, deltaTime);
