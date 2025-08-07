@@ -22,8 +22,11 @@ add_subdirectory(thirdparty/imgui-docking)		#ui
 # Define MY_SOURCES to be a list of all the source files for my game 
 file(GLOB_RECURSE MY_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/Src/*.cpp")
 
+find_package(OpenMP REQUIRED)
 
-add_executable("${CMAKE_PROJECT_NAME}" ${MY_SOURCES} )
+add_executable("${CMAKE_PROJECT_NAME}" ${MY_SOURCES}  "Src/RenderCore/Components/TransformComponent.h" )
+
+target_link_libraries("${CMAKE_PROJECT_NAME}"  PRIVATE OpenMP::OpenMP_CXX)
 
 set_property(TARGET "${CMAKE_PROJECT_NAME}" PROPERTY CXX_STANDARD 17)
 
@@ -57,3 +60,5 @@ file(GLOB_RECURSE ALL_SOURCE_FILES *.cpp *.h)
 add_custom_target(format
     COMMAND clang-format -i ${ALL_SOURCE_FILES}
 )
+
+message(STATUS "OpenMP flags: ${OpenMP_CXX_FLAGS}")
