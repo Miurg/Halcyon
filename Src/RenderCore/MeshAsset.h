@@ -17,6 +17,9 @@ private:
 	GLuint _indexCount;
 	std::string _name;
 	bool _initialized;
+	
+	std::vector<Vertex> _vertices;
+	std::vector<GLuint> _indices;
 
 public:
 	MeshAsset(const std::string& meshName) : _name(meshName), _initialized(false) {}
@@ -41,6 +44,9 @@ public:
 		}
 
 		_indexCount = static_cast<GLuint>(indices.size());
+		
+		_vertices = vertices;
+		_indices = indices;
 
 		glGenVertexArrays(1, &_vao);
 		glGenBuffers(1, &_vbo);
@@ -93,5 +99,20 @@ public:
 	bool IsInitialized() const
 	{
 		return _initialized;
+	}
+	
+	const std::vector<Vertex>& GetVertices() const
+	{
+		return _vertices;
+	}
+	
+	const std::vector<GLuint>& GetIndices() const
+	{
+		return _indices;
+	}
+	
+	GLuint GetVertexCount() const
+	{
+		return static_cast<GLuint>(_vertices.size());
 	}
 };
