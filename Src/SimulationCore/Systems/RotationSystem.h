@@ -1,8 +1,7 @@
 #pragma once
 #include "../../Core/Components/Components.h"
 #include "../../Core/Systems/System.h"
-#include "../../RenderCore/TransformUtils.h"
-
+#include <omp.h>
 class RotationSystem : public System<RotationSystem, TransformComponent, RotationSpeedComponent>
 {
 public:
@@ -11,6 +10,6 @@ public:
 		TransformComponent* transform = cm.GetComponent<TransformComponent>(entity);
 		RotationSpeedComponent* rotationSpeed = cm.GetComponent<RotationSpeedComponent>(entity);
 
-		TransformUtils::RotateAroundAxis(*transform, deltaTime * rotationSpeed->Speed, rotationSpeed->Axis);
+		transform->RotateAroundAxis(deltaTime * rotationSpeed->Speed, rotationSpeed->Axis);
 	}
 };

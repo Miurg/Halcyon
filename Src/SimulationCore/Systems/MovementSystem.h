@@ -10,6 +10,6 @@ public:
 		TransformComponent* transform = cm.GetComponent<TransformComponent>(entity);
 		VelocityComponent* velocity = cm.GetComponent<VelocityComponent>(entity);
 
-		transform->Position += velocity->Velocity * deltaTime;
+		transform->SetPosition(transform->GetPosition() + velocity->Velocity * deltaTime);
 	}
 };
