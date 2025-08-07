@@ -1,6 +1,6 @@
 #pragma once
-#include "ComponentManager.h"
 #include "../../RenderCore/Camera.h"
+#include "ComponentManager.h"
 
 class MeshAsset;
 class MaterialAsset;

@@ -16,7 +16,6 @@ private:
 
 	bool needsSorting = false;
 
-
 public:
 	T* AddComponent(Entity entity, T&& component)
 	{
@@ -81,7 +80,7 @@ public:
 		if (index == INVALID_INDEX) [[unlikely]]
 			return nullptr;
 
-		return &dense[index]; 
+		return &dense[index];
 	}
 
 	void RemoveComponent(Entity entity)

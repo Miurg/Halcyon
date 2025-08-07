@@ -1,20 +1,21 @@
 #include "Application.h"
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
+
 #include <iostream>
 
 #include "Core/ECSManager.h"
 #include "RenderCore/AssetManager.h"
 #include "RenderCore/Camera.h"
+#include "RenderCore/Components/TransformComponent.h"
 #include "RenderCore/MaterialAsset.h"
 #include "RenderCore/MeshAsset.h"
 #include "RenderCore/PrimitiveMeshFactory.h"
 #include "RenderCore/Shader.h"
-#include "RenderCore/Components/TransformComponent.h"
+#include "RenderCore/Systems/MultiDrawIndirectRenderingSystem.h"
 #include "SimulationCore/Systems/CameraSystem.h"
 #include "SimulationCore/Systems/MovementSystem.h"
 #include "SimulationCore/Systems/RotationSystem.h"
-#include "RenderCore/Systems/MultiDrawIndirectRenderingSystem.h"
 #include "Window.h"
 
 namespace
@@ -139,7 +140,6 @@ int Application::Run()
 	//=== ECS ===
 	ECSManager world;
 
-	//world.RegisterSystem<RenderingSystem>(ourShader, MainCamera, &ScreenWidth, &ScreenHeight);
 	world.RegisterSystem<MovementSystem>();
 	world.RegisterSystem<RotationSystem>();
 	world.RegisterSystem<CameraSystem>(keys);
@@ -196,7 +196,6 @@ int Application::Run()
 				}
 
 				world.AddComponent<RenderableComponent>(entity, currentMesh, currentMaterial);
-
 
 				if ((i + j + k) % 2 == 0)
 				{

@@ -1,4 +1,5 @@
 #pragma once
+#include <functional>
 #include <memory>
 #include <typeindex>
 #include <unordered_map>
@@ -6,7 +7,6 @@
 
 #include "../Entitys/EntityManager.h"
 #include "ComponentArray.h"
-#include <functional>
 
 struct Component
 {

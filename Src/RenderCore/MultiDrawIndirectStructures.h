@@ -33,7 +33,6 @@ struct DrawElementsIndirectCommand
 	GLuint baseInstance;
 };
 
-
 struct RenderBatch
 {
 	MeshAsset* mesh;
