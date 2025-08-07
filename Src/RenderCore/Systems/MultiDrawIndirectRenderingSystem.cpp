@@ -375,14 +375,12 @@ void MultiDrawIndirectRenderingSystem::BindMaterialTextures(MaterialAsset* mater
 
 	material->BindTextures();
 
-	// Устанавливаем uniform'ы для текстур
 	for (size_t i = 0; i < material->GetTextureCount(); ++i)
 	{
 		std::string uniformName = "ourTexture" + std::to_string(i + 1);
 		glUniform1i(glGetUniformLocation(_shader.ShaderID, uniformName.c_str()), static_cast<GLint>(i));
 	}
 
-	// Устанавливаем флаги наличия текстур
 	GLint hasTexture1Loc = glGetUniformLocation(_shader.ShaderID, "hasTexture1");
 	GLint hasTexture2Loc = glGetUniformLocation(_shader.ShaderID, "hasTexture2");
 
