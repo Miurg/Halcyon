@@ -1,26 +1,15 @@
 #pragma once
 #include "ComponentManager.h"
+#include "../../RenderCore/Camera.h"
 
 class MeshAsset;
 class MaterialAsset;
-
-struct TransformComponent : Component
-{
-	glm::vec3 Position = glm::vec3(0.0f);
-	glm::quat Rotation = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
-	glm::vec3 Scale = glm::vec3(1.0f);
-
-	TransformComponent() = default;
-	TransformComponent(glm::vec3 pos) : Position(pos) {}
-	TransformComponent(glm::vec3 pos, glm::quat rot) : Position(pos), Rotation(rot) {}
-	TransformComponent(glm::vec3 pos, glm::quat rot, glm::vec3 scl) : Position(pos), Rotation(rot), Scale(scl) {}
-};
 
 struct RenderableComponent : Component
 {
 	MeshAsset* Mesh;
 	MaterialAsset* Material;
-
+	uint32_t batchIndex = UINT32_MAX;
 	RenderableComponent(MeshAsset* m, MaterialAsset* mat) : Mesh(m), Material(mat) {}
 };
 
