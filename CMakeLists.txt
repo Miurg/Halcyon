@@ -24,7 +24,7 @@ file(GLOB_RECURSE MY_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/Src/
 
 find_package(OpenMP REQUIRED)
 
-add_executable("${CMAKE_PROJECT_NAME}" ${MY_SOURCES}  "Src/RenderCore/Components/TransformComponent.h" )
+add_executable("${CMAKE_PROJECT_NAME}" ${MY_SOURCES})
 
 target_link_libraries("${CMAKE_PROJECT_NAME}"  PRIVATE OpenMP::OpenMP_CXX)
 
