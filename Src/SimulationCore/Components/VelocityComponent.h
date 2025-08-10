@@ -5,6 +5,6 @@
 
 struct VelocityComponent : Component
 {
-	glm::vec3 Velocity;
+	glm::vec3 Velocity = glm::vec3(0.0f, 0.0f, 0.0f);
 	VelocityComponent(glm::vec3 vel) : Velocity(vel) {}
 };
