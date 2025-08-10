@@ -16,38 +16,38 @@ struct Component
 class ComponentManager
 {
 private:
-	template <typename T>
-	static ComponentArray<T>& GetComponentArray()
+	template <typename TComponent>
+	static ComponentArray<TComponent>& GetComponentArray()
 	{
-		static ComponentArray<T> array;
+		static ComponentArray<TComponent> array;
 		return array;
 	}
 
 	static std::unordered_map<std::type_index, std::function<void(Entity)>> removeCallbacks;
 
 public:
-	template <typename T, typename... Args>
-	T* AddComponent(Entity entity, Args&&... args)
+	template <typename TComponent, typename... Args>
+	TComponent* AddComponent(Entity entity, Args&&... args)
 	{
-		return GetComponentArray<T>().AddComponent(entity, T{std::forward<Args>(args)...});
+		return GetComponentArray<TComponent>().AddComponent(entity, TComponent{std::forward<Args>(args)...});
 	}
 
-	template <typename T>
-	T* GetComponent(Entity entity)
+	template <typename TComponent>
+	TComponent* GetComponent(Entity entity)
 	{
-		return GetComponentArray<T>().GetComponent(entity);
+		return GetComponentArray<TComponent>().GetComponent(entity);
 	}
 
-	template <typename T>
+	template <typename TComponent>
 	void RemoveComponent(Entity entity)
 	{
-		GetComponentArray<T>().RemoveComponent(entity);
+		GetComponentArray<TComponent>().RemoveComponent(entity);
 	}
 
-	template <typename T>
-	ComponentArray<T>& GetAllComponents()
+	template <typename TComponent>
+	ComponentArray<TComponent>& GetAllComponents()
 	{
-		return GetComponentArray<T>();
+		return GetComponentArray<TComponent>();
 	}
 
 	void RemoveEntity(Entity entity)
@@ -58,10 +58,10 @@ public:
 		}
 	}
 
-	template <typename T>
+	template <typename TComponent>
 	static void RegisterComponentType()
 	{
-		removeCallbacks[std::type_index(typeid(T))] = [](Entity entity)
-		{ GetComponentArray<T>().RemoveComponent(entity); };
+		removeCallbacks[std::type_index(typeid(TComponent))] = [](Entity entity)
+		{ GetComponentArray<TComponent>().RemoveComponent(entity); };
 	}
 };

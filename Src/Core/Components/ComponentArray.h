@@ -4,11 +4,11 @@
 
 #include "../Entitys/EntityManager.h"
 
-template <typename T>
+template <typename TComponent>
 class ComponentArray
 {
 private:
-	std::vector<T> dense;
+	std::vector<TComponent> dense;
 	std::vector<Entity> denseToEntity;
 
 	std::vector<uint32_t> sparse;
@@ -17,7 +17,7 @@ private:
 	bool needsSorting = false;
 
 public:
-	T* AddComponent(Entity entity, T&& component)
+	TComponent* AddComponent(Entity entity, TComponent&& component)
 	{
 		if (entity >= sparse.size())
 		{
@@ -51,7 +51,7 @@ public:
 		}
 		std::sort(entityIndexPairs.begin(), entityIndexPairs.end());
 
-		std::vector<T> newDense;
+		std::vector<TComponent> newDense;
 		std::vector<Entity> newDenseToEntity;
 		newDense.reserve(dense.size());
 		newDenseToEntity.reserve(denseToEntity.size());
@@ -71,7 +71,7 @@ public:
 		needsSorting = false;
 	}
 
-	T* GetComponent(Entity entity)
+	TComponent* GetComponent(Entity entity)
 	{
 		if (entity >= sparse.size()) [[unlikely]]
 			return nullptr;

@@ -13,16 +13,16 @@ public:
 	std::unordered_map<std::type_index, std::vector<Entity>> SystemToEntities;
 	std::unordered_map<Entity, std::vector<std::type_index>> EntityToSystems;
 
-	template <typename T, typename... Args>
+	template <typename TSystem, typename... Args>
 	void AddSystem(Args&&... args)
 	{
-		Systems.push_back(std::make_unique<T>(std::forward<Args>(args)...));
+		Systems.push_back(std::make_unique<TSystem>(std::forward<Args>(args)...));
 	}
 
-	template <typename T>
+	template <typename TSystem>
 	void Subscribe(Entity entity, ComponentManager& cm)
 	{
-		std::type_index systemType = typeid(T);
+		std::type_index systemType = typeid(TSystem);
 
 		SystemBase* system = nullptr;
 		for (auto& sys : Systems)
@@ -47,10 +47,10 @@ public:
 		}
 	}
 
-	template <typename T>
+	template <typename TSystem>
 	void Unsubscribe(Entity entity)
 	{
-		std::type_index systemType = typeid(T);
+		std::type_index systemType = typeid(TSystem);
 
 		auto systemIt = SystemToEntities.find(systemType);
 		if (systemIt != SystemToEntities.end())

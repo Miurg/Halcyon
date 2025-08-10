@@ -30,48 +30,48 @@ public:
 		_systemManager.UnsubscribeFromAll(entity);
 	}
 
-	template <typename T>
+	template <typename TComponent>
 	void RegisterComponentType()
 	{
-		_componentManager.RegisterComponentType<T>();
+		_componentManager.RegisterComponentType<TComponent>();
 	}
 
-	template <typename T, typename... Args>
-	T* AddComponent(Entity entity, Args&&... args)
+	template <typename TComponent, typename... Args>
+	TComponent* AddComponent(Entity entity, Args&&... args)
 	{
-		T* component = _componentManager.AddComponent<T>(entity, std::forward<Args>(args)...);
+		TComponent* component = _componentManager.AddComponent<TComponent>(entity, std::forward<Args>(args)...);
 		return component;
 	}
 
-	template <typename T>
+	template <typename TComponent>
 	void RemoveComponent(Entity entity)
 	{
-		_componentManager.RemoveComponent<T>(entity);
+		_componentManager.RemoveComponent<TComponent>(entity);
 		_systemManager.CheckEntitySubscriptions(entity, _componentManager);
 	}
 
-	template <typename T>
-	T* GetComponent(Entity entity)
+	template <typename TComponent>
+	TComponent* GetComponent(Entity entity)
 	{
-		return _componentManager.GetComponent<T>(entity);
+		return _componentManager.GetComponent<TComponent>(entity);
 	}
 
-	template <typename T, typename... Args>
+	template <typename TSystem, typename... Args>
 	void RegisterSystem(Args&&... args)
 	{
-		_systemManager.AddSystem<T>(std::forward<Args>(args)...);
+		_systemManager.AddSystem<TSystem>(std::forward<Args>(args)...);
 	}
 
-	template <typename T>
+	template <typename TSystem>
 	void SubscribeEntity(Entity entity)
 	{
-		_systemManager.Subscribe<T>(entity, _componentManager);
+		_systemManager.Subscribe<TSystem>(entity, _componentManager);
 	}
 
-	template <typename T>
+	template <typename TSystem>
 	void UnsubscribeEntity(Entity entity)
 	{
-		_systemManager.Unsubscribe<T>(entity);
+		_systemManager.Unsubscribe<TSystem>(entity);
 	}
 
 	void Update(float deltaTime)

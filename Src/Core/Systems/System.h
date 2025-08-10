@@ -33,13 +33,13 @@ public:
 	}
 
 protected:
-	template <typename Component, typename... Rest>
+	template <typename TComponent, typename... Rest>
 	static bool HasAllComponents(Entity entity, ComponentManager& cm, const char* systemName)
 	{
-		if (cm.GetComponent<Component>(entity) == nullptr)
+		if (cm.GetComponent<TComponent>(entity) == nullptr)
 		{
 			std::cerr << "WARNING::SYSTEM::Entity " << entity << " should not be processed by " << systemName
-			          << " because it doesn't have required component: " << typeid(Component).name() << std::endl;
+			          << " because it doesn't have required component: " << typeid(TComponent).name() << std::endl;
 			return false;
 		}
 

@@ -43,8 +43,6 @@ double LastMousePositionY = 300.0;
 
 //=== Callback prototypes ===
 void FramebufferSizeCallback(GLFWwindow* window, int width, int height);
-void MouseCallback(GLFWwindow* window, double xpos, double ypos);
-void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mode);
 
 //=== Callback implementations ===
 void FramebufferSizeCallback(GLFWwindow* /*window*/, int width, int height)
@@ -102,7 +100,7 @@ void MouseCallback(GLFWwindow* /*window*/, double xpos, double ypos)
 
 int Application::Run()
 {
-	//=== Initialize window and OpenGL context ===
+	//=== Initialize window context ===
 	Window windowWrapper(ScreenWidth, ScreenHeight, "VoxelParticleSimulator");
 	GLFWwindow* window = windowWrapper.GetHandle();
 
