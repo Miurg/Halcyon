@@ -3,7 +3,7 @@
 #include <algorithm>
 #include <iostream>
 #include <unordered_set>
-
+#include "../../RenderCore/Components/RenderableComponent.h"
 #include "../MultiDrawIndirectStructures.h"
 
 void MultiDrawIndirectRenderingSystem::InitializeBuffers()

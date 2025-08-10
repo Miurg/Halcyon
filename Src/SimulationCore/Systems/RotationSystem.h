@@ -1,8 +1,8 @@
 #pragma once
 #include <omp.h>
 
-#include "../../Core/Components/Components.h"
 #include "../../Core/Systems/System.h"
+#include "../Components/RotationSpeedComponent.h"
 class RotationSystem : public System<RotationSystem, TransformComponent, RotationSpeedComponent>
 {
 public:

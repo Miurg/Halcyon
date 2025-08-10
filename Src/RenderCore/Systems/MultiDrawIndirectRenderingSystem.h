@@ -4,13 +4,12 @@
 #include <map>
 #include <unordered_map>
 #include <vector>
-
-#include "../../Core/Components/Components.h"
 #include "../../Core/Systems/System.h"
 #include "../../RenderCore/Camera.h"
 #include "../../RenderCore/MaterialAsset.h"
 #include "../../RenderCore/MeshAsset.h"
 #include "../../RenderCore/Shader.h"
+#include "../../RenderCore/Components/RenderableComponent.h"
 #include "../Components/TransformComponent.h"
 #include "../MultiDrawIndirectStructures.h"
 

@@ -1,9 +1,9 @@
 #pragma once
 #include <GLFW/glfw3.h>
-
-#include "../../Core/Components/Components.h"
+ 
 #include "../../Core/Systems/System.h"
 #include "../../RenderCore/Camera.h"
+#include "../../RenderCore/Components/CameraComponent.h"
 
 class CameraSystem : public System<CameraSystem, CameraComponent>
 {
