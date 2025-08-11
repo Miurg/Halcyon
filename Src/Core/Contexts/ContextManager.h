@@ -9,13 +9,13 @@ private:
 
 public:
 	template <typename TContext>
-	void registerContext(std::shared_ptr<TContext> ctx)
+	void RegisterContext(std::shared_ptr<TContext> ctx)
 	{
 		contexts[typeid(TContext).hash_code()] = ctx;
 	}
 
 	template <typename TContext>
-	std::shared_ptr<TContext> getContext()
+	std::shared_ptr<TContext> GetContext()
 	{
 		auto it = contexts.find(typeid(TContext).hash_code());
 		if (it != contexts.end())
