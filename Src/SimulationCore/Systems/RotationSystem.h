@@ -6,7 +6,7 @@
 class RotationSystem : public System<RotationSystem, TransformComponent, RotationSpeedComponent>
 {
 public:
-	void ProcessEntity(Entity entity, ComponentManager& cm, float deltaTime) override
+	void ProcessEntity(Entity entity, ComponentManager& cm, ContextManager& ctxM, float deltaTime) override
 	{
 		TransformComponent* transform = cm.GetComponent<TransformComponent>(entity);
 		RotationSpeedComponent* rotationSpeed = cm.GetComponent<RotationSpeedComponent>(entity);

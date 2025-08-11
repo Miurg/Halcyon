@@ -127,7 +127,7 @@ public:
 		}
 	}
 
-	void UpdateSystems(float deltaTime, ComponentManager& cm)
+	void UpdateSystems(float deltaTime, ComponentManager& cm, ContextManager& ctxM)
 	{
 		for (auto& system : Systems)
 		{
@@ -135,7 +135,7 @@ public:
 			auto it = SystemToEntities.find(systemType);
 			if (it != SystemToEntities.end())
 			{
-				system->Update(deltaTime, cm, it->second);
+				system->Update(deltaTime, cm, ctxM, it->second);
 			}
 		}
 	}

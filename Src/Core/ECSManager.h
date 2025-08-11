@@ -13,6 +13,7 @@ private:
 	ComponentManager _componentManager;
 	EntityManager _entityManager;
 	SystemManager _systemManager;
+	ContextManager _contextManager;
 	std::unordered_set<Entity> _activeEntities;
 
 public:
@@ -76,7 +77,7 @@ public:
 
 	void Update(float deltaTime)
 	{
-		_systemManager.UpdateSystems(deltaTime, _componentManager);
+		_systemManager.UpdateSystems(deltaTime, _componentManager, _contextManager);
 	}
 	const std::unordered_set<Entity>& GetActiveEntities() const
 	{

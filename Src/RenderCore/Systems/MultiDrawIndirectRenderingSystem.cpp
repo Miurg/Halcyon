@@ -62,7 +62,8 @@ void MultiDrawIndirectRenderingSystem::CleanupBuffers()
 	}
 }
 
-void MultiDrawIndirectRenderingSystem::ProcessEntity(Entity entity, ComponentManager& cm, float deltaTime)
+void MultiDrawIndirectRenderingSystem::ProcessEntity(Entity entity, ComponentManager& cm,
+                                                     ContextManager& ctxM, float deltaTime)
 {
 	try
 	{
@@ -109,11 +110,12 @@ void MultiDrawIndirectRenderingSystem::ProcessEntity(Entity entity, ComponentMan
 }
 
 void MultiDrawIndirectRenderingSystem::Update(float deltaTime, ComponentManager& cm,
+                                              ContextManager& ctxM,
                                               const std::vector<Entity>& entities)
 {
 	try
 	{
-		System::Update(deltaTime, cm, entities);
+		System::Update(deltaTime, cm, ctxM, entities);
 
 		if (_geometryNeedsUpdate)
 		{

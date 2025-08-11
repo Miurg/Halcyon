@@ -13,7 +13,7 @@ private:
 public:
 	CameraSystem(bool* keyArray) : _keys(keyArray) {}
 
-	void ProcessEntity(Entity entity, ComponentManager& cm, float deltaTime) override
+	void ProcessEntity(Entity entity, ComponentManager& cm, ContextManager& ctxM, float deltaTime) override
 	{
 		CameraComponent* cameraComp = cm.GetComponent<CameraComponent>(entity);
 

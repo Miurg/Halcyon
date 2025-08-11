@@ -2,12 +2,14 @@
 #include <vector>
 
 #include "../Components/ComponentManager.h"
+#include "../Contexts/ContextManager.h"
 
 class SystemBase
 {
 public:
 	virtual ~SystemBase() = default;
-	virtual void Update(float deltaTime, ComponentManager& cm, const std::vector<Entity>& entities) = 0;
+	virtual void Update(float deltaTime, ComponentManager& cm,
+	                    ContextManager& ctxM, const std::vector<Entity>& entities) = 0;
 	virtual bool ShouldProcessEntity(Entity entity, ComponentManager& cm) = 0;
 };
 
@@ -17,15 +19,16 @@ class System : public SystemBase
 public:
 	virtual ~System() = default;
 
-	virtual void Update(float deltaTime, ComponentManager& cm, const std::vector<Entity>& entities)
+	virtual void Update(float deltaTime, ComponentManager& cm, ContextManager& ctxM,
+	                    const std::vector<Entity>& entities)
 	{
 		for (Entity entity : entities)
 		{
-			ProcessEntity(entity, cm, deltaTime);
+			ProcessEntity(entity, cm, ctxM, deltaTime);
 		}
 	}
 
-	virtual inline void ProcessEntity(Entity entity, ComponentManager& cm, float deltaTime) = 0;
+	virtual inline void ProcessEntity(Entity entity, ComponentManager& cm, ContextManager& ctxM, float deltaTime) = 0;
 
 	virtual bool ShouldProcessEntity(Entity entity, ComponentManager& cm)
 	{

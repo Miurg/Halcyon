@@ -5,7 +5,7 @@
 class MovementSystem : public System<MovementSystem, TransformComponent, VelocityComponent>
 {
 public:
-	void ProcessEntity(Entity entity, ComponentManager& cm, float deltaTime) override
+	void ProcessEntity(Entity entity, ComponentManager& cm, ContextManager& ctxM, float deltaTime) override
 	{
 		TransformComponent* transform = cm.GetComponent<TransformComponent>(entity);
 		VelocityComponent* velocity = cm.GetComponent<VelocityComponent>(entity);
