@@ -16,6 +16,22 @@ public:
 template <typename Derived, typename... RequiredComponents>
 class System : public SystemBase
 {
+protected:
+	template <typename TComponent, typename... Rest>
+	static bool HasAllComponents(Entity entity, ComponentManager& cm, const char* systemName)
+	{
+		if (cm.GetComponent<TComponent>(entity) == nullptr)
+		{
+			std::cerr << "WARNING::SYSTEM::Entity " << entity << " should not be processed by " << systemName
+			          << " because it doesn't have required component: " << typeid(TComponent).name() << std::endl;
+			return false;
+		}
+
+		if constexpr (sizeof...(Rest) > 0)
+			return HasAllComponents<Rest...>(entity, cm, systemName);
+		else
+			return true;
+	}
 public:
 	virtual ~System() = default;
 
@@ -33,22 +49,5 @@ public:
 	virtual bool ShouldProcessEntity(Entity entity, ComponentManager& cm)
 	{
 		return HasAllComponents<RequiredComponents...>(entity, cm, typeid(Derived).name());
-	}
-
-protected:
-	template <typename TComponent, typename... Rest>
-	static bool HasAllComponents(Entity entity, ComponentManager& cm, const char* systemName)
-	{
-		if (cm.GetComponent<TComponent>(entity) == nullptr)
-		{
-			std::cerr << "WARNING::SYSTEM::Entity " << entity << " should not be processed by " << systemName
-			          << " because it doesn't have required component: " << typeid(TComponent).name() << std::endl;
-			return false;
-		}
-
-		if constexpr (sizeof...(Rest) > 0)
-			return HasAllComponents<Rest...>(entity, cm, systemName);
-		else
-			return true;
 	}
 };

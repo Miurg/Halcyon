@@ -23,7 +23,7 @@ private:
 		return array;
 	}
 
-	static std::unordered_map<std::type_index, std::function<void(Entity)>> removeCallbacks;
+	static std::unordered_map<std::type_index, std::function<void(Entity)>> _removeCallbacks;
 
 public:
 	template <typename TComponent, typename... Args>
@@ -52,7 +52,7 @@ public:
 
 	void RemoveEntity(Entity entity)
 	{
-		for (auto& [type, callback] : removeCallbacks)
+		for (auto& [type, callback] : _removeCallbacks)
 		{
 			callback(entity);
 		}
@@ -61,7 +61,7 @@ public:
 	template <typename TComponent>
 	static void RegisterComponentType()
 	{
-		removeCallbacks[std::type_index(typeid(TComponent))] = [](Entity entity)
+		_removeCallbacks[std::type_index(typeid(TComponent))] = [](Entity entity)
 		{ GetComponentArray<TComponent>().RemoveComponent(entity); };
 	}
 };
