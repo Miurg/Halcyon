@@ -2,6 +2,11 @@
 #include <memory>
 #include <unordered_map>
 
+struct Context
+{
+	virtual ~Context() = default;
+};
+
 class ContextManager
 {
 private:
