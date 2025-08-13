@@ -79,8 +79,21 @@ public:
 	{
 		_systemManager.UpdateSystems(deltaTime, _componentManager, _contextManager);
 	}
+
 	const std::unordered_set<Entity>& GetActiveEntities() const
 	{
 		return _activeEntities;
+	}
+
+	template <typename TContext>
+	void RegisterContext(std::shared_ptr<TContext> ctx)
+	{
+		_contextManager.RegisterContext<TContext>(ctx);
+	}
+
+	template <typename TContext>
+	std::shared_ptr<TContext> GetContext()
+	{
+		_contextManager.GetContext<TContext>();
 	}
 };
