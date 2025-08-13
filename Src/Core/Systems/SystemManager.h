@@ -137,10 +137,6 @@ public:
 			{
 				system->Update(deltaTime, cm, ctxM, it->second);
 			}
-			else
-			{
-				system->Update(deltaTime, cm, ctxM, std::vector<Entity>{});
-			}
 		}
 	}
 };
