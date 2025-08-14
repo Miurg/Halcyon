@@ -1,4 +1,8 @@
 #include "Window.h"
+#include <glad/glad.h>
+#include <GLFW/glfw3.h>
+#include <iostream>
+
 
 Window::Window(unsigned int width, unsigned int height, const char* title)
 {
@@ -34,6 +38,8 @@ Window::Window(unsigned int width, unsigned int height, const char* title)
 	int fbWidth, fbHeight;
 	glfwGetFramebufferSize(_GLFWwindow, &fbWidth, &fbHeight);
 	glViewport(0, 0, fbWidth, fbHeight);
+	glfwSetWindowUserPointer(_GLFWwindow, this);
+	glfwSetKeyCallback(GetHandle(), KeyCallback);
 }
 
 Window::~Window()
@@ -65,7 +71,37 @@ void Window::SwapBuffers() const
 	glfwSwapBuffers(_GLFWwindow);
 }
 
-void Window::KeyCallback(GLFWwindow*, int key, int scancode, int action, int mods)
+void Window::KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
+{
+	Window* self = static_cast<Window*>(glfwGetWindowUserPointer(window));
+	if (self) self->HandleKey(key, scancode, action, mods);
+}
+
+void Window::MouseButtonCallback(GLFWwindow* window, int button, int action, int mods) 
+{
+	Window* self = static_cast<Window*>(glfwGetWindowUserPointer(window));
+	if (self) self->HandleMouseButton(button, action, mods);
+}
+
+void Window::CursorPositionCallback(GLFWwindow* window, double xpos, double ypos) 
+{
+	Window* self = static_cast<Window*>(glfwGetWindowUserPointer(window));
+	if (self) self->HandleCursorPosition(xpos, ypos);
+}
+
+void Window::ScrollCallback(GLFWwindow* window, double xoffset, double yoffset) 
+{
+	Window* self = static_cast<Window*>(glfwGetWindowUserPointer(window));
+	if (self) self->HandleScroll(xoffset, yoffset);
+}
+
+void Window::FramebufferSizeCallback(GLFWwindow* window, int width, int height) 
+{
+	Window* self = static_cast<Window*>(glfwGetWindowUserPointer(window));
+	if (self) self->HandleFramebufferSize(width, height);
+}
+
+void Window::HandleKey(int key, int scancode, int action, int mods)
 {
 	InputEvent ev;
 	ev.Type = InputEvent::Type::Key;
@@ -74,8 +110,7 @@ void Window::KeyCallback(GLFWwindow*, int key, int scancode, int action, int mod
 	ev.Mods = mods;
 	InputQueue.push(ev);
 }
-
-void Window::MouseButtonCallback(GLFWwindow*, int button, int action, int mods)
+void Window::HandleMouseButton(int button, int action, int mods)
 {
 	InputEvent ev;
 	ev.Type = InputEvent::Type::MouseButton;
@@ -84,8 +119,7 @@ void Window::MouseButtonCallback(GLFWwindow*, int button, int action, int mods)
 	ev.Mods = mods;
 	InputQueue.push(ev);
 }
-
-void Window::CursorPositionCallback(GLFWwindow*, double xpos, double ypos)
+void Window::HandleCursorPosition(double xpos, double ypos) 
 {
 	InputEvent ev;
 	ev.Type = InputEvent::Type::MouseMove;
@@ -93,8 +127,7 @@ void Window::CursorPositionCallback(GLFWwindow*, double xpos, double ypos)
 	ev.MousePositionY = ypos;
 	InputQueue.push(ev);
 }
-
-void Window::ScrollCallback(GLFWwindow*, double xoffset, double yoffset)
+void Window::HandleScroll(double xoffset, double yoffset)
 {
 	InputEvent ev;
 	ev.Type = InputEvent::Type::MouseScroll;
@@ -102,8 +135,7 @@ void Window::ScrollCallback(GLFWwindow*, double xoffset, double yoffset)
 	ev.DeltaScrollY = yoffset;
 	InputQueue.push(ev);
 }
-
-void Window::FramebufferSizeCallback(GLFWwindow*, int width, int height)
+void Window::HandleFramebufferSize(int width, int height)
 {
 	InputEvent ev;
 	ev.Type = InputEvent::Type::WindowResize;
