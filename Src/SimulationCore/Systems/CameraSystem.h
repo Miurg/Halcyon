@@ -9,11 +9,7 @@
 
 class CameraSystem : public SystemSubscribed<CameraSystem, CameraComponent>
 {
-private:
-	bool* _keys;
-
 public:
-	CameraSystem(bool* keyArray) : _keys(keyArray) {}
 
 	void ProcessEntity(Entity entity, GeneralManager& gm, float deltaTime) override
 	{

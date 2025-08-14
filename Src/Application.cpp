@@ -125,7 +125,7 @@ int Application::Run()
 	world.RegisterSystem<InputSolverSystem>();
 	world.RegisterSystem<MovementSystem>();
 	world.RegisterSystem<RotationSystem>();
-	world.RegisterSystem<CameraSystem>(keys);
+	world.RegisterSystem<CameraSystem>();
 	world.RegisterSystem<MultiDrawIndirectRenderingSystem>(ourShader, MainCamera, &ScreenWidth, &ScreenHeight);
 
 	world.RegisterComponentType<CameraComponent>();
