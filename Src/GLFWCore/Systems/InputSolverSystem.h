@@ -13,14 +13,14 @@ class InputSolverSystem : public System<InputSolverSystem, WindowComponent, Curs
                                         ScrollDeltaComponent>
 {
 public:
-	void ProcessEntity(Entity entity, ComponentManager& cm, ContextManager& ctxM, float deltaTime)
+	void ProcessEntity(Entity entity, GeneralManager& gm, float deltaTime)
 	{
-		CursorPositionComponent* cursorPosition = cm.GetComponent<CursorPositionComponent>(entity);
-		WindowSizeComponent* windowSize = cm.GetComponent<WindowSizeComponent>(entity);
-		KeyboardStateComponent* keyboardState = cm.GetComponent<KeyboardStateComponent>(entity);
-		MouseStateComponent* mouseState = cm.GetComponent<MouseStateComponent>(entity);
-		ScrollDeltaComponent* scrollDelta = cm.GetComponent<ScrollDeltaComponent>(entity);
-		Window* mainWindow = cm.GetComponent<WindowComponent>(entity)->WindowInstance;
+		CursorPositionComponent* cursorPosition = gm.GetComponent<CursorPositionComponent>(entity);
+		WindowSizeComponent* windowSize = gm.GetComponent<WindowSizeComponent>(entity);
+		KeyboardStateComponent* keyboardState = gm.GetComponent<KeyboardStateComponent>(entity);
+		MouseStateComponent* mouseState = gm.GetComponent<MouseStateComponent>(entity);
+		ScrollDeltaComponent* scrollDelta = gm.GetComponent<ScrollDeltaComponent>(entity);
+		Window* mainWindow = gm.GetComponent<WindowComponent>(entity)->WindowInstance;
 		while (!mainWindow->InputQueue.empty())
 		{
 			const auto& e = mainWindow->InputQueue.front();

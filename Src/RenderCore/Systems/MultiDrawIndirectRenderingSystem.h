@@ -56,9 +56,8 @@ public:
 		CleanupBuffers();
 	}
 
-	void ProcessEntity(Entity entity, ComponentManager& cm, ContextManager& ctxM, float deltaTime) override;
-	void Update(float deltaTime, ComponentManager& cm,
-	            ContextManager& ctxM, const std::vector<Entity>& entities) override;
+	void ProcessEntity(Entity entity, GeneralManager& gm, float deltaTime) override;
+	void Update(float deltaTime, GeneralManager& gm, const std::vector<Entity>& entities) override;
 
 private:
 	void InitializeBuffers();

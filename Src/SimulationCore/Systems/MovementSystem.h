@@ -5,10 +5,10 @@
 class MovementSystem : public System<MovementSystem, TransformComponent, VelocityComponent>
 {
 public:
-	void ProcessEntity(Entity entity, ComponentManager& cm, ContextManager& ctxM, float deltaTime) override
+	void ProcessEntity(Entity entity, GeneralManager& gm, float deltaTime) override
 	{
-		TransformComponent* transform = cm.GetComponent<TransformComponent>(entity);
-		VelocityComponent* velocity = cm.GetComponent<VelocityComponent>(entity);
+		TransformComponent* transform = gm.GetComponent<TransformComponent>(entity);
+		VelocityComponent* velocity = gm.GetComponent<VelocityComponent>(entity);
 
 		transform->SetPosition(transform->GetPosition() + velocity->Velocity * deltaTime);
 	}

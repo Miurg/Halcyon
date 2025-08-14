@@ -2,9 +2,11 @@
 #include <typeindex>
 #include <unordered_map>
 #include <vector>
-
-#include "../Components/ComponentManager.h"
+#include <iostream>
+#include <algorithm>
+#include <memory>
 #include "System.h"
+class GeneralManager;
 
 class SystemManager
 {
@@ -20,7 +22,7 @@ public:
 	}
 
 	template <typename TSystem>
-	void Subscribe(Entity entity, ComponentManager& cm)
+	void Subscribe(Entity entity, GeneralManager& gm)
 	{
 		std::type_index systemType = typeid(TSystem);
 
@@ -34,7 +36,7 @@ public:
 			}
 		}
 
-		if (system && system->ShouldProcessEntity(entity, cm))
+		if (system && system->ShouldProcessEntity(entity, gm))
 		{
 			SystemToEntities[systemType].push_back(entity);
 			EntityToSystems[entity].push_back(systemType);
@@ -89,7 +91,7 @@ public:
 		}
 	}
 
-	void CheckEntitySubscriptions(Entity entity, ComponentManager& cm)
+	void CheckEntitySubscriptions(Entity entity, GeneralManager& gm)
 	{
 		auto entityIt = EntityToSystems.find(entity);
 		if (entityIt == EntityToSystems.end()) return;
@@ -105,7 +107,7 @@ public:
 			{
 				if (std::type_index(typeid(*system)) == systemType)
 				{
-					shouldRemove = !system->ShouldProcessEntity(entity, cm);
+					shouldRemove = !system->ShouldProcessEntity(entity, gm);
 					break;
 				}
 			}
@@ -127,7 +129,7 @@ public:
 		}
 	}
 
-	void UpdateSystems(float deltaTime, ComponentManager& cm, ContextManager& ctxM)
+	void UpdateSystems(float deltaTime, GeneralManager& gm)
 	{
 		for (auto& system : Systems)
 		{
@@ -135,7 +137,7 @@ public:
 			auto it = SystemToEntities.find(systemType);
 			if (it != SystemToEntities.end())
 			{
-				system->Update(deltaTime, cm, ctxM, it->second);
+				system->Update(deltaTime, gm, it->second);
 			}
 		}
 	}

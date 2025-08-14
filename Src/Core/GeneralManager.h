@@ -4,8 +4,8 @@
 
 #include "Components/ComponentManager.h"
 #include "Entitys/EntityManager.h"
-#include "Systems/System.h"
 #include "Systems/SystemManager.h"
+#include "Contexts/ContextManager.h"
 
 class GeneralManager
 {
@@ -48,7 +48,7 @@ public:
 	void RemoveComponent(Entity entity)
 	{
 		_componentManager.RemoveComponent<TComponent>(entity);
-		_systemManager.CheckEntitySubscriptions(entity, _componentManager);
+		_systemManager.CheckEntitySubscriptions(entity, *this);
 	}
 
 	template <typename TComponent>
@@ -66,7 +66,7 @@ public:
 	template <typename TSystem>
 	void SubscribeEntity(Entity entity)
 	{
-		_systemManager.Subscribe<TSystem>(entity, _componentManager);
+		_systemManager.Subscribe<TSystem>(entity, *this);
 	}
 
 	template <typename TSystem>
@@ -77,7 +77,7 @@ public:
 
 	void Update(float deltaTime)
 	{
-		_systemManager.UpdateSystems(deltaTime, _componentManager, _contextManager);
+		_systemManager.UpdateSystems(deltaTime, *this);
 	}
 
 	const std::unordered_set<Entity>& GetActiveEntities() const
@@ -94,6 +94,6 @@ public:
 	template <typename TContext>
 	std::shared_ptr<TContext> GetContext()
 	{
-		_contextManager.GetContext<TContext>();
+		return _contextManager.GetContext<TContext>();
 	}
 };

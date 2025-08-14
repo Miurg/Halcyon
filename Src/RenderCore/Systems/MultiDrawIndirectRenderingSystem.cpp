@@ -5,6 +5,7 @@
 #include <unordered_set>
 #include "../../RenderCore/Components/RenderableComponent.h"
 #include "../MultiDrawIndirectStructures.h"
+#include "../../Core/GeneralManager.h"
 
 void MultiDrawIndirectRenderingSystem::InitializeBuffers()
 {
@@ -62,13 +63,12 @@ void MultiDrawIndirectRenderingSystem::CleanupBuffers()
 	}
 }
 
-void MultiDrawIndirectRenderingSystem::ProcessEntity(Entity entity, ComponentManager& cm,
-                                                     ContextManager& ctxM, float deltaTime)
+void MultiDrawIndirectRenderingSystem::ProcessEntity(Entity entity, GeneralManager& gm, float deltaTime)
 {
 	try
 	{
-		TransformComponent* transform = cm.GetComponent<TransformComponent>(entity);
-		RenderableComponent* renderable = cm.GetComponent<RenderableComponent>(entity);
+		TransformComponent* transform = gm.GetComponent<TransformComponent>(entity);
+		RenderableComponent* renderable = gm.GetComponent<RenderableComponent>(entity);
 
 		size_t batchIndex;
 		if (renderable->batchIndex == UINT32_MAX)
@@ -109,13 +109,12 @@ void MultiDrawIndirectRenderingSystem::ProcessEntity(Entity entity, ComponentMan
 	}
 }
 
-void MultiDrawIndirectRenderingSystem::Update(float deltaTime, ComponentManager& cm,
-                                              ContextManager& ctxM,
+void MultiDrawIndirectRenderingSystem::Update(float deltaTime, GeneralManager& gm,
                                               const std::vector<Entity>& entities)
 {
 	try
 	{
-		System::Update(deltaTime, cm, ctxM, entities);
+		System::Update(deltaTime, gm, entities);
 
 		if (_geometryNeedsUpdate)
 		{
