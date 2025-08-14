@@ -28,11 +28,11 @@ public:
 			switch (e.Type)
 			{
 			case InputEvent::Type::Key:
-				keyboardState->Keys[e.Key] = (e.Action != GLFW_RELEASE);
+				keyboardState->Keys[e.Key] = (e.Action == GLFW_PRESS || e.Action == GLFW_REPEAT);
 				break;
 
 			case InputEvent::Type::MouseButton:
-				mouseState->Keys[e.Key] = (e.Action != GLFW_RELEASE);
+				mouseState->Keys[e.Key] = (e.Action == GLFW_PRESS || e.Action == GLFW_REPEAT);
 				break;
 
 			case InputEvent::Type::MouseMove:
