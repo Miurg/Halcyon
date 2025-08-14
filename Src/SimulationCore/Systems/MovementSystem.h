@@ -1,8 +1,8 @@
 #pragma once
-#include "../../Core/Systems/System.h"
+#include "../../Core/Systems/SystemSubscribed.h"
 #include "../Components/VelocityComponent.h"
 
-class MovementSystem : public System<MovementSystem, TransformComponent, VelocityComponent>
+class MovementSystem : public SystemSubscribed<MovementSystem, TransformComponent, VelocityComponent>
 {
 public:
 	void ProcessEntity(Entity entity, GeneralManager& gm, float deltaTime) override

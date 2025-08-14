@@ -1,24 +1,31 @@
 #pragma once
+#include <algorithm>
+#include <iostream>
+#include <memory>
 #include <typeindex>
 #include <unordered_map>
 #include <vector>
-#include <iostream>
-#include <algorithm>
-#include <memory>
-#include "System.h"
+
+#include "SystemContextual.h"
+#include "SystemSubscribed.h"
 class GeneralManager;
 
 class SystemManager
 {
-public:
-	std::vector<std::unique_ptr<SystemBase>> Systems;
+private:
+	std::vector<std::unique_ptr<ISystemContextual>> SystemContextual;
+	std::vector<std::unique_ptr<ISystemSubscribed>> SystemsSubscribed;
 	std::unordered_map<std::type_index, std::vector<Entity>> SystemToEntities;
 	std::unordered_map<Entity, std::vector<std::type_index>> EntityToSystems;
 
+public:
 	template <typename TSystem, typename... Args>
 	void AddSystem(Args&&... args)
 	{
-		Systems.push_back(std::make_unique<TSystem>(std::forward<Args>(args)...));
+		if constexpr (std::is_base_of_v<ISystemSubscribed, TSystem>)
+			SystemsSubscribed.emplace_back(std::make_unique<TSystem>(std::forward<Args>(args)...));
+		else
+			SystemContextual.emplace_back(std::make_unique<TSystem>(std::forward<Args>(args)...));
 	}
 
 	template <typename TSystem>
@@ -26,8 +33,8 @@ public:
 	{
 		std::type_index systemType = typeid(TSystem);
 
-		SystemBase* system = nullptr;
-		for (auto& sys : Systems)
+		ISystemSubscribed* system = nullptr;
+		for (auto& sys : SystemsSubscribed)
 		{
 			if (std::type_index(typeid(*sys)) == systemType)
 			{
@@ -36,16 +43,21 @@ public:
 			}
 		}
 
-		if (system && system->ShouldProcessEntity(entity, gm))
+		if (!system)
 		{
-			SystemToEntities[systemType].push_back(entity);
-			EntityToSystems[entity].push_back(systemType);
+			std::cerr << "WARNING::SYSTEM_MANAGER::Entity " << entity << " trying to subscribe to a non-existent system "
+			          << systemType.name() << ". Cant subscribe!" << std::endl;
 		}
-		else
+		else if (!system->ShouldProcessEntity(entity, gm))
 		{
 			std::cerr << "WARNING::SYSTEM_MANAGER::Entity " << entity
 			          << " doesn't have all required components for system " << systemType.name() << ". Cant subscribe!"
 			          << std::endl;
+		}
+		else
+		{
+			SystemToEntities[systemType].push_back(entity);
+			EntityToSystems[entity].push_back(systemType);
 		}
 	}
 
@@ -53,6 +65,23 @@ public:
 	void Unsubscribe(Entity entity)
 	{
 		std::type_index systemType = typeid(TSystem);
+
+		ISystemSubscribed* system = nullptr;
+		for (auto& sys : SystemsSubscribed)
+		{
+			if (std::type_index(typeid(*sys)) == systemType)
+			{
+				system = sys.get();
+				break;
+			}
+		}
+
+		if (system)
+		{
+			std::cerr << "WARNING::SYSTEM_MANAGER::Entity " << entity
+			          << " trying to unsubscribe from a non-existent system " << systemType.name() << ". Cant unsubscribe!"
+			          << std::endl;
+		}
 
 		auto systemIt = SystemToEntities.find(systemType);
 		if (systemIt != SystemToEntities.end())
@@ -103,7 +132,7 @@ public:
 			std::type_index systemType = *it;
 
 			bool shouldRemove = true;
-			for (auto& system : Systems)
+			for (auto& system : SystemsSubscribed)
 			{
 				if (std::type_index(typeid(*system)) == systemType)
 				{
@@ -131,7 +160,7 @@ public:
 
 	void UpdateSystems(float deltaTime, GeneralManager& gm)
 	{
-		for (auto& system : Systems)
+		for (auto& system : SystemsSubscribed)
 		{
 			std::type_index systemType = typeid(*system);
 			auto it = SystemToEntities.find(systemType);
@@ -139,6 +168,10 @@ public:
 			{
 				system->Update(deltaTime, gm, it->second);
 			}
+		}
+		for (auto& system : SystemContextual)
+		{
+			system->Update(deltaTime, gm);
 		}
 	}
 };

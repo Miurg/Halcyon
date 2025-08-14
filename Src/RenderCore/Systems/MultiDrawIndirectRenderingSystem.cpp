@@ -114,7 +114,7 @@ void MultiDrawIndirectRenderingSystem::Update(float deltaTime, GeneralManager& g
 {
 	try
 	{
-		System::Update(deltaTime, gm, entities);
+		SystemSubscribed::Update(deltaTime, gm, entities);
 
 		if (_geometryNeedsUpdate)
 		{

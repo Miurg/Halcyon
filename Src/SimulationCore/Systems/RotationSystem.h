@@ -1,9 +1,9 @@
 #pragma once
 #include <omp.h>
 
-#include "../../Core/Systems/System.h"
+#include "../../Core/Systems/SystemSubscribed.h"
 #include "../Components/RotationSpeedComponent.h"
-class RotationSystem : public System<RotationSystem, TransformComponent, RotationSpeedComponent>
+class RotationSystem : public SystemSubscribed<RotationSystem, TransformComponent, RotationSpeedComponent>
 {
 public:
 	void ProcessEntity(Entity entity, GeneralManager& gm, float deltaTime) override

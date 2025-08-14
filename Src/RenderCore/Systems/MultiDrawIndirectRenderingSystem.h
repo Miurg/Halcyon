@@ -4,7 +4,7 @@
 #include <map>
 #include <unordered_map>
 #include <vector>
-#include "../../Core/Systems/System.h"
+#include "../../Core/Systems/SystemSubscribed.h"
 #include "../../RenderCore/Camera.h"
 #include "../../RenderCore/MaterialAsset.h"
 #include "../../RenderCore/MeshAsset.h"
@@ -14,7 +14,7 @@
 #include "../MultiDrawIndirectStructures.h"
 
 class MultiDrawIndirectRenderingSystem
-    : public System<MultiDrawIndirectRenderingSystem, TransformComponent, RenderableComponent>
+    : public SystemSubscribed<MultiDrawIndirectRenderingSystem, TransformComponent, RenderableComponent>
 {
 private:
 	Shader& _shader;

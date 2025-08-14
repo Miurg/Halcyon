@@ -1,11 +1,11 @@
 #pragma once
 #include <GLFW/glfw3.h>
  
-#include "../../Core/Systems/System.h"
+#include "../../Core/Systems/SystemSubscribed.h"
 #include "../../RenderCore/Camera.h"
 #include "../../RenderCore/Components/CameraComponent.h"
 
-class CameraSystem : public System<CameraSystem, CameraComponent>
+class CameraSystem : public SystemSubscribed<CameraSystem, CameraComponent>
 {
 private:
 	bool* _keys;

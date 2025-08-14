@@ -2,16 +2,16 @@
 #include <vector>
 #include "../Entitys/EntityManager.h"
 class GeneralManager;
-class SystemBase
+class ISystemSubscribed
 {
 public:
-	virtual ~SystemBase() = default;
+	virtual ~ISystemSubscribed() = default;
 	virtual void Update(float deltaTime, GeneralManager& gm, const std::vector<Entity>& entities) = 0;
 	virtual bool ShouldProcessEntity(Entity entity, GeneralManager& gm) = 0;
 };
 
 template <typename Derived, typename... RequiredComponents>
-class System : public SystemBase
+class SystemSubscribed : public ISystemSubscribed
 {
 protected:
 	template <typename TComponent, typename... Rest>
@@ -30,7 +30,7 @@ protected:
 			return true;
 	}
 public:
-	virtual ~System() = default;
+	virtual ~SystemSubscribed() = default;
 
 	virtual void Update(float deltaTime, GeneralManager& gm,
 	                    const std::vector<Entity>& entities)

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../Core/Systems/System.h"
+#include "../../Core/Systems/SystemSubscribed.h"
 #include "../Components/CursorPositionComponent.h"
 #include "../Components/WindowSizeComponent.h"
 #include "../Components/KeyboardStateComponent.h"
@@ -8,7 +8,7 @@
 #include "../Components/ScrollDeltaComponent.h"
 #include "../Components/WindowComponent.h"
 
-class InputSolverSystem : public System<InputSolverSystem, WindowComponent, CursorPositionComponent,
+class InputSolverSystem : public SystemSubscribed<InputSolverSystem, WindowComponent, CursorPositionComponent,
                                         WindowSizeComponent, KeyboardStateComponent, MouseStateComponent,
                                         ScrollDeltaComponent>
 {
