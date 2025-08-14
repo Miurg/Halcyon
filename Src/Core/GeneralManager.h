@@ -7,7 +7,7 @@
 #include "Systems/System.h"
 #include "Systems/SystemManager.h"
 
-class ECSManager
+class GeneralManager
 {
 private:
 	ComponentManager _componentManager;

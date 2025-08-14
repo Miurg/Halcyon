@@ -4,7 +4,7 @@
 
 #include <iostream>
 
-#include "Core/ECSManager.h"
+#include "Core/GeneralManager.h"
 #include "RenderCore/AssetManager.h"
 #include "RenderCore/Camera.h"
 #include "RenderCore/Components/TransformComponent.h"
