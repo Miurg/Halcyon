@@ -101,20 +101,6 @@ void MouseCallback(GLFWwindow* /*window*/, double xpos, double ypos)
 
 int Application::Run()
 {
-	//=== Initialize window context ===
-	Window window(ScreenWidth, ScreenHeight, "VoxelParticleSimulator");
-
-	glfwSetCursorPosCallback(window.GetHandle(), MouseCallback);
-	glfwSetCursorPos(window.GetHandle(), LastMousePositionX, LastMousePositionY);
-
-	glfwSetFramebufferSizeCallback(window.GetHandle(), FramebufferSizeCallback);
-	glfwSetInputMode(window.GetHandle(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-
-	//=== OpenGL options ===
-	glEnable(GL_CULL_FACE);
-	glFrontFace(GL_CW);
-	glEnable(GL_DEPTH_TEST);
-
 	//=== Create shader ===
 	Shader ourShader(RESOURCES_PATH "instanced_shader.vert", RESOURCES_PATH "instanced_shader.frag");
 
@@ -139,6 +125,15 @@ int Application::Run()
 	world.RegisterComponentType<MouseStateComponent>();
 	world.RegisterComponentType<ScrollDeltaComponent>();
 	world.RegisterComponentType<WindowSizeComponent>();
+
+	//=== Initialize window context ===
+	Window window(ScreenWidth, ScreenHeight, "VoxelParticleSimulator");
+
+	glfwSetCursorPosCallback(window.GetHandle(), MouseCallback);
+	glfwSetCursorPos(window.GetHandle(), LastMousePositionX, LastMousePositionY);
+
+	glfwSetFramebufferSizeCallback(window.GetHandle(), FramebufferSizeCallback);
+	glfwSetInputMode(window.GetHandle(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
 	// Context create
 	Entity windowAndInputEntity = world.CreateEntity();
@@ -233,6 +228,11 @@ int Application::Run()
 			}
 		}
 	}
+
+	//=== OpenGL options ===
+	glEnable(GL_CULL_FACE);
+	glFrontFace(GL_CW);
+	glEnable(GL_DEPTH_TEST);
 
 	//=== Main loop ===
 	int frames = 0;
