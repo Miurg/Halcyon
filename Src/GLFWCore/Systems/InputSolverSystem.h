@@ -36,8 +36,6 @@ public:
 				break;
 
 			case InputEvent::Type::MouseMove:
-				cursorPosition->DeltaPositionX = e.MousePositionX - cursorPosition->MousePositionX;
-				cursorPosition->DeltaPositionY = e.MousePositionY - cursorPosition->MousePositionY;
 				cursorPosition->MousePositionX = e.MousePositionX;
 				cursorPosition->MousePositionY = e.MousePositionY;
 				break;
