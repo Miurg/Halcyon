@@ -40,6 +40,8 @@ Window::Window(unsigned int width, unsigned int height, const char* title)
 	glViewport(0, 0, fbWidth, fbHeight);
 	glfwSetWindowUserPointer(_GLFWwindow, this);
 	glfwSetKeyCallback(GetHandle(), KeyCallback);
+	glfwSetFramebufferSizeCallback(GetHandle(), FramebufferSizeCallback);
+	glfwSetCursorPosCallback(GetHandle(), CursorPositionCallback);
 }
 
 Window::~Window()

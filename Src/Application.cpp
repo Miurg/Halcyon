@@ -22,13 +22,10 @@
 #include "GLFWCore/Contexts/InputDataContext.h"
 #include "GLFWCore/Contexts/MainWindowContext.h"
 #include "SimulationCore/Systems/ControlSystem.h"
+#include "SimulationCore/Contexts/MainCameraContext.h"
 
 namespace
 {
-//=== Global module-scope data ===
-bool WireframeToggle = false;
-bool CursorDisable = true;
-
 GLuint ScreenWidth = 1920;
 GLuint ScreenHeight = 1080;
 
@@ -37,70 +34,16 @@ Camera MainCamera(glm::vec3(10.0f, 10.0f, 10.0f), glm::vec3(0.0f, 1.0f, 0.0f),
                   -30.0f  // Pitch
 );
 
-bool keys[1024] = {false};
-
 GLfloat deltaTime = 0.0f;
 GLfloat lastFrame = 0.0f;
-
-double LastMousePositionX = 400.0;
-double LastMousePositionY = 300.0;
-
-//=== Callback implementations ===
-void FramebufferSizeCallback(GLFWwindow* /*window*/, int width, int height)
-{
-	glViewport(0, 0, width, height);
-	ScreenWidth = width;
-	ScreenHeight = height;
-}
-
-void KeyCallback(GLFWwindow* window, int key, int /*scancode*/, int action, int /*mode*/)
-{
-	if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
-	{
-		glfwSetWindowShouldClose(window, GL_TRUE);
-	}
-	if (key == GLFW_KEY_1 && action == GLFW_PRESS)
-	{
-		WireframeToggle = !WireframeToggle;
-	}
-	if (key == GLFW_KEY_3 && action == GLFW_PRESS)
-	{
-		if (CursorDisable)
-		{
-			glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-			CursorDisable = !CursorDisable;
-		}
-		else
-		{
-			glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-			CursorDisable = !CursorDisable;
-		}
-	}
-
-	if (action == GLFW_PRESS)
-		keys[key] = true;
-	else if (action == GLFW_RELEASE)
-		keys[key] = false;
-}
-
-void MouseCallback(GLFWwindow* /*window*/, double xpos, double ypos)
-{
-	if (CursorDisable)
-	{
-		GLfloat xoffset = static_cast<GLfloat>(xpos - LastMousePositionX);
-		GLfloat yoffset = static_cast<GLfloat>(LastMousePositionY - ypos);
-		LastMousePositionX = xpos;
-		LastMousePositionY = ypos;
-		constexpr GLfloat sensitivity = 0.1f;
-		xoffset *= sensitivity;
-		yoffset *= sensitivity;
-		MainCamera.ProcessMouseMovement(xoffset, yoffset, true);
-	}
-}
 } // anonymous namespace
 
 int Application::Run()
 {
+	//=== Initialize window context ===
+	Window window(ScreenWidth, ScreenHeight, "VoxelParticleSimulator");
+	glfwSetInputMode(window.GetHandle(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+
 	//=== Create shader ===
 	Shader ourShader(RESOURCES_PATH "instanced_shader.vert", RESOURCES_PATH "instanced_shader.frag");
 
@@ -112,7 +55,7 @@ int Application::Run()
 	world.RegisterSystem<MovementSystem>();
 	world.RegisterSystem<RotationSystem>();
 	world.RegisterSystem<CameraSystem>();
-	world.RegisterSystem<MultiDrawIndirectRenderingSystem>(ourShader, MainCamera, &ScreenWidth, &ScreenHeight);
+	world.RegisterSystem<MultiDrawIndirectRenderingSystem>(ourShader, MainCamera);
 
 	world.RegisterComponentType<CameraComponent>();
 	world.RegisterComponentType<TransformComponent>();
@@ -126,22 +69,13 @@ int Application::Run()
 	world.RegisterComponentType<ScrollDeltaComponent>();
 	world.RegisterComponentType<WindowSizeComponent>();
 
-	//=== Initialize window context ===
-	Window window(ScreenWidth, ScreenHeight, "VoxelParticleSimulator");
-
-	glfwSetCursorPosCallback(window.GetHandle(), MouseCallback);
-	glfwSetCursorPos(window.GetHandle(), LastMousePositionX, LastMousePositionY);
-
-	glfwSetFramebufferSizeCallback(window.GetHandle(), FramebufferSizeCallback);
-	glfwSetInputMode(window.GetHandle(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-
 	// Context create
 	Entity windowAndInputEntity = world.CreateEntity();
 	world.AddComponent<WindowComponent>(windowAndInputEntity, &window);
 	world.AddComponent<KeyboardStateComponent>(windowAndInputEntity);
 	world.AddComponent<MouseStateComponent>(windowAndInputEntity);
 	world.AddComponent<CursorPositionComponent>(windowAndInputEntity);
-	world.AddComponent<WindowSizeComponent>(windowAndInputEntity);
+	world.AddComponent<WindowSizeComponent>(windowAndInputEntity, ScreenWidth, ScreenHeight);
 	world.AddComponent<ScrollDeltaComponent>(windowAndInputEntity);
 	world.SubscribeEntity<InputSolverSystem>(windowAndInputEntity);
 
@@ -157,6 +91,11 @@ int Application::Run()
 	Entity cameraEntity = world.CreateEntity();
 	world.AddComponent<CameraComponent>(cameraEntity, &MainCamera);
 	world.SubscribeEntity<CameraSystem>(cameraEntity);
+
+	auto cameraCtx = std::make_shared<MainCameraContext>();
+	cameraCtx->CameraInstance = cameraEntity;
+	world.RegisterContext<MainCameraContext>(cameraCtx);
+
 
 	//=== Resource manager ===
 	AssetManager assetManager;
@@ -251,7 +190,7 @@ int Application::Run()
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		world.Update(deltaTime);
-
+		
 		// FPS
 		frames++;
 		float now = static_cast<float>(glfwGetTime());
