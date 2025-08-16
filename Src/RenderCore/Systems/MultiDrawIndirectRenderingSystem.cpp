@@ -6,6 +6,8 @@
 #include "../../RenderCore/Components/RenderableComponent.h"
 #include "../MultiDrawIndirectStructures.h"
 #include "../../Core/GeneralManager.h"
+#include "../../GLFWCore/Contexts/InputDataContext.h"
+#include "../../GLFWCore/Components/WindowSizeComponent.h"
 
 void MultiDrawIndirectRenderingSystem::InitializeBuffers()
 {
@@ -114,6 +116,12 @@ void MultiDrawIndirectRenderingSystem::Update(float deltaTime, GeneralManager& g
 {
 	try
 	{
+		WindowSizeComponent* windowSizeContext =
+		    gm.GetComponent<WindowSizeComponent>(gm.GetContext<InputDataContext>()->InputInstance);
+		_screenWidth = windowSizeContext->WindowWidth;
+		_screenHeight = windowSizeContext->WindowHeight;
+		glViewport(0, 0, _screenWidth, _screenHeight);
+
 		SystemSubscribed::Update(deltaTime, gm, entities);
 
 		if (_geometryNeedsUpdate)
@@ -366,7 +374,7 @@ void MultiDrawIndirectRenderingSystem::SetupUniforms()
 	glUniformMatrix4fv(glGetUniformLocation(_shader.ShaderID, "view"), 1, GL_FALSE, glm::value_ptr(view));
 
 	glm::mat4 projection =
-	    glm::perspective(glm::radians(_camera.Fov), (GLfloat)*_screenWidth / (GLfloat)*_screenHeight, 0.1f, 1000.0f);
+	    glm::perspective(glm::radians(_camera.Fov), (GLfloat)_screenWidth / (GLfloat)_screenHeight, 0.1f, 1000.0f);
 	glUniformMatrix4fv(glGetUniformLocation(_shader.ShaderID, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
 }
 

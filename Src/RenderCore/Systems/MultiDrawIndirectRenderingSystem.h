@@ -19,8 +19,8 @@ class MultiDrawIndirectRenderingSystem
 private:
 	Shader& _shader;
 	Camera& _camera;
-	GLuint* _screenWidth;
-	GLuint* _screenHeight;
+	GLuint _screenWidth;
+	GLuint _screenHeight;
 
 	GLuint _combinedVAO;
 	GLuint _combinedVBO;
@@ -43,8 +43,8 @@ private:
 	bool _instanceDataNeedsUpdate;
 
 public:
-	MultiDrawIndirectRenderingSystem(Shader& shader, Camera& camera, GLuint* width, GLuint* height)
-	    : _shader(shader), _camera(camera), _screenWidth(width), _screenHeight(height), _combinedVAO(0), _combinedVBO(0),
+	MultiDrawIndirectRenderingSystem(Shader& shader, Camera& camera)
+	    : _shader(shader), _camera(camera), _screenWidth(0), _screenHeight(0), _combinedVAO(0), _combinedVBO(0),
 	      _combinedEBO(0), _instanceTransformSSBO(0), _indirectBuffer(0), _buffersInitialized(false),
 	      _geometryNeedsUpdate(true), _instanceDataNeedsUpdate(true)
 	{
