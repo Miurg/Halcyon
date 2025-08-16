@@ -17,10 +17,10 @@ public:
 		KeyboardStateComponent* keyboardState =
 		    gm.GetComponent<KeyboardStateComponent>(gm.GetContext<InputDataContext>()->InputInstance);
 
-		if (cameraComp && cameraComp->Cam)
+		if (cameraComp && cameraComp->CameraInstance)
 		{
 			
-			Camera* camera = cameraComp->Cam;
+			Camera* camera = cameraComp->CameraInstance;
 			if (keyboardState->Keys[GLFW_KEY_W]) camera->ProcessKeyboard(Camera_Movement::FORWARD, deltaTime);
 			if (keyboardState->Keys[GLFW_KEY_S])
 				camera->ProcessKeyboard(Camera_Movement::BACKWARD, deltaTime);

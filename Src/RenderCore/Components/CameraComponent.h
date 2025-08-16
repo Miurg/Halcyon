@@ -4,6 +4,6 @@
 
 struct CameraComponent : Component
 {
-	Camera* Cam;
-	CameraComponent(Camera* cam) : Cam(cam) {}
+	Camera* CameraInstance;
+	CameraComponent(Camera* cam) : CameraInstance(cam) {}
 };
