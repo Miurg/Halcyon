@@ -44,8 +44,8 @@ int Application::Run()
 	//=== ECS ===
 	GeneralManager world;
 
-	world.RegisterSystem<ControlSystem>();
 	world.RegisterSystem<InputSolverSystem>();
+	world.RegisterSystem<ControlSystem>();
 	world.RegisterSystem<MovementSystem>();
 	world.RegisterSystem<RotationSystem>();
 	world.RegisterSystem<CameraSystem>();
@@ -63,7 +63,7 @@ int Application::Run()
 	world.RegisterComponentType<ScrollDeltaComponent>();
 	world.RegisterComponentType<WindowSizeComponent>();
 
-	// Context create
+	// Window and input
 	Entity windowAndInputEntity = world.CreateEntity();
 	world.AddComponent<WindowComponent>(windowAndInputEntity, &window);
 	world.AddComponent<KeyboardStateComponent>(windowAndInputEntity);
@@ -72,16 +72,14 @@ int Application::Run()
 	world.AddComponent<WindowSizeComponent>(windowAndInputEntity, ScreenWidth, ScreenHeight);
 	world.AddComponent<ScrollDeltaComponent>(windowAndInputEntity);
 	world.SubscribeEntity<InputSolverSystem>(windowAndInputEntity);
-
 	auto inputCtx = std::make_shared<InputDataContext>();
 	inputCtx->InputInstance = windowAndInputEntity;
 	world.RegisterContext<InputDataContext>(inputCtx);
-
 	auto windowCtx = std::make_shared<MainWindowContext>();
 	windowCtx->WindowInstance = windowAndInputEntity;
 	world.RegisterContext<MainWindowContext>(windowCtx);
 
-	// Camera as entity
+	// Camera
 	Entity cameraEntity = world.CreateEntity();
 	Camera MainCamera(glm::vec3(10.0f, 10.0f, 10.0f), glm::vec3(0.0f, 1.0f, 0.0f),
 	                  -45.0f, // Yaw
@@ -89,11 +87,11 @@ int Application::Run()
 	);
 	world.AddComponent<CameraComponent>(cameraEntity, &MainCamera);
 	world.SubscribeEntity<CameraSystem>(cameraEntity);
-
 	auto cameraCtx = std::make_shared<MainCameraContext>();
 	cameraCtx->CameraInstance = cameraEntity;
 	world.RegisterContext<MainCameraContext>(cameraCtx);
 
+	// Shader
 	Entity shaderEntity = world.CreateEntity();
 	Shader mainShader(RESOURCES_PATH "instanced_shader.vert", RESOURCES_PATH "instanced_shader.frag");
 	world.AddComponent<ShaderComponent>(shaderEntity, &mainShader);
