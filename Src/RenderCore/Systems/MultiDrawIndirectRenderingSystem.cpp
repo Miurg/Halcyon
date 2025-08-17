@@ -1,13 +1,16 @@
 #include "MultiDrawIndirectRenderingSystem.h"
 
-#include <algorithm>
 #include <iostream>
-#include <unordered_set>
 #include "../../RenderCore/Components/RenderableComponent.h"
+#include "../../RenderCore/Components/TransformComponent.h"
 #include "../MultiDrawIndirectStructures.h"
 #include "../../Core/GeneralManager.h"
 #include "../../GLFWCore/Contexts/InputDataContext.h"
 #include "../../GLFWCore/Components/WindowSizeComponent.h"
+#include "../Components/CameraComponent.h"
+#include "../../SimulationCore/Contexts/MainCameraContext.h"
+#include "../Components/ShaderComponent.h"
+#include "../Contexts/StandartShaderContext.h"
 
 void MultiDrawIndirectRenderingSystem::InitializeBuffers()
 {
@@ -124,6 +127,10 @@ void MultiDrawIndirectRenderingSystem::Update(float deltaTime, GeneralManager& g
 
 		SystemSubscribed::Update(deltaTime, gm, entities);
 
+		ShaderComponent* shaderCamera =
+		    gm.GetComponent<ShaderComponent>(gm.GetContext<StandartShaderContext>()->ShaderInstance);
+		_shader = shaderCamera->ShaderInstance;
+
 		if (_geometryNeedsUpdate)
 		{
 			UpdateCombinedGeometry();
@@ -149,7 +156,7 @@ void MultiDrawIndirectRenderingSystem::Update(float deltaTime, GeneralManager& g
 			UpdateIndirectCommands();
 			UpdateIndirectBuffer();
 
-			RenderAllBatches();
+			RenderAllBatches(gm);
 		}
 
 		ClearFrameData();
@@ -306,16 +313,16 @@ void MultiDrawIndirectRenderingSystem::UpdateIndirectBuffer()
 	glBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
 }
 
-void MultiDrawIndirectRenderingSystem::RenderAllBatches()
+void MultiDrawIndirectRenderingSystem::RenderAllBatches(GeneralManager& gm)
 {
 	if (_drawCommands.empty())
 	{
 		return;
 	}
 
-	_shader.BindShader();
+	_shader->BindShader();
 
-	SetupUniforms();
+	SetupUniforms(gm);
 
 	glBindVertexArray(_combinedVAO);
 
@@ -343,7 +350,7 @@ void MultiDrawIndirectRenderingSystem::RenderAllBatches()
 
 		const auto& command = _drawCommands[validCommandIndex];
 
-		GLint baseInstanceLoc = glGetUniformLocation(_shader.ShaderID, "baseInstance");
+		GLint baseInstanceLoc = glGetUniformLocation(_shader->ShaderID, "baseInstance");
 		if (baseInstanceLoc != -1)
 		{
 			glUniform1i(baseInstanceLoc, static_cast<GLint>(command.baseInstance));
@@ -362,20 +369,22 @@ void MultiDrawIndirectRenderingSystem::RenderAllBatches()
 	}
 
 	glBindVertexArray(0);
-	_shader.UnbindShader();
+	_shader->UnbindShader();
 
 	// std::cout << "Rendered " << validCommandIndex << " batches with "
 	//           << _allInstanceMatrices.size() << " instances" << std::endl;
 }
 
-void MultiDrawIndirectRenderingSystem::SetupUniforms()
+void MultiDrawIndirectRenderingSystem::SetupUniforms(GeneralManager& gm)
 {
+	CameraComponent* mainCamera = gm.GetComponent<CameraComponent>(gm.GetContext<MainCameraContext>()->CameraInstance);
+	Camera& _camera = *mainCamera->CameraInstance;
 	glm::mat4 view = _camera.GetViewMatrix();
-	glUniformMatrix4fv(glGetUniformLocation(_shader.ShaderID, "view"), 1, GL_FALSE, glm::value_ptr(view));
+	glUniformMatrix4fv(glGetUniformLocation(_shader->ShaderID, "view"), 1, GL_FALSE, glm::value_ptr(view));
 
 	glm::mat4 projection =
 	    glm::perspective(glm::radians(_camera.Fov), (GLfloat)_screenWidth / (GLfloat)_screenHeight, 0.1f, 1000.0f);
-	glUniformMatrix4fv(glGetUniformLocation(_shader.ShaderID, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
+	glUniformMatrix4fv(glGetUniformLocation(_shader->ShaderID, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
 }
 
 void MultiDrawIndirectRenderingSystem::BindMaterialTextures(MaterialAsset* material)
@@ -387,11 +396,11 @@ void MultiDrawIndirectRenderingSystem::BindMaterialTextures(MaterialAsset* mater
 	for (size_t i = 0; i < material->GetTextureCount(); ++i)
 	{
 		std::string uniformName = "ourTexture" + std::to_string(i + 1);
-		glUniform1i(glGetUniformLocation(_shader.ShaderID, uniformName.c_str()), static_cast<GLint>(i));
+		glUniform1i(glGetUniformLocation(_shader->ShaderID, uniformName.c_str()), static_cast<GLint>(i));
 	}
 
-	GLint hasTexture1Loc = glGetUniformLocation(_shader.ShaderID, "hasTexture1");
-	GLint hasTexture2Loc = glGetUniformLocation(_shader.ShaderID, "hasTexture2");
+	GLint hasTexture1Loc = glGetUniformLocation(_shader->ShaderID, "hasTexture1");
+	GLint hasTexture2Loc = glGetUniformLocation(_shader->ShaderID, "hasTexture2");
 
 	if (hasTexture1Loc != -1)
 	{

@@ -23,16 +23,13 @@
 #include "GLFWCore/Contexts/MainWindowContext.h"
 #include "SimulationCore/Systems/ControlSystem.h"
 #include "SimulationCore/Contexts/MainCameraContext.h"
+#include "RenderCore/Components/ShaderComponent.h"
+#include "RenderCore/Contexts/StandartShaderContext.h"
 
 namespace
 {
 GLuint ScreenWidth = 1920;
 GLuint ScreenHeight = 1080;
-
-Camera MainCamera(glm::vec3(10.0f, 10.0f, 10.0f), glm::vec3(0.0f, 1.0f, 0.0f),
-                  -45.0f, // Yaw
-                  -30.0f  // Pitch
-);
 
 GLfloat deltaTime = 0.0f;
 GLfloat lastFrame = 0.0f;
@@ -44,9 +41,6 @@ int Application::Run()
 	Window window(ScreenWidth, ScreenHeight, "VoxelParticleSimulator");
 	glfwSetInputMode(window.GetHandle(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
-	//=== Create shader ===
-	Shader ourShader(RESOURCES_PATH "instanced_shader.vert", RESOURCES_PATH "instanced_shader.frag");
-
 	//=== ECS ===
 	GeneralManager world;
 
@@ -55,7 +49,7 @@ int Application::Run()
 	world.RegisterSystem<MovementSystem>();
 	world.RegisterSystem<RotationSystem>();
 	world.RegisterSystem<CameraSystem>();
-	world.RegisterSystem<MultiDrawIndirectRenderingSystem>(ourShader, MainCamera);
+	world.RegisterSystem<MultiDrawIndirectRenderingSystem>();
 
 	world.RegisterComponentType<CameraComponent>();
 	world.RegisterComponentType<TransformComponent>();
@@ -89,6 +83,10 @@ int Application::Run()
 
 	// Camera as entity
 	Entity cameraEntity = world.CreateEntity();
+	Camera MainCamera(glm::vec3(10.0f, 10.0f, 10.0f), glm::vec3(0.0f, 1.0f, 0.0f),
+	                  -45.0f, // Yaw
+	                  -30.0f  // Pitch
+	);
 	world.AddComponent<CameraComponent>(cameraEntity, &MainCamera);
 	world.SubscribeEntity<CameraSystem>(cameraEntity);
 
@@ -96,6 +94,12 @@ int Application::Run()
 	cameraCtx->CameraInstance = cameraEntity;
 	world.RegisterContext<MainCameraContext>(cameraCtx);
 
+	Entity shaderEntity = world.CreateEntity();
+	Shader mainShader(RESOURCES_PATH "instanced_shader.vert", RESOURCES_PATH "instanced_shader.frag");
+	world.AddComponent<ShaderComponent>(shaderEntity, &mainShader);
+	auto shaderCtx = std::make_shared<StandartShaderContext>();
+	shaderCtx->ShaderInstance = shaderEntity;
+	world.RegisterContext<StandartShaderContext>(shaderCtx);
 
 	//=== Resource manager ===
 	AssetManager assetManager;
@@ -167,7 +171,6 @@ int Application::Run()
 			}
 		}
 	}
-
 	//=== OpenGL options ===
 	glEnable(GL_CULL_FACE);
 	glFrontFace(GL_CW);
@@ -176,7 +179,7 @@ int Application::Run()
 	//=== Main loop ===
 	int frames = 0;
 	float fpsLastTime = static_cast<float>(glfwGetTime());
-
+	float i = 0;
 	while (!window.ShouldClose())
 	{
 		glfwPollEvents();
@@ -190,7 +193,6 @@ int Application::Run()
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		world.Update(deltaTime);
-		
 		// FPS
 		frames++;
 		float now = static_cast<float>(glfwGetTime());
