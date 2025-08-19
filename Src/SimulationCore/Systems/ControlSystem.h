@@ -2,7 +2,7 @@
 #include <GLFW/glfw3.h>
 #include "SimulationCore/Contexts/MainCameraContext.h"
 #include "../../GLFWCore/Contexts/InputDataContext.h"
-#include "../../RenderCore/Camera.h"
+#include "../../RenderCore/Components/CameraComponent.h"
 class ControlSystem : public SystemContextual<ControlSystem>
 {
 private:
@@ -56,12 +56,27 @@ public:
 		}
 		if (CursorDisableToggle)
 		{
+			//=== Mouse ===
 			constexpr GLfloat sensitivity = 0.1f;
 			GLfloat xoffset = static_cast<GLfloat>((cursorPositionState->MousePositionX - LastMousePositionX) * sensitivity);
 			GLfloat yoffset = static_cast<GLfloat>((LastMousePositionY - cursorPositionState->MousePositionY) * sensitivity);
 			LastMousePositionX = cursorPositionState->MousePositionX;
 			LastMousePositionY = cursorPositionState->MousePositionY;
-			mainCamera->CameraInstance->ProcessMouseMovement(xoffset, yoffset, true);
+			xoffset *= mainCamera->MouseSensitivity;
+			yoffset *= mainCamera->MouseSensitivity;
+
+			mainCamera->Yaw += xoffset;
+			mainCamera->Pitch += yoffset;
+			if (mainCamera->Pitch > 89.0f) mainCamera->Pitch = 89.0f;
+			if (mainCamera->Pitch < -89.0f) mainCamera->Pitch = -89.0f;
+			//=== Keyboard ===
+			GLfloat velocity = mainCamera->MovementSpeed * deltaTime;
+			if (keyboardState->Keys[GLFW_KEY_W]) mainCamera->Position += mainCamera->Front * velocity;
+			if (keyboardState->Keys[GLFW_KEY_S]) mainCamera->Position -= mainCamera->Front * velocity;
+			if (keyboardState->Keys[GLFW_KEY_A]) mainCamera->Position -= mainCamera->Right * velocity;
+			if (keyboardState->Keys[GLFW_KEY_D]) mainCamera->Position += mainCamera->Right * velocity;
+
+			mainCamera->UpdateCameraVectors();
 		}
 	}
 };

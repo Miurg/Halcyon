@@ -5,7 +5,6 @@
 #include <unordered_map>
 #include <vector>
 #include "../../Core/Systems/SystemSubscribed.h"
-#include "../../RenderCore/Camera.h"
 #include "../../RenderCore/MaterialAsset.h"
 #include "../../RenderCore/MeshAsset.h"
 #include "../../RenderCore/Shader.h"

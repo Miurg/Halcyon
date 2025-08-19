@@ -1,30 +1,27 @@
 #include "Application.h"
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
-
 #include <iostream>
 
 #include "Core/GeneralManager.h"
+#include "GLFWCore/Contexts/InputDataContext.h"
+#include "GLFWCore/Contexts/MainWindowContext.h"
+#include "GLFWCore/Systems/InputSolverSystem.h"
+#include "GLFWCore/Window.h"
 #include "RenderCore/AssetManager.h"
-#include "RenderCore/Camera.h"
-#include "RenderCore/Components/TransformComponent.h"
 #include "RenderCore/Components/RenderableComponent.h"
+#include "RenderCore/Components/ShaderComponent.h"
+#include "RenderCore/Components/TransformComponent.h"
+#include "RenderCore/Contexts/StandartShaderContext.h"
 #include "RenderCore/MaterialAsset.h"
 #include "RenderCore/MeshAsset.h"
 #include "RenderCore/PrimitiveMeshFactory.h"
 #include "RenderCore/Shader.h"
 #include "RenderCore/Systems/MultiDrawIndirectRenderingSystem.h"
-#include "SimulationCore/Systems/CameraSystem.h"
+#include "SimulationCore/Contexts/MainCameraContext.h"
+#include "SimulationCore/Systems/ControlSystem.h"
 #include "SimulationCore/Systems/MovementSystem.h"
 #include "SimulationCore/Systems/RotationSystem.h"
-#include "GLFWCore/Window.h"
-#include "GLFWCore/Systems/InputSolverSystem.h"
-#include "GLFWCore/Contexts/InputDataContext.h"
-#include "GLFWCore/Contexts/MainWindowContext.h"
-#include "SimulationCore/Systems/ControlSystem.h"
-#include "SimulationCore/Contexts/MainCameraContext.h"
-#include "RenderCore/Components/ShaderComponent.h"
-#include "RenderCore/Contexts/StandartShaderContext.h"
 
 namespace
 {
@@ -43,12 +40,10 @@ int Application::Run()
 
 	//=== ECS ===
 	GeneralManager world;
-
 	world.RegisterSystem<InputSolverSystem>();
 	world.RegisterSystem<ControlSystem>();
 	world.RegisterSystem<MovementSystem>();
 	world.RegisterSystem<RotationSystem>();
-	world.RegisterSystem<CameraSystem>();
 	world.RegisterSystem<MultiDrawIndirectRenderingSystem>();
 
 	world.RegisterComponentType<CameraComponent>();
@@ -62,7 +57,8 @@ int Application::Run()
 	world.RegisterComponentType<MouseStateComponent>();
 	world.RegisterComponentType<ScrollDeltaComponent>();
 	world.RegisterComponentType<WindowSizeComponent>();
-
+	world.RegisterComponentType<ShaderComponent>();
+	
 	// Window and input
 	Entity windowAndInputEntity = world.CreateEntity();
 	world.AddComponent<WindowComponent>(windowAndInputEntity, &window);
@@ -81,12 +77,8 @@ int Application::Run()
 
 	// Camera
 	Entity cameraEntity = world.CreateEntity();
-	Camera MainCamera(glm::vec3(10.0f, 10.0f, 10.0f), glm::vec3(0.0f, 1.0f, 0.0f),
-	                  -45.0f, // Yaw
-	                  -30.0f  // Pitch
-	);
-	world.AddComponent<CameraComponent>(cameraEntity, &MainCamera);
-	world.SubscribeEntity<CameraSystem>(cameraEntity);
+	world.AddComponent<CameraComponent>(cameraEntity, glm::vec3(10.0f, 10.0f, 10.0f), glm::vec3(0.0f, 1.0f, 0.0f),
+	                                    -45.0f, -30.0f);
 	auto cameraCtx = std::make_shared<MainCameraContext>();
 	cameraCtx->CameraInstance = cameraEntity;
 	world.RegisterContext<MainCameraContext>(cameraCtx);
@@ -185,7 +177,6 @@ int Application::Run()
 		GLfloat currentFrame = static_cast<GLfloat>(glfwGetTime());
 		deltaTime = currentFrame - lastFrame;
 		lastFrame = currentFrame;
-
 
 		glClearColor(0.3f, 0.3f, 1.3f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);

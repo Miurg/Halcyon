@@ -378,12 +378,11 @@ void MultiDrawIndirectRenderingSystem::RenderAllBatches(GeneralManager& gm)
 void MultiDrawIndirectRenderingSystem::SetupUniforms(GeneralManager& gm)
 {
 	CameraComponent* mainCamera = gm.GetComponent<CameraComponent>(gm.GetContext<MainCameraContext>()->CameraInstance);
-	Camera& _camera = *mainCamera->CameraInstance;
-	glm::mat4 view = _camera.GetViewMatrix();
+	glm::mat4 view = mainCamera->GetViewMatrix();
 	glUniformMatrix4fv(glGetUniformLocation(_shader->ShaderID, "view"), 1, GL_FALSE, glm::value_ptr(view));
 
 	glm::mat4 projection =
-	    glm::perspective(glm::radians(_camera.Fov), (GLfloat)_screenWidth / (GLfloat)_screenHeight, 0.1f, 1000.0f);
+	    glm::perspective(glm::radians(mainCamera->Fov), (GLfloat)_screenWidth / (GLfloat)_screenHeight, 0.1f, 1000.0f);
 	glUniformMatrix4fv(glGetUniformLocation(_shader->ShaderID, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
 }
 
