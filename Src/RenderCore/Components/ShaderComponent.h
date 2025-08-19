@@ -1,8 +1,6 @@
 #pragma once
 #include "../../Core/Components/ComponentManager.h"
-
-class MeshAsset;
-class MaterialAsset;
+#include "../Shader.h"
 
 struct ShaderComponent : Component
 {
