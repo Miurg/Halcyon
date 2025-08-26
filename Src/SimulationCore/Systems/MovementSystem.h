@@ -1,4 +1,5 @@
 #pragma once
+#include "../../RenderCore/Components/TransformComponent.h"
 #include "../../Core/Systems/SystemSubscribed.h"
 #include "../Components/VelocityComponent.h"
 

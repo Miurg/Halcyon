@@ -1,6 +1,7 @@
 #pragma once
 #include <omp.h>
 
+#include "../../RenderCore/Components/TransformComponent.h"
 #include "../../Core/Systems/SystemSubscribed.h"
 #include "../Components/RotationSpeedComponent.h"
 class RotationSystem : public SystemSubscribed<RotationSystem, TransformComponent, RotationSpeedComponent>

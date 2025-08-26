@@ -3,6 +3,10 @@
 #include "SimulationCore/Contexts/MainCameraContext.h"
 #include "../../GLFWCore/Contexts/InputDataContext.h"
 #include "../../RenderCore/Components/CameraComponent.h"
+#include "../../GLFWCore/Components/WindowComponent.h"
+#include "../../GLFWCore/Components/KeyboardStateComponent.h"
+#include "../../GLFWCore/Components/CursorPositionComponent.h"
+#include "../../GLFWCore/Contexts/MainWIndowContext.h"
 class ControlSystem : public SystemContextual<ControlSystem>
 {
 private:
