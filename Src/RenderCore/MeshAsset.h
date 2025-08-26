@@ -33,7 +33,7 @@ public:
 		_initialized = true;
 
 		std::cout << "Created mesh: " << _name << " with " << vertices.size() << " vertices and " << indices.size()
-		          << "indices" << std::endl;
+		          << " indices" << std::endl;
 	}
 
 	GLuint GetIndexCount() const

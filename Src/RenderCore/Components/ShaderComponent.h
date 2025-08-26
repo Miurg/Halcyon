@@ -5,5 +5,8 @@
 struct ShaderComponent : Component
 {
 	Shader* ShaderInstance;
-	ShaderComponent(Shader* shader) : ShaderInstance(shader) {}
+	ShaderComponent(const char* vertexPath, const char* fragmentPath) : 
+	ShaderInstance(new Shader(vertexPath, fragmentPath))
+	{
+	}
 };
