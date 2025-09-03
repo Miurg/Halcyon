@@ -10,11 +10,41 @@
 class ControlSystem : public SystemContextual<ControlSystem>
 {
 private:
-	bool WireframeToggle = false;
-	bool CursorDisableToggle = true;
+	bool Wireframe = true;
+	bool WireframeKey = false;
+	bool CursorDisable = true;
+	bool CursorDisableKey = false;
 	double LastMousePositionX = 0.0;
 	double LastMousePositionY = 0.0;
 
+	void WireFrameToggle()
+	{
+		if (Wireframe)
+		{
+			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+			Wireframe = !Wireframe;
+			std::cout << "Wireframe" << std::endl;
+		}
+		else
+		{
+			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+			Wireframe = !Wireframe;
+		}
+	}
+
+	void CursorDisableToggle()
+	{
+		if (CursorDisable)
+		{
+			glfwSetInputMode(glfwGetCurrentContext(), GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+			CursorDisable = !CursorDisable;
+		}
+		else
+		{
+			glfwSetInputMode(glfwGetCurrentContext(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+			CursorDisable = !CursorDisable;
+		}
+	}
 
 public:
 	void Update(float deltaTime, GeneralManager& gm) override
@@ -33,32 +63,29 @@ public:
 		}
 		if (keyboardState->Keys[GLFW_KEY_1])
 		{
-			if (WireframeToggle)
+			if (WireframeKey)
 			{
-				glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-				WireframeToggle = !WireframeToggle;
-				std::cout << "Wireframe" << std::endl;
+				WireFrameToggle();
+				WireframeKey = false;
 			}
-			else
-			{
-				glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-				WireframeToggle = !WireframeToggle;
-			}
+		}
+		else
+		{
+			WireframeKey = true;
 		}
 		if (keyboardState->Keys[GLFW_KEY_2])
 		{
-			if (CursorDisableToggle)
+			if (CursorDisableKey)
 			{
-				glfwSetInputMode(windowInstance->WindowInstance->GetHandle(), GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-				CursorDisableToggle = !CursorDisableToggle;
-			}
-			else
-			{
-				glfwSetInputMode(windowInstance->WindowInstance->GetHandle(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-				CursorDisableToggle = !CursorDisableToggle;
+				CursorDisableToggle();
+				CursorDisableKey = false;
 			}
 		}
-		if (CursorDisableToggle)
+		else
+		{
+			CursorDisableKey = true;
+		}
+		if (CursorDisable)
 		{
 			//=== Mouse ===
 			constexpr GLfloat sensitivity = 0.1f;
