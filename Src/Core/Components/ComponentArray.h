@@ -1,7 +1,8 @@
 #pragma once
 #include <limits>
 #include <vector>
-
+#include <shared_mutex>
+#include <atomic>
 #include "../Entitys/EntityManager.h"
 
 template <typename TComponent>
@@ -14,11 +15,13 @@ private:
 	std::vector<uint32_t> _sparse;
 	static constexpr uint32_t INVALID_INDEX = std::numeric_limits<uint32_t>::max();
 
-	bool _needsSorting = false;
+	std::atomic<bool> _needsSorting{false};
+	mutable std::shared_mutex _mutex;
 
 public:
 	TComponent* AddComponent(Entity entity, TComponent&& component)
 	{
+		std::unique_lock<std::shared_mutex> lock(_mutex);
 		if (entity >= _sparse.size())
 		{
 			_sparse.resize(entity + 1, INVALID_INDEX);
@@ -35,13 +38,19 @@ public:
 		_denseToEntity.push_back(entity);
 		_sparse[entity] = newIndex;
 
-		_needsSorting = true;
+		_needsSorting.store(true, std::memory_order_relaxed);
 		return &_dense[newIndex];
 	}
 
 	void SortByEntityId()
 	{
-		if (!_needsSorting) [[likely]]
+		if (!_needsSorting.load(std::memory_order_relaxed)) [[likely]]
+			return;
+
+		std::unique_lock<std::shared_mutex> lock(_mutex);
+
+		// Check again after get lock
+		if (!_needsSorting.load(std::memory_order_relaxed)) [[likely]]
 			return;
 
 		std::vector<std::pair<Entity, uint32_t>> entityIndexPairs;
@@ -73,6 +82,8 @@ public:
 
 	TComponent* GetComponent(Entity entity)
 	{
+		std::shared_lock<std::shared_mutex> lock(_mutex);
+
 		if (entity >= _sparse.size()) [[unlikely]]
 			return nullptr;
 
@@ -85,6 +96,8 @@ public:
 
 	void RemoveComponent(Entity entity)
 	{
+		std::unique_lock<std::shared_mutex> lock(_mutex);
+
 		if (entity >= _sparse.size()) [[unlikely]]
 			return;
 
@@ -109,37 +122,32 @@ public:
 
 	auto begin()
 	{
+		std::unique_lock<std::shared_mutex> lock(_mutex);
 		SortByEntityId();
 		return _dense.begin();
 	}
 
 	auto end()
 	{
-		return _dense.end();
-	}
-
-	const auto begin() const
-	{
-		return _dense.begin();
-	}
-
-	const auto end() const
-	{
+		std::shared_lock<std::shared_mutex> lock(_mutex);
 		return _dense.end();
 	}
 
 	const std::vector<Entity>& GetEntities() const
 	{
+		std::shared_lock<std::shared_mutex> lock(_mutex);
 		return _denseToEntity;
 	}
 
 	size_t Size() const
 	{
+		std::shared_lock<std::shared_mutex> lock(_mutex);
 		return _dense.size();
 	}
 
 	void Reserve(size_t capacity)
 	{
+		std::unique_lock<std::shared_mutex> lock(_mutex);
 		_dense.reserve(capacity);
 		_denseToEntity.reserve(capacity);
 	}
