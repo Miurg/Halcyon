@@ -129,7 +129,7 @@ void MultiDrawIndirectRenderingSystem::Update(float deltaTime, GeneralManager& g
 
 		ShaderComponent* shaderCamera =
 		    gm.GetComponent<ShaderComponent>(gm.GetContext<StandartShaderContext>()->ShaderInstance);
-		_shader = shaderCamera->ShaderInstance;
+		_shader = shaderCamera->ShaderInstance.get();
 
 		if (_geometryNeedsUpdate)
 		{

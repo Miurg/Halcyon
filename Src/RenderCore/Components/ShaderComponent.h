@@ -4,9 +4,9 @@
 
 struct ShaderComponent : Component
 {
-	Shader* ShaderInstance;
-	ShaderComponent(const char* vertexPath, const char* fragmentPath) : 
-	ShaderInstance(new Shader(vertexPath, fragmentPath))
+	std::unique_ptr<Shader> ShaderInstance;
+	ShaderComponent(const char* vertexPath, const char* fragmentPath)
+	    : ShaderInstance(std::make_unique<Shader>(vertexPath, fragmentPath))
 	{
 	}
 };
