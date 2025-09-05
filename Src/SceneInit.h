@@ -11,6 +11,11 @@ public:
 	static void Run(GeneralManager& gm)
 	{
 		std::cout << "SCENEINIT::RUN::Start init" << std::endl;
+		//=== OpenGL options ===
+		glEnable(GL_CULL_FACE);
+		glFrontFace(GL_CW);
+		glEnable(GL_DEPTH_TEST);
+
 		AssetManagerComponent* assetManagerComponent =
 		    gm.GetComponent<AssetManagerComponent>(gm.GetContext<AssetManagerContext>()->AssetManagerInstance);
 		AssetManager* assetManager = assetManagerComponent->AssetManagerInstance.get();

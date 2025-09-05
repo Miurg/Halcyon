@@ -30,11 +30,6 @@ int Application::Run()
 	CoreInit::Run(gm);
 	ContextInit::Run(gm, window, ScreenWidth, ScreenHeight);
 	SceneInit::Run(gm);
-	
-	//=== OpenGL options ===
-	glEnable(GL_CULL_FACE);
-	glFrontFace(GL_CW);
-	glEnable(GL_DEPTH_TEST);
 
 	//=== Main loop ===
 	int frames = 0;
