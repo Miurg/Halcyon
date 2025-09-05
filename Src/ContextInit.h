@@ -3,8 +3,10 @@
 #include "Core/GeneralManager.h"
 #include "SimulationCore/Contexts/MainCameraContext.h"
 #include "RenderCore/Contexts/StandartShaderContext.h"
+#include "RenderCore/Contexts/AssetManagerContext.h"
 #include "GLFWCore/Contexts/InputDataContext.h"
 #include "GLFWCore/Contexts/MainWindowContext.h"
+#include "RenderCore/Components/AssetManagerComponent.h"
 
 class ContextInit
 {
@@ -43,6 +45,13 @@ public:
 		auto shaderCtx = std::make_shared<StandartShaderContext>();
 		shaderCtx->ShaderInstance = shaderEntity;
 		gm.RegisterContext<StandartShaderContext>(shaderCtx);
+
+		// Asset manager
+		Entity assetManagerEntity = gm.CreateEntity();
+		gm.AddComponent<AssetManagerComponent>(assetManagerEntity);
+		auto assetManagerCtx = std::make_shared<AssetManagerContext>();
+		assetManagerCtx->AssetManagerInstance = assetManagerEntity;
+		gm.RegisterContext<AssetManagerContext>(assetManagerCtx);
 		std::cout << "CONTEXTINIT::RUN::Succes!" << std::endl;
 	};
 };

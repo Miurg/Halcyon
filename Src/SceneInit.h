@@ -1,28 +1,30 @@
 #pragma once
 
 #include "Core/GeneralManager.h"
+#include "RenderCore/Components/AssetManagerComponent.h"
+#include "RenderCore/Contexts/AssetManagerContext.h"
 #include "RenderCore/PrimitiveMeshFactory.h"
 
 class SceneInit
 {
 public:
-	static void Run(GeneralManager& gm, AssetManager& assetManager)
+	static void Run(GeneralManager& gm)
 	{
 		std::cout << "SCENEINIT::RUN::Start init" << std::endl;
+		AssetManagerComponent* assetManagerComponent =
+		    gm.GetComponent<AssetManagerComponent>(gm.GetContext<AssetManagerContext>()->AssetManagerInstance);
+		AssetManager* assetManager = assetManagerComponent->AssetManagerInstance.get();
 
 		//=== Create meshes ===
-		MeshAsset* cubeMesh = PrimitiveMeshFactory::CreateCube(&assetManager, "cube");
-		MeshAsset* sphereMesh = PrimitiveMeshFactory::CreateSphere(&assetManager, "sphere", 16, 16);
-		MeshAsset* planeMesh = PrimitiveMeshFactory::CreatePlane(&assetManager, "plane", 1.0f, 2.0f);
-		MeshAsset* cylinderMesh = PrimitiveMeshFactory::CreateCylinder(&assetManager, "cylinder", 0.5f, 1.0f, 16);
-		MeshAsset* coneMesh = PrimitiveMeshFactory::CreateCone(&assetManager, "cone", 0.5f, 1.0f, 16);
-
+		MeshAsset* cubeMesh = PrimitiveMeshFactory::CreateCube(assetManager, "cube");
+		MeshAsset* sphereMesh = PrimitiveMeshFactory::CreateSphere(assetManager, "sphere", 16, 16);
+		MeshAsset* planeMesh = PrimitiveMeshFactory::CreatePlane(assetManager, "plane", 1.0f, 2.0f);
+		MeshAsset* cylinderMesh = PrimitiveMeshFactory::CreateCylinder(assetManager, "cylinder", 0.5f, 1.0f, 16);
+		MeshAsset* coneMesh = PrimitiveMeshFactory::CreateCone(assetManager, "cone", 0.5f, 1.0f, 16);
 		//=== Materials ===
-		MaterialAsset* cubeMaterial = assetManager.CreateMaterial("cube_material");
+		MaterialAsset* cubeMaterial = assetManager->CreateMaterial("cube_material");
 		cubeMaterial->AddTexture(RESOURCES_PATH "awesomeface.png", "diffuse");
-
-		MaterialAsset* altMaterial = assetManager.CreateMaterial("alt_material");
-		altMaterial->AddTexture(RESOURCES_PATH "container.jpg", "diffuse");
+		MaterialAsset* altMaterial = assetManager->CreateMaterial("alt_material");
 
 		//=== Create entities ===
 		for (int i = 0; i < 100; ++i)

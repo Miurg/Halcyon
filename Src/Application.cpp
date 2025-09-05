@@ -7,24 +7,7 @@
 #include "ContextInit.h"
 #include "SceneInit.h"
 #include "Core/GeneralManager.h"
-#include "GLFWCore/Contexts/InputDataContext.h"
-#include "GLFWCore/Contexts/MainWindowContext.h"
-#include "GLFWCore/Systems/InputSolverSystem.h"
 #include "GLFWCore/Window.h"
-#include "RenderCore/AssetManager.h"
-#include "RenderCore/Components/RenderableComponent.h"
-#include "RenderCore/Components/ShaderComponent.h"
-#include "RenderCore/Components/TransformComponent.h"
-#include "RenderCore/Contexts/StandartShaderContext.h"
-#include "RenderCore/MaterialAsset.h"
-#include "RenderCore/MeshAsset.h"
-#include "RenderCore/PrimitiveMeshFactory.h"
-#include "RenderCore/Shader.h"
-#include "RenderCore/Systems/MultiDrawIndirectRenderingSystem.h"
-#include "SimulationCore/Contexts/MainCameraContext.h"
-#include "SimulationCore/Systems/ControlSystem.h"
-#include "SimulationCore/Systems/MovementSystem.h"
-#include "SimulationCore/Systems/RotationSystem.h"
 
 namespace
 {
@@ -46,8 +29,7 @@ int Application::Run()
 
 	CoreInit::Run(gm);
 	ContextInit::Run(gm, window, ScreenWidth, ScreenHeight);
-	AssetManager assetManager;
-	SceneInit::Run(gm, assetManager);
+	SceneInit::Run(gm);
 	
 	//=== OpenGL options ===
 	glEnable(GL_CULL_FACE);
@@ -81,8 +63,6 @@ int Application::Run()
 		}
 		window.SwapBuffers();
 	}
-
-	assetManager.Cleanup();
 
 	return 0;
 }
