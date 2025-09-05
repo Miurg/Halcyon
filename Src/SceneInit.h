@@ -25,6 +25,7 @@ public:
 		MaterialAsset* cubeMaterial = assetManager->CreateMaterial("cube_material");
 		cubeMaterial->AddTexture(RESOURCES_PATH "awesomeface.png", "diffuse");
 		MaterialAsset* altMaterial = assetManager->CreateMaterial("alt_material");
+		altMaterial->AddTexture(RESOURCES_PATH "container.jpg", "container");
 
 		//=== Create entities ===
 		for (int i = 0; i < 100; ++i)
