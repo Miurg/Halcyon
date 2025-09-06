@@ -2,9 +2,9 @@
 ECS-based game engine in C++ with OpenGL, aiming for maximum performance. Still in early development, but you can run it and start experimenting.
 
 ## Tech Stack
-C++
-OpenGL
-CMake
+- C++
+- OpenGL
+- CMake
 
 ## Installation
 1. Clone the repository to your computer:
