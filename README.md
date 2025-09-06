@@ -9,7 +9,7 @@ ECS-based game engine in C++ with OpenGL, aiming for maximum performance. Still 
 ## Installation
 1. Clone the repository to your computer:
    ```bash
-   git clone https://github.com/Miurg/WaterVoxelSimulator/
+   git clone https://github.com/Miurg/Halcyon/
    cd Halcyon
    cmake .
 2. Run throught main
