@@ -17,11 +17,15 @@ private:
 	std::vector<std::unique_ptr<ISystemSubscribed>> SystemsSubscribed;
 	std::unordered_map<std::type_index, std::vector<Entity>> SystemToEntities;
 	std::unordered_map<Entity, std::vector<std::type_index>> EntityToSystems;
+	mutable std::shared_mutex _mutex;
 
 public:
 	template <typename TSystem, typename... Args>
 	void AddSystem(Args&&... args)
 	{
+		std::unique_lock<std::shared_mutex> lock(_mutex);
+		static_assert(std::is_base_of_v<ISystemSubscribed, TSystem> || std::is_base_of_v<ISystemContextual, TSystem>,
+		              "TSystem must derive from either ISystemSubscribed or ISystemContextual");
 		if constexpr (std::is_base_of_v<ISystemSubscribed, TSystem>)
 			SystemsSubscribed.emplace_back(std::make_unique<TSystem>(std::forward<Args>(args)...));
 		else
@@ -32,17 +36,21 @@ public:
 	void Subscribe(Entity entity, GeneralManager& gm)
 	{
 		std::type_index systemType = typeid(TSystem);
-
 		ISystemSubscribed* system = nullptr;
-		for (auto& sys : SystemsSubscribed)
+
 		{
-			if (std::type_index(typeid(*sys)) == systemType)
+			std::shared_lock<std::shared_mutex> lock(_mutex);
+			for (auto& sys : SystemsSubscribed)
 			{
-				system = sys.get();
-				break;
+				if (std::type_index(typeid(*sys)) == systemType)
+				{
+					system = sys.get();
+					break;
+				}
 			}
 		}
 
+		std::unique_lock<std::shared_mutex> lock(_mutex);
 		if (!system)
 		{
 			std::cerr << "WARNING::SYSTEM_MANAGER::Entity " << entity << " trying to subscribe to a non-existent system "
@@ -67,22 +75,26 @@ public:
 		std::type_index systemType = typeid(TSystem);
 
 		ISystemSubscribed* system = nullptr;
-		for (auto& sys : SystemsSubscribed)
+
 		{
-			if (std::type_index(typeid(*sys)) == systemType)
+			std::shared_lock<std::shared_mutex> lock(_mutex);
+			for (auto& sys : SystemsSubscribed)
 			{
-				system = sys.get();
-				break;
+				if (std::type_index(typeid(*sys)) == systemType)
+				{
+					system = sys.get();
+					break;
+				}
+			}
+			if (system)
+			{
+				std::cerr << "WARNING::SYSTEM_MANAGER::Entity " << entity
+				          << " trying to unsubscribe from a non-existent system " << systemType.name()
+				          << ". Cant unsubscribe!" << std::endl;
 			}
 		}
 
-		if (system)
-		{
-			std::cerr << "WARNING::SYSTEM_MANAGER::Entity " << entity
-			          << " trying to unsubscribe from a non-existent system " << systemType.name() << ". Cant unsubscribe!"
-			          << std::endl;
-		}
-
+		std::unique_lock<std::shared_mutex> lock(_mutex);
 		auto systemIt = SystemToEntities.find(systemType);
 		if (systemIt != SystemToEntities.end())
 		{
@@ -108,6 +120,7 @@ public:
 
 	void UnsubscribeFromAll(Entity entity)
 	{
+		std::unique_lock<std::shared_mutex> lock(_mutex);
 		auto it = EntityToSystems.find(entity);
 		if (it != EntityToSystems.end())
 		{
@@ -122,6 +135,7 @@ public:
 
 	void CheckEntitySubscriptions(Entity entity, GeneralManager& gm)
 	{
+		std::shared_lock<std::shared_mutex> lock(_mutex);
 		auto entityIt = EntityToSystems.find(entity);
 		if (entityIt == EntityToSystems.end()) return;
 
