@@ -37,7 +37,7 @@ public:
 		{
 			for (int j = 0; j < 100; ++j)
 			{
-				for (int k = 0; k < 100; ++k)
+				for (int k = 0; k < 10; ++k)
 				{
 					Entity entity = gm.CreateEntity();
 					gm.AddComponent<TransformComponent>(entity, glm::vec3(i * 2.0f, k * 2.0f, j * 2.0f));
