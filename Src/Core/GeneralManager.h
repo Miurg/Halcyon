@@ -1,9 +1,11 @@
 #pragma once
 
-#include <unordered_set>
+#include <memory>
+#include <iostream>
 
 #include "Components/ComponentManager.h"
 #include "Entitys/EntityManager.h"
+#include "Entitys/ActiveEntitySet.h"
 #include "Systems/SystemManager.h"
 #include "Contexts/ContextManager.h"
 
@@ -14,9 +16,19 @@ private:
 	EntityManager _entityManager;
 	SystemManager _systemManager;
 	ContextManager _contextManager;
-	std::unordered_set<Entity> _activeEntities;
+	ActiveEntitySet _activeEntities;
 
 public:
+	GeneralManager(const GeneralManager&) = delete;
+	GeneralManager& operator=(const GeneralManager&) = delete;
+
+	GeneralManager(GeneralManager&&) noexcept = default;
+	GeneralManager& operator=(GeneralManager&&) noexcept = default;
+
+	GeneralManager() = default;
+	~GeneralManager() = default; // kept default; managers are value members
+
+	//Create a new entity and mark it as active
 	Entity CreateEntity()
 	{
 		Entity entity = _entityManager.CreateEntity();
@@ -24,11 +36,18 @@ public:
 		return entity;
 	}
 
+	//Destroy an entity: remove components, unsubscribe from systems and mark inactive
 	void DestroyEntity(Entity entity)
 	{
+		if (!_activeEntities.contains(entity))
+		{
+			std::cerr << "WARNING::GENERAL_MANAGER::DestroyEntity on inactive entity " << entity << std::endl;
+			return;
+		}
+
 		_componentManager.RemoveEntity(entity);
-		_activeEntities.erase(entity);
 		_systemManager.UnsubscribeFromAll(entity);
+		_activeEntities.erase(entity);
 	}
 
 	template <typename TComponent>
@@ -40,6 +59,12 @@ public:
 	template <typename TComponent, typename... Args>
 	TComponent* AddComponent(Entity entity, Args&&... args)
 	{
+		if (!_activeEntities.contains(entity))
+		{
+			std::cerr << "WARNING::GENERAL_MANAGER::AddComponent on inactive entity " << entity << std::endl;
+			return nullptr;
+		}
+
 		TComponent* component = _componentManager.AddComponent<TComponent>(entity, std::forward<Args>(args)...);
 		return component;
 	}
@@ -47,6 +72,12 @@ public:
 	template <typename TComponent>
 	void RemoveComponent(Entity entity)
 	{
+		if (!_activeEntities.contains(entity))
+		{
+			std::cerr << "WARNING::GENERAL_MANAGER::RemoveComponent on inactive entity " << entity << std::endl;
+			return;
+		}
+
 		_componentManager.RemoveComponent<TComponent>(entity);
 		_systemManager.CheckEntitySubscriptions(entity, *this);
 	}
@@ -54,6 +85,12 @@ public:
 	template <typename TComponent>
 	TComponent* GetComponent(Entity entity)
 	{
+		if (!_activeEntities.contains(entity))
+		{
+			std::cerr << "WARNING::GENERAL_MANAGER::GetComponent on inactive entity " << entity << std::endl;
+			return nullptr;
+		}
+
 		return _componentManager.GetComponent<TComponent>(entity);
 	}
 
@@ -66,12 +103,24 @@ public:
 	template <typename TSystem>
 	void SubscribeEntity(Entity entity)
 	{
+		if (!_activeEntities.contains(entity))
+		{
+			std::cerr << "WARNING::GENERAL_MANAGER::SubscribeEntity on inactive entity " << entity << std::endl;
+			return;
+		}
+
 		_systemManager.Subscribe<TSystem>(entity, *this);
 	}
 
 	template <typename TSystem>
 	void UnsubscribeEntity(Entity entity)
 	{
+		if (!_activeEntities.contains(entity))
+		{
+			std::cerr << "WARNING::GENERAL_MANAGER::UnsubscribeEntity on inactive entity " << entity << std::endl;
+			return;
+		}
+
 		_systemManager.Unsubscribe<TSystem>(entity);
 	}
 
@@ -80,9 +129,14 @@ public:
 		_systemManager.UpdateSystems(deltaTime, *this);
 	}
 
-	const std::unordered_set<Entity>& GetActiveEntities() const
+	const ActiveEntitySet& GetActiveEntities() const noexcept
 	{
 		return _activeEntities;
+	}
+
+	bool IsActive(Entity entity) const noexcept
+	{
+		return _activeEntities.contains(entity);
 	}
 
 	template <typename TContext>
