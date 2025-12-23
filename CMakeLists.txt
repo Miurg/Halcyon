@@ -1,64 +1,105 @@
-#https://github.com/meemknight/cmakeSetup
+﻿cmake_minimum_required (VERSION 3.20)
 
-cmake_minimum_required(VERSION 3.16)
+if (POLICY CMP0141)
+  cmake_policy(SET CMP0141 NEW)
+  set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT "$<IF:$<AND:$<C_COMPILER_ID:MSVC>,$<CXX_COMPILER_ID:MSVC>>,
+  $<$<CONFIG:Debug,RelWithDebInfo>:EditAndContinue>,$<$<CONFIG:Debug,RelWithDebInfo>:ProgramDatabase>>")
+endif() 
 
-set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>") #we want to use the static runtime
-set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Release>:Release>")
+project ("Halcyon" LANGUAGES CXX)
 
-project(Halcyon)
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
-set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
-set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
-set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
-set(GLFW_INSTALL OFF CACHE BOOL "" FORCE)
-add_subdirectory(thirdparty/glfw-3.3.2)			#window oppener
-add_subdirectory(thirdparty/glad)				#opengl loader
-add_subdirectory(thirdparty/stb_image)			#loading immaged
-add_subdirectory(thirdparty/stb_truetype)		#loading ttf files
-add_subdirectory(thirdparty/glm)				#math
-add_subdirectory(thirdparty/imgui-docking)		#ui
+file(GLOB_RECURSE MY_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
 
-
-# Define MY_SOURCES to be a list of all the source files for my game 
-file(GLOB_RECURSE MY_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/Src/*.cpp")
-
-find_package(OpenMP REQUIRED)
+find_package(Vulkan REQUIRED)
+find_package(glm CONFIG REQUIRED)
+find_package(glfw3 CONFIG REQUIRED)
+find_package(tinyobjloader CONFIG REQUIRED)
 
 add_executable("${CMAKE_PROJECT_NAME}" ${MY_SOURCES})
 
-target_link_libraries("${CMAKE_PROJECT_NAME}"  PRIVATE OpenMP::OpenMP_CXX)
-
-set_property(TARGET "${CMAKE_PROJECT_NAME}" PROPERTY CXX_STANDARD 17)
-
-target_compile_definitions("${CMAKE_PROJECT_NAME}" PUBLIC RESOURCES_PATH="${CMAKE_CURRENT_SOURCE_DIR}/Resources/") # This is useful to get an ASSETS_PATH in your IDE during development but you should comment this if you compile a release version and uncomment the next line
-#target_compile_definitions("${CMAKE_PROJECT_NAME}" PUBLIC RESOURCES_PATH="./resources/") # Uncomment this line to setup the ASSETS_PATH macro to the final assets directory when you share the game
-
-
-target_sources("${CMAKE_PROJECT_NAME}" PRIVATE ${MY_SOURCES} )
-
+target_link_libraries("${CMAKE_PROJECT_NAME}" PRIVATE Vulkan::Vulkan)
+target_link_libraries("${CMAKE_PROJECT_NAME}" PRIVATE glm::glm)
+target_link_libraries("${CMAKE_PROJECT_NAME}" PRIVATE glfw)
+target_link_libraries("${CMAKE_PROJECT_NAME}" PRIVATE tinyobjloader::tinyobjloader)
 
 if(MSVC)
-
-	target_compile_definitions("${CMAKE_PROJECT_NAME}" PUBLIC _CRT_SECURE_NO_WARNINGS)
-
-	#remove console
-	#set_target_properties("${CMAKE_PROJECT_NAME}" PROPERTIES LINK_FLAGS "/SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup")
-	
-	set_property(TARGET "${CMAKE_PROJECT_NAME}" PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreadedDebug<$<CONFIG:Debug>:Debug>")
-	set_property(TARGET "${CMAKE_PROJECT_NAME}" PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Release>:Release>")
-
+    target_compile_options("${CMAKE_PROJECT_NAME}" PRIVATE "/Zc:__cplusplus" "/permissive-")
+    target_compile_definitions("${CMAKE_PROJECT_NAME}" PRIVATE NOMINMAX)
 endif()
 
+find_program(SLANGC_EXECUTABLE NAMES slangc REQUIRED)
+message(STATUS "Found Slang compiler: ${SLANGC_EXECUTABLE}")
 
-target_include_directories("${CMAKE_PROJECT_NAME}" PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/Include/")
+function(add_slang_shader_target TARGET_NAME)
+    set(oneValueArgs OUTPUT_NAME)
+    set(multiValueArgs SOURCES ENTRY)
+    cmake_parse_arguments(ARG "" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 
+    if(NOT ARG_ENTRY)
+        set(ARG_ENTRY vertMain fragMain)
+    endif()
+    
+    set(ENTRY_FLAGS "")
+    foreach(ENTRY_POINT ${ARG_ENTRY})
+        list(APPEND ENTRY_FLAGS "-entry" "${ENTRY_POINT}")
+    endforeach()
 
-target_link_libraries("${CMAKE_PROJECT_NAME}" PRIVATE glm glfw 
-	glad stb_image stb_truetype imgui)
+    if(NOT ARG_OUTPUT_NAME)
+        set(ARG_OUTPUT_NAME "${TARGET_NAME}")
+    endif()
 
-file(GLOB_RECURSE ALL_SOURCE_FILES *.cpp *.h)
-add_custom_target(format
-    COMMAND clang-format -i ${ALL_SOURCE_FILES}
+    set(OUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/shaders")
+    set(OUT_FILE "${OUT_DIR}/${ARG_OUTPUT_NAME}.spv")
+    
+    get_filename_component(ABS_SOURCE_PATH "${ARG_SOURCES}" ABSOLUTE)
+
+    file(MAKE_DIRECTORY ${OUT_DIR})
+
+    add_custom_command(
+        OUTPUT ${OUT_FILE}
+        COMMAND ${SLANGC_EXECUTABLE} 
+                "${ABS_SOURCE_PATH}"
+                -target spirv 
+                -profile spirv_1_4 
+                -emit-spirv-directly 
+                -fvk-use-entrypoint-name 
+                ${ENTRY_FLAGS}
+                -o ${OUT_FILE}
+        WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
+        DEPENDS "${ABS_SOURCE_PATH}"
+        COMMENT "Compiling Slang shader: ${ARG_OUTPUT_NAME}"
+        VERBATIM
+    )
+
+    add_custom_target(${TARGET_NAME} ALL DEPENDS ${OUT_FILE})
+endfunction()
+
+add_slang_shader_target(
+    shader
+    SOURCES "assets/shaders/shader.slang"
+    ENTRY vertMain fragMain
 )
 
-message(STATUS "OpenMP flags: ${OpenMP_CXX_FLAGS}")
+add_dependencies("${CMAKE_PROJECT_NAME}" shader)
+
+add_custom_command(
+    TARGET ${PROJECT_NAME} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:${PROJECT_NAME}>/assets/textures"
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    "${CMAKE_SOURCE_DIR}/assets/textures"
+    "$<TARGET_FILE_DIR:${PROJECT_NAME}>/assets/textures"
+    COMMENT "Copy textures..."
+)
+
+add_custom_command(
+    TARGET ${PROJECT_NAME} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:${PROJECT_NAME}>/assets/models"
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    "${CMAKE_SOURCE_DIR}/assets/models"
+    "$<TARGET_FILE_DIR:${PROJECT_NAME}>/assets/models"
+    COMMENT "Copy models..."
+)

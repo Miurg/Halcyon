@@ -18,7 +18,7 @@ PointerAlignment: Left
 SpaceBeforeParens: ControlStatements
 SpacesInParentheses: false
 
-SortIncludes: true
+SortIncludes: false
 IncludeBlocks: Regroup
 IncludeCategories:
   - Regex: '^<'

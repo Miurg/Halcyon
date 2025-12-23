@@ -1,0 +1,8 @@
+{
+  "dependencies": [
+    "glfw3",
+    "glm",
+    "tinyobjloader",
+    "stb"
+  ]
+}

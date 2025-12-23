@@ -18,3 +18,5 @@ CMakeFiles/
 x64/ 
 Debug/ 
 Release/
+vcpkg_installed/
+packages/

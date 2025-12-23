@@ -1,0 +1,164 @@
+#include "Window.hpp"
+#include <stdexcept>
+#define GLFW_INCLUDE_NONE
+#include <GLFW/glfw3.h>
+#include <iostream>
+
+Window::Window(unsigned int width, unsigned int height, const char* title)
+{
+	if (!glfwInit())
+	{
+		std::cerr << "Failed to initialize GLFW" << std::endl;
+		throw std::runtime_error("glfwInit failed");
+	}
+
+	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+	glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
+
+	_GLFWwindow = glfwCreateWindow(width, height, title, nullptr, nullptr);
+	if (_GLFWwindow == nullptr)
+	{
+		std::cerr << "Failed to create GLFW window" << std::endl;
+		glfwTerminate();
+		throw std::runtime_error("glfwCreateWindow failed");
+	}
+
+	glfwSetWindowUserPointer(_GLFWwindow, this);
+	glfwSetKeyCallback(getHandle(), keyCallback);
+	glfwSetFramebufferSizeCallback(getHandle(), framebufferSizeCallback);
+	glfwSetCursorPosCallback(getHandle(), cursorPositionCallback);
+	glfwSetMouseButtonCallback(getHandle(), mouseButtonCallback);
+	glfwSetScrollCallback(getHandle(), scrollCallback);
+	this->width = width;
+	this->height = height;
+}
+
+Window::~Window()
+{
+	if (_GLFWwindow)
+	{
+		glfwDestroyWindow(_GLFWwindow);
+	}
+	glfwTerminate();
+}
+
+GLFWwindow* Window::getHandle() const
+{
+	return _GLFWwindow;
+}
+
+bool Window::shouldClose() const
+{
+	return glfwWindowShouldClose(_GLFWwindow);
+}
+
+void Window::pollEvents() const
+{
+	glfwPollEvents();
+}
+
+void Window::swapBuffers() const
+{
+	glfwSwapBuffers(_GLFWwindow);
+}
+
+std::vector<const char*> Window::getRequiredExtensions() const
+{
+	uint32_t count = 0;
+	const char** extensions = glfwGetRequiredInstanceExtensions(&count);
+	return std::vector<const char*>(extensions, extensions + count);
+}
+
+vk::SurfaceKHR Window::createSurface(vk::Instance instance) const
+{
+	VkSurfaceKHR c_surface;
+	VkResult result = static_cast<VkResult>(glfwCreateWindowSurface(instance, _GLFWwindow, nullptr, &c_surface));
+
+	if (result != VK_SUCCESS)
+	{
+		throw std::runtime_error("Failed to create window surface!");
+	}
+	return vk::SurfaceKHR(c_surface);
+}
+
+void Window::waitEvents() const
+{
+	glfwWaitEvents();
+}
+
+void Window::keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
+{
+	Window* self = static_cast<Window*>(glfwGetWindowUserPointer(window));
+	if (self) self->handleKey(key, scancode, action, mods);
+}
+
+void Window::mouseButtonCallback(GLFWwindow* window, int button, int action, int mods)
+{
+	Window* self = static_cast<Window*>(glfwGetWindowUserPointer(window));
+	if (self) self->handleMouseButton(button, action, mods);
+}
+
+void Window::cursorPositionCallback(GLFWwindow* window, double xpos, double ypos)
+{
+	Window* self = static_cast<Window*>(glfwGetWindowUserPointer(window));
+	if (self) self->handleCursorPosition(xpos, ypos);
+}
+
+void Window::scrollCallback(GLFWwindow* window, double xoffset, double yoffset)
+{
+	Window* self = static_cast<Window*>(glfwGetWindowUserPointer(window));
+	if (self) self->handleScroll(xoffset, yoffset);
+}
+
+void Window::framebufferSizeCallback(GLFWwindow* window, int width, int height)
+{
+	Window* self = static_cast<Window*>(glfwGetWindowUserPointer(window));
+	if (self) self->handleFramebufferSize(width, height);
+}
+
+void Window::handleKey(int key, int scancode, int action, int mods)
+{
+	InputEvent ev;
+	ev.Type = InputEvent::Type::Key;
+	ev.Key = key;
+	ev.Action = action;
+	ev.Mods = mods;
+	InputQueue.push(ev);
+}
+void Window::handleMouseButton(int button, int action, int mods)
+{
+	InputEvent ev;
+	ev.Type = InputEvent::Type::MouseButton;
+	ev.Key = button;
+	ev.Action = action;
+	ev.Mods = mods;
+	InputQueue.push(ev);
+}
+void Window::handleCursorPosition(double xpos, double ypos)
+{
+	InputEvent ev;
+	ev.Type = InputEvent::Type::MouseMove;
+	ev.MousePositionX = xpos;
+	ev.MousePositionY = ypos;
+	InputQueue.push(ev);
+}
+void Window::handleScroll(double xoffset, double yoffset)
+{
+	InputEvent ev;
+	ev.Type = InputEvent::Type::MouseScroll;
+	ev.DeltaScrollX = xoffset;
+	ev.DeltaScrollY = yoffset;
+	InputQueue.push(ev);
+}
+void Window::handleFramebufferSize(int width, int height)
+{
+	InputEvent ev;
+	ev.Type = InputEvent::Type::WindowResize;
+	ev.WindowWidth = width;
+	ev.WindowHeight = height;
+	InputQueue.push(ev);
+
+	this->width = width;
+	this->height = height;
+	framebufferResized = true;
+}

@@ -1,7 +1,7 @@
-#include "Application.h"
+#include "App.hpp"
 
 int main()
 {
-	Application app;
-	return app.Run();
+	App app;
+	return app.run();
 }
