@@ -66,7 +66,9 @@ void App::initVulkan()
 	for (int i = 0; i < MAX_OBJECTS; i++)
 	{
 		GameObject::initUniformBuffers(gameObjects[i], *vulkanDevice);
-		DescriptorHandlerFactory::createDescriptorSets(*vulkanDevice, *descriptorHandler, gameObjects[i]);
+		DescriptorHandlerFactory::allocateDescriptorSets(*vulkanDevice, *descriptorHandler, gameObjects[i]);
+		DescriptorHandlerFactory::updateUniformDescriptors(*vulkanDevice, gameObjects[i]);
+		DescriptorHandlerFactory::updateTextureDescriptors(*vulkanDevice, gameObjects[i]);
 	}
 }
 
