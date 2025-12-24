@@ -51,11 +51,6 @@ public:
 		_activeEntities.erase(entity);
 	}
 
-	template <typename TComponent>
-	void registerComponentType()
-	{
-		_componentManager.registerComponentType<TComponent>();
-	}
 
 	template <typename TComponent, typename... Args>
 	TComponent* addComponent(Entity entity, Args&&... args)

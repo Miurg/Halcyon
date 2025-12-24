@@ -14,7 +14,16 @@ private:
 	template <typename TComponent>
 	static ComponentArray<TComponent>& getComponentArray()
 	{
-		static ComponentArray<TComponent> array;
+		struct RegisteredArray : public ComponentArray<TComponent>
+		{
+			RegisteredArray()
+			{
+				ComponentManager::_removeCallbacks[std::type_index(typeid(TComponent))] = [](Entity entity)
+				{ getComponentArray<TComponent>().removeComponent(entity); };
+			}
+		};
+
+		static RegisteredArray array;
 		return array;
 	}
 
@@ -53,10 +62,4 @@ public:
 		}
 	}
 
-	template <typename TComponent>
-	static void registerComponentType()
-	{
-		_removeCallbacks[std::type_index(typeid(TComponent))] = [](Entity entity)
-		{ getComponentArray<TComponent>().removeComponent(entity); };
-	}
 };
