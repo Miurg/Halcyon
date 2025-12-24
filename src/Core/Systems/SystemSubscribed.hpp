@@ -42,4 +42,7 @@ public:
 	{
 		return hasAllComponents<RequiredComponents...>(entity, gm, typeid(Derived).name());
 	}
+
+
+	virtual void onSystemRegistered(GeneralManager& gm) {}
 };
