@@ -118,7 +118,7 @@ void RenderSystem::drawFrame(std::array<GameObject, MAX_OBJECTS>& gameObjects)
 	// Handle window resize
 	if (window.framebufferResized)
 	{
-		SwapChainFactory::recreateSwapChain(&swapChain, &vulkanDevice, &window);
+		SwapChainFactory::recreateSwapChain(swapChain, vulkanDevice, window);
 		window.framebufferResized = false;
 		return;
 	}
@@ -131,13 +131,13 @@ void RenderSystem::drawFrame(std::array<GameObject, MAX_OBJECTS>& gameObjects)
 		if (result == vk::Result::eErrorOutOfDateKHR)
 		{
 			window.framebufferResized = false;
-			SwapChainFactory::recreateSwapChain(&swapChain, &vulkanDevice, &window);
+			SwapChainFactory::recreateSwapChain(swapChain, vulkanDevice, window);
 			return;
 		}
 	}
 	catch (vk::OutOfDateKHRError&)
 	{
-		SwapChainFactory::recreateSwapChain(&swapChain, &vulkanDevice, &window);
+		SwapChainFactory::recreateSwapChain(swapChain, vulkanDevice, window);
 		return;
 	}
 	catch (vk::SystemError& e)
@@ -181,7 +181,7 @@ void RenderSystem::drawFrame(std::array<GameObject, MAX_OBJECTS>& gameObjects)
 	if (presentResult == vk::Result::eErrorOutOfDateKHR || presentResult == vk::Result::eSuboptimalKHR)
 	{
 		window.framebufferResized = false;
-		SwapChainFactory::recreateSwapChain(&swapChain, &vulkanDevice, &window);
+		SwapChainFactory::recreateSwapChain(swapChain, vulkanDevice, window);
 	}
 	else if (presentResult != vk::Result::eSuccess)
 	{
