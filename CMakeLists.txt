@@ -20,6 +20,7 @@ find_package(glfw3 CONFIG REQUIRED)
 find_package(tinyobjloader CONFIG REQUIRED)
 
 add_executable("${CMAKE_PROJECT_NAME}" ${MY_SOURCES})
+target_precompile_headers("${CMAKE_PROJECT_NAME}" PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src/pch.h")
 
 target_link_libraries("${CMAKE_PROJECT_NAME}" PRIVATE Vulkan::Vulkan)
 target_link_libraries("${CMAKE_PROJECT_NAME}" PRIVATE glm::glm)
