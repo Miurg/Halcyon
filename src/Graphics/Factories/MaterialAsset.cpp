@@ -1,8 +1,8 @@
 #include "MaterialAsset.hpp"
-#include "VulkanUtils.hpp"
+#include "../VulkanUtils.hpp"
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
-#include "GameObject.hpp"
+#include "../GameObject.hpp"
 
 void MaterialAsset::generateTextureData(const std::string texturePath, VulkanDevice& vulkanDevice, GameObject& gameObject)
 {
