@@ -1,26 +1,55 @@
 # Halcyon
-ECS-based game engine in C++ with OpenGL, aiming for maximum performance. Still in early development, but you can run it and start experimenting.
 
-## Tech Stack
-- C++
-- OpenGL
-- CMake
+**Halcyon** is a custom game engine currently in early development. It is built from scratch using **C++** and **Vulkan**, featuring a bespoke Entity Component System (ECS) architecture designed for high performance and strict data control.
 
-## Installation
-1. Clone the repository to your computer:
-   ```bash
-   git clone https://github.com/Miurg/Halcyon/
-   cd Halcyon
-   cmake .
-2. Run throught main
+## 🛠 Tech Stack
 
-## Features
-- ECS: easily add components and systems
-- Basic OpenGL rendering
-- A playground for experimenting and learning
+* **Language:** C++
+* **Graphics API:** Vulkan
+* **Build System:** CMake
+* **Architecture:** Custom ECS
 
-## Usage
-Just run it, play with ECS, add your own systems/components
+## ✨ Key Features
 
-## Project Goal
-Learning ECS and graphics in C++, gradually growing this into something bigger.
+### 1. Custom ECS Architecture
+Unlike generic ECS implementations, Halcyon uses a strict data-oriented approach:
+* **Explicit System Subscription:** Systems explicitly subscribe to relevant component combinations, avoiding implicit overhead.
+
+### 2. Vulkan Rendering
+The engine has transitioned from OpenGL to Vulkan to leverage modern GPU capabilities and explicit resource management.
+
+## 🚀 Getting Started
+
+### Prerequisites
+* C++ Compiler (supporting C++17 or newer)
+* CMake (3.20 or newer)
+* Vulkan SDK installed on your machine
+
+### Installation
+
+1.  Clone the repository:
+    ```bash
+    git clone [https://github.com/Miurg/Halcyon.git](https://github.com/Miurg/Halcyon.git)
+    cd Halcyon
+    ```
+
+2.  Build the project (out-of-source build is recommended):
+    ```bash
+    mkdir build
+    cd build
+    cmake ..
+    cmake --build .
+    ```
+
+3.  Run the engine:
+    * executable will be located in the `out` directory.
+
+## 🎯 Project Goals
+
+The primary goal of Halcyon is to explore advanced graphics programming and engine architecture.
+* Mastering **Vulkan** API nuances.
+* Refining a high-performance **ECS** with explicit control flow.
+* Creating a robust foundation for future game prototypes.
+
+---
+*Note: This project is a work in progress.*
