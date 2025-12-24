@@ -7,7 +7,7 @@
 #include "VulkanConst.hpp"
 #include "VulkanDevice.hpp"
 #include "VulkanUtils.hpp"
-#include "Texture.hpp" // Добавлено: декларация Texture
+#include "Texture.hpp"
 
 struct GameObject
 {

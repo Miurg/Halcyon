@@ -8,7 +8,6 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-#include "Core/GeneralManager.hpp"
 #include "CoreInit.hpp"
 #include "Graphics/VulkanUtils.hpp"
 #include "Graphics/Factories/MaterialAsset.hpp"
@@ -16,6 +15,24 @@
 #include "Graphics/Factories/SwapChainFactory.hpp"
 #include "Graphics/Factories/DescriptorHandlerFactory.hpp"
 #include "Graphics/Factories/PipelineFactory.hpp"
+
+#include "Platform/Components/WindowComponent.hpp"
+#include "Platform/Components/KeyboardStateComponent.hpp"
+#include "Platform/Components/MouseStateComponent.hpp"
+#include "Platform/Components/CursorPositionComponent.hpp"
+#include "Platform/Components/WindowSizeComponent.hpp"
+#include "Platform/Components/ScrollDeltaComponent.hpp"
+#include "Platform/Systems/InputSolverSystem.hpp"
+#include "Platform/PlatformContexts.hpp"
+#include "Graphics/Components/VulkanDeviceComponent.hpp"
+#include "Graphics/GraphicsContexts.hpp"
+#include "Graphics/Components/SwapChainComponent.hpp"
+#include "Graphics/Components/ModelHandlerComponent.hpp"
+#include "Graphics/Components/DescriptorHandlerComponent.hpp"
+#include "Graphics/Components/PipelineHandlerComponent.hpp"
+#include "Graphics/Components/FrameDataComponent.hpp"
+#include "Graphics/Components/CurrentFrameComponent.hpp"
+
 
 namespace
 {
@@ -35,31 +52,62 @@ void App::run()
 
 	CoreInit::Run(gm);
 
-
-
 	//=== ECS END ===
 
+	Entity windowAndInputEntity = gm.createEntity();
+	gm.registerContext<InputDataContext>(windowAndInputEntity);
+	gm.registerContext<MainWindowContext>(windowAndInputEntity);
 	window = new Window(ScreenWidth, ScreenHeight, "Halcyon");
+	gm.addComponent<WindowComponent>(windowAndInputEntity, window);
+	gm.addComponent<KeyboardStateComponent>(windowAndInputEntity);
+	gm.addComponent<MouseStateComponent>(windowAndInputEntity);
+	gm.addComponent<CursorPositionComponent>(windowAndInputEntity);
+	gm.addComponent<WindowSizeComponent>(windowAndInputEntity, ScreenWidth, ScreenHeight);
+	gm.addComponent<ScrollDeltaComponent>(windowAndInputEntity);
+	gm.subscribeEntity<InputSolverSystem>(windowAndInputEntity);
 
+	Entity vulkanDeviceEntity = gm.createEntity();
+	gm.registerContext<MainVulkanDeviceContext>(vulkanDeviceEntity);
 	vulkanDevice = new VulkanDevice();
-	VulkanDeviceFactory::createVulkanDevice(window, vulkanDevice);
+	VulkanDeviceFactory::createVulkanDevice(*window, *vulkanDevice);
+	gm.addComponent<VulkanDeviceComponent>(vulkanDeviceEntity, vulkanDevice);
 	
+	Entity swapChainEntity = gm.createEntity();
+	gm.registerContext<MainSwapChainContext>(swapChainEntity);
 	swapChain = new SwapChain();
-	SwapChainFactory::createSwapChain(swapChain, vulkanDevice, window);
-
+	SwapChainFactory::createSwapChain(*swapChain, *vulkanDevice, *window);
+	gm.addComponent<SwapChainComponent>(swapChainEntity, swapChain);
+	
+	Entity modelEntity = gm.createEntity();
+	gm.registerContext<MainModelContext>(modelEntity);
 	model = new Model(*vulkanDevice);
+	gm.addComponent<ModelHandlerComponent>(modelEntity, model);
 
+	Entity signatureEntity = gm.createEntity();
+	gm.registerContext<MainSignatureContext>(signatureEntity);
 	descriptorHandler = new DescriptorHandler();
 	DescriptorHandlerFactory::createDescriptorSetLayout(*vulkanDevice, *descriptorHandler);
 	DescriptorHandlerFactory::createDescriptorPool(*vulkanDevice, *descriptorHandler);
-
+	gm.addComponent<DescriptorHandlerComponent>(signatureEntity, descriptorHandler);
+	
 	pipelineHandler = new PipelineHandler();
 	PipelineFactory::createGraphicsPipeline(*vulkanDevice, *swapChain, *descriptorHandler, *pipelineHandler);
+	gm.addComponent<PipelineHandlerComponent>(signatureEntity, pipelineHandler);
+
+	Entity frameDataEntity = gm.createEntity();
+	gm.registerContext<MainFrameDataContext>(frameDataEntity);
+	std::vector<FrameData>* framesData = new std::vector<FrameData>(MAX_FRAMES_IN_FLIGHT);
+	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+	{
+		FrameData::initFrameData((*framesData)[i], *vulkanDevice);
+	}
+	gm.addComponent<FrameDataComponent>(frameDataEntity, framesData);
+	gm.addComponent<CurrentFrameComponent>(frameDataEntity);
 
 	renderSystem = new RenderSystem(*vulkanDevice, *swapChain, *pipelineHandler, *model, *window);
 
 	App::initVulkan();
-	App::mainLoop();
+	App::mainLoop(gm);
 	App::cleanup();
 }
 
@@ -75,12 +123,13 @@ void App::initVulkan()
 	}
 }
 
-void App::mainLoop()
+void App::mainLoop(GeneralManager& gm)
 {
 	while (!window->shouldClose())
 	{
 		auto start = std::chrono::high_resolution_clock::now();
 		glfwPollEvents();
+		gm.update(1);
 		renderSystem->drawFrame(gameObjects);
 		auto end = std::chrono::high_resolution_clock::now();
 		std::chrono::duration<double> duration = end - start;
@@ -99,7 +148,7 @@ void App::cleanup()
 {
 	vulkanDevice->device.waitIdle();
 
-	SwapChainFactory::cleanupSwapChain(swapChain);
+	SwapChainFactory::cleanupSwapChain(*swapChain);
 }
 
 void App::setupGameObjects()

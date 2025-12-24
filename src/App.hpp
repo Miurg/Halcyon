@@ -19,6 +19,8 @@
 #include "Graphics/SwapChain.hpp"
 #include "Graphics/VulkanConst.hpp"
 #include "Graphics/VulkanDevice.hpp"
+#include "Core/GeneralManager.hpp"
+#include "Graphics/FrameData.hpp"
 
 class App
 {
@@ -34,6 +36,7 @@ private:
 	PipelineHandler* pipelineHandler;
 	DescriptorHandler* descriptorHandler;
 	RenderSystem* renderSystem;
+	std::vector<FrameData>* framesData;
 
 	uint32_t frameCount = 0;
 	float time = 0;
@@ -41,7 +44,7 @@ private:
 	std::array<GameObject, MAX_OBJECTS> gameObjects;
 
 	void initVulkan();
-	void mainLoop();
+	void mainLoop(GeneralManager& gm);
 	void cleanup();
 	void setupGameObjects();
 };
