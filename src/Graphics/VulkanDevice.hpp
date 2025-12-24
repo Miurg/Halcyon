@@ -2,7 +2,7 @@
 
 #include <vulkan/vulkan_raii.hpp>
 
-class VulkanDevice
+struct VulkanDevice
 {
 public:
 	vk::raii::Context context = vk::raii::Context();
