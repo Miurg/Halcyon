@@ -5,17 +5,7 @@
 
 struct ModelHandlerComponent
 {
-	std::unique_ptr<Model> modelHandlerComponent;
+	Model* modelInstance;
 
-	ModelHandlerComponent() : modelHandlerComponent(std::make_unique<Model>()) {}
-
-	~ModelHandlerComponent() = default;
-
-	// Disable copy semantics
-	ModelHandlerComponent(const ModelHandlerComponent&) = delete;
-	ModelHandlerComponent& operator=(const ModelHandlerComponent&) = delete;
-
-	// Enable move semantics
-	ModelHandlerComponent(ModelHandlerComponent&&) = default;
-	ModelHandlerComponent& operator=(ModelHandlerComponent&&) = default;
+	ModelHandlerComponent(Model* model) : modelInstance(model) {}
 };

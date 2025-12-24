@@ -5,17 +5,7 @@
 
 struct SwapChainComponent
 {
-	std::unique_ptr<SwapChain> swapChainInstance;
+	SwapChain* swapChainInstance;
 
-	SwapChainComponent() : swapChainInstance(std::make_unique<SwapChain>()) {}
-
-	~SwapChainComponent() = default;
-
-	// Disable copy semantics
-	SwapChainComponent(const SwapChainComponent&) = delete;
-	SwapChainComponent& operator=(const SwapChainComponent&) = delete;
-
-	// Enable move semantics
-	SwapChainComponent(SwapChainComponent&&) = default;
-	SwapChainComponent& operator=(SwapChainComponent&&) = default;
+	SwapChainComponent(SwapChain* swapChain) : swapChainInstance(swapChain) {}
 };

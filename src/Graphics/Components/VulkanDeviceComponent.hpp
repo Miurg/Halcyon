@@ -5,20 +5,9 @@
 
 struct VulkanDeviceComponent
 {
-    std::unique_ptr<VulkanDevice> vulkanDeviceInstance;
+    VulkanDevice* vulkanDeviceInstance;
 
-    VulkanDeviceComponent() 
-        : vulkanDeviceInstance(std::make_unique<VulkanDevice>()) 
-    {
-    }
+    VulkanDeviceComponent(VulkanDevice* vulkanDevice) 
+        : vulkanDeviceInstance(vulkanDevice) {}
 
-    ~VulkanDeviceComponent() = default;
-    
-    // Disable copy semantics
-    VulkanDeviceComponent(const VulkanDeviceComponent&) = delete;
-    VulkanDeviceComponent& operator=(const VulkanDeviceComponent&) = delete;
-	
-    // Enable move semantics
-    VulkanDeviceComponent(VulkanDeviceComponent&&) = default;
-    VulkanDeviceComponent& operator=(VulkanDeviceComponent&&) = default;
 };

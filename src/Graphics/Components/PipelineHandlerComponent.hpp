@@ -5,17 +5,7 @@
 
 struct PipelineHandlerComponent
 {
-	std::unique_ptr<PipelineHandler> pipelineHandlerComponent;
+	PipelineHandler* pipelineHandler;
 
-	PipelineHandlerComponent() : pipelineHandlerComponent(std::make_unique<PipelineHandler>()) {}
-
-	~PipelineHandlerComponent() = default;
-
-	// Disable copy semantics
-	PipelineHandlerComponent(const PipelineHandlerComponent&) = delete;
-	PipelineHandlerComponent& operator=(const PipelineHandlerComponent&) = delete;
-
-	// Enable move semantics
-	PipelineHandlerComponent(PipelineHandlerComponent&&) = default;
-	PipelineHandlerComponent& operator=(PipelineHandlerComponent&&) = default;
+	PipelineHandlerComponent(PipelineHandler* pipeline) : pipelineHandler(pipeline) {}
 };
