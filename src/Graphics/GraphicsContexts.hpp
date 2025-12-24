@@ -5,3 +5,4 @@ class MainSwapChainContext{};
 class MainModelContext{};
 class MainSignatureContext{};
 class MainFrameDataContext{};
+class CurrentFrameContext{};
