@@ -13,7 +13,7 @@ inline const std::vector<const char*> deviceExtensions = {
     vk::KHRCreateRenderpass2ExtensionName
 };
 
-void VulkanDeviceFactory::createVulkanDevice(Window* window, VulkanDevice* vulkanDevice)
+void VulkanDeviceFactory::createVulkanDevice(Window& window, VulkanDevice& vulkanDevice)
 {
     createInstance(window, vulkanDevice);
     createSurface(window, vulkanDevice);
@@ -22,7 +22,7 @@ void VulkanDeviceFactory::createVulkanDevice(Window* window, VulkanDevice* vulka
     createCommandPool(vulkanDevice);
 }
 
-void VulkanDeviceFactory::createInstance(Window* window, VulkanDevice* vulkanDevice)
+void VulkanDeviceFactory::createInstance(Window& window, VulkanDevice& vulkanDevice)
 {
     constexpr vk::ApplicationInfo appInfo("Hello Triangle", VK_MAKE_VERSION(1, 0, 0), "No Engine",
                                           VK_MAKE_VERSION(1, 0, 0), VK_API_VERSION_1_4);
@@ -41,7 +41,7 @@ void VulkanDeviceFactory::createInstance(Window* window, VulkanDevice* vulkanDev
         requiredLayers.assign(validationLayers.begin(), validationLayers.end());
     }
 
-    auto layerProperties = vulkanDevice->context.enumerateInstanceLayerProperties();
+    auto layerProperties = vulkanDevice.context.enumerateInstanceLayerProperties();
     if (std::ranges::any_of(requiredLayers,
                             [&layerProperties](auto const& requiredLayer)
                             {
@@ -54,10 +54,10 @@ void VulkanDeviceFactory::createInstance(Window* window, VulkanDevice* vulkanDev
     }
 
     // Get required extensions from Window (GLFW wrapper)
-    auto extensions = window->getRequiredExtensions();
+    auto extensions = window.getRequiredExtensions();
     uint32_t extensionCount = static_cast<uint32_t>(extensions.size());
 
-    auto extensionProperties = vulkanDevice->context.enumerateInstanceExtensionProperties();
+    auto extensionProperties = vulkanDevice.context.enumerateInstanceExtensionProperties();
     for (uint32_t i = 0; i < extensionCount; ++i)
     {
         if (std::ranges::none_of(extensionProperties, [extension = extensions[i]](auto const& extensionProperty)
@@ -74,12 +74,12 @@ void VulkanDeviceFactory::createInstance(Window* window, VulkanDevice* vulkanDev
     createInfo.enabledExtensionCount = extensionCount;
     createInfo.ppEnabledExtensionNames = extensions.empty() ? nullptr : extensions.data();
 
-    vulkanDevice->instance = vk::raii::Instance(vulkanDevice->context, createInfo);
+    vulkanDevice.instance = vk::raii::Instance(vulkanDevice.context, createInfo);
 }
 
-void VulkanDeviceFactory::pickPhysicalDevice(VulkanDevice* vulkanDevice)
+void VulkanDeviceFactory::pickPhysicalDevice(VulkanDevice& vulkanDevice)
 {
-    auto devices = vulkanDevice->instance.enumeratePhysicalDevices();
+    auto devices = vulkanDevice.instance.enumeratePhysicalDevices();
     const auto devIter = std::ranges::find_if(
         devices,
         [&](auto const& device)
@@ -110,7 +110,7 @@ void VulkanDeviceFactory::pickPhysicalDevice(VulkanDevice* vulkanDevice)
 
             if (isSuitable)
             {
-                vulkanDevice->physicalDevice = device;
+                vulkanDevice.physicalDevice = device;
             }
             return isSuitable;
         });
@@ -121,43 +121,43 @@ void VulkanDeviceFactory::pickPhysicalDevice(VulkanDevice* vulkanDevice)
     }
 }
 
-void VulkanDeviceFactory::createLogicalDevice(VulkanDevice* vulkanDevice)
+void VulkanDeviceFactory::createLogicalDevice(VulkanDevice& vulkanDevice)
 {
-    auto queueFamilyProperties = vulkanDevice->physicalDevice.getQueueFamilyProperties();
-    vulkanDevice->graphicsIndex = static_cast<uint32_t>(queueFamilyProperties.size());
-    vulkanDevice->presentIndex = static_cast<uint32_t>(queueFamilyProperties.size());
+    auto queueFamilyProperties = vulkanDevice.physicalDevice.getQueueFamilyProperties();
+    vulkanDevice.graphicsIndex = static_cast<uint32_t>(queueFamilyProperties.size());
+    vulkanDevice.presentIndex = static_cast<uint32_t>(queueFamilyProperties.size());
 
     // First, try to find a queue family that supports both graphics and present
     for (size_t i = 0; i < queueFamilyProperties.size(); ++i)
     {
         bool supportsGraphics = (queueFamilyProperties[i].queueFlags & vk::QueueFlagBits::eGraphics) != vk::QueueFlags{};
-        bool supportsPresent = vulkanDevice->physicalDevice.getSurfaceSupportKHR(static_cast<uint32_t>(i), *vulkanDevice->surface);
+        bool supportsPresent = vulkanDevice.physicalDevice.getSurfaceSupportKHR(static_cast<uint32_t>(i), *vulkanDevice.surface);
 
         if (supportsGraphics && supportsPresent)
         {
-            vulkanDevice->graphicsIndex = static_cast<uint32_t>(i);
-            vulkanDevice->presentIndex = static_cast<uint32_t>(i);
+            vulkanDevice.graphicsIndex = static_cast<uint32_t>(i);
+            vulkanDevice.presentIndex = static_cast<uint32_t>(i);
             break;
         }
     }
 
     // If no queue family supports both graphics and present, find separate ones
-    if (vulkanDevice->graphicsIndex == queueFamilyProperties.size())
+    if (vulkanDevice.graphicsIndex == queueFamilyProperties.size())
     {
         for (size_t i = 0; i < queueFamilyProperties.size(); ++i)
         {
             if ((queueFamilyProperties[i].queueFlags & vk::QueueFlagBits::eGraphics) != vk::QueueFlags{})
             {
-                vulkanDevice->graphicsIndex = static_cast<uint32_t>(i);
+                vulkanDevice.graphicsIndex = static_cast<uint32_t>(i);
             }
-            if (vulkanDevice->physicalDevice.getSurfaceSupportKHR(static_cast<uint32_t>(i), *vulkanDevice->surface))
+            if (vulkanDevice.physicalDevice.getSurfaceSupportKHR(static_cast<uint32_t>(i), *vulkanDevice.surface))
             {
-                vulkanDevice->presentIndex = static_cast<uint32_t>(i);
+                vulkanDevice.presentIndex = static_cast<uint32_t>(i);
             }
         }
     }
 
-    if (vulkanDevice->graphicsIndex == queueFamilyProperties.size() || vulkanDevice->presentIndex == queueFamilyProperties.size())
+    if (vulkanDevice.graphicsIndex == queueFamilyProperties.size() || vulkanDevice.presentIndex == queueFamilyProperties.size())
     {
         throw std::runtime_error("Could not find suitable queue family!");
     }
@@ -169,17 +169,17 @@ void VulkanDeviceFactory::createLogicalDevice(VulkanDevice* vulkanDevice)
     // Primary graphics queue
     queuePriorities.push_back(queuePriority);
     vk::DeviceQueueCreateInfo queueInfo{};
-    queueInfo.queueFamilyIndex = vulkanDevice->graphicsIndex;
+    queueInfo.queueFamilyIndex = vulkanDevice.graphicsIndex;
     queueInfo.queueCount = 1;
     queueInfo.pQueuePriorities = &queuePriorities[0];
     queueCreateInfos.push_back(queueInfo);
 
     // If graphics and present queues are different, add another queue create info
-    if (vulkanDevice->graphicsIndex != vulkanDevice->presentIndex)
+    if (vulkanDevice.graphicsIndex != vulkanDevice.presentIndex)
     {
         queuePriorities.push_back(queuePriority); // second element
         vk::DeviceQueueCreateInfo presentQueueInfo{};
-        presentQueueInfo.queueFamilyIndex = vulkanDevice->presentIndex;
+        presentQueueInfo.queueFamilyIndex = vulkanDevice.presentIndex;
         presentQueueInfo.queueCount = 1;
         presentQueueInfo.pQueuePriorities = &queuePriorities[1];
         queueCreateInfos.push_back(presentQueueInfo);
@@ -201,24 +201,23 @@ void VulkanDeviceFactory::createLogicalDevice(VulkanDevice* vulkanDevice)
     deviceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(deviceExtensions.size());
     deviceCreateInfo.ppEnabledExtensionNames = deviceExtensions.data();
 
-    vulkanDevice->device = vk::raii::Device(vulkanDevice->physicalDevice, deviceCreateInfo);
+    vulkanDevice.device = vk::raii::Device(vulkanDevice.physicalDevice, deviceCreateInfo);
 
-    vulkanDevice->graphicsQueue = vk::raii::Queue(vulkanDevice->device, vulkanDevice->graphicsIndex, 0);
-    vulkanDevice->presentQueue = vk::raii::Queue(vulkanDevice->device, vulkanDevice->presentIndex, 0);
+    vulkanDevice.graphicsQueue = vk::raii::Queue(vulkanDevice.device, vulkanDevice.graphicsIndex, 0);
+    vulkanDevice.presentQueue = vk::raii::Queue(vulkanDevice.device, vulkanDevice.presentIndex, 0);
 }
 
-void VulkanDeviceFactory::createSurface(Window* window, VulkanDevice* vulkanDevice)
+void VulkanDeviceFactory::createSurface(Window& window, VulkanDevice& vulkanDevice)
 {
-    // Window::createSurface может возвращать vk::SurfaceKHR Ч приводим к VkSurfaceKHR
-    auto surfaceHandle = window->createSurface(*vulkanDevice->instance);
+    auto surfaceHandle = window.createSurface(vulkanDevice.instance);
     VkSurfaceKHR rawSurface = static_cast<VkSurfaceKHR>(surfaceHandle);
-    vulkanDevice->surface = vk::raii::SurfaceKHR(vulkanDevice->instance, rawSurface);
+    vulkanDevice.surface = vk::raii::SurfaceKHR(vulkanDevice.instance, rawSurface);
 }
 
-void VulkanDeviceFactory::createCommandPool(VulkanDevice* vulkanDevice)
+void VulkanDeviceFactory::createCommandPool(VulkanDevice& vulkanDevice)
 {
     vk::CommandPoolCreateInfo poolInfo;
     poolInfo.flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer;
-    poolInfo.queueFamilyIndex = vulkanDevice->graphicsIndex;
-    vulkanDevice->commandPool = vk::raii::CommandPool(vulkanDevice->device, poolInfo);
+    poolInfo.queueFamilyIndex = vulkanDevice.graphicsIndex;
+    vulkanDevice.commandPool = vk::raii::CommandPool(vulkanDevice.device, poolInfo);
 }

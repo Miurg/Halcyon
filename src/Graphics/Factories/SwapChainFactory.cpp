@@ -2,7 +2,7 @@
 #include "../VulkanUtils.hpp"
 #include <iostream>
 
-void SwapChainFactory::createSwapChain(SwapChain* swapChain, VulkanDevice* deviceContext, Window* window,
+void SwapChainFactory::createSwapChain(SwapChain& swapChain, VulkanDevice& deviceContext, Window& window,
                                        vk::SwapchainKHR oldHandle)
 {
 	createSwapChainHandle(swapChain, deviceContext, window, oldHandle);
@@ -10,17 +10,17 @@ void SwapChainFactory::createSwapChain(SwapChain* swapChain, VulkanDevice* devic
 	createDepthResources(swapChain, deviceContext, window);
 }
 
-void SwapChainFactory::createSwapChainHandle(SwapChain* swapChain, VulkanDevice* deviceContext, Window* window,
+void SwapChainFactory::createSwapChainHandle(SwapChain& swapChain, VulkanDevice& deviceContext, Window& window,
                                              vk::SwapchainKHR oldHandle)
 {
 	// Query swap chain support details
-	auto surfaceCapabilities = deviceContext->physicalDevice.getSurfaceCapabilitiesKHR(deviceContext->surface);
+	auto surfaceCapabilities = deviceContext.physicalDevice.getSurfaceCapabilitiesKHR(deviceContext.surface);
 	vk::SurfaceFormatKHR swapChainSurfaceFormat =
-	    chooseSwapSurfaceFormat(deviceContext->physicalDevice.getSurfaceFormatsKHR(deviceContext->surface));
-	swapChain->swapChainExtent = chooseSwapExtent(surfaceCapabilities);
+	    chooseSwapSurfaceFormat(deviceContext.physicalDevice.getSurfaceFormatsKHR(deviceContext.surface));
+	swapChain.swapChainExtent = chooseSwapExtent(surfaceCapabilities);
 	vk::PresentModeKHR swapChainPresentMode =
-	    chooseSwapPresentMode(deviceContext->physicalDevice.getSurfacePresentModesKHR(deviceContext->surface));
-	swapChain->swapChainImageFormat = swapChainSurfaceFormat.format;
+	    chooseSwapPresentMode(deviceContext.physicalDevice.getSurfacePresentModesKHR(deviceContext.surface));
+	swapChain.swapChainImageFormat = swapChainSurfaceFormat.format;
 
 	// Determine number of images in the swap chain
 	auto minImageCount = std::max(3u, surfaceCapabilities.minImageCount);
@@ -35,32 +35,32 @@ void SwapChainFactory::createSwapChainHandle(SwapChain* swapChain, VulkanDevice*
 
 	vk::SwapchainCreateInfoKHR swapChainCreateInfo{};
 	swapChainCreateInfo.flags = vk::SwapchainCreateFlagsKHR();
-	swapChainCreateInfo.surface = deviceContext->surface;
+	swapChainCreateInfo.surface = deviceContext.surface;
 	swapChainCreateInfo.minImageCount = imageCount;
-	swapChainCreateInfo.imageFormat = swapChain->swapChainImageFormat;
+	swapChainCreateInfo.imageFormat = swapChain.swapChainImageFormat;
 	swapChainCreateInfo.imageColorSpace = swapChainSurfaceFormat.colorSpace;
-	swapChainCreateInfo.imageExtent = swapChain->swapChainExtent;
+	swapChainCreateInfo.imageExtent = swapChain.swapChainExtent;
 	swapChainCreateInfo.imageArrayLayers = 1;
 	swapChainCreateInfo.imageUsage = vk::ImageUsageFlagBits::eColorAttachment;
 	swapChainCreateInfo.imageSharingMode = vk::SharingMode::eExclusive;
 	swapChainCreateInfo.preTransform = surfaceCapabilities.currentTransform;
 	swapChainCreateInfo.compositeAlpha = vk::CompositeAlphaFlagBitsKHR::eOpaque;
 	swapChainCreateInfo.presentMode =
-	    chooseSwapPresentMode(deviceContext->physicalDevice.getSurfacePresentModesKHR(deviceContext->surface));
+	    chooseSwapPresentMode(deviceContext.physicalDevice.getSurfacePresentModesKHR(deviceContext.surface));
 	swapChainCreateInfo.clipped = true;
 	swapChainCreateInfo.oldSwapchain = oldHandle;
 
-	swapChain->swapChainHandle = vk::raii::SwapchainKHR(deviceContext->device, swapChainCreateInfo);
-	swapChain->swapChainImages = swapChain->swapChainHandle.getImages();
+	swapChain.swapChainHandle = vk::raii::SwapchainKHR(deviceContext.device, swapChainCreateInfo);
+	swapChain.swapChainImages = swapChain.swapChainHandle.getImages();
 }
 
-void SwapChainFactory::createImageViews(SwapChain* swapChain, VulkanDevice* deviceContext, Window* window)
+void SwapChainFactory::createImageViews(SwapChain& swapChain, VulkanDevice& deviceContext, Window& window)
 {
-	swapChain->swapChainImageViews.clear();
-	for (auto image : swapChain->swapChainImages)
+	swapChain.swapChainImageViews.clear();
+	for (auto image : swapChain.swapChainImages)
 	{
-		swapChain->swapChainImageViews.emplace_back(
-		    VulkanUtils::createImageView(image, swapChain->swapChainImageFormat, vk::ImageAspectFlagBits::eColor, *deviceContext));
+		swapChain.swapChainImageViews.emplace_back(
+		    VulkanUtils::createImageView(image, swapChain.swapChainImageFormat, vk::ImageAspectFlagBits::eColor, deviceContext));
 	}
 }
 
@@ -101,29 +101,29 @@ vk::Extent2D SwapChainFactory::chooseSwapExtent(const vk::SurfaceCapabilitiesKHR
 	        std::clamp<uint32_t>(600, capabilities.minImageExtent.height, capabilities.maxImageExtent.height)};
 }
 
-void SwapChainFactory::cleanupSwapChain(SwapChain* swapChain)
+void SwapChainFactory::cleanupSwapChain(SwapChain& swapChain)
 {
-	swapChain->swapChainImageViews.clear();
-	swapChain->swapChainHandle = nullptr;
+	swapChain.swapChainImageViews.clear();
+	swapChain.swapChainHandle = nullptr;
 }
 
-void SwapChainFactory::recreateSwapChain(SwapChain* swapChain, VulkanDevice* device, Window* window)
+void SwapChainFactory::recreateSwapChain(SwapChain& swapChain, VulkanDevice& device, Window& window)
 {
 	int width = 0, height = 0;
-	width = window->width;
-	height = window->height;
+	width = window.width;
+	height = window.height;
 	while (width == 0 || height == 0)
 	{
-		width = window->width;
-		height = window->height;
-		window->waitEvents();
+		width = window.width;
+		height = window.height;
+		window.waitEvents();
 	}
-	device->device.waitIdle();
+	device.device.waitIdle();
 
 
-	vk::SwapchainKHR oldHandle = *swapChain->swapChainHandle;
+	vk::SwapchainKHR oldHandle = *swapChain.swapChainHandle;
 
-	swapChain->swapChainImageViews.clear();
+	swapChain.swapChainImageViews.clear();
 
 	createSwapChain(swapChain, device, window, oldHandle);
 
@@ -132,17 +132,17 @@ void SwapChainFactory::recreateSwapChain(SwapChain* swapChain, VulkanDevice* dev
 #endif
 }
 
-void SwapChainFactory::createDepthResources(SwapChain* swapChain, VulkanDevice* device, Window* window)
+void SwapChainFactory::createDepthResources(SwapChain& swapChain, VulkanDevice& device, Window& window)
 {
-	swapChain->depthFormat = findDepthFormat(device);
-	VulkanUtils::createImage(swapChain->swapChainExtent.width, swapChain->swapChainExtent.height, swapChain->depthFormat, vk::ImageTiling::eOptimal,
+	swapChain.depthFormat = findDepthFormat(device);
+	VulkanUtils::createImage(swapChain.swapChainExtent.width, swapChain.swapChainExtent.height, swapChain.depthFormat, vk::ImageTiling::eOptimal,
 	                         vk::ImageUsageFlagBits::eDepthStencilAttachment, vk::MemoryPropertyFlagBits::eDeviceLocal,
-	                         swapChain->depthImage, swapChain->depthImageMemory, *device);
-	swapChain->depthImageView =
-	    VulkanUtils::createImageView(swapChain->depthImage, swapChain->depthFormat, vk::ImageAspectFlagBits::eDepth, *device);
+	                         swapChain.depthImage, swapChain.depthImageMemory, device);
+	swapChain.depthImageView =
+	    VulkanUtils::createImageView(swapChain.depthImage, swapChain.depthFormat, vk::ImageAspectFlagBits::eDepth, device);
 }
 
-vk::Format SwapChainFactory::findDepthFormat(VulkanDevice* device)
+vk::Format SwapChainFactory::findDepthFormat(VulkanDevice& device)
 {
 	return findSupportedFormat(device, 
 		{vk::Format::eD32Sfloat, vk::Format::eD32SfloatS8Uint, vk::Format::eD24UnormS8Uint}, 
@@ -150,12 +150,12 @@ vk::Format SwapChainFactory::findDepthFormat(VulkanDevice* device)
 	    vk::FormatFeatureFlagBits::eDepthStencilAttachment);
 }
 
-vk::Format SwapChainFactory::findSupportedFormat(VulkanDevice* device, const std::vector<vk::Format>& candidates, vk::ImageTiling tiling,
+vk::Format SwapChainFactory::findSupportedFormat(VulkanDevice& device, const std::vector<vk::Format>& candidates, vk::ImageTiling tiling,
                                           vk::FormatFeatureFlags features)
 {
 	for (const auto format : candidates)
 	{
-		vk::FormatProperties props = device->physicalDevice.getFormatProperties(format);
+		vk::FormatProperties props = device.physicalDevice.getFormatProperties(format);
 		if (tiling == vk::ImageTiling::eLinear && (props.linearTilingFeatures & features) == features)
 		{
 			return format;
