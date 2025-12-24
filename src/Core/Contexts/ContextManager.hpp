@@ -1,27 +1,23 @@
 #pragma once
 #include <memory>
 #include <unordered_map>
+#include <utility>
 
 class ContextManager
 {
 private:
-	std::unordered_map<size_t, std::shared_ptr<void>> _contexts;
+	std::unordered_map<size_t, Entity> _contexts;
 
 public:
 	template <typename TContext>
-	void registerContext(std::shared_ptr<TContext> ctx)
+	void registerContext(Entity entity)
 	{
-		_contexts[typeid(TContext).hash_code()] = ctx;
+		_contexts[typeid(TContext).hash_code()] = entity;
 	}
 
 	template <typename TContext>
-	std::shared_ptr<TContext> getContext()
+	Entity getContext()
 	{
-		auto it = _contexts.find(typeid(TContext).hash_code());
-		if (it != _contexts.end())
-		{
-			return std::static_pointer_cast<TContext>(it->second);
-		}
-		return nullptr;
+		return _contexts[typeid(TContext).hash_code()];
 	}
 };
