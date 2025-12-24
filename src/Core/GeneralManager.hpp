@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <iostream>
+#include <utility>
 
 #include "Components/ComponentManager.hpp"
 #include "Entitys/EntityManager.hpp"
@@ -140,14 +141,20 @@ public:
 	}
 
 	template <typename TContext>
-	void registerContext(std::shared_ptr<TContext> ctx)
+	void registerContext(Entity ctx)
 	{
 		_contextManager.registerContext<TContext>(ctx);
 	}
 
 	template <typename TContext>
-	std::shared_ptr<TContext> getContext()
+	Entity getContext()
 	{
 		return _contextManager.getContext<TContext>();
+	}
+
+	template <typename TContext, typename TComponent>
+	TComponent* getContextComponent()
+	{
+		return _componentManager.getComponent<TComponent>(_contextManager.getContext<TContext>());
 	}
 };
