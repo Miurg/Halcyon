@@ -2,14 +2,13 @@
 
 #include <memory>
 #include "../VulkanDevice.hpp"
-#include "../../Platform/Window.hpp"
 
 struct VulkanDeviceComponent
 {
     std::unique_ptr<VulkanDevice> vulkanDeviceInstance;
 
-    VulkanDeviceComponent(Window& window) 
-        : vulkanDeviceInstance(std::make_unique<VulkanDevice>(window)) 
+    VulkanDeviceComponent() 
+        : vulkanDeviceInstance(std::make_unique<VulkanDevice>()) 
     {
     }
 

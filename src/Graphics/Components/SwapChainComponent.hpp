@@ -2,13 +2,12 @@
 
 #include <memory>
 #include "../SwapChain.hpp"
-#include "../../Platform/Window.hpp"
 
 struct SwapChainComponent
 {
 	std::unique_ptr<SwapChain> swapChainInstance;
 
-	SwapChainComponent(Window& window) : swapChainInstance(std::make_unique<SwapChain>(window)) {}
+	SwapChainComponent() : swapChainInstance(std::make_unique<SwapChain>()) {}
 
 	~SwapChainComponent() = default;
 
