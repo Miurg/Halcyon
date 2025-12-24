@@ -14,7 +14,7 @@ private:
 	std::vector<uint32_t> _sparse;
 	static constexpr uint32_t INVALID_INDEX = std::numeric_limits<uint32_t>::max();
 
-	std::atomic<bool> _needsSorting{false};
+	bool _needsSorting = false;
 
 public:
 	TComponent* addComponent(Entity entity, TComponent&& component)
@@ -35,17 +35,13 @@ public:
 		_denseToEntity.push_back(entity);
 		_sparse[entity] = newIndex;
 
-		_needsSorting.store(true, std::memory_order_relaxed);
+		_needsSorting = true;
 		return &_dense[newIndex];
 	}
 
 	void sortByEntityId()
 	{
-		if (!_needsSorting.load(std::memory_order_relaxed)) [[likely]]
-			return;
-
-		// Check again after get lock
-		if (!_needsSorting.load(std::memory_order_relaxed)) [[likely]]
+		if (!_needsSorting)
 			return;
 
 		std::vector<std::pair<Entity, uint32_t>> entityIndexPairs;
