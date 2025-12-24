@@ -20,9 +20,9 @@ public:
 	void drawFrame(std::array<GameObject, MAX_OBJECTS>& gameObjects);
 
 private:
-	void recordCommandBuffer(vk::raii::CommandBuffer* commandBuffer, uint32_t imageIndex,
+	void recordCommandBuffer(vk::raii::CommandBuffer& commandBuffer, uint32_t imageIndex,
 	                         std::array<GameObject, MAX_OBJECTS>& gameObjects);
-	void transitionImageLayout(vk::raii::CommandBuffer* commandBuffer, vk::Image image, vk::ImageLayout oldLayout,
+	void transitionImageLayout(vk::raii::CommandBuffer& commandBuffer, vk::Image image, vk::ImageLayout oldLayout,
 	                           vk::ImageLayout newLayout, vk::AccessFlags2 srcAccessMask, vk::AccessFlags2 dstAccessMask,
 	                           vk::PipelineStageFlags2 srcStageMask, vk::PipelineStageFlags2 dstStageMask,
 	                           vk::ImageAspectFlags imageAspectFlags);

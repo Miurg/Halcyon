@@ -7,8 +7,7 @@
 
 RenderSystem::RenderSystem(VulkanDevice& deviceContext, SwapChain& swapChain, PipelineHandler& pipelineHandler,
                            Model& model, Window& window)
-    : vulkanDevice(deviceContext), swapChain(swapChain), pipelineHandler(pipelineHandler), 
-      model(model), window(window)
+    : vulkanDevice(deviceContext), swapChain(swapChain), pipelineHandler(pipelineHandler), model(model), window(window)
 {
 	framesData.resize(MAX_FRAMES_IN_FLIGHT);
 	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
@@ -17,10 +16,10 @@ RenderSystem::RenderSystem(VulkanDevice& deviceContext, SwapChain& swapChain, Pi
 	}
 }
 RenderSystem::~RenderSystem() {}
-void RenderSystem::recordCommandBuffer(vk::raii::CommandBuffer* commandBuffer, uint32_t imageIndex,
+void RenderSystem::recordCommandBuffer(vk::raii::CommandBuffer& commandBuffer, uint32_t imageIndex,
                                        std::array<GameObject, MAX_OBJECTS>& gameObjects)
 {
-	commandBuffer->begin({});
+	commandBuffer.begin({});
 
 	transitionImageLayout(commandBuffer, swapChain.swapChainImages[imageIndex], vk::ImageLayout::eUndefined,
 	                      vk::ImageLayout::eColorAttachmentOptimal, {}, vk::AccessFlagBits2::eColorAttachmentWrite,
@@ -54,33 +53,33 @@ void RenderSystem::recordCommandBuffer(vk::raii::CommandBuffer* commandBuffer, u
 	renderingInfo.pColorAttachments = &attachmentInfo;
 	renderingInfo.pDepthAttachment = &depthAttachmentInfo;
 
-	commandBuffer->beginRendering(renderingInfo);
-	commandBuffer->bindPipeline(vk::PipelineBindPoint::eGraphics, *pipelineHandler.graphicsPipeline);
+	commandBuffer.beginRendering(renderingInfo);
+	commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipelineHandler.graphicsPipeline);
 
-	commandBuffer->bindVertexBuffers(0, *model.vertexBuffer, {0});
-	commandBuffer->bindIndexBuffer(*model.indexBuffer, 0, vk::IndexType::eUint32);
+	commandBuffer.bindVertexBuffers(0, *model.vertexBuffer, {0});
+	commandBuffer.bindIndexBuffer(*model.indexBuffer, 0, vk::IndexType::eUint32);
 
-	commandBuffer->setViewport(0, vk::Viewport(0.0f, 0.0f, static_cast<float>(swapChain.swapChainExtent.width),
+	commandBuffer.setViewport(0, vk::Viewport(0.0f, 0.0f, static_cast<float>(swapChain.swapChainExtent.width),
 	                                           static_cast<float>(swapChain.swapChainExtent.height), 0.0f, 1.0f));
-	commandBuffer->setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), swapChain.swapChainExtent));
+	commandBuffer.setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), swapChain.swapChainExtent));
 	for (const auto& gameObject : gameObjects)
 	{
 		// Bind the descriptor set for this object
-		commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineHandler.pipelineLayout, 0,
+		commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineHandler.pipelineLayout, 0,
 		                                  *gameObject.descriptorSets[currentFrame], nullptr);
-		commandBuffer->drawIndexed(model.indices.size(), 1, 0, 0, 0);
+		commandBuffer.drawIndexed(model.indices.size(), 1, 0, 0, 0);
 	}
-	commandBuffer->endRendering();
+	commandBuffer.endRendering();
 
 	transitionImageLayout(commandBuffer, swapChain.swapChainImages[imageIndex], vk::ImageLayout::eColorAttachmentOptimal,
 	                      vk::ImageLayout::ePresentSrcKHR, vk::AccessFlagBits2::eColorAttachmentWrite, {},
 	                      vk::PipelineStageFlagBits2::eColorAttachmentOutput, vk::PipelineStageFlagBits2::eBottomOfPipe,
 	                      vk::ImageAspectFlagBits::eColor);
 
-	commandBuffer->end();
+	commandBuffer.end();
 }
 
-void RenderSystem::transitionImageLayout(vk::raii::CommandBuffer* commandBuffer, vk::Image image,
+void RenderSystem::transitionImageLayout(vk::raii::CommandBuffer& commandBuffer, vk::Image image,
                                          vk::ImageLayout oldLayout, vk::ImageLayout newLayout,
                                          vk::AccessFlags2 srcAccessMask, vk::AccessFlags2 dstAccessMask,
                                          vk::PipelineStageFlags2 srcStageMask, vk::PipelineStageFlags2 dstStageMask,
@@ -107,7 +106,7 @@ void RenderSystem::transitionImageLayout(vk::raii::CommandBuffer* commandBuffer,
 	dependencyInfo.dependencyFlags = {};
 	dependencyInfo.imageMemoryBarrierCount = 1;
 	dependencyInfo.pImageMemoryBarriers = &barrier;
-	commandBuffer->pipelineBarrier2(dependencyInfo);
+	commandBuffer.pipelineBarrier2(dependencyInfo);
 }
 
 void RenderSystem::drawFrame(std::array<GameObject, MAX_OBJECTS>& gameObjects)
@@ -150,7 +149,7 @@ void RenderSystem::drawFrame(std::array<GameObject, MAX_OBJECTS>& gameObjects)
 
 	RenderSystem::updateUniformBuffer(currentFrame, gameObjects);
 
-	recordCommandBuffer(&framesData[currentFrame].commandBuffer, imageIndex, gameObjects);
+	recordCommandBuffer(framesData[currentFrame].commandBuffer, imageIndex, gameObjects);
 
 	vk::PipelineStageFlags waitDestinationStageMask(vk::PipelineStageFlagBits::eColorAttachmentOutput);
 
