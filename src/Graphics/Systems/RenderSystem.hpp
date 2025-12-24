@@ -5,7 +5,7 @@
 #include <vector>
 #include <vulkan/vulkan_raii.hpp>
 #include "../SwapChain.hpp"
-#include "../PipelineManager.hpp"
+#include "../PipelineHandler.hpp"
 #include "../GameObject.hpp"
 #include "../Model.hpp"
 #include "../VulkanConst.hpp"
@@ -14,7 +14,8 @@
 class RenderSystem
 {
 public:
-	RenderSystem(VulkanDevice& deviceContext, SwapChain& swapChain, PipelineManager& pipelineManager, Model& model, Window& window);
+	RenderSystem(VulkanDevice& deviceContext, SwapChain& swapChain, PipelineHandler& pipelineHandler, Model& model,
+	             Window& window);
 	~RenderSystem();
 	void drawFrame(std::array<GameObject, MAX_OBJECTS>& gameObjects);
 
@@ -28,7 +29,7 @@ private:
 	void updateUniformBuffer(uint32_t currentImage, std::array<GameObject, MAX_OBJECTS>& gameObjects);
 	VulkanDevice& vulkanDevice;
 	SwapChain& swapChain;
-	PipelineManager& pipelineManager;
+	PipelineHandler& pipelineHandler;
 	Window& window;
 	Model& model;
 	std::vector<FrameData> framesData;

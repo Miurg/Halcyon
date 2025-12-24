@@ -5,8 +5,9 @@
 
 #include "../Factories/SwapChainFactory.hpp"
 
-RenderSystem::RenderSystem(VulkanDevice& deviceContext, SwapChain& swapChain, PipelineManager& pipelineManager, Model& model, Window& window)
-    : vulkanDevice(deviceContext), swapChain(swapChain), pipelineManager(pipelineManager), 
+RenderSystem::RenderSystem(VulkanDevice& deviceContext, SwapChain& swapChain, PipelineHandler& pipelineHandler,
+                           Model& model, Window& window)
+    : vulkanDevice(deviceContext), swapChain(swapChain), pipelineHandler(pipelineHandler), 
       model(model), window(window)
 {
 	framesData.resize(MAX_FRAMES_IN_FLIGHT);
@@ -54,7 +55,7 @@ void RenderSystem::recordCommandBuffer(vk::raii::CommandBuffer* commandBuffer, u
 	renderingInfo.pDepthAttachment = &depthAttachmentInfo;
 
 	commandBuffer->beginRendering(renderingInfo);
-	commandBuffer->bindPipeline(vk::PipelineBindPoint::eGraphics, *pipelineManager.graphicsPipeline);
+	commandBuffer->bindPipeline(vk::PipelineBindPoint::eGraphics, *pipelineHandler.graphicsPipeline);
 
 	commandBuffer->bindVertexBuffers(0, *model.vertexBuffer, {0});
 	commandBuffer->bindIndexBuffer(*model.indexBuffer, 0, vk::IndexType::eUint32);
@@ -65,7 +66,7 @@ void RenderSystem::recordCommandBuffer(vk::raii::CommandBuffer* commandBuffer, u
 	for (const auto& gameObject : gameObjects)
 	{
 		// Bind the descriptor set for this object
-		commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineManager.pipelineLayout, 0,
+		commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineHandler.pipelineLayout, 0,
 		                                  *gameObject.descriptorSets[currentFrame], nullptr);
 		commandBuffer->drawIndexed(model.indices.size(), 1, 0, 0, 0);
 	}
