@@ -11,7 +11,6 @@ class PipelineManager
 public:
 	PipelineManager(VulkanDevice& vulkanDevice, SwapChain& swapChain, DescriptorHandler& descriptorHandler);
 	~PipelineManager();
-	void createDescriptorSetLayout();
 	void createGraphicsPipeline();
 	[[nodiscard]] vk::raii::ShaderModule createShaderModule(const std::vector<char>& code) const;
 
