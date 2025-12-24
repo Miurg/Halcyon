@@ -1,17 +1,14 @@
-#include "PipelineManager.hpp"
-#include "VulkanUtils.hpp"
+#include "PipelineFactory.hpp"
+#include "../VulkanUtils.hpp"
+#include "../Model.hpp"
 
-PipelineManager::PipelineManager(VulkanDevice& deviceContext, SwapChain& swapChain, DescriptorHandler& descriptor)
-    : vulkanDevice(deviceContext), swapChain(swapChain), descriptorHandler(descriptor)
+
+
+void PipelineFactory::createGraphicsPipeline(VulkanDevice& vulkanDevice, SwapChain& swapChain,
+                                             DescriptorHandler& descriptorHandler, PipelineHandler& pipelineHandler)
 {
-	PipelineManager::createGraphicsPipeline();
-}
-
-PipelineManager::~PipelineManager() {}
-
-void PipelineManager::createGraphicsPipeline()
-{
-	vk::raii::ShaderModule shaderModule = createShaderModule(VulkanUtils::readFile("shaders/shader.spv"));
+	vk::raii::ShaderModule shaderModule =
+	    PipelineFactory::createShaderModule(VulkanUtils::readFile("shaders/shader.spv"), vulkanDevice);
 
 	vk::PipelineShaderStageCreateInfo vertShaderStageInfo;
 	vertShaderStageInfo.stage = vk::ShaderStageFlagBits::eVertex;
@@ -89,7 +86,7 @@ void PipelineManager::createGraphicsPipeline()
 	pipelineLayoutInfo.pSetLayouts = &dslHandle;
 	pipelineLayoutInfo.pushConstantRangeCount = 0;
 
-	pipelineLayout = vk::raii::PipelineLayout(vulkanDevice.device, pipelineLayoutInfo);
+	pipelineHandler.pipelineLayout = vk::raii::PipelineLayout(vulkanDevice.device, pipelineLayoutInfo);
 
 	vk::PipelineRenderingCreateInfo pipelineRenderingCreateInfo;
 	pipelineRenderingCreateInfo.colorAttachmentCount = 1;
@@ -115,13 +112,13 @@ void PipelineManager::createGraphicsPipeline()
 	pipelineInfo.pMultisampleState = &multisampling;
 	pipelineInfo.pColorBlendState = &colorBlending;
 	pipelineInfo.pDynamicState = &dynamicState;
-	pipelineInfo.layout = pipelineLayout;
+	pipelineInfo.layout = pipelineHandler.pipelineLayout;
 	pipelineInfo.renderPass = nullptr;
 
-	graphicsPipeline = vk::raii::Pipeline(vulkanDevice.device, nullptr, pipelineInfo);
+	pipelineHandler.graphicsPipeline = vk::raii::Pipeline(vulkanDevice.device, nullptr, pipelineInfo);
 }
 
-[[nodiscard]] vk::raii::ShaderModule PipelineManager::createShaderModule(const std::vector<char>& code) const
+[[nodiscard]] vk::raii::ShaderModule PipelineFactory::createShaderModule(const std::vector<char>& code, VulkanDevice& vulkanDevice)
 {
 	vk::ShaderModuleCreateInfo createInfo;
 	createInfo.codeSize = code.size() * sizeof(char);

@@ -11,10 +11,11 @@
 #include "Core/GeneralManager.hpp"
 #include "CoreInit.hpp"
 #include "Graphics/VulkanUtils.hpp"
-#include "Graphics/MaterialAsset.hpp"
+#include "Graphics/Factories/MaterialAsset.hpp"
 #include "Graphics/Factories/VulkanDeviceFactory.hpp"
 #include "Graphics/Factories/SwapChainFactory.hpp"
 #include "Graphics/Factories/DescriptorHandlerFactory.hpp"
+#include "Graphics/Factories/PipelineFactory.hpp"
 
 namespace
 {
@@ -52,8 +53,10 @@ void App::run()
 	DescriptorHandlerFactory::createDescriptorSetLayout(*vulkanDevice, *descriptorHandler);
 	DescriptorHandlerFactory::createDescriptorPool(*vulkanDevice, *descriptorHandler);
 
-	pipelineManager = new PipelineManager(*vulkanDevice, *swapChain, *descriptorHandler);
-	renderSystem = new RenderSystem(*vulkanDevice, *swapChain, *pipelineManager, *model, *window);
+	pipelineHandler = new PipelineHandler();
+	PipelineFactory::createGraphicsPipeline(*vulkanDevice, *swapChain, *descriptorHandler, *pipelineHandler);
+
+	renderSystem = new RenderSystem(*vulkanDevice, *swapChain, *pipelineHandler, *model, *window);
 
 	App::initVulkan();
 	App::mainLoop();

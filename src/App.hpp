@@ -13,7 +13,7 @@
 #include "Graphics/FrameData.hpp"
 #include "Graphics/GameObject.hpp"
 #include "Graphics/Model.hpp"
-#include "Graphics/PipelineManager.hpp"
+#include "Graphics/PipelineHandler.hpp"
 #include "Platform/Window.hpp"
 #include "Graphics/Systems/RenderSystem.hpp"
 #include "Graphics/SwapChain.hpp"
@@ -31,7 +31,7 @@ private:
 	VulkanDevice* vulkanDevice;
 	SwapChain* swapChain;
 	Model* model;
-	PipelineManager* pipelineManager;
+	PipelineHandler* pipelineHandler;
 	DescriptorHandler* descriptorHandler;
 	RenderSystem* renderSystem;
 
