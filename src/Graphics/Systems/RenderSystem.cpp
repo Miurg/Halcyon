@@ -114,6 +114,7 @@ void RenderSystem::update(float deltaTime, GeneralManager& gm, const std::vector
 	std::vector<FrameData>& framesData =
 	    *gm.getContextComponent<MainFrameDataContext, FrameDataComponent>()->frameDataArray;
 	uint32_t currentFrame = gm.getContextComponent<CurrentFrameContext, CurrentFrameComponent>()->currentFrame;
+	CameraComponent* mainCamera = gm.getContextComponent<MainCameraContext, CameraComponent>();
 
 	std::array<GameObject*, MAX_OBJECTS> gameObjects;
 	for (int i = 0; i < MAX_OBJECTS; i++)
@@ -159,7 +160,7 @@ void RenderSystem::update(float deltaTime, GeneralManager& gm, const std::vector
 	vulkanDevice.device.resetFences(*framesData[currentFrame].inFlightFence);
 	framesData[currentFrame].commandBuffer.reset();
 
-	RenderSystem::updateUniformBuffer(currentFrame, gameObjects, swapChain, currentFrame);
+	RenderSystem::updateUniformBuffer(currentFrame, gameObjects, swapChain, currentFrame, mainCamera);
 
 	recordCommandBuffer(framesData[currentFrame].commandBuffer, imageIndex, gameObjects, swapChain, pipelineHandler, currentFrame, model);
 
@@ -203,14 +204,14 @@ void RenderSystem::update(float deltaTime, GeneralManager& gm, const std::vector
 }
 
 void RenderSystem::updateUniformBuffer(uint32_t currentImage, std::array<GameObject*, MAX_OBJECTS>& gameObjects,
-                                       SwapChain& swapChain, uint32_t currentFrame)
+                                       SwapChain& swapChain, uint32_t currentFrame, CameraComponent* mainCamera)
 {
 	static auto startTime = std::chrono::high_resolution_clock::now();
 	auto currentTime = std::chrono::high_resolution_clock::now();
 	float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 
-	glm::mat4 view = glm::lookAt(glm::vec3(5.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-	glm::mat4 proj = glm::perspective(glm::radians(45.0f),
+	glm::mat4 view = mainCamera->getViewMatrix();
+	glm::mat4 proj = glm::perspective(glm::radians(mainCamera->fov),
 	                                  static_cast<float>(swapChain.swapChainExtent.width) /
 	                                      static_cast<float>(swapChain.swapChainExtent.height),
 	                                  0.1f, 20.0f);
@@ -219,8 +220,10 @@ void RenderSystem::updateUniformBuffer(uint32_t currentImage, std::array<GameObj
 	for (auto gameObject : gameObjects)
 	{
 		// Get the model matrix for this object
-		glm::mat4 initialRotation = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-		glm::mat4 model = gameObject->getModelMatrix() * initialRotation;
+		glm::mat4 rotation =
+		    glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+		glm::mat4 initialRotation = glm::rotate(glm::mat4(1.0f), time/10 * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+		glm::mat4 model = gameObject->getModelMatrix() * rotation * initialRotation;
 
 		// Create and update the UBO
 		UniformBufferObject ubo{.model = model, .view = view, .proj = proj};

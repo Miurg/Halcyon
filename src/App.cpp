@@ -115,6 +115,9 @@ void App::run()
 	gm.subscribeEntity<RenderSystem>(gameObjectEntity2);
 	gm.subscribeEntity<RenderSystem>(gameObjectEntity3);
 
+	Entity cameraEntity = gm.createEntity();
+	gm.addComponent<CameraComponent>(cameraEntity, glm::vec3(0.0f, 0.0f, 3.0f));
+	gm.registerContext<MainCameraContext>(cameraEntity);
 
 	App::initVulkan();
 	App::mainLoop(gm);
@@ -137,18 +140,19 @@ void App::mainLoop(GeneralManager& gm)
 {
 	while (!window->shouldClose())
 	{
-		auto start = std::chrono::high_resolution_clock::now();
+		float currentFrame = static_cast<float>(glfwGetTime());
+		deltaTime = currentFrame - lastFrame;
+		lastFrame = currentFrame;
 		glfwPollEvents();
-		gm.update(1);
-		auto end = std::chrono::high_resolution_clock::now();
-		std::chrono::duration<double> duration = end - start;
-		time += duration.count();
+		gm.update(deltaTime);
+
 		frameCount++;
-		if (time >= 1.0f)
+		float now = static_cast<float>(glfwGetTime());
+		if (now - time >= 1.0f)
 		{
 			std::cout << "FPS: " << frameCount << std::endl;
 			frameCount = 0;
-			time = 0.0f;
+			time = now;
 		}
 	}
 }

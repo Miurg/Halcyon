@@ -20,6 +20,7 @@
 #include "../Components/FrameDataComponent.hpp"
 #include "../Components/CurrentFrameComponent.hpp"
 #include "../Components/GameObjectComponent.hpp"
+#include "../Components/CameraComponent.hpp"
 
 class RenderSystem : public SystemSubscribed<RenderSystem, GameObjectComponent>
 {
@@ -36,5 +37,5 @@ private:
 	                           vk::PipelineStageFlags2 srcStageMask, vk::PipelineStageFlags2 dstStageMask,
 	                           vk::ImageAspectFlags imageAspectFlags);
 	void updateUniformBuffer(uint32_t currentImage, std::array<GameObject*, MAX_OBJECTS>& gameObjects,
-	                         SwapChain& swapChain, uint32_t currentFrame);
+	                         SwapChain& swapChain, uint32_t currentFrame, CameraComponent* mainCamera);
 };
