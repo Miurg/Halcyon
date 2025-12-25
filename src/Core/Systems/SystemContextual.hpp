@@ -2,7 +2,7 @@
 #include <vector>
 
 #include "../Entitys/EntityManager.hpp"
-#include "ISystemConextual.hpp"
+#include "ISystemContextual.hpp"
 
 template <typename Derived>
 class SystemContextual : public ISystemContextual
