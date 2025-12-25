@@ -1,5 +1,5 @@
 #pragma once
 struct CursorPositionComponent
 {
-	double MousePositionX = 0.0, MousePositionY = 0.0;
+	double mousePositionX = 0.0, mousePositionY = 0.0;
 };

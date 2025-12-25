@@ -18,7 +18,7 @@ public:
 
 	// Returns raw GLFW window handle.
 	GLFWwindow* getHandle() const;
-	std::queue<InputEvent> InputQueue;
+	std::queue<InputEvent> inputQueue;
 
 	bool shouldClose() const;
 	void pollEvents() const;

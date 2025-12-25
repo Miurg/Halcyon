@@ -1,5 +1,5 @@
 #pragma once
 struct ScrollDeltaComponent
 {
-	double DeltaScrollX = 0.0, DeltaScrollY = 0.0;
+	double deltaScrollX = 0.0, deltaScrollY = 0.0;
 };

@@ -13,12 +13,11 @@ struct InputEvent
 
 	Type Type;
 
-	int Key = 0;
-	int Action = 0;
-	int Mods = 0;
+	int key = 0;
+	int action = 0;
+	int mods = 0;
 
-	// Для мыши
-	double MousePositionX = 0.0, MousePositionY = 0.0;
-	double DeltaScrollX = 0.0, DeltaScrollY = 0.0;
-	unsigned int WindowWidth = 0, WindowHeight = 0;
+	double mousePositionX = 0.0, mousePositionY = 0.0;
+	double deltaScrollX = 0.0, deltaScrollY = 0.0;
+	unsigned int windowWidth = 0, windowHeight = 0;
 };

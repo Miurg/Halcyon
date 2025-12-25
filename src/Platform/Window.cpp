@@ -125,43 +125,43 @@ void Window::handleKey(int key, int scancode, int action, int mods)
 {
 	InputEvent ev;
 	ev.Type = InputEvent::Type::Key;
-	ev.Key = key;
-	ev.Action = action;
-	ev.Mods = mods;
-	InputQueue.push(ev);
+	ev.key = key;
+	ev.action = action;
+	ev.mods = mods;
+	inputQueue.push(ev);
 }
 void Window::handleMouseButton(int button, int action, int mods)
 {
 	InputEvent ev;
 	ev.Type = InputEvent::Type::MouseButton;
-	ev.Key = button;
-	ev.Action = action;
-	ev.Mods = mods;
-	InputQueue.push(ev);
+	ev.key = button;
+	ev.action = action;
+	ev.mods = mods;
+	inputQueue.push(ev);
 }
 void Window::handleCursorPosition(double xpos, double ypos)
 {
 	InputEvent ev;
 	ev.Type = InputEvent::Type::MouseMove;
-	ev.MousePositionX = xpos;
-	ev.MousePositionY = ypos;
-	InputQueue.push(ev);
+	ev.mousePositionX = xpos;
+	ev.mousePositionY = ypos;
+	inputQueue.push(ev);
 }
 void Window::handleScroll(double xoffset, double yoffset)
 {
 	InputEvent ev;
 	ev.Type = InputEvent::Type::MouseScroll;
-	ev.DeltaScrollX = xoffset;
-	ev.DeltaScrollY = yoffset;
-	InputQueue.push(ev);
+	ev.deltaScrollX = xoffset;
+	ev.deltaScrollY = yoffset;
+	inputQueue.push(ev);
 }
 void Window::handleFramebufferSize(int width, int height)
 {
 	InputEvent ev;
 	ev.Type = InputEvent::Type::WindowResize;
-	ev.WindowWidth = width;
-	ev.WindowHeight = height;
-	InputQueue.push(ev);
+	ev.windowWidth = width;
+	ev.windowHeight = height;
+	inputQueue.push(ev);
 
 	this->width = width;
 	this->height = height;

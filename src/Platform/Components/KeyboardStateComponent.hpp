@@ -1,6 +1,6 @@
 #pragma once
 struct KeyboardStateComponent
 {
-	bool Keys[1024] = {false};
-	bool Mods[16] = {false};
+	bool keys[1024] = {false};
+	bool mods[16] = {false};
 };

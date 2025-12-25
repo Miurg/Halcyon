@@ -10,39 +10,39 @@ void InputSolverSystem::processEntity(Entity entity, GeneralManager& gm, float d
 	MouseStateComponent* mouseState = gm.getComponent<MouseStateComponent>(entity);
 	ScrollDeltaComponent* scrollDelta = gm.getComponent<ScrollDeltaComponent>(entity);
 	Window* mainWindow = gm.getComponent<WindowComponent>(entity)->windowInstance;
-	while (!mainWindow->InputQueue.empty())
+	while (!mainWindow->inputQueue.empty())
 	{
-		const auto& e = mainWindow->InputQueue.front();
+		const auto& e = mainWindow->inputQueue.front();
 
 		switch (e.Type)
 		{
 		case InputEvent::Type::Key:
-			keyboardState->Keys[e.Key] = (e.Action == GLFW_PRESS || e.Action == GLFW_REPEAT);
+			keyboardState->keys[e.key] = (e.action == GLFW_PRESS || e.action == GLFW_REPEAT);
 			break;
 
 		case InputEvent::Type::MouseButton:
-			mouseState->Keys[e.Key] = (e.Action == GLFW_PRESS || e.Action == GLFW_REPEAT);
+			mouseState->keys[e.key] = (e.action == GLFW_PRESS || e.action == GLFW_REPEAT);
 			break;
 
 		case InputEvent::Type::MouseMove:
-			cursorPosition->MousePositionX = e.MousePositionX;
-			cursorPosition->MousePositionY = e.MousePositionY;
+			cursorPosition->mousePositionX = e.mousePositionX;
+			cursorPosition->mousePositionY = e.mousePositionY;
 			break;
 
 		case InputEvent::Type::MouseScroll:
-			scrollDelta->DeltaScrollX += e.DeltaScrollX;
-			scrollDelta->DeltaScrollY += e.DeltaScrollY;
+			scrollDelta->deltaScrollX += e.deltaScrollX;
+			scrollDelta->deltaScrollY += e.deltaScrollY;
 			break;
 
 		case InputEvent::Type::WindowResize:
-			windowSize->WindowWidth = e.WindowWidth;
-			windowSize->WindowHeight = e.WindowHeight;
+			windowSize->windowWidth = e.windowWidth;
+			windowSize->windowHeight = e.windowHeight;
 			break;
 
 		default:
 			break;
 		}
 
-		mainWindow->InputQueue.pop();
+		mainWindow->inputQueue.pop();
 	}
 };

@@ -1,6 +1,6 @@
 #pragma once
 struct MouseStateComponent
 {
-	bool Keys[32] = {false};
-	bool Mods[16] = {false};
+	bool keys[32] = {false};
+	bool mods[16] = {false};
 };
