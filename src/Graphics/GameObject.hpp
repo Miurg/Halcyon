@@ -8,6 +8,8 @@
 #include "VulkanDevice.hpp"
 #include "VulkanUtils.hpp"
 #include "Texture.hpp"
+#include <iostream>
+
 
 struct GameObject
 {

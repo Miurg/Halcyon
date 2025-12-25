@@ -20,7 +20,6 @@
 #include "Graphics/VulkanConst.hpp"
 #include "Graphics/VulkanDevice.hpp"
 #include "Core/GeneralManager.hpp"
-#include "Graphics/FrameData.hpp"
 
 class App
 {
@@ -35,7 +34,6 @@ private:
 	Model* model;
 	PipelineHandler* pipelineHandler;
 	DescriptorHandler* descriptorHandler;
-	RenderSystem* renderSystem;
 	std::vector<FrameData>* framesData;
 
 	uint32_t frameCount = 0;

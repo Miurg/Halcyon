@@ -4,7 +4,7 @@
 #include <GLFW/glfw3.h>
 #include <iostream>
 
-Window::Window(unsigned int width, unsigned int height, const char* title)
+Window::Window(const char* title)
 {
 	if (!glfwInit())
 	{
@@ -14,6 +14,11 @@ Window::Window(unsigned int width, unsigned int height, const char* title)
 
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 	glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
+
+	GLFWmonitor* monitor = glfwGetPrimaryMonitor();
+	const GLFWvidmode* mode = glfwGetVideoMode(monitor);
+	int width = mode->width;
+	int height = mode->height;
 
 	_GLFWwindow = glfwCreateWindow(width, height, title, nullptr, nullptr);
 	if (_GLFWwindow == nullptr)

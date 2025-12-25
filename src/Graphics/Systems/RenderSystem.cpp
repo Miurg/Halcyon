@@ -4,20 +4,15 @@
 #include <chrono>
 
 #include "../Factories/SwapChainFactory.hpp"
+#include "../../Core/GeneralManager.hpp"
+#include "../GraphicsContexts.hpp"
 
-RenderSystem::RenderSystem(VulkanDevice& deviceContext, SwapChain& swapChain, PipelineHandler& pipelineHandler,
-                           Model& model, Window& window)
-    : vulkanDevice(deviceContext), swapChain(swapChain), pipelineHandler(pipelineHandler), model(model), window(window)
-{
-	framesData.resize(MAX_FRAMES_IN_FLIGHT);
-	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
-	{
-		FrameData::initFrameData(framesData[i], vulkanDevice);
-	}
-}
-RenderSystem::~RenderSystem() {}
+
+void RenderSystem::processEntity(Entity entity, GeneralManager& manager, float dt) {}
+
 void RenderSystem::recordCommandBuffer(vk::raii::CommandBuffer& commandBuffer, uint32_t imageIndex,
-                                       std::array<GameObject, MAX_OBJECTS>& gameObjects)
+                                       std::array<GameObject*, MAX_OBJECTS>& gameObjects, SwapChain& swapChain,
+                                       PipelineHandler& pipelineHandler, uint32_t currentFrame, Model& model)
 {
 	commandBuffer.begin({});
 
@@ -62,11 +57,11 @@ void RenderSystem::recordCommandBuffer(vk::raii::CommandBuffer& commandBuffer, u
 	commandBuffer.setViewport(0, vk::Viewport(0.0f, 0.0f, static_cast<float>(swapChain.swapChainExtent.width),
 	                                           static_cast<float>(swapChain.swapChainExtent.height), 0.0f, 1.0f));
 	commandBuffer.setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), swapChain.swapChainExtent));
-	for (const auto& gameObject : gameObjects)
+	for (const auto gameObject : gameObjects)
 	{
 		// Bind the descriptor set for this object
 		commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineHandler.pipelineLayout, 0,
-		                                  *gameObject.descriptorSets[currentFrame], nullptr);
+		                                  *gameObject->descriptorSets[currentFrame], nullptr);
 		commandBuffer.drawIndexed(model.indices.size(), 1, 0, 0, 0);
 	}
 	commandBuffer.endRendering();
@@ -109,8 +104,25 @@ void RenderSystem::transitionImageLayout(vk::raii::CommandBuffer& commandBuffer,
 	commandBuffer.pipelineBarrier2(dependencyInfo);
 }
 
-void RenderSystem::drawFrame(std::array<GameObject, MAX_OBJECTS>& gameObjects)
+void RenderSystem::update(float deltaTime, GeneralManager& gm, const std::vector<Entity>& entities)
 {
+	VulkanDevice& vulkanDevice = *gm.getContextComponent<MainVulkanDeviceContext, VulkanDeviceComponent>()->vulkanDeviceInstance;
+	SwapChain& swapChain = *gm.getContextComponent<MainSwapChainContext, SwapChainComponent>()->swapChainInstance;
+	PipelineHandler& pipelineHandler = *gm.getContextComponent<MainSignatureContext, PipelineHandlerComponent>()->pipelineHandler;
+	Window& window = *gm.getContextComponent<MainWindowContext, WindowComponent>()->windowInstance;
+	Model& model = *gm.getContextComponent<MainModelContext, ModelHandlerComponent>()->modelInstance;
+	std::vector<FrameData>& framesData =
+	    *gm.getContextComponent<MainFrameDataContext, FrameDataComponent>()->frameDataArray;
+	uint32_t currentFrame = gm.getContextComponent<CurrentFrameContext, CurrentFrameComponent>()->currentFrame;
+
+	std::array<GameObject*, MAX_OBJECTS> gameObjects;
+	for (int i = 0; i < MAX_OBJECTS; i++)
+	{
+		auto gameObjectComponent = gm.getComponent<GameObjectComponent>(entities[i]);
+		gameObjects[i] = gameObjectComponent->objectInstance;
+	}
+
+
 	while (vk::Result::eTimeout ==
 	       vulkanDevice.device.waitForFences(*framesData[currentFrame].inFlightFence, vk::True, UINT64_MAX));
 
@@ -147,9 +159,9 @@ void RenderSystem::drawFrame(std::array<GameObject, MAX_OBJECTS>& gameObjects)
 	vulkanDevice.device.resetFences(*framesData[currentFrame].inFlightFence);
 	framesData[currentFrame].commandBuffer.reset();
 
-	RenderSystem::updateUniformBuffer(currentFrame, gameObjects);
+	RenderSystem::updateUniformBuffer(currentFrame, gameObjects, swapChain, currentFrame);
 
-	recordCommandBuffer(framesData[currentFrame].commandBuffer, imageIndex, gameObjects);
+	recordCommandBuffer(framesData[currentFrame].commandBuffer, imageIndex, gameObjects, swapChain, pipelineHandler, currentFrame, model);
 
 	vk::PipelineStageFlags waitDestinationStageMask(vk::PipelineStageFlagBits::eColorAttachmentOutput);
 
@@ -190,7 +202,8 @@ void RenderSystem::drawFrame(std::array<GameObject, MAX_OBJECTS>& gameObjects)
 	currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 }
 
-void RenderSystem::updateUniformBuffer(uint32_t currentImage, std::array<GameObject, MAX_OBJECTS>& gameObjects)
+void RenderSystem::updateUniformBuffer(uint32_t currentImage, std::array<GameObject*, MAX_OBJECTS>& gameObjects,
+                                       SwapChain& swapChain, uint32_t currentFrame)
 {
 	static auto startTime = std::chrono::high_resolution_clock::now();
 	auto currentTime = std::chrono::high_resolution_clock::now();
@@ -203,15 +216,14 @@ void RenderSystem::updateUniformBuffer(uint32_t currentImage, std::array<GameObj
 	                                  0.1f, 20.0f);
 	proj[1][1] *= -1; // Flip Y for Vulkan
 
-	for (auto& gameObject : gameObjects)
+	for (auto gameObject : gameObjects)
 	{
-
 		// Get the model matrix for this object
 		glm::mat4 initialRotation = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-		glm::mat4 model = gameObject.getModelMatrix() * initialRotation;
+		glm::mat4 model = gameObject->getModelMatrix() * initialRotation;
 
 		// Create and update the UBO
 		UniformBufferObject ubo{.model = model, .view = view, .proj = proj};
-		memcpy(gameObject.uniformBuffersMapped[currentFrame], &ubo, sizeof(ubo));
+		memcpy(gameObject->uniformBuffersMapped[currentFrame], &ubo, sizeof(ubo));
 	}
 }

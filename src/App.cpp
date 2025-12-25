@@ -57,7 +57,7 @@ void App::run()
 	Entity windowAndInputEntity = gm.createEntity();
 	gm.registerContext<InputDataContext>(windowAndInputEntity);
 	gm.registerContext<MainWindowContext>(windowAndInputEntity);
-	window = new Window(ScreenWidth, ScreenHeight, "Halcyon");
+	window = new Window("Halcyon");
 	gm.addComponent<WindowComponent>(windowAndInputEntity, window);
 	gm.addComponent<KeyboardStateComponent>(windowAndInputEntity);
 	gm.addComponent<MouseStateComponent>(windowAndInputEntity);
@@ -96,6 +96,7 @@ void App::run()
 
 	Entity frameDataEntity = gm.createEntity();
 	gm.registerContext<MainFrameDataContext>(frameDataEntity);
+	gm.registerContext<CurrentFrameContext>(frameDataEntity);
 	std::vector<FrameData>* framesData = new std::vector<FrameData>(MAX_FRAMES_IN_FLIGHT);
 	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
 	{
@@ -104,7 +105,16 @@ void App::run()
 	gm.addComponent<FrameDataComponent>(frameDataEntity, framesData);
 	gm.addComponent<CurrentFrameComponent>(frameDataEntity);
 
-	renderSystem = new RenderSystem(*vulkanDevice, *swapChain, *pipelineHandler, *model, *window);
+	Entity gameObjectEntity1 = gm.createEntity();
+	Entity gameObjectEntity2 = gm.createEntity();
+	Entity gameObjectEntity3 = gm.createEntity();
+	gm.addComponent<GameObjectComponent>(gameObjectEntity1, &gameObjects[0]);
+	gm.addComponent<GameObjectComponent>(gameObjectEntity2, &gameObjects[1]);
+	gm.addComponent<GameObjectComponent>(gameObjectEntity3, &gameObjects[2]);
+	gm.subscribeEntity<RenderSystem>(gameObjectEntity1);
+	gm.subscribeEntity<RenderSystem>(gameObjectEntity2);
+	gm.subscribeEntity<RenderSystem>(gameObjectEntity3);
+
 
 	App::initVulkan();
 	App::mainLoop(gm);
@@ -130,7 +140,6 @@ void App::mainLoop(GeneralManager& gm)
 		auto start = std::chrono::high_resolution_clock::now();
 		glfwPollEvents();
 		gm.update(1);
-		renderSystem->drawFrame(gameObjects);
 		auto end = std::chrono::high_resolution_clock::now();
 		std::chrono::duration<double> duration = end - start;
 		time += duration.count();

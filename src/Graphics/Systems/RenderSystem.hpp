@@ -10,28 +10,31 @@
 #include "../Model.hpp"
 #include "../VulkanConst.hpp"
 #include "../../Platform/Window.hpp"
+#include "../../Core/Systems/SystemSubscribed.hpp"
+#include "../Components/VulkanDeviceComponent.hpp"
+#include "../../Platform/PlatformContexts.hpp"
+#include "../Components/SwapChainComponent.hpp"
+#include "../Components/PipelineHandlerComponent.hpp"
+#include "../../Platform/Components/WindowComponent.hpp"
+#include "../Components/ModelHandlerComponent.hpp"
+#include "../Components/FrameDataComponent.hpp"
+#include "../Components/CurrentFrameComponent.hpp"
+#include "../Components/GameObjectComponent.hpp"
 
-class RenderSystem
+class RenderSystem : public SystemSubscribed<RenderSystem, GameObjectComponent>
 {
 public:
-	RenderSystem(VulkanDevice& deviceContext, SwapChain& swapChain, PipelineHandler& pipelineHandler, Model& model,
-	             Window& window);
-	~RenderSystem();
-	void drawFrame(std::array<GameObject, MAX_OBJECTS>& gameObjects);
+	void update(float deltaTime, GeneralManager& gm, const std::vector<Entity>& entities) override;
+	void processEntity(Entity entity, GeneralManager& manager, float dt) override;
 
 private:
 	void recordCommandBuffer(vk::raii::CommandBuffer& commandBuffer, uint32_t imageIndex,
-	                         std::array<GameObject, MAX_OBJECTS>& gameObjects);
+	                         std::array<GameObject*, MAX_OBJECTS>& gameObjects, SwapChain& swapChain,
+	                         PipelineHandler& pipelineHandler, uint32_t currentFrame, Model& model);
 	void transitionImageLayout(vk::raii::CommandBuffer& commandBuffer, vk::Image image, vk::ImageLayout oldLayout,
 	                           vk::ImageLayout newLayout, vk::AccessFlags2 srcAccessMask, vk::AccessFlags2 dstAccessMask,
 	                           vk::PipelineStageFlags2 srcStageMask, vk::PipelineStageFlags2 dstStageMask,
 	                           vk::ImageAspectFlags imageAspectFlags);
-	void updateUniformBuffer(uint32_t currentImage, std::array<GameObject, MAX_OBJECTS>& gameObjects);
-	VulkanDevice& vulkanDevice;
-	SwapChain& swapChain;
-	PipelineHandler& pipelineHandler;
-	Window& window;
-	Model& model;
-	std::vector<FrameData> framesData;
-	uint32_t currentFrame = 0;
+	void updateUniformBuffer(uint32_t currentImage, std::array<GameObject*, MAX_OBJECTS>& gameObjects,
+	                         SwapChain& swapChain, uint32_t currentFrame);
 };

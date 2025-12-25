@@ -2,6 +2,6 @@
 #include "../Window.hpp"
 struct WindowComponent
 {
-	Window* WindowInstance;
-	WindowComponent(Window* w) : WindowInstance(w) {}
+	Window* windowInstance;
+	WindowComponent(Window* w) : windowInstance(w) {}
 };

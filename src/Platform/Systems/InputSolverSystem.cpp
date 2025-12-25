@@ -9,7 +9,7 @@ void InputSolverSystem::processEntity(Entity entity, GeneralManager& gm, float d
 	KeyboardStateComponent* keyboardState = gm.getComponent<KeyboardStateComponent>(entity);
 	MouseStateComponent* mouseState = gm.getComponent<MouseStateComponent>(entity);
 	ScrollDeltaComponent* scrollDelta = gm.getComponent<ScrollDeltaComponent>(entity);
-	Window* mainWindow = gm.getComponent<WindowComponent>(entity)->WindowInstance;
+	Window* mainWindow = gm.getComponent<WindowComponent>(entity)->windowInstance;
 	while (!mainWindow->InputQueue.empty())
 	{
 		const auto& e = mainWindow->InputQueue.front();
