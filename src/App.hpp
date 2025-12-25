@@ -39,10 +39,10 @@ private:
 	uint32_t frameCount = 0;
 	float time = 0;
 
-	std::array<GameObject, MAX_OBJECTS> gameObjects;
+	std::vector<GameObject> gameObjects;
 
 	void initVulkan();
 	void mainLoop(GeneralManager& gm);
 	void cleanup();
-	void setupGameObjects();
+	void setupGameObjects(GeneralManager& gm);
 };

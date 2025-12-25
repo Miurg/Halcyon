@@ -11,7 +11,7 @@
 void RenderSystem::processEntity(Entity entity, GeneralManager& manager, float dt) {}
 
 void RenderSystem::recordCommandBuffer(vk::raii::CommandBuffer& commandBuffer, uint32_t imageIndex,
-                                       std::array<GameObject*, MAX_OBJECTS>& gameObjects, SwapChain& swapChain,
+                                       std::vector<GameObject*>& gameObjects, SwapChain& swapChain,
                                        PipelineHandler& pipelineHandler, uint32_t currentFrame, Model& model)
 {
 	commandBuffer.begin({});
@@ -116,11 +116,11 @@ void RenderSystem::update(float deltaTime, GeneralManager& gm, const std::vector
 	uint32_t currentFrame = gm.getContextComponent<CurrentFrameContext, CurrentFrameComponent>()->currentFrame;
 	CameraComponent* mainCamera = gm.getContextComponent<MainCameraContext, CameraComponent>();
 
-	std::array<GameObject*, MAX_OBJECTS> gameObjects;
-	for (int i = 0; i < MAX_OBJECTS; i++)
+	std::vector<GameObject*> gameObjects;
+	for (int i = 0; i < entities.size(); i++)
 	{
 		auto gameObjectComponent = gm.getComponent<GameObjectComponent>(entities[i]);
-		gameObjects[i] = gameObjectComponent->objectInstance;
+		gameObjects.push_back(gameObjectComponent->objectInstance);
 	}
 
 
@@ -203,7 +203,7 @@ void RenderSystem::update(float deltaTime, GeneralManager& gm, const std::vector
 	currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 }
 
-void RenderSystem::updateUniformBuffer(uint32_t currentImage, std::array<GameObject*, MAX_OBJECTS>& gameObjects,
+void RenderSystem::updateUniformBuffer(uint32_t currentImage, std::vector<GameObject*>& gameObjects,
                                        SwapChain& swapChain, uint32_t currentFrame, CameraComponent* mainCamera)
 {
 	static auto startTime = std::chrono::high_resolution_clock::now();
@@ -214,7 +214,7 @@ void RenderSystem::updateUniformBuffer(uint32_t currentImage, std::array<GameObj
 	glm::mat4 proj = glm::perspective(glm::radians(mainCamera->fov),
 	                                  static_cast<float>(swapChain.swapChainExtent.width) /
 	                                      static_cast<float>(swapChain.swapChainExtent.height),
-	                                  0.1f, 20.0f);
+	                                  0.1f, 2000.0f);
 	proj[1][1] *= -1; // Flip Y for Vulkan
 
 	for (auto gameObject : gameObjects)

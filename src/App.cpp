@@ -105,20 +105,11 @@ void App::run()
 	gm.addComponent<FrameDataComponent>(frameDataEntity, framesData);
 	gm.addComponent<CurrentFrameComponent>(frameDataEntity);
 
-	Entity gameObjectEntity1 = gm.createEntity();
-	Entity gameObjectEntity2 = gm.createEntity();
-	Entity gameObjectEntity3 = gm.createEntity();
-	gm.addComponent<GameObjectComponent>(gameObjectEntity1, &gameObjects[0]);
-	gm.addComponent<GameObjectComponent>(gameObjectEntity2, &gameObjects[1]);
-	gm.addComponent<GameObjectComponent>(gameObjectEntity3, &gameObjects[2]);
-	gm.subscribeEntity<RenderSystem>(gameObjectEntity1);
-	gm.subscribeEntity<RenderSystem>(gameObjectEntity2);
-	gm.subscribeEntity<RenderSystem>(gameObjectEntity3);
-
 	Entity cameraEntity = gm.createEntity();
 	gm.addComponent<CameraComponent>(cameraEntity, glm::vec3(0.0f, 0.0f, 3.0f));
 	gm.registerContext<MainCameraContext>(cameraEntity);
 
+	App::setupGameObjects(gm);
 	App::initVulkan();
 	App::mainLoop(gm);
 	App::cleanup();
@@ -126,13 +117,9 @@ void App::run()
 
 void App::initVulkan()
 {
-	App::setupGameObjects();
-	for (int i = 0; i < MAX_OBJECTS; i++)
+	for (int i = 0; i < 10; i++)
 	{
-		GameObject::initUniformBuffers(gameObjects[i], *vulkanDevice);
-		DescriptorHandlerFactory::allocateDescriptorSets(*vulkanDevice, *descriptorHandler, gameObjects[i]);
-		DescriptorHandlerFactory::updateUniformDescriptors(*vulkanDevice, gameObjects[i]);
-		DescriptorHandlerFactory::updateTextureDescriptors(*vulkanDevice, gameObjects[i]);
+
 	}
 }
 
@@ -164,23 +151,36 @@ void App::cleanup()
 	SwapChainFactory::cleanupSwapChain(*swapChain);
 }
 
-void App::setupGameObjects()
+void App::setupGameObjects(GeneralManager& gm)
 {
 	const std::string TEXTURE_PATH = "assets/textures/viking_room.png";
-	
-	// Object 1 - Center
-	gameObjects[0].position = {0.0f, 0.0f, 0.0f};
-	gameObjects[0].rotation = {0.0f, 0.0f, 0.0f};
-	gameObjects[0].scale = {1.0f, 1.0f, 1.0f};
-	MaterialAsset::generateTextureData(TEXTURE_PATH, *vulkanDevice, gameObjects[0]);
-	// Object 2 - Left
-	gameObjects[1].position = {-2.0f, 0.0f, -1.0f};
-	gameObjects[1].rotation = {0.0f, 0.0f, 0.0f};
-	gameObjects[1].scale = {0.75f, 0.75f, 0.75f};
-	MaterialAsset::generateTextureData(TEXTURE_PATH, *vulkanDevice, gameObjects[1]);
-	// Object 3 - Right
-	gameObjects[2].position = {2.0f, 0.0f, -1.0f};
-	gameObjects[2].rotation = {0.0f, 0.0f, 0.0f};
-	gameObjects[2].scale = {0.75f, 0.75f, 0.75f};
-	MaterialAsset::generateTextureData(TEXTURE_PATH, *vulkanDevice, gameObjects[2]);
+	for (int i = 0; i < 100; i++)
+	{
+		GameObject gameObject = GameObject();
+		gameObjects.push_back(std::move(gameObject));
+	}
+	int j = 0;
+	int k = 0;
+	for (int i = 0; i < 100; i++)
+	{
+			GameObject& gameObject = gameObjects[i];
+			gameObject.position = {k * 2, 0.0f, j*2};
+			gameObject.rotation = {0.0f, 0.0f, 0.0f};
+			gameObject.scale = {1.0f, 1.0f, 1.0f};
+			MaterialAsset::generateTextureData(TEXTURE_PATH, *vulkanDevice, gameObject);
+			Entity gameObjectEntity1 = gm.createEntity();
+			gm.addComponent<GameObjectComponent>(gameObjectEntity1, &gameObject);
+			gm.subscribeEntity<RenderSystem>(gameObjectEntity1);
+
+			GameObject::initUniformBuffers(gameObjects[i], *vulkanDevice);
+			DescriptorHandlerFactory::allocateDescriptorSets(*vulkanDevice, *descriptorHandler, gameObjects[i]);
+			DescriptorHandlerFactory::updateUniformDescriptors(*vulkanDevice, gameObjects[i]);
+			DescriptorHandlerFactory::updateTextureDescriptors(*vulkanDevice, gameObjects[i]);
+			k++;
+			if ((i + 1) % 10 == 0)
+			{
+				j++;
+				k = 0;
+			}
+	}
 }
