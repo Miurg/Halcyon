@@ -36,6 +36,7 @@ Window::Window(const char* title)
 	glfwSetScrollCallback(getHandle(), scrollCallback);
 	this->width = width;
 	this->height = height;
+	glfwSetInputMode(_GLFWwindow, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 }
 
 Window::~Window()

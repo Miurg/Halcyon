@@ -110,7 +110,6 @@ void App::run()
 	gm.registerContext<MainCameraContext>(cameraEntity);
 
 	App::setupGameObjects(gm);
-	App::initVulkan();
 	App::mainLoop(gm);
 	App::cleanup();
 }
@@ -154,7 +153,7 @@ void App::setupGameObjects(GeneralManager& gm)
 	}
 	int j = 0;
 	int k = 0;
-	for (int i = 0; i < 100; i++)
+	for (int i = 0; i < 10; i++)
 	{
 			GameObject& gameObject = gameObjects[i];
 			gameObject.position = {k * 2, 0.0f, j*2};
