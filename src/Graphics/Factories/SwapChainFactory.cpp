@@ -27,16 +27,15 @@ void SwapChainFactory::createSwapChainHandle(SwapChain& swapChain, VulkanDevice&
 	minImageCount = (surfaceCapabilities.maxImageCount > 0 && minImageCount > surfaceCapabilities.maxImageCount)
 	                    ? surfaceCapabilities.maxImageCount
 	                    : minImageCount;
-	uint32_t imageCount = surfaceCapabilities.minImageCount + 1;
-	if (surfaceCapabilities.maxImageCount > 0 && imageCount > surfaceCapabilities.maxImageCount)
+	if (surfaceCapabilities.maxImageCount > 0 && minImageCount > surfaceCapabilities.maxImageCount)
 	{
-		imageCount = surfaceCapabilities.maxImageCount;
+		minImageCount = surfaceCapabilities.maxImageCount;
 	}
 
 	vk::SwapchainCreateInfoKHR swapChainCreateInfo{};
 	swapChainCreateInfo.flags = vk::SwapchainCreateFlagsKHR();
 	swapChainCreateInfo.surface = deviceContext.surface;
-	swapChainCreateInfo.minImageCount = imageCount;
+	swapChainCreateInfo.minImageCount = minImageCount;
 	swapChainCreateInfo.imageFormat = swapChain.swapChainImageFormat;
 	swapChainCreateInfo.imageColorSpace = swapChainSurfaceFormat.colorSpace;
 	swapChainCreateInfo.imageExtent = swapChain.swapChainExtent;
