@@ -41,7 +41,6 @@ private:
 
 	std::vector<GameObject> gameObjects;
 
-	void initVulkan();
 	void mainLoop(GeneralManager& gm);
 	void cleanup();
 	void setupGameObjects(GeneralManager& gm);

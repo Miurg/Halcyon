@@ -115,13 +115,6 @@ void App::run()
 	App::cleanup();
 }
 
-void App::initVulkan()
-{
-	for (int i = 0; i < 10; i++)
-	{
-
-	}
-}
 
 void App::mainLoop(GeneralManager& gm)
 {
