@@ -23,5 +23,5 @@ public:
 	static vk::SurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<vk::SurfaceFormatKHR>& availableFormats);
 	static vk::PresentModeKHR
 	chooseSwapPresentMode(const std::vector<vk::PresentModeKHR>& availablePresentModes);
-	static vk::Extent2D chooseSwapExtent(const vk::SurfaceCapabilitiesKHR& capabilities);
+	static vk::Extent2D chooseSwapExtent(const vk::SurfaceCapabilitiesKHR& capabilities, Window& window);
 };

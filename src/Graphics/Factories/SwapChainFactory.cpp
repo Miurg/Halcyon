@@ -17,7 +17,7 @@ void SwapChainFactory::createSwapChainHandle(SwapChain& swapChain, VulkanDevice&
 	auto surfaceCapabilities = deviceContext.physicalDevice.getSurfaceCapabilitiesKHR(deviceContext.surface);
 	vk::SurfaceFormatKHR swapChainSurfaceFormat =
 	    chooseSwapSurfaceFormat(deviceContext.physicalDevice.getSurfaceFormatsKHR(deviceContext.surface));
-	swapChain.swapChainExtent = chooseSwapExtent(surfaceCapabilities);
+	swapChain.swapChainExtent = chooseSwapExtent(surfaceCapabilities, window);
 	vk::PresentModeKHR swapChainPresentMode =
 	    chooseSwapPresentMode(deviceContext.physicalDevice.getSurfacePresentModesKHR(deviceContext.surface));
 	swapChain.swapChainImageFormat = swapChainSurfaceFormat.format;
@@ -90,15 +90,15 @@ vk::PresentModeKHR SwapChainFactory::chooseSwapPresentMode(const std::vector<vk:
 	return vk::PresentModeKHR::eFifo;
 }
 
-vk::Extent2D SwapChainFactory::chooseSwapExtent(const vk::SurfaceCapabilitiesKHR& capabilities)
+vk::Extent2D SwapChainFactory::chooseSwapExtent(const vk::SurfaceCapabilitiesKHR& capabilities, Window& window)
 {
 	if (capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max())
 	{
 		return capabilities.currentExtent;
 	}
 
-	return {std::clamp<uint32_t>(800, capabilities.minImageExtent.width, capabilities.maxImageExtent.width),
-	        std::clamp<uint32_t>(600, capabilities.minImageExtent.height, capabilities.maxImageExtent.height)};
+	return {std::clamp<uint32_t>(window.height, capabilities.minImageExtent.width, capabilities.maxImageExtent.width),
+	        std::clamp<uint32_t>(window.width, capabilities.minImageExtent.height, capabilities.maxImageExtent.height)};
 }
 
 void SwapChainFactory::cleanupSwapChain(SwapChain& swapChain)
