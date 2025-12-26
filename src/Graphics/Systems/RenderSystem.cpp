@@ -6,103 +6,10 @@
 #include "../Factories/SwapChainFactory.hpp"
 #include "../../Core/GeneralManager.hpp"
 #include "../GraphicsContexts.hpp"
+#include "../Factories/CommandBufferFactory.hpp"
 
 
 void RenderSystem::processEntity(Entity entity, GeneralManager& manager, float dt) {}
-
-void RenderSystem::recordCommandBuffer(vk::raii::CommandBuffer& commandBuffer, uint32_t imageIndex,
-                                       std::vector<GameObject*>& gameObjects, SwapChain& swapChain,
-                                       PipelineHandler& pipelineHandler, uint32_t currentFrame, Model& model)
-{
-	commandBuffer.begin({});
-
-	transitionImageLayout(commandBuffer, swapChain.swapChainImages[imageIndex], vk::ImageLayout::eUndefined,
-	                      vk::ImageLayout::eColorAttachmentOptimal, {}, vk::AccessFlagBits2::eColorAttachmentWrite,
-	                      vk::PipelineStageFlagBits2::eColorAttachmentOutput,
-	                      vk::PipelineStageFlagBits2::eColorAttachmentOutput, vk::ImageAspectFlagBits::eColor);
-	transitionImageLayout(commandBuffer, swapChain.depthImage, vk::ImageLayout::eUndefined,
-	                      vk::ImageLayout::eDepthStencilAttachmentOptimal, {},
-	                      vk::AccessFlagBits2::eDepthStencilAttachmentWrite, vk::PipelineStageFlagBits2::eTopOfPipe,
-	                      vk::PipelineStageFlagBits2::eEarlyFragmentTests, vk::ImageAspectFlagBits::eDepth);
-
-	vk::ClearValue clearColor = vk::ClearColorValue(0.0f, 0.0f, 0.0f, 1.0f);
-	vk::RenderingAttachmentInfo attachmentInfo;
-	attachmentInfo.imageView = swapChain.swapChainImageViews[imageIndex];
-	attachmentInfo.imageLayout = vk::ImageLayout::eColorAttachmentOptimal;
-	attachmentInfo.loadOp = vk::AttachmentLoadOp::eClear;
-	attachmentInfo.storeOp = vk::AttachmentStoreOp::eStore;
-	attachmentInfo.clearValue = clearColor;
-
-	vk::RenderingAttachmentInfo depthAttachmentInfo;
-	depthAttachmentInfo.imageView = swapChain.depthImageView;
-	depthAttachmentInfo.imageLayout = vk::ImageLayout::eDepthAttachmentOptimal;
-	depthAttachmentInfo.loadOp = vk::AttachmentLoadOp::eClear;
-	depthAttachmentInfo.storeOp = vk::AttachmentStoreOp::eDontCare;
-	depthAttachmentInfo.clearValue = swapChain.clearDepth;
-
-	vk::RenderingInfo renderingInfo;
-	renderingInfo.renderArea.offset = 0;
-	renderingInfo.renderArea.extent = swapChain.swapChainExtent;
-	renderingInfo.layerCount = 1;
-	renderingInfo.colorAttachmentCount = 1;
-	renderingInfo.pColorAttachments = &attachmentInfo;
-	renderingInfo.pDepthAttachment = &depthAttachmentInfo;
-
-	commandBuffer.beginRendering(renderingInfo);
-	commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipelineHandler.graphicsPipeline);
-
-	commandBuffer.bindVertexBuffers(0, *model.vertexBuffer, {0});
-	commandBuffer.bindIndexBuffer(*model.indexBuffer, 0, vk::IndexType::eUint32);
-
-	commandBuffer.setViewport(0, vk::Viewport(0.0f, 0.0f, static_cast<float>(swapChain.swapChainExtent.width),
-	                                           static_cast<float>(swapChain.swapChainExtent.height), 0.0f, 1.0f));
-	commandBuffer.setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), swapChain.swapChainExtent));
-	for (const auto gameObject : gameObjects)
-	{
-		// Bind the descriptor set for this object
-		commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineHandler.pipelineLayout, 0,
-		                                  *gameObject->descriptorSets[currentFrame], nullptr);
-		commandBuffer.drawIndexed(model.indices.size(), 1, 0, 0, 0);
-	}
-	commandBuffer.endRendering();
-
-	transitionImageLayout(commandBuffer, swapChain.swapChainImages[imageIndex], vk::ImageLayout::eColorAttachmentOptimal,
-	                      vk::ImageLayout::ePresentSrcKHR, vk::AccessFlagBits2::eColorAttachmentWrite, {},
-	                      vk::PipelineStageFlagBits2::eColorAttachmentOutput, vk::PipelineStageFlagBits2::eBottomOfPipe,
-	                      vk::ImageAspectFlagBits::eColor);
-
-	commandBuffer.end();
-}
-
-void RenderSystem::transitionImageLayout(vk::raii::CommandBuffer& commandBuffer, vk::Image image,
-                                         vk::ImageLayout oldLayout, vk::ImageLayout newLayout,
-                                         vk::AccessFlags2 srcAccessMask, vk::AccessFlags2 dstAccessMask,
-                                         vk::PipelineStageFlags2 srcStageMask, vk::PipelineStageFlags2 dstStageMask,
-                                         vk::ImageAspectFlags imageAspectFlags)
-{
-	vk::ImageMemoryBarrier2 barrier;
-	barrier.srcStageMask = srcStageMask;
-	barrier.srcAccessMask = srcAccessMask;
-	barrier.dstStageMask = dstStageMask;
-	barrier.dstAccessMask = dstAccessMask;
-	barrier.oldLayout = oldLayout;
-	barrier.newLayout = newLayout;
-	barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-	barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-	barrier.image = image;
-
-	barrier.subresourceRange.aspectMask = imageAspectFlags;
-	barrier.subresourceRange.baseMipLevel = 0;
-	barrier.subresourceRange.levelCount = 1;
-	barrier.subresourceRange.baseArrayLayer = 0;
-	barrier.subresourceRange.layerCount = 1;
-
-	vk::DependencyInfo dependencyInfo;
-	dependencyInfo.dependencyFlags = {};
-	dependencyInfo.imageMemoryBarrierCount = 1;
-	dependencyInfo.pImageMemoryBarriers = &barrier;
-	commandBuffer.pipelineBarrier2(dependencyInfo);
-}
 
 void RenderSystem::update(float deltaTime, GeneralManager& gm, const std::vector<Entity>& entities)
 {
@@ -113,7 +20,7 @@ void RenderSystem::update(float deltaTime, GeneralManager& gm, const std::vector
 	Model& model = *gm.getContextComponent<MainModelContext, ModelHandlerComponent>()->modelInstance;
 	std::vector<FrameData>& framesData =
 	    *gm.getContextComponent<MainFrameDataContext, FrameDataComponent>()->frameDataArray;
-	uint32_t currentFrame = gm.getContextComponent<CurrentFrameContext, CurrentFrameComponent>()->currentFrame;
+	CurrentFrameComponent* currentFrameComp = gm.getContextComponent<CurrentFrameContext, CurrentFrameComponent>();
 	CameraComponent* mainCamera = gm.getContextComponent<MainCameraContext, CameraComponent>();
 
 	std::vector<GameObject*> gameObjects;
@@ -123,9 +30,8 @@ void RenderSystem::update(float deltaTime, GeneralManager& gm, const std::vector
 		gameObjects.push_back(gameObjectComponent->objectInstance);
 	}
 
-
-	while (vk::Result::eTimeout ==
-	       vulkanDevice.device.waitForFences(*framesData[currentFrame].inFlightFence, vk::True, UINT64_MAX));
+	while (vk::Result::eTimeout == vulkanDevice.device.waitForFences(
+	                                   *framesData[currentFrameComp->currentFrame].inFlightFence, vk::True, UINT64_MAX));
 
 	// Handle window resize
 	if (window.framebufferResized)
@@ -137,7 +43,7 @@ void RenderSystem::update(float deltaTime, GeneralManager& gm, const std::vector
 
 	// Acquire the next image from the swap chain
 	auto [result, imageIndex] = swapChain.swapChainHandle.acquireNextImage(
-	    UINT64_MAX, *framesData[currentFrame].presentCompleteSemaphore, nullptr);
+	    UINT64_MAX, *framesData[currentFrameComp->currentFrame].presentCompleteSemaphore, nullptr);
 	try
 	{
 		if (result == vk::Result::eErrorOutOfDateKHR)
@@ -157,20 +63,23 @@ void RenderSystem::update(float deltaTime, GeneralManager& gm, const std::vector
 		throw std::runtime_error("failed to acquire swap chain image!");
 	}
 
-	vulkanDevice.device.resetFences(*framesData[currentFrame].inFlightFence);
-	framesData[currentFrame].commandBuffer.reset();
+	vulkanDevice.device.resetFences(*framesData[currentFrameComp->currentFrame].inFlightFence);
+	framesData[currentFrameComp->currentFrame].commandBuffer.reset();
 
-	RenderSystem::updateUniformBuffer(currentFrame, gameObjects, swapChain, currentFrame, mainCamera);
+	RenderSystem::updateUniformBuffer(currentFrameComp->currentFrame, gameObjects, swapChain,
+	                                  currentFrameComp->currentFrame, mainCamera);
 
-	recordCommandBuffer(framesData[currentFrame].commandBuffer, imageIndex, gameObjects, swapChain, pipelineHandler, currentFrame, model);
+	CommandBufferFactory::recordCommandBuffer(framesData[currentFrameComp->currentFrame].commandBuffer, imageIndex,
+	                                          gameObjects, swapChain, pipelineHandler, currentFrameComp->currentFrame,
+	                                          model);
 
 	vk::PipelineStageFlags waitDestinationStageMask(vk::PipelineStageFlagBits::eColorAttachmentOutput);
 
-	const vk::SubmitInfo submitInfo(*framesData[currentFrame].presentCompleteSemaphore, waitDestinationStageMask,
-	                                *framesData[currentFrame].commandBuffer,
+	const vk::SubmitInfo submitInfo(*framesData[currentFrameComp->currentFrame].presentCompleteSemaphore,
+	                                waitDestinationStageMask, *framesData[currentFrameComp->currentFrame].commandBuffer,
 	                                *framesData[imageIndex].renderFinishedSemaphore);
 
-	vulkanDevice.graphicsQueue.submit(submitInfo, *framesData[currentFrame].inFlightFence);
+	vulkanDevice.graphicsQueue.submit(submitInfo, *framesData[currentFrameComp->currentFrame].inFlightFence);
 
 	// Present the image
 	const vk::PresentInfoKHR presentInfoKHR(*framesData[imageIndex].renderFinishedSemaphore, *swapChain.swapChainHandle,
@@ -200,7 +109,7 @@ void RenderSystem::update(float deltaTime, GeneralManager& gm, const std::vector
 		throw std::runtime_error("failed to present swap chain image!");
 	}
 
-	currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+	currentFrameComp->currentFrame = (currentFrameComp->currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 }
 
 void RenderSystem::updateUniformBuffer(uint32_t currentImage, std::vector<GameObject*>& gameObjects,
