@@ -6,6 +6,7 @@
 #include "Platform/Components/WindowSizeComponent.hpp"
 #include "Core/GeneralManager.hpp"
 #include "Platform/Systems/InputSolverSystem.hpp"
+#include "Game/Systems/ControlSystem.hpp"
 
 class CoreInit
 {
@@ -17,6 +18,8 @@ public:
 #endif //_DEBUG
 
 		gm.registerSystem<InputSolverSystem>();
+		gm.registerSystem<RenderSystem>();
+		gm.registerSystem<ControlSystem>();
 
 #ifdef _DEBUG
 		std::cout << "COREINIT::RUN::Succes!" << std::endl;
