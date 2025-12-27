@@ -1,5 +1,4 @@
 #include "AssetManager.hpp"
-#include "AssetManager.hpp"
 #define TINYOBJLOADER_IMPLEMENTATION
 #include <tiny_obj_loader.h>
 #include <stdexcept>
@@ -10,17 +9,23 @@ AssetManager::~AssetManager() {}
 
 MeshInfoComponent AssetManager::createMesh(const char path[MAX_PATH_LEN])
 {
+	if (isMeshLoaded(path))
+	{
+		return meshPaths[std::string(path)];
+	}
 	meshes.push_back(VertexIndexBuffer());
-	MeshInfoComponent info = addMeshFromFile(path, meshes[0]);
-	info.bufferIndex = 0;
-	meshes[0].createVertexBuffer(vulkanDevice);
-	meshes[0].createIndexBuffer(vulkanDevice);
+	MeshInfoComponent info = addMeshFromFile(path, meshes.back());
+	info.bufferIndex = static_cast<uint32_t>(meshes.size() - 1);
+	meshes.back().createVertexBuffer(vulkanDevice);
+	meshes.back().createIndexBuffer(vulkanDevice);
+	meshPaths[std::string(path)] = info;
 	return info;
 }
 
-bool AssetManager::isMeshLoaded()
+bool AssetManager::isMeshLoaded(const char path[MAX_PATH_LEN])
 {
-	return !meshes.empty();
+	std::string pathStr(path);
+	return meshPaths.find(pathStr) != meshPaths.end();
 }
 
 MeshInfoComponent AssetManager::addMeshFromFile(const char path[MAX_PATH_LEN], VertexIndexBuffer& mesh)

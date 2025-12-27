@@ -12,7 +12,7 @@ class AssetManager
 	AssetManager(VulkanDevice& vulkanDevice);
 	~AssetManager();
 	MeshInfoComponent createMesh(const char path[MAX_PATH_LEN]);
-	bool isMeshLoaded();
+	bool isMeshLoaded(const char path[MAX_PATH_LEN]);
 	MeshInfoComponent addMeshFromFile(const char path[MAX_PATH_LEN], VertexIndexBuffer& mesh);
 	std::vector<VertexIndexBuffer> meshes;
 	std::unordered_map<std::string, MeshInfoComponent> meshPaths;
