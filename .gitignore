@@ -9,7 +9,6 @@ CMakeFiles/
 *.vcxproj* 
 *.pdb 
 *.ilk 
-*.obj 
 *.log 
 *.cache 
 .vs/ 
