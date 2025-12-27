@@ -7,6 +7,7 @@
 #include "Core/GeneralManager.hpp"
 #include "Platform/Systems/InputSolverSystem.hpp"
 #include "Game/Systems/ControlSystem.hpp"
+#include "Graphics/Systems/RenderSystem.hpp"
 
 class CoreInit
 {
