@@ -3,21 +3,12 @@
 #define VK_USE_PLATFORM_WIN32_KHR
 #define GLFW_INCLUDE_NONE
 #define GLFW_EXPOSE_NATIVE_WIN32
-
-// Include Vulkan RAII headers
-#include <array>
-#include <glm/glm.hpp>
-#include <vulkan/vulkan_raii.hpp>
-
 #include "Graphics/DescriptorHandler.hpp"
 #include "Graphics/FrameData.hpp"
 #include "Graphics/GameObject.hpp"
-#include "Graphics/Resources/Managers/VertexIndexBuffer.hpp"
 #include "Graphics/PipelineHandler.hpp"
 #include "Platform/Window.hpp"
-#include "Graphics/Systems/RenderSystem.hpp"
 #include "Graphics/SwapChain.hpp"
-#include "Graphics/VulkanConst.hpp"
 #include "Graphics/VulkanDevice.hpp"
 #include "Core/GeneralManager.hpp"
 #include "Graphics/Resources/Managers/AssetManager.hpp"

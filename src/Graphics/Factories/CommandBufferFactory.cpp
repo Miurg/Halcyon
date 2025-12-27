@@ -42,20 +42,20 @@ void CommandBufferFactory::recordCommandBuffer(vk::raii::CommandBuffer& commandB
 	commandBuffer.beginRendering(renderingInfo);
 	commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipelineHandler.graphicsPipeline);
 
-	commandBuffer.bindVertexBuffers(0, *assetManager.meshes[gameObjects[0]->meshInfo.bufferIndex].vertexBuffer,
-	                                {0});
-	commandBuffer.bindIndexBuffer(*assetManager.meshes[gameObjects[0]->meshInfo.bufferIndex].indexBuffer, 0,
-	                              vk::IndexType::eUint32);
-
 	commandBuffer.setViewport(0, vk::Viewport(0.0f, 0.0f, static_cast<float>(swapChain.swapChainExtent.width),
 	                                          static_cast<float>(swapChain.swapChainExtent.height), 0.0f, 1.0f));
 	commandBuffer.setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), swapChain.swapChainExtent));
+
 	for (const auto gameObject : gameObjects)
 	{
+		// Bind vertex and index buffers
+		commandBuffer.bindVertexBuffers(0, *assetManager.meshes[gameObject->meshInfo.bufferIndex].vertexBuffer, {0});
+		commandBuffer.bindIndexBuffer(*assetManager.meshes[gameObject->meshInfo.bufferIndex].indexBuffer, 0,
+		                              vk::IndexType::eUint32);
 		// Bind the descriptor set for this object
 		commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineHandler.pipelineLayout, 0,
 		                                 *gameObject->descriptorSets[currentFrame], nullptr);
-		commandBuffer.drawIndexed(assetManager.meshes[gameObjects[0]->meshInfo.bufferIndex].indices.size(), 1, 0, 0, 0);
+		commandBuffer.drawIndexed(assetManager.meshes[gameObject->meshInfo.bufferIndex].indices.size(), 1, 0, 0, 0);
 	}
 	commandBuffer.endRendering();
 

@@ -4,12 +4,7 @@
 
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <GLFW/glfw3.h>
-#include <chrono>
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-
 #include "CoreInit.hpp"
-#include "Graphics/VulkanUtils.hpp"
 #include "Graphics/Factories/MaterialAsset.hpp"
 #include "Graphics/Factories/VulkanDeviceFactory.hpp"
 #include "Graphics/Factories/SwapChainFactory.hpp"
@@ -32,6 +27,8 @@
 #include "Graphics/Components/PipelineHandlerComponent.hpp"
 #include "Graphics/Components/FrameDataComponent.hpp"
 #include "Graphics/Components/CurrentFrameComponent.hpp"
+#include "Graphics/Components/GameObjectComponent.hpp"
+#include "Graphics/Systems/RenderSystem.hpp"
 
 
 namespace
@@ -145,7 +142,6 @@ void App::cleanup()
 
 void App::setupGameObjects(GeneralManager& gm)
 {
-	const std::string TEXTURE_PATH = "assets/textures/viking_room.png";
 	for (int i = 0; i < 100; i++)
 	{
 		GameObject gameObject = GameObject();
@@ -155,13 +151,24 @@ void App::setupGameObjects(GeneralManager& gm)
 	int k = 0;
 	for (int i = 0; i < 10; i++)
 	{
-		MeshInfoComponent meshInfo = assetManager->createMesh("assets/models/viking_room.obj");
 		GameObject& gameObject = gameObjects[i];
-		gameObject.position = {k * 2, 0.0f, j*2};
+		gameObject.position = {k * 2, 0.0f, j * 2};
 		gameObject.rotation = {0.0f, 0.0f, 0.0f};
 		gameObject.scale = {1.0f, 1.0f, 1.0f};
+		MeshInfoComponent meshInfo; 
+		if (i > 5)
+		{
+			meshInfo = assetManager->createMesh("assets/models/BlenderMonkey.obj");
+			MaterialAsset::generateTextureData("assets/textures/texture.jpg", *vulkanDevice, gameObject);
+			gameObject.rotation = {0.0f, 0.0f, 90.0f};
+		}
+		else
+		{
+			meshInfo = assetManager->createMesh("assets/models/viking_room.obj");
+			MaterialAsset::generateTextureData("assets/textures/viking_room.png", *vulkanDevice, gameObject);
+		}
+
 		gameObject.meshInfo = meshInfo;
-		MaterialAsset::generateTextureData(TEXTURE_PATH, *vulkanDevice, gameObject);
 		Entity gameObjectEntity1 = gm.createEntity();
 		gm.addComponent<GameObjectComponent>(gameObjectEntity1, &gameObject);
 		gm.subscribeEntity<RenderSystem>(gameObjectEntity1);
