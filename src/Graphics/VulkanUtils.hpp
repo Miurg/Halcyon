@@ -14,6 +14,10 @@ public:
 	static uint32_t findMemoryType(uint32_t typeFilter, vk::MemoryPropertyFlags properties, VulkanDevice& vulkanDevice);
 	static void copyBuffer(vk::raii::Buffer& srcBuffer, vk::raii::Buffer& dstBuffer, vk::DeviceSize size,
 	                       VulkanDevice& vulkanDevice);
+	static std::pair<vk::raii::Buffer, vk::raii::DeviceMemory>
+	mergeBuffers(vk::raii::Buffer& firstBuffer, vk::DeviceSize firstSize, vk::raii::Buffer& secondBuffer,
+	             vk::DeviceSize secondSize, vk::BufferUsageFlags usage, vk::MemoryPropertyFlags properties,
+	             VulkanDevice& vulkanDevice);
 	static std::vector<char> readFile(const std::string& filename);
 
 	static void createImage(uint32_t width, uint32_t height, vk::Format format, vk::ImageTiling tiling,
