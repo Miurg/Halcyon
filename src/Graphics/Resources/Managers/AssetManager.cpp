@@ -13,6 +13,19 @@ MeshInfoComponent AssetManager::createMesh(const char path[MAX_PATH_LEN])
 	{
 		return meshPaths[std::string(path)];
 	}
+	for (int i = 0; i < meshes.size(); i++)
+	{
+		if (sizeof(meshes[i].vertices) < MAX_SIZE_OF_VERTEX_INDEX_BUFFER)
+		{
+			MeshInfoComponent info = addMeshFromFile(path, meshes[i]);
+			info.bufferIndex = static_cast<uint32_t>(i);
+			meshes[i].createVertexBuffer(vulkanDevice);
+			meshes[i].createIndexBuffer(vulkanDevice);
+			meshPaths[std::string(path)] = info;
+			return info;
+		}
+	}
+
 	meshes.push_back(VertexIndexBuffer());
 	MeshInfoComponent info = addMeshFromFile(path, meshes.back());
 	info.bufferIndex = static_cast<uint32_t>(meshes.size() - 1);
@@ -60,7 +73,7 @@ MeshInfoComponent AssetManager::addMeshFromFile(const char path[MAX_PATH_LEN], V
 
 			if (uniqueVertices.count(vertex) == 0)
 			{
-				uniqueVertices[vertex] = static_cast<uint32_t>(mesh.vertices.size());
+				uniqueVertices[vertex] = static_cast<uint32_t>(mesh.vertices.size()) - vertexOffset;
 				mesh.vertices.push_back(vertex);
 			}
 
@@ -68,8 +81,6 @@ MeshInfoComponent AssetManager::addMeshFromFile(const char path[MAX_PATH_LEN], V
 		}
 	}
 
-	std::cout << "Added mesh from " << path << ". Total: " << mesh.vertices.size() << " vertices, " << mesh.indices.size()
-	          << " indices." << std::endl;
 	uint32_t indexCount = static_cast<uint32_t>(mesh.indices.size()) - firstIndex;
 
 	 MeshInfoComponent info;

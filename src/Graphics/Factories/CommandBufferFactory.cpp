@@ -55,7 +55,8 @@ void CommandBufferFactory::recordCommandBuffer(vk::raii::CommandBuffer& commandB
 		// Bind the descriptor set for this object
 		commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineHandler.pipelineLayout, 0,
 		                                 *gameObject->descriptorSets[currentFrame], nullptr);
-		commandBuffer.drawIndexed(assetManager.meshes[gameObject->meshInfo.bufferIndex].indices.size(), 1, 0, 0, 0);
+		commandBuffer.drawIndexed(gameObject->meshInfo.indexCount, 1,
+		                          gameObject->meshInfo.indexOffset, gameObject->meshInfo.vertexOffset, 0);
 	}
 	commandBuffer.endRendering();
 
