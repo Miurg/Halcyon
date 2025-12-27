@@ -12,7 +12,7 @@
 #include "Graphics/DescriptorHandler.hpp"
 #include "Graphics/FrameData.hpp"
 #include "Graphics/GameObject.hpp"
-#include "Graphics/Model.hpp"
+#include "Graphics/Resources/Managers/VertexIndexBuffer.hpp"
 #include "Graphics/PipelineHandler.hpp"
 #include "Platform/Window.hpp"
 #include "Graphics/Systems/RenderSystem.hpp"
@@ -20,6 +20,7 @@
 #include "Graphics/VulkanConst.hpp"
 #include "Graphics/VulkanDevice.hpp"
 #include "Core/GeneralManager.hpp"
+#include "Graphics/Resources/Managers/AssetManager.hpp"
 
 class App
 {
@@ -31,7 +32,7 @@ private:
 	Window* window;
 	VulkanDevice* vulkanDevice;
 	SwapChain* swapChain;
-	Model* model;
+	AssetManager* assetManager;
 	PipelineHandler* pipelineHandler;
 	DescriptorHandler* descriptorHandler;
 	std::vector<FrameData>* framesData;

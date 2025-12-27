@@ -4,6 +4,7 @@
 
 constexpr int MAX_FRAMES_IN_FLIGHT = 3;
 constexpr int MAX_OBJECTS = 3;
+constexpr int MAX_PATH_LEN = 260;
 
 struct UniformBufferObject
 {

@@ -7,6 +7,7 @@
 #include "../../Core/GeneralManager.hpp"
 #include "../GraphicsContexts.hpp"
 #include "../Factories/CommandBufferFactory.hpp"
+#include "../Components/AssetManagerComponent.hpp"
 
 
 void RenderSystem::processEntity(Entity entity, GeneralManager& manager, float dt) {}
@@ -17,7 +18,8 @@ void RenderSystem::update(float deltaTime, GeneralManager& gm, const std::vector
 	SwapChain& swapChain = *gm.getContextComponent<MainSwapChainContext, SwapChainComponent>()->swapChainInstance;
 	PipelineHandler& pipelineHandler = *gm.getContextComponent<MainSignatureContext, PipelineHandlerComponent>()->pipelineHandler;
 	Window& window = *gm.getContextComponent<MainWindowContext, WindowComponent>()->windowInstance;
-	Model& model = *gm.getContextComponent<MainModelContext, ModelHandlerComponent>()->modelInstance;
+	AssetManager& assetManager =
+	    *gm.getContextComponent<AssetManagerContext, AssetManagerComponent>()->assetManager;
 	std::vector<FrameData>& framesData =
 	    *gm.getContextComponent<MainFrameDataContext, FrameDataComponent>()->frameDataArray;
 	CurrentFrameComponent* currentFrameComp = gm.getContextComponent<CurrentFrameContext, CurrentFrameComponent>();
@@ -71,7 +73,7 @@ void RenderSystem::update(float deltaTime, GeneralManager& gm, const std::vector
 
 	CommandBufferFactory::recordCommandBuffer(framesData[currentFrameComp->currentFrame].commandBuffer, imageIndex,
 	                                          gameObjects, swapChain, pipelineHandler, currentFrameComp->currentFrame,
-	                                          model);
+	                                          assetManager);
 
 	vk::PipelineStageFlags waitDestinationStageMask(vk::PipelineStageFlagBits::eColorAttachmentOutput);
 

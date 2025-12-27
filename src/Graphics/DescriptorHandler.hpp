@@ -2,7 +2,7 @@
 
 #include <vulkan/vulkan_raii.hpp>
 #include "VulkanDevice.hpp"
-#include "Texture.hpp"
+#include "Resources/Managers/Texture.hpp"
 #include "SwapChain.hpp"
 #include "GameObject.hpp"
 #include "FrameData.hpp"

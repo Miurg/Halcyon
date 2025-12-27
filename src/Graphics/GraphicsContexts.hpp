@@ -2,7 +2,7 @@
 
 class MainVulkanDeviceContext{};
 class MainSwapChainContext{};
-class MainModelContext{};
+class AssetManagerContext{};
 class MainSignatureContext{};
 class MainFrameDataContext{};
 class CurrentFrameContext{};

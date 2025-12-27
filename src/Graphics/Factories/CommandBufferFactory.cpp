@@ -2,7 +2,8 @@
 
 void CommandBufferFactory::recordCommandBuffer(vk::raii::CommandBuffer& commandBuffer, uint32_t imageIndex,
                                        std::vector<GameObject*>& gameObjects, SwapChain& swapChain,
-                                       PipelineHandler& pipelineHandler, uint32_t currentFrame, Model& model)
+                                               PipelineHandler& pipelineHandler, uint32_t currentFrame,
+                                               AssetManager& assetManager)
 {
 	commandBuffer.begin({});
 
@@ -41,8 +42,10 @@ void CommandBufferFactory::recordCommandBuffer(vk::raii::CommandBuffer& commandB
 	commandBuffer.beginRendering(renderingInfo);
 	commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipelineHandler.graphicsPipeline);
 
-	commandBuffer.bindVertexBuffers(0, *model.vertexBuffer, {0});
-	commandBuffer.bindIndexBuffer(*model.indexBuffer, 0, vk::IndexType::eUint32);
+	commandBuffer.bindVertexBuffers(0, *assetManager.meshes[gameObjects[0]->meshInfo.bufferIndex].vertexBuffer,
+	                                {0});
+	commandBuffer.bindIndexBuffer(*assetManager.meshes[gameObjects[0]->meshInfo.bufferIndex].indexBuffer, 0,
+	                              vk::IndexType::eUint32);
 
 	commandBuffer.setViewport(0, vk::Viewport(0.0f, 0.0f, static_cast<float>(swapChain.swapChainExtent.width),
 	                                          static_cast<float>(swapChain.swapChainExtent.height), 0.0f, 1.0f));
@@ -52,7 +55,7 @@ void CommandBufferFactory::recordCommandBuffer(vk::raii::CommandBuffer& commandB
 		// Bind the descriptor set for this object
 		commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineHandler.pipelineLayout, 0,
 		                                 *gameObject->descriptorSets[currentFrame], nullptr);
-		commandBuffer.drawIndexed(model.indices.size(), 1, 0, 0, 0);
+		commandBuffer.drawIndexed(assetManager.meshes[gameObjects[0]->meshInfo.bufferIndex].indices.size(), 1, 0, 0, 0);
 	}
 	commandBuffer.endRendering();
 

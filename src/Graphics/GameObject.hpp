@@ -7,8 +7,9 @@
 #include "VulkanConst.hpp"
 #include "VulkanDevice.hpp"
 #include "VulkanUtils.hpp"
-#include "Texture.hpp"
+#include "Resources/Managers/Texture.hpp"
 #include <iostream>
+#include "Resources/Components/MeshInfoComponent.hpp"
 
 
 struct GameObject
@@ -16,6 +17,8 @@ struct GameObject
 	glm::vec3 position = {0.0f, 0.0f, 0.0f};
 	glm::vec3 rotation = {0.0f, 0.0f, 0.0f};
 	glm::vec3 scale = {1.0f, 1.0f, 1.0f};
+
+	MeshInfoComponent meshInfo;
 
 	std::vector<vk::raii::Buffer> uniformBuffers;
 	std::vector<vk::raii::DeviceMemory> uniformBuffersMemory;

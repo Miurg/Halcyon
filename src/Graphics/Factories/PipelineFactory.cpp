@@ -1,7 +1,7 @@
 #include "PipelineFactory.hpp"
 #include "../VulkanUtils.hpp"
-#include "../Model.hpp"
-
+#include "../Resources/Managers/VertexIndexBuffer.hpp"
+#include "../Resources/Managers/Vertex.hpp"
 
 
 void PipelineFactory::createGraphicsPipeline(VulkanDevice& vulkanDevice, SwapChain& swapChain,
@@ -20,8 +20,8 @@ void PipelineFactory::createGraphicsPipeline(VulkanDevice& vulkanDevice, SwapCha
 	fragShaderStageInfo.pName = "fragMain";
 	vk::PipelineShaderStageCreateInfo shaderStages[] = {vertShaderStageInfo, fragShaderStageInfo};
 
-	auto bindingDescription = Model::Vertex::getBindingDescription();
-	auto attributeDescriptions = Model::Vertex::getAttributeDescriptions();
+	auto bindingDescription = Vertex::getBindingDescription();
+	auto attributeDescriptions = Vertex::getAttributeDescriptions();
 	vk::PipelineVertexInputStateCreateInfo vertexInputInfo;
 	vertexInputInfo.vertexBindingDescriptionCount = 1;
 	vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;

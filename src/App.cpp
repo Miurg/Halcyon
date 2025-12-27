@@ -27,7 +27,7 @@
 #include "Graphics/Components/VulkanDeviceComponent.hpp"
 #include "Graphics/GraphicsContexts.hpp"
 #include "Graphics/Components/SwapChainComponent.hpp"
-#include "Graphics/Components/ModelHandlerComponent.hpp"
+#include "Graphics/Components/AssetManagerComponent.hpp"
 #include "Graphics/Components/DescriptorHandlerComponent.hpp"
 #include "Graphics/Components/PipelineHandlerComponent.hpp"
 #include "Graphics/Components/FrameDataComponent.hpp"
@@ -78,10 +78,10 @@ void App::run()
 	SwapChainFactory::createSwapChain(*swapChain, *vulkanDevice, *window);
 	gm.addComponent<SwapChainComponent>(swapChainEntity, swapChain);
 	
-	Entity modelEntity = gm.createEntity();
-	gm.registerContext<MainModelContext>(modelEntity);
-	model = new Model(*vulkanDevice);
-	gm.addComponent<ModelHandlerComponent>(modelEntity, model);
+	Entity assetManagerEntity = gm.createEntity();
+	gm.registerContext<AssetManagerContext>(assetManagerEntity);
+	assetManager = new AssetManager(*vulkanDevice);
+	gm.addComponent<AssetManagerComponent>(assetManagerEntity, assetManager);
 
 	Entity signatureEntity = gm.createEntity();
 	gm.registerContext<MainSignatureContext>(signatureEntity);
@@ -155,24 +155,26 @@ void App::setupGameObjects(GeneralManager& gm)
 	int k = 0;
 	for (int i = 0; i < 10; i++)
 	{
-			GameObject& gameObject = gameObjects[i];
-			gameObject.position = {k * 2, 0.0f, j*2};
-			gameObject.rotation = {0.0f, 0.0f, 0.0f};
-			gameObject.scale = {1.0f, 1.0f, 1.0f};
-			MaterialAsset::generateTextureData(TEXTURE_PATH, *vulkanDevice, gameObject);
-			Entity gameObjectEntity1 = gm.createEntity();
-			gm.addComponent<GameObjectComponent>(gameObjectEntity1, &gameObject);
-			gm.subscribeEntity<RenderSystem>(gameObjectEntity1);
+		MeshInfoComponent meshInfo = assetManager->createMesh("assets/models/viking_room.obj");
+		GameObject& gameObject = gameObjects[i];
+		gameObject.position = {k * 2, 0.0f, j*2};
+		gameObject.rotation = {0.0f, 0.0f, 0.0f};
+		gameObject.scale = {1.0f, 1.0f, 1.0f};
+		gameObject.meshInfo = meshInfo;
+		MaterialAsset::generateTextureData(TEXTURE_PATH, *vulkanDevice, gameObject);
+		Entity gameObjectEntity1 = gm.createEntity();
+		gm.addComponent<GameObjectComponent>(gameObjectEntity1, &gameObject);
+		gm.subscribeEntity<RenderSystem>(gameObjectEntity1);
 
-			GameObject::initUniformBuffers(gameObjects[i], *vulkanDevice);
-			DescriptorHandlerFactory::allocateDescriptorSets(*vulkanDevice, *descriptorHandler, gameObjects[i]);
-			DescriptorHandlerFactory::updateUniformDescriptors(*vulkanDevice, gameObjects[i]);
-			DescriptorHandlerFactory::updateTextureDescriptors(*vulkanDevice, gameObjects[i]);
-			k++;
-			if ((i + 1) % 10 == 0)
-			{
-				j++;
-				k = 0;
-			}
+		GameObject::initUniformBuffers(gameObjects[i], *vulkanDevice);
+		DescriptorHandlerFactory::allocateDescriptorSets(*vulkanDevice, *descriptorHandler, gameObjects[i]);
+		DescriptorHandlerFactory::updateUniformDescriptors(*vulkanDevice, gameObjects[i]);
+		DescriptorHandlerFactory::updateTextureDescriptors(*vulkanDevice, gameObjects[i]);
+		k++;
+		if ((i + 1) % 10 == 0)
+		{
+			j++;
+			k = 0;
+		}
 	}
 }
