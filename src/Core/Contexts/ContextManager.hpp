@@ -2,6 +2,8 @@
 #include <memory>
 #include <unordered_map>
 #include <utility>
+#include <typeinfo>
+#include "../Entitys/EntityManager.hpp"
 
 class ContextManager
 {

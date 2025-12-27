@@ -1,6 +1,7 @@
 #include "InputSolverSystem.hpp"
 
 #include <GLFW/glfw3.h>
+#include "../PlatformContexts.hpp"
 
 void InputSolverSystem::processEntity(Entity entity, GeneralManager& gm, float deltaTime)
 {
@@ -45,4 +46,28 @@ void InputSolverSystem::processEntity(Entity entity, GeneralManager& gm, float d
 
 		mainWindow->inputQueue.pop();
 	}
+}
+void InputSolverSystem::onRegistered(GeneralManager& gm) 
+{
+	std::cout << "InputSolverSystem registered!" << std::endl;
+	Entity windowAndInputEntity = gm.createEntity();
+	gm.registerContext<InputDataContext>(windowAndInputEntity);
+	gm.registerContext<MainWindowContext>(windowAndInputEntity);
+	Window* window = new Window("Halcyon");
+	gm.addComponent<WindowComponent>(windowAndInputEntity, window);
+	gm.addComponent<KeyboardStateComponent>(windowAndInputEntity);
+	gm.addComponent<MouseStateComponent>(windowAndInputEntity);
+	gm.addComponent<CursorPositionComponent>(windowAndInputEntity);
+	unsigned int ScreenWidth = 1920;
+	unsigned int ScreenHeight = 1080;
+	gm.addComponent<WindowSizeComponent>(windowAndInputEntity, ScreenWidth, ScreenHeight);
+	gm.addComponent<ScrollDeltaComponent>(windowAndInputEntity);
+	gm.subscribeEntity<InputSolverSystem>(windowAndInputEntity);
+	std::cout << windowAndInputEntity << std::endl;
+};
+
+void InputSolverSystem::onShutdown(GeneralManager& gm) 
+{
+	std::cout << "InputSolverSystem shutdown!" << std::endl;
+	gm.getContextComponent<MainWindowContext, WindowComponent>()->windowInstance->~Window();
 };

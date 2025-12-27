@@ -26,8 +26,11 @@ class RenderSystem : public SystemSubscribed<RenderSystem, GameObjectComponent>
 public:
 	void update(float deltaTime, GeneralManager& gm, const std::vector<Entity>& entities) override;
 	void processEntity(Entity entity, GeneralManager& manager, float dt) override;
+	void onRegistered(GeneralManager& gm) override;
+	void onShutdown(GeneralManager& gm) override;
 
 private:
 	void updateUniformBuffer(uint32_t currentImage, std::vector<GameObject*>& gameObjects,
 	                         SwapChain& swapChain, uint32_t currentFrame, CameraComponent* mainCamera);
+
 };

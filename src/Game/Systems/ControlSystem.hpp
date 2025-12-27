@@ -21,4 +21,12 @@ private:
 
 public:
 	void update(float deltaTime, GeneralManager& gm) override;
+	void onRegistered(GeneralManager& gm) override
+	{
+		std::cout << "ControlSystem registered!" << std::endl;
+	};
+	void onShutdown(GeneralManager& gm) override
+	{
+		std::cout << "ControlSystem shutdown!" << std::endl;
+	};
 };

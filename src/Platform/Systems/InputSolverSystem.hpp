@@ -8,10 +8,12 @@
 #include "../Components/ScrollDeltaComponent.hpp"
 #include "../Components/WindowComponent.hpp"
 
-class InputSolverSystem: 
-	public SystemSubscribed<InputSolverSystem, WindowComponent, CursorPositionComponent, WindowSizeComponent,
+class InputSolverSystem
+    : public SystemSubscribed<InputSolverSystem, WindowComponent, CursorPositionComponent, WindowSizeComponent,
                               KeyboardStateComponent, MouseStateComponent, ScrollDeltaComponent>
 {
 public:
 	void processEntity(Entity entity, GeneralManager& gm, float deltaTime);
+	void onRegistered(GeneralManager& gm) override;
+	void onShutdown(GeneralManager& gm) override;
 };

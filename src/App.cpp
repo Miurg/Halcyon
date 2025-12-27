@@ -33,9 +33,6 @@
 
 namespace
 {
-unsigned int ScreenWidth = 1920;
-unsigned int ScreenHeight = 1080;
-
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
 } // anonymous namespace
@@ -51,17 +48,7 @@ void App::run()
 
 	//=== ECS END ===
 
-	Entity windowAndInputEntity = gm.createEntity();
-	gm.registerContext<InputDataContext>(windowAndInputEntity);
-	gm.registerContext<MainWindowContext>(windowAndInputEntity);
-	window = new Window("Halcyon");
-	gm.addComponent<WindowComponent>(windowAndInputEntity, window);
-	gm.addComponent<KeyboardStateComponent>(windowAndInputEntity);
-	gm.addComponent<MouseStateComponent>(windowAndInputEntity);
-	gm.addComponent<CursorPositionComponent>(windowAndInputEntity);
-	gm.addComponent<WindowSizeComponent>(windowAndInputEntity, ScreenWidth, ScreenHeight);
-	gm.addComponent<ScrollDeltaComponent>(windowAndInputEntity);
-	gm.subscribeEntity<InputSolverSystem>(windowAndInputEntity);
+	window = gm.getContextComponent<MainWindowContext, WindowComponent>()->windowInstance;
 
 	Entity vulkanDeviceEntity = gm.createEntity();
 	gm.registerContext<MainVulkanDeviceContext>(vulkanDeviceEntity);
@@ -155,20 +142,17 @@ void App::setupGameObjects(GeneralManager& gm)
 		gameObject.position = {k * 2, 0.0f, j * 2};
 		gameObject.rotation = {0.0f, 0.0f, 0.0f};
 		gameObject.scale = {1.0f, 1.0f, 1.0f};
-		MeshInfoComponent meshInfo; 
 		if (i > 5)
 		{
-			meshInfo = assetManager->createMesh("assets/models/BlenderMonkey.obj");
+			gameObject.meshInfo = assetManager->createMesh("assets/models/BlenderMonkey.obj");
 			MaterialAsset::generateTextureData("assets/textures/texture.jpg", *vulkanDevice, gameObject);
-			gameObject.rotation = {0.0f, 0.0f, 90.0f};
 		}
 		else
 		{
-			meshInfo = assetManager->createMesh("assets/models/viking_room.obj");
+			gameObject.meshInfo = assetManager->createMesh("assets/models/viking_room.obj");
 			MaterialAsset::generateTextureData("assets/textures/viking_room.png", *vulkanDevice, gameObject);
 		}
 
-		gameObject.meshInfo = meshInfo;
 		Entity gameObjectEntity1 = gm.createEntity();
 		gm.addComponent<GameObjectComponent>(gameObjectEntity1, &gameObject);
 		gm.subscribeEntity<RenderSystem>(gameObjectEntity1);

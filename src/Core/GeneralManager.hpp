@@ -27,7 +27,10 @@ public:
 	GeneralManager& operator=(GeneralManager&&) noexcept = default;
 
 	GeneralManager() = default;
-	~GeneralManager() = default; // kept default; managers are value members
+	~GeneralManager() 
+	{
+		_systemManager.onShutdown(*this);
+	}
 
 	// Create a new entity and mark it as active
 	Entity createEntity()
@@ -93,7 +96,7 @@ public:
 	template <typename TSystem, typename... Args>
 	void registerSystem(Args&&... args)
 	{
-		_systemManager.addSystem<TSystem>(std::forward<Args>(args)...);
+		_systemManager.addSystem<TSystem>(*this, std::forward<Args>(args)...);
 	}
 
 	template <typename TSystem>

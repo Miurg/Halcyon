@@ -12,6 +12,16 @@
 
 void RenderSystem::processEntity(Entity entity, GeneralManager& manager, float dt) {}
 
+void RenderSystem::onRegistered(GeneralManager& gm) 
+{
+	std::cout << "RenderSystem registered!" << std::endl;
+}
+
+void RenderSystem::onShutdown(GeneralManager& gm) 
+{
+	std::cout << "RenderSystem shutdown!" << std::endl;
+}
+
 void RenderSystem::update(float deltaTime, GeneralManager& gm, const std::vector<Entity>& entities)
 {
 	VulkanDevice& vulkanDevice = *gm.getContextComponent<MainVulkanDeviceContext, VulkanDeviceComponent>()->vulkanDeviceInstance;
