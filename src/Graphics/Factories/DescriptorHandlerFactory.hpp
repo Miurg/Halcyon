@@ -3,6 +3,7 @@
 #include <vulkan/vulkan_raii.hpp>
 #include "../VulkanDevice.hpp"
 #include "../DescriptorHandler.hpp"
+#include "../Resources/Managers/AssetManager.hpp"
 
 class DescriptorHandlerFactory
 {
@@ -12,5 +13,5 @@ public:
 	static void allocateDescriptorSets(VulkanDevice& vulkanDevice, DescriptorHandler& descriptorHandler,
 	                                   GameObject& gameObject);
 	static void updateUniformDescriptors(VulkanDevice& vulkanDevice, GameObject& gameObject);
-	static void updateTextureDescriptors(VulkanDevice& vulkanDevice, GameObject& gameObject);
+	static void updateTextureDescriptors(VulkanDevice& vulkanDevice, GameObject& gameObject, AssetManager& assetManager);
 };

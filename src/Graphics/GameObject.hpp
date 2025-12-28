@@ -26,7 +26,7 @@ struct GameObject
 
 	std::vector<vk::raii::DescriptorSet> descriptorSets;
 
-	Texture* texture = new Texture;
+	size_t texture = 0;
 
 	glm::mat4 getModelMatrix() const
 	{

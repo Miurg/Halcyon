@@ -5,7 +5,6 @@
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <GLFW/glfw3.h>
 #include "CoreInit.hpp"
-#include "Graphics/Factories/MaterialAsset.hpp"
 #include "Graphics/Factories/VulkanDeviceFactory.hpp"
 #include "Graphics/Factories/SwapChainFactory.hpp"
 #include "Graphics/Factories/DescriptorHandlerFactory.hpp"
@@ -145,12 +144,12 @@ void App::setupGameObjects(GeneralManager& gm)
 		if (i > 5)
 		{
 			gameObject.meshInfo = assetManager->createMesh("assets/models/BlenderMonkey.obj");
-			MaterialAsset::generateTextureData("assets/textures/texture.jpg", *vulkanDevice, gameObject);
+			gameObject.texture = assetManager->generateTextureData("assets/textures/texture.jpg");
 		}
 		else
 		{
 			gameObject.meshInfo = assetManager->createMesh("assets/models/viking_room.obj");
-			MaterialAsset::generateTextureData("assets/textures/viking_room.png", *vulkanDevice, gameObject);
+			gameObject.texture = assetManager->generateTextureData("assets/textures/viking_room.png");
 		}
 
 		Entity gameObjectEntity1 = gm.createEntity();
@@ -160,7 +159,7 @@ void App::setupGameObjects(GeneralManager& gm)
 		GameObject::initUniformBuffers(gameObjects[i], *vulkanDevice);
 		DescriptorHandlerFactory::allocateDescriptorSets(*vulkanDevice, *descriptorHandler, gameObjects[i]);
 		DescriptorHandlerFactory::updateUniformDescriptors(*vulkanDevice, gameObjects[i]);
-		DescriptorHandlerFactory::updateTextureDescriptors(*vulkanDevice, gameObjects[i]);
+		DescriptorHandlerFactory::updateTextureDescriptors(*vulkanDevice, gameObjects[i], *assetManager);
 		k++;
 		if ((i + 1) % 10 == 0)
 		{
