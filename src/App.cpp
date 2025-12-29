@@ -28,6 +28,7 @@
 #include "Graphics/Components/CurrentFrameComponent.hpp"
 #include "Graphics/Components/GameObjectComponent.hpp"
 #include "Graphics/Systems/RenderSystem.hpp"
+#include "Graphics/Components/TransformComponent.hpp"
 
 
 namespace
@@ -138,28 +139,32 @@ void App::setupGameObjects(GeneralManager& gm)
 	for (int i = 0; i < 10; i++)
 	{
 		GameObject& gameObject = gameObjects[i];
-		gameObject.position = {k * 2, 0.0f, j * 2};
-		gameObject.rotation = {0.0f, 0.0f, 0.0f};
-		gameObject.scale = {1.0f, 1.0f, 1.0f};
+		MeshInfoComponent meshInfo;
+		TextureInfoComponent textureInfo;
 		if (i > 5)
 		{
-			gameObject.meshInfo = assetManager->createMesh("assets/models/BlenderMonkey.obj");
-			gameObject.texture = assetManager->generateTextureData("assets/textures/texture.jpg");
+			meshInfo = assetManager->createMesh("assets/models/BlenderMonkey.obj");
+			textureInfo = assetManager->generateTextureData("assets/textures/texture.jpg");
 		}
 		else
 		{
-			gameObject.meshInfo = assetManager->createMesh("assets/models/viking_room.obj");
-			gameObject.texture = assetManager->generateTextureData("assets/textures/viking_room.png");
+			meshInfo = assetManager->createMesh("assets/models/viking_room.obj");
+			textureInfo = assetManager->generateTextureData("assets/textures/viking_room.png");
 		}
-
-		Entity gameObjectEntity1 = gm.createEntity();
-		gm.addComponent<GameObjectComponent>(gameObjectEntity1, &gameObject);
-		gm.subscribeEntity<RenderSystem>(gameObjectEntity1);
 
 		GameObject::initUniformBuffers(gameObjects[i], *vulkanDevice);
 		DescriptorHandlerFactory::allocateDescriptorSets(*vulkanDevice, *descriptorHandler, gameObjects[i]);
 		DescriptorHandlerFactory::updateUniformDescriptors(*vulkanDevice, gameObjects[i]);
-		DescriptorHandlerFactory::updateTextureDescriptors(*vulkanDevice, gameObjects[i], *assetManager);
+		DescriptorHandlerFactory::updateTextureDescriptors(*vulkanDevice, gameObjects[i], textureInfo, *assetManager);
+
+		Entity gameObjectEntity1 = gm.createEntity();
+		gm.addComponent<GameObjectComponent>(gameObjectEntity1, &gameObject);
+		gm.addComponent<TransformComponent>(gameObjectEntity1, k * 2.0f, 0.0f, j * 2.0f);
+		gm.addComponent<MeshInfoComponent>(gameObjectEntity1, meshInfo);
+		gm.addComponent<TextureInfoComponent>(gameObjectEntity1, textureInfo);
+		gm.subscribeEntity<RenderSystem>(gameObjectEntity1);
+
+
 		k++;
 		if ((i + 1) % 10 == 0)
 		{

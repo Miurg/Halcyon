@@ -13,5 +13,5 @@ public:
 	static void allocateDescriptorSets(VulkanDevice& vulkanDevice, DescriptorHandler& descriptorHandler,
 	                                   GameObject& gameObject);
 	static void updateUniformDescriptors(VulkanDevice& vulkanDevice, GameObject& gameObject);
-	static void updateTextureDescriptors(VulkanDevice& vulkanDevice, GameObject& gameObject, AssetManager& assetManager);
+	static void updateTextureDescriptors(VulkanDevice& vulkanDevice, GameObject& gameObject, TextureInfoComponent& info, AssetManager& assetManager);
 };

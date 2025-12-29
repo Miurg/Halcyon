@@ -7,7 +7,6 @@
 #include "../../Core/GeneralManager.hpp"
 #include "../GraphicsContexts.hpp"
 #include "../Factories/CommandBufferFactory.hpp"
-#include "../Components/AssetManagerComponent.hpp"
 
 
 void RenderSystem::processEntity(Entity entity, GeneralManager& manager, float dt) {}
@@ -36,8 +35,12 @@ void RenderSystem::update(float deltaTime, GeneralManager& gm, const std::vector
 	CameraComponent* mainCamera = gm.getContextComponent<MainCameraContext, CameraComponent>();
 
 	std::vector<GameObject*> gameObjects;
+	std::vector<TransformComponent*> transforms;
+	std::vector<MeshInfoComponent*> meshInfos;
 	for (int i = 0; i < entities.size(); i++)
 	{
+		meshInfos.push_back(gm.getComponent<MeshInfoComponent>(entities[i]));
+		transforms.push_back(gm.getComponent<TransformComponent>(entities[i]));
 		auto gameObjectComponent = gm.getComponent<GameObjectComponent>(entities[i]);
 		gameObjects.push_back(gameObjectComponent->objectInstance);
 	}
@@ -79,11 +82,11 @@ void RenderSystem::update(float deltaTime, GeneralManager& gm, const std::vector
 	framesData[currentFrameComp->currentFrame].commandBuffer.reset();
 
 	RenderSystem::updateUniformBuffer(currentFrameComp->currentFrame, gameObjects, swapChain,
-	                                  currentFrameComp->currentFrame, mainCamera);
+	                                  currentFrameComp->currentFrame, mainCamera, transforms);
 
 	CommandBufferFactory::recordCommandBuffer(framesData[currentFrameComp->currentFrame].commandBuffer, imageIndex,
 	                                          gameObjects, swapChain, pipelineHandler, currentFrameComp->currentFrame,
-	                                          assetManager);
+	                                          assetManager, meshInfos);
 
 	vk::PipelineStageFlags waitDestinationStageMask(vk::PipelineStageFlagBits::eColorAttachmentOutput);
 
@@ -125,7 +128,8 @@ void RenderSystem::update(float deltaTime, GeneralManager& gm, const std::vector
 }
 
 void RenderSystem::updateUniformBuffer(uint32_t currentImage, std::vector<GameObject*>& gameObjects,
-                                       SwapChain& swapChain, uint32_t currentFrame, CameraComponent* mainCamera)
+                                       SwapChain& swapChain, uint32_t currentFrame, CameraComponent* mainCamera,
+                                       std::vector<TransformComponent*>& tranfsorms)
 {
 	static auto startTime = std::chrono::high_resolution_clock::now();
 	auto currentTime = std::chrono::high_resolution_clock::now();
@@ -138,16 +142,16 @@ void RenderSystem::updateUniformBuffer(uint32_t currentImage, std::vector<GameOb
 	                                  0.1f, 2000.0f);
 	proj[1][1] *= -1; // Flip Y for Vulkan
 
-	for (auto gameObject : gameObjects)
+	for (size_t i = 0; i < gameObjects.size(); i++)
 	{
 		// Get the model matrix for this object
-		glm::mat4 rotation =
-		    glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-		glm::mat4 initialRotation = glm::rotate(glm::mat4(1.0f), time/10 * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-		glm::mat4 model = gameObject->getModelMatrix() * rotation * initialRotation;
+		glm::mat4 rotation = glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+		glm::mat4 initialRotation =
+		    glm::rotate(glm::mat4(1.0f), time / 10 * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+		glm::mat4 model = tranfsorms[i]->getModelMatrix() * rotation * initialRotation;
 
 		// Create and update the UBO
 		UniformBufferObject ubo{.model = model, .view = view, .proj = proj};
-		memcpy(gameObject->uniformBuffersMapped[currentFrame], &ubo, sizeof(ubo));
+		memcpy(gameObjects[i]->uniformBuffersMapped[currentFrame], &ubo, sizeof(ubo));
 	}
 }

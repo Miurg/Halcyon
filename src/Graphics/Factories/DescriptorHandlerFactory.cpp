@@ -59,13 +59,14 @@ void DescriptorHandlerFactory::updateUniformDescriptors(VulkanDevice& vulkanDevi
 }
 
 void DescriptorHandlerFactory::updateTextureDescriptors(VulkanDevice& vulkanDevice, GameObject& gameObject,
+                                                        TextureInfoComponent& info,
                                                         AssetManager& assetManager)
 {
 	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
 	{
 		vk::DescriptorImageInfo imageInfo;
-		imageInfo.sampler = assetManager.textures[gameObject.texture].textureSampler;
-		imageInfo.imageView = assetManager.textures[gameObject.texture].textureImageView;
+		imageInfo.sampler = assetManager.textures[info.textureIndex].textureSampler;
+		imageInfo.imageView = assetManager.textures[info.textureIndex].textureImageView;
 		imageInfo.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
 
 		vk::WriteDescriptorSet descriptorWrite;

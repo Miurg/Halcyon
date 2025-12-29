@@ -94,7 +94,7 @@ MeshInfoComponent AssetManager::addMeshFromFile(const char path[MAX_PATH_LEN], V
 	return info;
 }
 
-size_t AssetManager::generateTextureData(const char texturePath[MAX_PATH_LEN])
+TextureInfoComponent AssetManager::generateTextureData(const char texturePath[MAX_PATH_LEN])
 {
 	if (isTextureLoaded(texturePath))
 	{
@@ -106,9 +106,10 @@ size_t AssetManager::generateTextureData(const char texturePath[MAX_PATH_LEN])
 	AssetManager::createTextureImageView(texture);
 	AssetManager::createTextureSampler(texture);
 
-	size_t textureIndex = textures.size()-1;
-	texturePaths[std::string(texturePath)] = textureIndex;
-	return textureIndex;
+	TextureInfoComponent info;
+	info.textureIndex = textures.size() - 1;
+	texturePaths[std::string(texturePath)] = info;
+	return info;
 }
 
 bool AssetManager::isTextureLoaded(const char texturePath[MAX_PATH_LEN])

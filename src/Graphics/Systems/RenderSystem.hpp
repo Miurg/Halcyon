@@ -20,8 +20,10 @@
 #include "../Components/CurrentFrameComponent.hpp"
 #include "../Components/GameObjectComponent.hpp"
 #include "../Components/CameraComponent.hpp"
+#include "../Components/AssetManagerComponent.hpp"
+#include "../Components/TransformComponent.hpp"
 
-class RenderSystem : public SystemSubscribed<RenderSystem, GameObjectComponent>
+class RenderSystem : public SystemSubscribed<RenderSystem, GameObjectComponent, TransformComponent, MeshInfoComponent>
 {
 public:
 	void update(float deltaTime, GeneralManager& gm, const std::vector<Entity>& entities) override;
@@ -30,7 +32,7 @@ public:
 	void onShutdown(GeneralManager& gm) override;
 
 private:
-	void updateUniformBuffer(uint32_t currentImage, std::vector<GameObject*>& gameObjects,
-	                         SwapChain& swapChain, uint32_t currentFrame, CameraComponent* mainCamera);
+	void updateUniformBuffer(uint32_t currentImage, std::vector<GameObject*>& gameObjects, SwapChain& swapChain,
+	                         uint32_t currentFrame, CameraComponent* mainCamera, std::vector<TransformComponent*>& tranfsorms);
 
 };

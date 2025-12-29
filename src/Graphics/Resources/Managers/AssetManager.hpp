@@ -4,6 +4,8 @@
 #include <vector>
 #include <unordered_map>
 #include "../Components/MeshInfoComponent.hpp"
+#include "../Components/TextureInfoComponent.hpp"
+
 #include "../../VulkanConst.hpp"
 #include "../../VulkanUtils.hpp"
 #include "../../GameObject.hpp"
@@ -16,17 +18,17 @@ public:
 
 	MeshInfoComponent createMesh(const char path[MAX_PATH_LEN]);
 	bool isMeshLoaded(const char path[MAX_PATH_LEN]);
-	MeshInfoComponent addMeshFromFile(const char path[MAX_PATH_LEN], VertexIndexBuffer& mesh);
 	std::vector<VertexIndexBuffer> meshes;
 	std::unordered_map<std::string, MeshInfoComponent> meshPaths;
 
-	size_t generateTextureData(const char texturePath[MAX_PATH_LEN]);
+	TextureInfoComponent generateTextureData(const char texturePath[MAX_PATH_LEN]);
 	bool isTextureLoaded(const char texturePath[MAX_PATH_LEN]);
 	std::vector<Texture> textures;
-	std::unordered_map<std::string, size_t> texturePaths;
+	std::unordered_map<std::string, TextureInfoComponent> texturePaths;
 
 private:
 	VulkanDevice& vulkanDevice;
+	MeshInfoComponent addMeshFromFile(const char path[MAX_PATH_LEN], VertexIndexBuffer& mesh);
 	void createTextureImage(const char texturePath[MAX_PATH_LEN], Texture& texture);
 	void createTextureImageView(Texture& texture);
 	void createTextureSampler(Texture& texture);

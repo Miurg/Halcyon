@@ -63,7 +63,6 @@ void InputSolverSystem::onRegistered(GeneralManager& gm)
 	gm.addComponent<WindowSizeComponent>(windowAndInputEntity, ScreenWidth, ScreenHeight);
 	gm.addComponent<ScrollDeltaComponent>(windowAndInputEntity);
 	gm.subscribeEntity<InputSolverSystem>(windowAndInputEntity);
-	std::cout << windowAndInputEntity << std::endl;
 };
 
 void InputSolverSystem::onShutdown(GeneralManager& gm) 
