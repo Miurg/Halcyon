@@ -8,7 +8,7 @@
 class DescriptorHandlerFactory
 {
 public:
-	static void createDescriptorSetLayout(VulkanDevice& vulkanDevice, DescriptorHandler& descriptorHandler);
+	static void createDescriptorSetLayouts(VulkanDevice& vulkanDevice, DescriptorHandler& descriptorHandler);
 	static void createDescriptorPool(VulkanDevice& vulkanDevice, DescriptorHandler& descriptorHandler);
 	static void allocateDescriptorSets(VulkanDevice& vulkanDevice, DescriptorHandler& descriptorHandler,
 	                                   GameObject& gameObject);

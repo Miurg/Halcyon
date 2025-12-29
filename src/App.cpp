@@ -70,7 +70,7 @@ void App::run()
 	Entity signatureEntity = gm.createEntity();
 	gm.registerContext<MainSignatureContext>(signatureEntity);
 	descriptorHandler = new DescriptorHandler();
-	DescriptorHandlerFactory::createDescriptorSetLayout(*vulkanDevice, *descriptorHandler);
+	DescriptorHandlerFactory::createDescriptorSetLayouts(*vulkanDevice, *descriptorHandler);
 	DescriptorHandlerFactory::createDescriptorPool(*vulkanDevice, *descriptorHandler);
 	gm.addComponent<DescriptorHandlerComponent>(signatureEntity, descriptorHandler);
 	

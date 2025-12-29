@@ -11,7 +11,7 @@ struct UniformBuffer
     float4x4 view;
     float4x4 proj;
 };
-ConstantBuffer<UniformBuffer> ubo;
+[[vk::binding(0, 0)]] ConstantBuffer<UniformBuffer> ubo;
 
 struct VSOutput
 {
@@ -29,7 +29,7 @@ VSOutput vertMain(VSInput input)
     output.fragTexCoord = input.inTexCoord;
     return output;
 }
-Sampler2D texture;
+[[vk::binding(0, 1)]] Sampler2D texture;
 
 [shader("fragment")]
 float4 fragMain(VSOutput vertIn) : SV_TARGET

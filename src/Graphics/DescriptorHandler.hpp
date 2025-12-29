@@ -12,5 +12,6 @@ class DescriptorHandler
 public:
 	vk::raii::DescriptorPool descriptorPool = nullptr;
 	std::vector<vk::raii::DescriptorSet> descriptorSets;
-	vk::raii::DescriptorSetLayout descriptorSetLayout = nullptr;
+	vk::raii::DescriptorSetLayout uboSetLayout = nullptr; 
+	vk::raii::DescriptorSetLayout textureSetLayout = nullptr;
 };

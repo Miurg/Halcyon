@@ -1,14 +1,19 @@
 #include "DescriptorHandlerFactory.hpp"
 
-void DescriptorHandlerFactory::createDescriptorSetLayout(VulkanDevice& vulkanDevice,
-                                                         DescriptorHandler& descriptorHandler)
+void DescriptorHandlerFactory::createDescriptorSetLayouts(VulkanDevice& vulkanDevice,
+                                                          DescriptorHandler& descriptorHandler)
 {
-	std::array bindings = {vk::DescriptorSetLayoutBinding(0, vk::DescriptorType::eUniformBuffer, 1,
-	                                                      vk::ShaderStageFlagBits::eVertex, nullptr),
-	                       vk::DescriptorSetLayoutBinding(1, vk::DescriptorType::eCombinedImageSampler, 1,
-	                                                      vk::ShaderStageFlagBits::eFragment, nullptr)};
-	vk::DescriptorSetLayoutCreateInfo layoutInfo({}, bindings.size(), bindings.data());
-	descriptorHandler.descriptorSetLayout = vk::raii::DescriptorSetLayout(vulkanDevice.device, layoutInfo);
+	// Layout для Uniform Buffer (Set 0)
+	vk::DescriptorSetLayoutBinding uboBinding(0, vk::DescriptorType::eUniformBuffer, 1, vk::ShaderStageFlagBits::eVertex,
+	                                          nullptr);
+	vk::DescriptorSetLayoutCreateInfo uboLayoutInfo({}, 1, &uboBinding);
+	descriptorHandler.uboSetLayout = vk::raii::DescriptorSetLayout(vulkanDevice.device, uboLayoutInfo);
+
+	// Layout для Texture (Set 1)
+	vk::DescriptorSetLayoutBinding samplerBinding(0, vk::DescriptorType::eCombinedImageSampler, 1,
+	                                              vk::ShaderStageFlagBits::eFragment, nullptr);
+	vk::DescriptorSetLayoutCreateInfo textureLayoutInfo({}, 1, &samplerBinding);
+	descriptorHandler.textureSetLayout = vk::raii::DescriptorSetLayout(vulkanDevice.device, textureLayoutInfo);
 }
 
 void DescriptorHandlerFactory::createDescriptorPool(VulkanDevice& vulkanDevice, DescriptorHandler& descriptorHandler) 
@@ -27,15 +32,25 @@ void DescriptorHandlerFactory::createDescriptorPool(VulkanDevice& vulkanDevice, 
 void DescriptorHandlerFactory::allocateDescriptorSets(VulkanDevice& vulkanDevice, DescriptorHandler& descriptorHandler,
                                                       GameObject& gameObject)
 {
-	std::vector<vk::DescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, descriptorHandler.descriptorSetLayout);
+	// Аллокация UBO сетов
+	std::vector<vk::DescriptorSetLayout> uboLayouts(MAX_FRAMES_IN_FLIGHT, descriptorHandler.uboSetLayout);
+	vk::DescriptorSetAllocateInfo uboAllocInfo;
+	uboAllocInfo.descriptorPool = descriptorHandler.descriptorPool;
+	uboAllocInfo.descriptorSetCount = static_cast<uint32_t>(uboLayouts.size());
+	uboAllocInfo.pSetLayouts = uboLayouts.data();
 
-	vk::DescriptorSetAllocateInfo allocInfo;
-	allocInfo.descriptorPool = descriptorHandler.descriptorPool;
-	allocInfo.descriptorSetCount = static_cast<uint32_t>(layouts.size());
-	allocInfo.pSetLayouts = layouts.data();
+	gameObject.uboDescriptorSets.clear(); // Предполагаем, что ты разделила хранение в GameObject
+	gameObject.uboDescriptorSets = vulkanDevice.device.allocateDescriptorSets(uboAllocInfo);
 
-	gameObject.descriptorSets.clear();
-	gameObject.descriptorSets = vulkanDevice.device.allocateDescriptorSets(allocInfo);
+	// Аллокация Texture сетов
+	std::vector<vk::DescriptorSetLayout> texLayouts(MAX_FRAMES_IN_FLIGHT, descriptorHandler.textureSetLayout);
+	vk::DescriptorSetAllocateInfo texAllocInfo;
+	texAllocInfo.descriptorPool = descriptorHandler.descriptorPool;
+	texAllocInfo.descriptorSetCount = static_cast<uint32_t>(texLayouts.size());
+	texAllocInfo.pSetLayouts = texLayouts.data();
+
+	gameObject.textureDescriptorSets.clear();
+	gameObject.textureDescriptorSets = vulkanDevice.device.allocateDescriptorSets(texAllocInfo);
 }
 
 void DescriptorHandlerFactory::updateUniformDescriptors(VulkanDevice& vulkanDevice, GameObject& gameObject)
@@ -48,7 +63,7 @@ void DescriptorHandlerFactory::updateUniformDescriptors(VulkanDevice& vulkanDevi
 		bufferInfo.range = sizeof(UniformBufferObject);
 
 		vk::WriteDescriptorSet descriptorWrite;
-		descriptorWrite.dstSet = *gameObject.descriptorSets[i]; 
+		descriptorWrite.dstSet = *gameObject.uboDescriptorSets[i]; 
 		descriptorWrite.dstBinding = 0;                         
 		descriptorWrite.descriptorType = vk::DescriptorType::eUniformBuffer;
 		descriptorWrite.descriptorCount = 1;
@@ -70,8 +85,8 @@ void DescriptorHandlerFactory::updateTextureDescriptors(VulkanDevice& vulkanDevi
 		imageInfo.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
 
 		vk::WriteDescriptorSet descriptorWrite;
-		descriptorWrite.dstSet = *gameObject.descriptorSets[i];
-		descriptorWrite.dstBinding = 1;                        
+		descriptorWrite.dstSet = *gameObject.textureDescriptorSets[i];
+		descriptorWrite.dstBinding = 0;                        
 		descriptorWrite.descriptorType = vk::DescriptorType::eCombinedImageSampler;
 		descriptorWrite.descriptorCount = 1;
 		descriptorWrite.pImageInfo = &imageInfo;

@@ -1,7 +1,7 @@
 #include "CommandBufferFactory.hpp"
 
 void CommandBufferFactory::recordCommandBuffer(vk::raii::CommandBuffer& commandBuffer, uint32_t imageIndex,
-                                       std::vector<GameObject*>& gameObjects, SwapChain& swapChain,
+                                               std::vector<GameObject*>& gameObjects, SwapChain& swapChain,
                                                PipelineHandler& pipelineHandler, uint32_t currentFrame,
                                                AssetManager& assetManager, std::vector<MeshInfoComponent*>& meshInfo)
 {
@@ -52,9 +52,10 @@ void CommandBufferFactory::recordCommandBuffer(vk::raii::CommandBuffer& commandB
 		commandBuffer.bindVertexBuffers(0, *assetManager.meshes[meshInfo[i]->bufferIndex].vertexBuffer, {0});
 		commandBuffer.bindIndexBuffer(*assetManager.meshes[meshInfo[i]->bufferIndex].indexBuffer, 0,
 		                              vk::IndexType::eUint32);
-		// Bind the descriptor set for this object
 		commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineHandler.pipelineLayout, 0,
-		                                 *gameObjects[i]->descriptorSets[currentFrame], nullptr);
+		                                 *gameObjects[i]->uboDescriptorSets[currentFrame], nullptr);
+		commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineHandler.pipelineLayout, 1,
+		                                 *gameObjects[i]->textureDescriptorSets[currentFrame], nullptr);
 		commandBuffer.drawIndexed(meshInfo[i]->indexCount, 1, meshInfo[i]->indexOffset, meshInfo[i]->vertexOffset, 0);
 	}
 	commandBuffer.endRendering();
@@ -68,10 +69,11 @@ void CommandBufferFactory::recordCommandBuffer(vk::raii::CommandBuffer& commandB
 }
 
 void CommandBufferFactory::transitionImageLayout(vk::raii::CommandBuffer& commandBuffer, vk::Image image,
-                                         vk::ImageLayout oldLayout, vk::ImageLayout newLayout,
-                                         vk::AccessFlags2 srcAccessMask, vk::AccessFlags2 dstAccessMask,
-                                         vk::PipelineStageFlags2 srcStageMask, vk::PipelineStageFlags2 dstStageMask,
-                                         vk::ImageAspectFlags imageAspectFlags)
+                                                 vk::ImageLayout oldLayout, vk::ImageLayout newLayout,
+                                                 vk::AccessFlags2 srcAccessMask, vk::AccessFlags2 dstAccessMask,
+                                                 vk::PipelineStageFlags2 srcStageMask,
+                                                 vk::PipelineStageFlags2 dstStageMask,
+                                                 vk::ImageAspectFlags imageAspectFlags)
 {
 	vk::ImageMemoryBarrier2 barrier;
 	barrier.srcStageMask = srcStageMask;
