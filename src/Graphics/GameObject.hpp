@@ -19,7 +19,7 @@ struct GameObject
 	std::vector<void*> uniformBuffersMapped;
 
 	std::vector<vk::raii::DescriptorSet> uboDescriptorSets;
-	std::vector<vk::raii::DescriptorSet> textureDescriptorSets;
+	vk::raii::DescriptorSet textureDescriptorSet = nullptr;
 
 	static void initUniformBuffers(GameObject& gameObject, VulkanDevice& vulkanDevice)
 	{

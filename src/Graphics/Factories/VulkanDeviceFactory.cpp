@@ -7,7 +7,6 @@
 #include <stdexcept>
 #include <GLFW/glfw3.h>
 
-// —писок расширений устройств Ч объ€влен как inline const чтобы избежать проблем с ODR
 inline const std::vector<const char*> deviceExtensions = {
     vk::KHRSwapchainExtensionName, vk::KHRSpirv14ExtensionName, vk::KHRSynchronization2ExtensionName,
     vk::KHRCreateRenderpass2ExtensionName

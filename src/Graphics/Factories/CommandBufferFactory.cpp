@@ -48,14 +48,13 @@ void CommandBufferFactory::recordCommandBuffer(vk::raii::CommandBuffer& commandB
 
 	for (int i = 0; i < gameObjects.size(); i++)
 	{
-		// Bind vertex and index buffers
 		commandBuffer.bindVertexBuffers(0, *assetManager.meshes[meshInfo[i]->bufferIndex].vertexBuffer, {0});
 		commandBuffer.bindIndexBuffer(*assetManager.meshes[meshInfo[i]->bufferIndex].indexBuffer, 0,
 		                              vk::IndexType::eUint32);
 		commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineHandler.pipelineLayout, 0,
 		                                 *gameObjects[i]->uboDescriptorSets[currentFrame], nullptr);
 		commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineHandler.pipelineLayout, 1,
-		                                 *gameObjects[i]->textureDescriptorSets[currentFrame], nullptr);
+		                                 *gameObjects[i]->textureDescriptorSet, nullptr);
 		commandBuffer.drawIndexed(meshInfo[i]->indexCount, 1, meshInfo[i]->indexOffset, meshInfo[i]->vertexOffset, 0);
 	}
 	commandBuffer.endRendering();

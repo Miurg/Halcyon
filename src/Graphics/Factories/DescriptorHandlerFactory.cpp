@@ -3,13 +3,11 @@
 void DescriptorHandlerFactory::createDescriptorSetLayouts(VulkanDevice& vulkanDevice,
                                                           DescriptorHandler& descriptorHandler)
 {
-	// Layout для Uniform Buffer (Set 0)
 	vk::DescriptorSetLayoutBinding uboBinding(0, vk::DescriptorType::eUniformBuffer, 1, vk::ShaderStageFlagBits::eVertex,
 	                                          nullptr);
 	vk::DescriptorSetLayoutCreateInfo uboLayoutInfo({}, 1, &uboBinding);
 	descriptorHandler.uboSetLayout = vk::raii::DescriptorSetLayout(vulkanDevice.device, uboLayoutInfo);
 
-	// Layout для Texture (Set 1)
 	vk::DescriptorSetLayoutBinding samplerBinding(0, vk::DescriptorType::eCombinedImageSampler, 1,
 	                                              vk::ShaderStageFlagBits::eFragment, nullptr);
 	vk::DescriptorSetLayoutCreateInfo textureLayoutInfo({}, 1, &samplerBinding);
@@ -32,25 +30,21 @@ void DescriptorHandlerFactory::createDescriptorPool(VulkanDevice& vulkanDevice, 
 void DescriptorHandlerFactory::allocateDescriptorSets(VulkanDevice& vulkanDevice, DescriptorHandler& descriptorHandler,
                                                       GameObject& gameObject)
 {
-	// Аллокация UBO сетов
 	std::vector<vk::DescriptorSetLayout> uboLayouts(MAX_FRAMES_IN_FLIGHT, descriptorHandler.uboSetLayout);
 	vk::DescriptorSetAllocateInfo uboAllocInfo;
 	uboAllocInfo.descriptorPool = descriptorHandler.descriptorPool;
 	uboAllocInfo.descriptorSetCount = static_cast<uint32_t>(uboLayouts.size());
 	uboAllocInfo.pSetLayouts = uboLayouts.data();
 
-	gameObject.uboDescriptorSets.clear(); // Предполагаем, что ты разделила хранение в GameObject
+	gameObject.uboDescriptorSets.clear(); 
 	gameObject.uboDescriptorSets = vulkanDevice.device.allocateDescriptorSets(uboAllocInfo);
 
-	// Аллокация Texture сетов
-	std::vector<vk::DescriptorSetLayout> texLayouts(MAX_FRAMES_IN_FLIGHT, descriptorHandler.textureSetLayout);
 	vk::DescriptorSetAllocateInfo texAllocInfo;
 	texAllocInfo.descriptorPool = descriptorHandler.descriptorPool;
-	texAllocInfo.descriptorSetCount = static_cast<uint32_t>(texLayouts.size());
-	texAllocInfo.pSetLayouts = texLayouts.data();
+	texAllocInfo.descriptorSetCount = 1;
+	texAllocInfo.pSetLayouts = &*descriptorHandler.textureSetLayout;
 
-	gameObject.textureDescriptorSets.clear();
-	gameObject.textureDescriptorSets = vulkanDevice.device.allocateDescriptorSets(texAllocInfo);
+	gameObject.textureDescriptorSet = std::move(vulkanDevice.device.allocateDescriptorSets(texAllocInfo)[0]);
 }
 
 void DescriptorHandlerFactory::updateUniformDescriptors(VulkanDevice& vulkanDevice, GameObject& gameObject)
@@ -77,20 +71,17 @@ void DescriptorHandlerFactory::updateTextureDescriptors(VulkanDevice& vulkanDevi
                                                         TextureInfoComponent& info,
                                                         AssetManager& assetManager)
 {
-	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
-	{
-		vk::DescriptorImageInfo imageInfo;
-		imageInfo.sampler = assetManager.textures[info.textureIndex].textureSampler;
-		imageInfo.imageView = assetManager.textures[info.textureIndex].textureImageView;
-		imageInfo.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
+	vk::DescriptorImageInfo imageInfo;
+	imageInfo.sampler = assetManager.textures[info.textureIndex].textureSampler;
+	imageInfo.imageView = assetManager.textures[info.textureIndex].textureImageView;
+	imageInfo.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
 
-		vk::WriteDescriptorSet descriptorWrite;
-		descriptorWrite.dstSet = *gameObject.textureDescriptorSets[i];
-		descriptorWrite.dstBinding = 0;                        
-		descriptorWrite.descriptorType = vk::DescriptorType::eCombinedImageSampler;
-		descriptorWrite.descriptorCount = 1;
-		descriptorWrite.pImageInfo = &imageInfo;
+	vk::WriteDescriptorSet descriptorWrite;
+	descriptorWrite.dstSet = *gameObject.textureDescriptorSet;
+	descriptorWrite.dstBinding = 0;                        
+	descriptorWrite.descriptorType = vk::DescriptorType::eCombinedImageSampler;
+	descriptorWrite.descriptorCount = 1;
+	descriptorWrite.pImageInfo = &imageInfo;
 
-		vulkanDevice.device.updateDescriptorSets(descriptorWrite, {});
-	}
+	vulkanDevice.device.updateDescriptorSets(descriptorWrite, {});
 }

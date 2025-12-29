@@ -136,12 +136,12 @@ void App::setupGameObjects(GeneralManager& gm)
 	}
 	int j = 0;
 	int k = 0;
-	for (int i = 0; i < 10; i++)
+	for (int i = 0; i < 100; i++)
 	{
 		GameObject& gameObject = gameObjects[i];
 		MeshInfoComponent meshInfo;
 		TextureInfoComponent textureInfo;
-		if (i > 5)
+		if (i > 50)
 		{
 			meshInfo = assetManager->createMesh("assets/models/BlenderMonkey.obj");
 			textureInfo = assetManager->generateTextureData("assets/textures/texture.jpg");
