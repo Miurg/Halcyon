@@ -55,6 +55,12 @@ void App::run()
 	vulkanDevice = new VulkanDevice();
 	VulkanDeviceFactory::createVulkanDevice(*window, *vulkanDevice);
 	gm.addComponent<VulkanDeviceComponent>(vulkanDeviceEntity, vulkanDevice);
+
+	Entity cameraEntity = gm.createEntity();
+	gm.addComponent<CameraComponent>(cameraEntity, glm::vec3(0.0f, 0.0f, 3.0f));
+	gm.registerContext<MainCameraContext>(cameraEntity);
+	CameraComponent* camera = gm.getContextComponent<MainCameraContext, CameraComponent>();
+	camera->initCameraBuffers(*camera, *vulkanDevice);
 	
 	Entity swapChainEntity = gm.createEntity();
 	gm.registerContext<MainSwapChainContext>(swapChainEntity);
@@ -72,6 +78,8 @@ void App::run()
 	descriptorHandler = new DescriptorHandler();
 	DescriptorHandlerFactory::createDescriptorSetLayouts(*vulkanDevice, *descriptorHandler);
 	DescriptorHandlerFactory::createDescriptorPool(*vulkanDevice, *descriptorHandler);
+	DescriptorHandlerFactory::allocateGlobalDescriptorSets(*vulkanDevice, *descriptorHandler, *camera);
+	DescriptorHandlerFactory::updateCameraDescriptors(*vulkanDevice, *descriptorHandler, *camera);
 	gm.addComponent<DescriptorHandlerComponent>(signatureEntity, descriptorHandler);
 	
 	pipelineHandler = new PipelineHandler();
@@ -88,10 +96,6 @@ void App::run()
 	}
 	gm.addComponent<FrameDataComponent>(frameDataEntity, framesData);
 	gm.addComponent<CurrentFrameComponent>(frameDataEntity);
-
-	Entity cameraEntity = gm.createEntity();
-	gm.addComponent<CameraComponent>(cameraEntity, glm::vec3(0.0f, 0.0f, 3.0f));
-	gm.registerContext<MainCameraContext>(cameraEntity);
 
 	App::setupGameObjects(gm);
 	App::mainLoop(gm);
@@ -153,8 +157,9 @@ void App::setupGameObjects(GeneralManager& gm)
 		}
 
 		GameObject::initUniformBuffers(gameObjects[i], *vulkanDevice);
-		DescriptorHandlerFactory::allocateDescriptorSets(*vulkanDevice, *descriptorHandler, gameObjects[i]);
-		DescriptorHandlerFactory::updateUniformDescriptors(*vulkanDevice, gameObjects[i]);
+		DescriptorHandlerFactory::allocateObjectDescriptorSets(*vulkanDevice, *descriptorHandler, gameObjects[i]);
+
+		DescriptorHandlerFactory::updateModelDescriptors(*vulkanDevice, gameObjects[i]);
 		DescriptorHandlerFactory::updateTextureDescriptors(*vulkanDevice, gameObjects[i], textureInfo, *assetManager);
 
 		Entity gameObjectEntity1 = gm.createEntity();

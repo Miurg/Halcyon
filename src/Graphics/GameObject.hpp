@@ -14,18 +14,18 @@
 
 struct GameObject
 {
-	std::vector<vk::raii::Buffer> uniformBuffers;
-	std::vector<vk::raii::DeviceMemory> uniformBuffersMemory;
-	std::vector<void*> uniformBuffersMapped;
+	std::vector<vk::raii::Buffer> modelBuffers;
+	std::vector<vk::raii::DeviceMemory> modelBuffersMemory;
+	std::vector<void*> modelBuffersMapped;
 
-	std::vector<vk::raii::DescriptorSet> uboDescriptorSets;
+	std::vector<vk::raii::DescriptorSet> modelDescriptorSets;
 	vk::raii::DescriptorSet textureDescriptorSet = nullptr;
 
 	static void initUniformBuffers(GameObject& gameObject, VulkanDevice& vulkanDevice)
 	{
-		gameObject.uniformBuffers.clear();
-		gameObject.uniformBuffersMemory.clear();
-		gameObject.uniformBuffersMapped.clear();
+		gameObject.modelBuffers.clear();
+		gameObject.modelBuffersMemory.clear();
+		gameObject.modelBuffersMapped.clear();
 
 		// Create uniform buffers for each frame in flight
 		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
@@ -34,9 +34,9 @@ struct GameObject
 			auto [buffer, bufferMem] = VulkanUtils::createBuffer(
 			    bufferSize, vk::BufferUsageFlagBits::eUniformBuffer,
 			    vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, vulkanDevice);
-			gameObject.uniformBuffers.emplace_back(std::move(buffer));
-			gameObject.uniformBuffersMemory.emplace_back(std::move(bufferMem));
-			gameObject.uniformBuffersMapped.emplace_back(gameObject.uniformBuffersMemory[i].mapMemory(0, bufferSize));
+			gameObject.modelBuffers.emplace_back(std::move(buffer));
+			gameObject.modelBuffersMemory.emplace_back(std::move(bufferMem));
+			gameObject.modelBuffersMapped.emplace_back(gameObject.modelBuffersMemory[i].mapMemory(0, bufferSize));
 		}
 	};
 };

@@ -81,8 +81,11 @@ void PipelineFactory::createGraphicsPipeline(VulkanDevice& vulkanDevice, SwapCha
 	colorBlending.pAttachments = &colorBlendAttachment;
 
 	vk::PipelineLayoutCreateInfo pipelineLayoutInfo;
-	std::array<vk::DescriptorSetLayout, 2> setLayouts = {*descriptorHandler.uboSetLayout,
-	                                                     *descriptorHandler.textureSetLayout};
+	std::array<vk::DescriptorSetLayout, 3> setLayouts = {
+	    *descriptorHandler.cameraSetLayout,  // Set 0
+	    *descriptorHandler.textureSetLayout, // Set 1
+	    *descriptorHandler.modelSetLayout    // Set 2
+	};
 	pipelineLayoutInfo.setLayoutCount = static_cast<uint32_t>(setLayouts.size());
 	pipelineLayoutInfo.pSetLayouts = setLayouts.data();
 	pipelineLayoutInfo.pushConstantRangeCount = 0;

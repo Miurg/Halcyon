@@ -8,10 +8,15 @@ struct VSInput
 struct UniformBuffer 
 {
     float4x4 model;
+};
+
+struct CameraUBO
+{
     float4x4 view;
     float4x4 proj;
 };
-[[vk::binding(0, 0)]] ConstantBuffer<UniformBuffer> ubo;
+[[vk::binding(0, 0)]] ConstantBuffer<CameraUBO> camera;
+[[vk::binding(0, 2)]] ConstantBuffer<UniformBuffer> ubo;
 
 struct VSOutput
 {
@@ -24,7 +29,7 @@ struct VSOutput
 VSOutput vertMain(VSInput input) 
 {
     VSOutput output;
-    output.pos = mul(ubo.proj, mul(ubo.view, mul(ubo.model, float4(input.inPosition, 1.0))));
+    output.pos = mul(camera.proj, mul(camera.view, mul(ubo.model, float4(input.inPosition, 1.0))));
     output.fragColor = input.inColor;
     output.fragTexCoord = input.inTexCoord;
     return output;

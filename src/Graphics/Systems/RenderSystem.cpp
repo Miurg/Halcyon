@@ -86,7 +86,7 @@ void RenderSystem::update(float deltaTime, GeneralManager& gm, const std::vector
 
 	CommandBufferFactory::recordCommandBuffer(framesData[currentFrameComp->currentFrame].commandBuffer, imageIndex,
 	                                          gameObjects, swapChain, pipelineHandler, currentFrameComp->currentFrame,
-	                                          assetManager, meshInfos);
+	                                          assetManager, meshInfos, *mainCamera);
 
 	vk::PipelineStageFlags waitDestinationStageMask(vk::PipelineStageFlagBits::eColorAttachmentOutput);
 
@@ -129,7 +129,7 @@ void RenderSystem::update(float deltaTime, GeneralManager& gm, const std::vector
 
 void RenderSystem::updateUniformBuffer(uint32_t currentImage, std::vector<GameObject*>& gameObjects,
                                        SwapChain& swapChain, uint32_t currentFrame, CameraComponent* mainCamera,
-                                       std::vector<TransformComponent*>& tranfsorms)
+                                       std::vector<TransformComponent*>& transforms)
 {
 	static auto startTime = std::chrono::high_resolution_clock::now();
 	auto currentTime = std::chrono::high_resolution_clock::now();
@@ -140,18 +140,20 @@ void RenderSystem::updateUniformBuffer(uint32_t currentImage, std::vector<GameOb
 	                                  static_cast<float>(swapChain.swapChainExtent.width) /
 	                                      static_cast<float>(swapChain.swapChainExtent.height),
 	                                  0.1f, 2000.0f);
-	proj[1][1] *= -1; // Flip Y for Vulkan
+	proj[1][1] *= -1; // Vulkan Y flip
+
+	CameraUBO cameraUbo{.view = view, .proj = proj};
+	memcpy(mainCamera->cameraBuffersMapped[currentFrame], &cameraUbo, sizeof(cameraUbo));
 
 	for (size_t i = 0; i < gameObjects.size(); i++)
 	{
-		// Get the model matrix for this object
 		glm::mat4 rotation = glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
 		glm::mat4 initialRotation =
 		    glm::rotate(glm::mat4(1.0f), time / 10 * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-		glm::mat4 model = tranfsorms[i]->getModelMatrix() * rotation * initialRotation;
 
-		// Create and update the UBO
-		UniformBufferObject ubo{.model = model, .view = view, .proj = proj};
-		memcpy(gameObjects[i]->uniformBuffersMapped[currentFrame], &ubo, sizeof(ubo));
+		glm::mat4 model = transforms[i]->getModelMatrix() * rotation * initialRotation;
+		ModelUBO modelUbo{.model = model};
+
+		memcpy(gameObjects[i]->modelBuffersMapped[currentFrame], &modelUbo, sizeof(modelUbo));
 	}
 }

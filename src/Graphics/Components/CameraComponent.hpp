@@ -3,8 +3,9 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/quaternion.hpp>
-
 #include "../../Core/Components/ComponentManager.hpp"
+
+#include "../DescriptorHandler.hpp"
 
 const float SPEED = 5.0f;
 const float SENSITIVITY = 0.8f;
@@ -25,6 +26,10 @@ struct CameraComponent
 	float fov;
 	float yaw;
 	float pitch;
+	std::vector<vk::raii::Buffer> cameraBuffers;
+	std::vector<vk::raii::DeviceMemory> cameraBuffersMemory;
+	std::vector<void*> cameraBuffersMapped;
+	std::vector<vk::raii::DescriptorSet> cameraDescriptorSets;
 
 	CameraComponent(glm::vec3 position = glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f),
 	                float yaw = YAW, float pitch = PITCH)
@@ -57,5 +62,24 @@ struct CameraComponent
 		yaw = YAW;
 		pitch = PITCH;
 		updateCameraVectors();
+	}
+	static void initCameraBuffers(CameraComponent& camera, VulkanDevice& vulkanDevice)
+	{
+		camera.cameraBuffers.clear();
+		camera.cameraBuffersMemory.clear();
+		camera.cameraBuffersMapped.clear();
+
+		vk::DeviceSize bufferSize = sizeof(CameraUBO);
+
+		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+		{
+			auto [buffer, bufferMem] = VulkanUtils::createBuffer(
+			    bufferSize, vk::BufferUsageFlagBits::eUniformBuffer,
+			    vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, vulkanDevice);
+
+			camera.cameraBuffers.emplace_back(std::move(buffer));
+			camera.cameraBuffersMemory.emplace_back(std::move(bufferMem));
+			camera.cameraBuffersMapped.emplace_back(camera.cameraBuffersMemory[i].mapMemory(0, bufferSize));
+		}
 	}
 };
