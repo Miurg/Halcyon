@@ -145,13 +145,14 @@ void RenderSystem::updateUniformBuffer(uint32_t currentImage, std::vector<GameOb
 	CameraUBO cameraUbo{.view = view, .proj = proj};
 	memcpy(mainCamera->cameraBuffersMapped[currentFrame], &cameraUbo, sizeof(cameraUbo));
 
+	glm::mat4 rotation = glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+	glm::mat4 initialRotation =
+	    glm::rotate(glm::mat4(1.0f), time / 10 * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+
+	glm::mat4 finalRotation = rotation * initialRotation;
 	for (size_t i = 0; i < gameObjects.size(); i++)
 	{
-		glm::mat4 rotation = glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-		glm::mat4 initialRotation =
-		    glm::rotate(glm::mat4(1.0f), time / 10 * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-
-		glm::mat4 model = transforms[i]->getModelMatrix() * rotation * initialRotation;
+		glm::mat4 model = transforms[i]->getModelMatrix() * finalRotation;
 		ModelUBO modelUbo{.model = model};
 
 		memcpy(gameObjects[i]->modelBuffersMapped[currentFrame], &modelUbo, sizeof(modelUbo));
