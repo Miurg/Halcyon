@@ -1,14 +1,8 @@
-struct VSInput
-{
-    float3 inPosition;
-    float3 inColor;
-    float2 inTexCoord;
-};
-
-struct UniformBuffer 
+struct ModelData
 {
     float4x4 model;
 };
+[[vk::binding(0, 2)]] StructuredBuffer<ModelData> objectBuffer;
 
 struct CameraUBO
 {
@@ -16,7 +10,13 @@ struct CameraUBO
     float4x4 proj;
 };
 [[vk::binding(0, 0)]] ConstantBuffer<CameraUBO> camera;
-[[vk::binding(0, 2)]] ConstantBuffer<UniformBuffer> ubo;
+
+struct VSInput
+{
+    float3 inPosition;
+    float3 inColor;
+    float2 inTexCoord;
+};
 
 struct VSOutput
 {
@@ -25,11 +25,20 @@ struct VSOutput
     float2 fragTexCoord;
 };
 
-[shader("vertex")]
-VSOutput vertMain(VSInput input) 
+struct PushConsts
 {
+    uint objectIndex;
+};
+[[vk::push_constant]] ConstantBuffer<PushConsts> push;
+
+[shader("vertex")]
+VSOutput vertMain(VSInput input)
+{
+    ModelData data = objectBuffer[push.objectIndex];
     VSOutput output;
-    output.pos = mul(camera.proj, mul(camera.view, mul(ubo.model, float4(input.inPosition, 1.0))));
+    float4 worldPos = mul(float4(input.inPosition, 1.0), data.model);
+
+    output.pos = mul(camera.proj, mul(camera.view, worldPos));
     output.fragColor = input.inColor;
     output.fragTexCoord = input.inTexCoord;
     return output;

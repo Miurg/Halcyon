@@ -16,19 +16,20 @@ void DescriptorHandlerFactory::createDescriptorSetLayouts(VulkanDevice& vulkanDe
 	descriptorHandler.textureSetLayout = vk::raii::DescriptorSetLayout(vulkanDevice.device, textureInfo);
 
 	//===Model===
-	vk::DescriptorSetLayoutBinding modelBinding(0, vk::DescriptorType::eUniformBuffer, 1,
+	vk::DescriptorSetLayoutBinding modelBinding(0, vk::DescriptorType::eStorageBuffer, 1,
 	                                            vk::ShaderStageFlagBits::eVertex, nullptr);
 	vk::DescriptorSetLayoutCreateInfo modelInfo({}, 1, &modelBinding);
 	descriptorHandler.modelSetLayout = vk::raii::DescriptorSetLayout(vulkanDevice.device, modelInfo);
 }
 
-void DescriptorHandlerFactory::createDescriptorPool(VulkanDevice& vulkanDevice, DescriptorHandler& descriptorHandler) 
+void DescriptorHandlerFactory::createDescriptorPool(VulkanDevice& vulkanDevice, DescriptorHandler& descriptorHandler)
 {
 	std::array poolSize{vk::DescriptorPoolSize(vk::DescriptorType::eUniformBuffer, 1000 * MAX_FRAMES_IN_FLIGHT),
-	                    vk::DescriptorPoolSize(vk::DescriptorType::eCombinedImageSampler, 1000 * MAX_FRAMES_IN_FLIGHT)};
+	                    vk::DescriptorPoolSize(vk::DescriptorType::eCombinedImageSampler, 1000 * MAX_FRAMES_IN_FLIGHT),
+	                    vk::DescriptorPoolSize(vk::DescriptorType::eStorageBuffer, 1000 * MAX_FRAMES_IN_FLIGHT)};
 	vk::DescriptorPoolCreateInfo poolInfo;
 	poolInfo.flags = vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet;
-	poolInfo.maxSets = 1000 * 2 * MAX_FRAMES_IN_FLIGHT;
+	poolInfo.maxSets = 1000 * 3 * MAX_FRAMES_IN_FLIGHT;
 	poolInfo.poolSizeCount = static_cast<uint32_t>(poolSize.size());
 	poolInfo.pPoolSizes = poolSize.data();
 
@@ -36,32 +37,35 @@ void DescriptorHandlerFactory::createDescriptorPool(VulkanDevice& vulkanDevice, 
 }
 
 void DescriptorHandlerFactory::allocateGlobalDescriptorSets(VulkanDevice& vulkanDevice,
-                                                            DescriptorHandler& descriptorHandler, CameraComponent& camera)
+                                                            DescriptorHandler& descriptorHandler,
+                                                            CameraComponent& camera)
 {
 	std::vector<vk::DescriptorSetLayout> cameraLayouts(MAX_FRAMES_IN_FLIGHT, *descriptorHandler.cameraSetLayout);
 
 	vk::DescriptorSetAllocateInfo allocInfo;
-	allocInfo.descriptorPool = *descriptorHandler.descriptorPool; // Используем разыменование * для RAII
+	allocInfo.descriptorPool = *descriptorHandler.descriptorPool;
 	allocInfo.descriptorSetCount = static_cast<uint32_t>(cameraLayouts.size());
 	allocInfo.pSetLayouts = cameraLayouts.data();
 
 	camera.cameraDescriptorSets = vulkanDevice.device.allocateDescriptorSets(allocInfo);
 }
 
+void DescriptorHandlerFactory::allocateModelSSBOsDescriptors(VulkanDevice& vulkanDevice,
+															  DescriptorHandler& descriptorHandler,
+															  ModelSSBOsComponent& ssbos)
+{
+	std::vector<vk::DescriptorSetLayout> ssboLayouts(MAX_FRAMES_IN_FLIGHT, *descriptorHandler.modelSetLayout);
+	vk::DescriptorSetAllocateInfo allocInfo;
+	allocInfo.descriptorPool = *descriptorHandler.descriptorPool;
+	allocInfo.descriptorSetCount = static_cast<uint32_t>(ssboLayouts.size());
+	allocInfo.pSetLayouts = ssboLayouts.data();
+	ssbos.ssbos->modelSSBOsDescriptorSets = vulkanDevice.device.allocateDescriptorSets(allocInfo);
+}
+
 void DescriptorHandlerFactory::allocateObjectDescriptorSets(VulkanDevice& vulkanDevice,
                                                             DescriptorHandler& descriptorHandler,
                                                             GameObject& gameObject)
 {
-	std::vector<vk::DescriptorSetLayout> modelLayouts(MAX_FRAMES_IN_FLIGHT, *descriptorHandler.modelSetLayout);
-
-	vk::DescriptorSetAllocateInfo modelAllocInfo;
-	modelAllocInfo.descriptorPool = *descriptorHandler.descriptorPool;
-	modelAllocInfo.descriptorSetCount = static_cast<uint32_t>(modelLayouts.size());
-	modelAllocInfo.pSetLayouts = modelLayouts.data();
-
-	gameObject.modelDescriptorSets.clear();
-	gameObject.modelDescriptorSets = vulkanDevice.device.allocateDescriptorSets(modelAllocInfo);
-
 	vk::DescriptorSetAllocateInfo texAllocInfo;
 	texAllocInfo.descriptorPool = *descriptorHandler.descriptorPool;
 	texAllocInfo.descriptorSetCount = 1;
@@ -72,15 +76,15 @@ void DescriptorHandlerFactory::allocateObjectDescriptorSets(VulkanDevice& vulkan
 	gameObject.textureDescriptorSet = std::move(allocatedTexSets[0]);
 }
 
-void DescriptorHandlerFactory::updateCameraDescriptors(
-    VulkanDevice& vulkanDevice, DescriptorHandler& descriptorHandler, const CameraComponent& camera)
+void DescriptorHandlerFactory::updateCameraDescriptors(VulkanDevice& vulkanDevice, DescriptorHandler& descriptorHandler,
+                                                       const CameraComponent& camera)
 {
 	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
 	{
 		vk::DescriptorBufferInfo bufferInfo;
 		bufferInfo.buffer = *camera.cameraBuffers[i];
 		bufferInfo.offset = 0;
-		bufferInfo.range = sizeof(CameraUBO); 
+		bufferInfo.range = sizeof(CameraUBO);
 
 		vk::WriteDescriptorSet descriptorWrite;
 		descriptorWrite.dstSet = *camera.cameraDescriptorSets[i];
@@ -94,20 +98,20 @@ void DescriptorHandlerFactory::updateCameraDescriptors(
 	}
 }
 
-void DescriptorHandlerFactory::updateModelDescriptors(VulkanDevice& vulkanDevice, GameObject& gameObject)
+void DescriptorHandlerFactory::updateModelSSBOsDescriptors(VulkanDevice& vulkanDevice, ModelSSBOsComponent& ssbos)
 {
 	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
 	{
 		vk::DescriptorBufferInfo bufferInfo;
-		bufferInfo.buffer = *gameObject.modelBuffers[i];
+		bufferInfo.buffer = *ssbos.ssbos->modelSSBOs[i];
 		bufferInfo.offset = 0;
-		bufferInfo.range = sizeof(ModelUBO);
+		bufferInfo.range = VK_WHOLE_SIZE;
 
 		vk::WriteDescriptorSet descriptorWrite;
-		descriptorWrite.dstSet = *gameObject.modelDescriptorSets[i];
+		descriptorWrite.dstSet = *ssbos.ssbos->modelSSBOsDescriptorSets[i];
 		descriptorWrite.dstBinding = 0; // Set 2, Binding 0
 		descriptorWrite.dstArrayElement = 0;
-		descriptorWrite.descriptorType = vk::DescriptorType::eUniformBuffer;
+		descriptorWrite.descriptorType = vk::DescriptorType::eStorageBuffer;
 		descriptorWrite.descriptorCount = 1;
 		descriptorWrite.pBufferInfo = &bufferInfo;
 

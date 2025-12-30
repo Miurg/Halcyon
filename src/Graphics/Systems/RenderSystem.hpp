@@ -22,6 +22,7 @@
 #include "../Components/CameraComponent.hpp"
 #include "../Components/AssetManagerComponent.hpp"
 #include "../Components/TransformComponent.hpp"
+#include "../Resources/Components/ModelSSBOsComponent.hpp"
 
 class RenderSystem : public SystemSubscribed<RenderSystem, GameObjectComponent, TransformComponent, MeshInfoComponent>
 {
@@ -33,6 +34,7 @@ public:
 
 private:
 	void updateUniformBuffer(uint32_t currentImage, std::vector<GameObject*>& gameObjects, SwapChain& swapChain,
-	                         uint32_t currentFrame, CameraComponent* mainCamera, std::vector<TransformComponent*>& tranfsorms);
+	                         uint32_t currentFrame, CameraComponent* mainCamera,
+	                         std::vector<TransformComponent*>& tranfsorms, ModelSSBOsComponent& ssbos);
 
 };

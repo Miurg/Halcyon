@@ -4,7 +4,7 @@ void CommandBufferFactory::recordCommandBuffer(vk::raii::CommandBuffer& commandB
                                                std::vector<GameObject*>& gameObjects, SwapChain& swapChain,
                                                PipelineHandler& pipelineHandler, uint32_t currentFrame,
                                                AssetManager& assetManager, std::vector<MeshInfoComponent*>& meshInfo,
-                                               CameraComponent& camera)
+                                               CameraComponent& camera, ModelSSBOsComponent& ssbos)
 {
 	commandBuffer.begin({});
 
@@ -49,16 +49,16 @@ void CommandBufferFactory::recordCommandBuffer(vk::raii::CommandBuffer& commandB
 
 	commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineHandler.pipelineLayout, 0,
 	                                 *camera.cameraDescriptorSets[currentFrame], nullptr);
-
+	commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineHandler.pipelineLayout, 2,
+	                                 *ssbos.ssbos->modelSSBOsDescriptorSets[currentFrame], nullptr);
 	for (int i = 0; i < gameObjects.size(); i++)
 	{
 		commandBuffer.bindVertexBuffers(0, *assetManager.meshes[meshInfo[i]->bufferIndex].vertexBuffer, {0});
 		commandBuffer.bindIndexBuffer(*assetManager.meshes[meshInfo[i]->bufferIndex].indexBuffer, 0,
 		                              vk::IndexType::eUint32);
-		commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineHandler.pipelineLayout, 2,
-		                                 *gameObjects[i]->modelDescriptorSets[currentFrame], nullptr);
 		commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineHandler.pipelineLayout, 1,
 		                                 *gameObjects[i]->textureDescriptorSet, nullptr);
+		commandBuffer.pushConstants<uint32_t>(*pipelineHandler.pipelineLayout, vk::ShaderStageFlagBits::eVertex, 0, i);
 		commandBuffer.drawIndexed(meshInfo[i]->indexCount, 1, meshInfo[i]->indexOffset, meshInfo[i]->vertexOffset, 0);
 	}
 

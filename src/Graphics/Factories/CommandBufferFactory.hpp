@@ -7,6 +7,7 @@
 #include "../Resources/Managers/VertexIndexBuffer.hpp"
 #include "../Resources/Managers/AssetManager.hpp"
 #include "../Components/CameraComponent.hpp"
+#include "../Resources/Components/ModelSSBOsComponent.hpp"
 
 class CommandBufferFactory
 {
@@ -14,7 +15,7 @@ public:
 	static void recordCommandBuffer(vk::raii::CommandBuffer& commandBuffer, uint32_t imageIndex,
 	                                              std::vector<GameObject*>& gameObjects, SwapChain& swapChain,
 	                                PipelineHandler& pipelineHandler, uint32_t currentFrame, AssetManager& assetManager,
-	                                std::vector<MeshInfoComponent*>& meshInfo, CameraComponent& camera);
+	                                std::vector<MeshInfoComponent*>& meshInfo, CameraComponent& camera, ModelSSBOsComponent& ssbos);
 	static void transitionImageLayout(vk::raii::CommandBuffer& commandBuffer, vk::Image image, vk::ImageLayout oldLayout,
 	                                  vk::ImageLayout newLayout, vk::AccessFlags2 srcAccessMask,
 	                                  vk::AccessFlags2 dstAccessMask, vk::PipelineStageFlags2 srcStageMask,

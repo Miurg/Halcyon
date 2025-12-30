@@ -7,3 +7,4 @@ class MainSignatureContext{};
 class MainFrameDataContext{};
 class CurrentFrameContext{};
 class MainCameraContext{};
+class ModelSSBOsContext{};

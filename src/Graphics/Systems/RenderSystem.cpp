@@ -44,6 +44,7 @@ void RenderSystem::update(float deltaTime, GeneralManager& gm, const std::vector
 		auto gameObjectComponent = gm.getComponent<GameObjectComponent>(entities[i]);
 		gameObjects.push_back(gameObjectComponent->objectInstance);
 	}
+	ModelSSBOsComponent* ssbos = gm.getContextComponent<ModelSSBOsContext, ModelSSBOsComponent>();
 
 	while (vk::Result::eTimeout == vulkanDevice.device.waitForFences(
 	                                   *framesData[currentFrameComp->currentFrame].inFlightFence, vk::True, UINT64_MAX));
@@ -82,11 +83,11 @@ void RenderSystem::update(float deltaTime, GeneralManager& gm, const std::vector
 	framesData[currentFrameComp->currentFrame].commandBuffer.reset();
 
 	RenderSystem::updateUniformBuffer(currentFrameComp->currentFrame, gameObjects, swapChain,
-	                                  currentFrameComp->currentFrame, mainCamera, transforms);
+	                                  currentFrameComp->currentFrame, mainCamera, transforms, *ssbos);
 
 	CommandBufferFactory::recordCommandBuffer(framesData[currentFrameComp->currentFrame].commandBuffer, imageIndex,
 	                                          gameObjects, swapChain, pipelineHandler, currentFrameComp->currentFrame,
-	                                          assetManager, meshInfos, *mainCamera);
+	                                          assetManager, meshInfos, *mainCamera,*ssbos);
 
 	vk::PipelineStageFlags waitDestinationStageMask(vk::PipelineStageFlagBits::eColorAttachmentOutput);
 
@@ -129,7 +130,7 @@ void RenderSystem::update(float deltaTime, GeneralManager& gm, const std::vector
 
 void RenderSystem::updateUniformBuffer(uint32_t currentImage, std::vector<GameObject*>& gameObjects,
                                        SwapChain& swapChain, uint32_t currentFrame, CameraComponent* mainCamera,
-                                       std::vector<TransformComponent*>& transforms)
+                                       std::vector<TransformComponent*>& transforms, ModelSSBOsComponent& ssbos)
 {
 	static auto startTime = std::chrono::high_resolution_clock::now();
 	auto currentTime = std::chrono::high_resolution_clock::now();
@@ -141,20 +142,23 @@ void RenderSystem::updateUniformBuffer(uint32_t currentImage, std::vector<GameOb
 	                                      static_cast<float>(swapChain.swapChainExtent.height),
 	                                  0.1f, 2000.0f);
 	proj[1][1] *= -1; // Vulkan Y flip
-
 	CameraUBO cameraUbo{.view = view, .proj = proj};
 	memcpy(mainCamera->cameraBuffersMapped[currentFrame], &cameraUbo, sizeof(cameraUbo));
 
 	glm::mat4 rotation = glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
 	glm::mat4 initialRotation =
 	    glm::rotate(glm::mat4(1.0f), time / 10 * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-
 	glm::mat4 finalRotation = rotation * initialRotation;
+
+	std::vector<ModelUBO> frameData;
+	frameData.reserve(gameObjects.size());
 	for (size_t i = 0; i < gameObjects.size(); i++)
 	{
 		glm::mat4 model = transforms[i]->getModelMatrix() * finalRotation;
-		ModelUBO modelUbo{.model = model};
-
-		memcpy(gameObjects[i]->modelBuffersMapped[currentFrame], &modelUbo, sizeof(modelUbo));
+		ModelUBO modelUbo{.model = glm::transpose(model)};
+		frameData.push_back(modelUbo);
 	}
+
+	void* mappedMemory = ssbos.ssbos->modelSSBOsMapped[currentFrame];
+	memcpy(mappedMemory, frameData.data(), frameData.size() * sizeof(ModelUBO));
 }

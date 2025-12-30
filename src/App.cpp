@@ -97,6 +97,16 @@ void App::run()
 	gm.addComponent<FrameDataComponent>(frameDataEntity, framesData);
 	gm.addComponent<CurrentFrameComponent>(frameDataEntity);
 
+	Entity modelSSBOsEntity = gm.createEntity();
+	gm.registerContext<ModelSSBOsContext>(modelSSBOsEntity);
+	ModelSSBOsComponent* modelSSBOsComp;
+	SSBOs* ssbos = new SSBOs();
+	modelSSBOsComp = new ModelSSBOsComponent{ssbos};
+	modelSSBOsComp->initGlobalSSBO(*vulkanDevice);
+	DescriptorHandlerFactory::allocateModelSSBOsDescriptors(*vulkanDevice, *descriptorHandler, *modelSSBOsComp);
+	DescriptorHandlerFactory::updateModelSSBOsDescriptors(*vulkanDevice, *modelSSBOsComp);
+	gm.addComponent<ModelSSBOsComponent>(modelSSBOsEntity, *modelSSBOsComp);
+
 	App::setupGameObjects(gm);
 	App::mainLoop(gm);
 	App::cleanup();
@@ -156,10 +166,7 @@ void App::setupGameObjects(GeneralManager& gm)
 			textureInfo = assetManager->generateTextureData("assets/textures/viking_room.png");
 		}
 
-		GameObject::initUniformBuffers(gameObjects[i], *vulkanDevice);
 		DescriptorHandlerFactory::allocateObjectDescriptorSets(*vulkanDevice, *descriptorHandler, gameObjects[i]);
-
-		DescriptorHandlerFactory::updateModelDescriptors(*vulkanDevice, gameObjects[i]);
 		DescriptorHandlerFactory::updateTextureDescriptors(*vulkanDevice, gameObjects[i], textureInfo, *assetManager);
 
 		Entity gameObjectEntity1 = gm.createEntity();
