@@ -35,6 +35,9 @@
             "value": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
             "type": "FILEPATH"
           }
+        },
+        "environment": {
+          "CMAKE_BUILD_PARALLEL_LEVEL": "1"
         }
       },
         {
