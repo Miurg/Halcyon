@@ -1,0 +1,69 @@
+#pragma once
+
+#include "VertexIndexBuffer.hpp"
+#include <vector>
+#include <unordered_map>
+#include "../Components/MeshInfoComponent.hpp"
+#include "../Components/TextureInfoComponent.hpp"
+#include "../../VulkanConst.hpp"
+#include "../../VulkanUtils.hpp"
+#include <vk_mem_alloc.h>
+#include "Texture.hpp"
+#include "Buffer.hpp"
+#include "../../Components/CameraComponent.hpp"
+#include "../Components/ModelsBuffersComponent.hpp"
+
+class BufferManager
+{
+public:
+	BufferManager(VulkanDevice& vulkanDevice);
+	~BufferManager();
+
+	MeshInfoComponent createMesh(const char path[MAX_PATH_LEN]);
+	bool isMeshLoaded(const char path[MAX_PATH_LEN]);
+	std::vector<VertexIndexBuffer> meshes;
+	std::unordered_map<std::string, MeshInfoComponent> meshPaths;
+
+	int generateTextureData(const char texturePath[MAX_PATH_LEN]);
+	bool isTextureLoaded(const char texturePath[MAX_PATH_LEN]);
+	std::vector<Texture> textures;
+	std::unordered_map<std::string, int> texturePaths;
+
+	int createBuffer(vk::MemoryPropertyFlags propertyBits, uint_fast16_t numberObjects, size_t sizeBuffer,
+	                  uint_fast16_t numberBuffers, uint_fast16_t numberBinding);
+
+	vk::raii::DescriptorSetLayout globalSetLayout = nullptr;
+	vk::raii::DescriptorSetLayout textureSetLayout = nullptr;
+	vk::raii::DescriptorSetLayout modelSetLayout = nullptr;
+	std::vector<Buffer> buffers;
+
+private:
+	VulkanDevice& vulkanDevice;
+	MeshInfoComponent addMeshFromFile(const char path[MAX_PATH_LEN], VertexIndexBuffer& mesh);
+	VmaAllocator allocator;
+
+	vk::raii::DescriptorPool descriptorPool = nullptr;
+
+	void initGlobalBuffer(vk::MemoryPropertyFlags propertyBits, Buffer& bufferIn, uint_fast16_t numberObjects,
+	                      size_t sizeBuffer, uint_fast16_t numberBuffers);
+	void allocateGlobalDescriptorSets(Buffer& bufferIn, size_t sizeBuffer, uint_fast16_t numberBuffers,
+	                                  uint_fast16_t numberBinding);
+
+	void createTextureImage(const char texturePath[MAX_PATH_LEN], Texture& texture);
+	void createTextureImageView(Texture& texture);
+	void createTextureSampler(Texture& texture);
+	void transitionImageLayout(vk::Image image, vk::ImageLayout oldLayout, vk::ImageLayout newLayout);
+	void copyBufferToImage(vk::Buffer buffer, vk::Image image, uint32_t width, uint32_t height);
+	void allocateTextureDescriptorSets(int textureNumber);
+};
+
+struct CameraStucture
+{
+	alignas(16) glm::mat4 view;
+	alignas(16) glm::mat4 proj;
+};
+
+struct ModelSctructure
+{
+	alignas(16) glm::mat4 model;
+};

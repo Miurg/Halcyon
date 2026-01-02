@@ -6,7 +6,6 @@
 #include <vulkan/vulkan_raii.hpp>
 #include "../SwapChain.hpp"
 #include "../PipelineHandler.hpp"
-#include "../GameObject.hpp"
 #include "../Resources/Managers/VertexIndexBuffer.hpp"
 #include "../VulkanConst.hpp"
 #include "../../Platform/Window.hpp"
@@ -18,13 +17,12 @@
 #include "../../Platform/Components/WindowComponent.hpp"
 #include "../Components/FrameDataComponent.hpp"
 #include "../Components/CurrentFrameComponent.hpp"
-#include "../Components/GameObjectComponent.hpp"
 #include "../Components/CameraComponent.hpp"
-#include "../Components/AssetManagerComponent.hpp"
+#include "../Components/BufferManagerComponent.hpp"
 #include "../Components/TransformComponent.hpp"
-#include "../Resources/Components/ModelSSBOsComponent.hpp"
+#include "../Resources/Components/ModelsBuffersComponent.hpp"
 
-class RenderSystem : public SystemSubscribed<RenderSystem, GameObjectComponent, TransformComponent, MeshInfoComponent>
+class RenderSystem : public SystemSubscribed<RenderSystem, TextureInfoComponent, TransformComponent, MeshInfoComponent>
 {
 public:
 	void update(float deltaTime, GeneralManager& gm, const std::vector<Entity>& entities) override;
@@ -33,8 +31,9 @@ public:
 	void onShutdown(GeneralManager& gm) override;
 
 private:
-	void updateUniformBuffer(uint32_t currentImage, std::vector<GameObject*>& gameObjects, SwapChain& swapChain,
+	void updateUniformBuffer(uint32_t numberEntitys,uint32_t currentImage, SwapChain& swapChain,
 	                         uint32_t currentFrame, CameraComponent* mainCamera,
-	                         std::vector<TransformComponent*>& tranfsorms, ModelSSBOsComponent& ssbos);
+	                         std::vector<TransformComponent*>& tranfsorms, ModelsBuffersComponent& ssbos,
+	                         BufferManager& bufferManager);
 
 };

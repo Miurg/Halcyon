@@ -12,8 +12,6 @@
 class VertexIndexBuffer
 {
 public:
-	const std::string MODEL_PATH = "assets/models/viking_room.obj";
-
 	std::vector<Vertex> vertices;
 	std::vector<uint32_t> indices;
 	vk::raii::Buffer vertexBuffer = nullptr;

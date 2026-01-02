@@ -2,5 +2,5 @@
 
 struct TextureInfoComponent
 {
-	size_t textureIndex;
+	int textureIndex;
 };

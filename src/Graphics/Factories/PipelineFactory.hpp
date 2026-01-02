@@ -4,13 +4,13 @@
 #include <vector>
 #include "../VulkanDevice.hpp"
 #include "../SwapChain.hpp"
-#include "../DescriptorHandler.hpp"
 #include "../PipelineHandler.hpp"
+#include "../Resources/Managers/BufferManager.hpp"
 
 class PipelineFactory
 {
 public:
-	static void createGraphicsPipeline(VulkanDevice& vulkanDevice, SwapChain& swapChain, DescriptorHandler& descriptorHandler,
+	static void createGraphicsPipeline(VulkanDevice& vulkanDevice, SwapChain& swapChain, BufferManager& bufferManager,
 	                            PipelineHandler& pipelineHandler);
 	[[nodiscard]] static vk::raii::ShaderModule createShaderModule(const std::vector<char>& code,
 	                                                               VulkanDevice& vulkanDevice);

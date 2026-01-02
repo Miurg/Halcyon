@@ -7,7 +7,6 @@
 #include "CoreInit.hpp"
 #include "Graphics/Factories/VulkanDeviceFactory.hpp"
 #include "Graphics/Factories/SwapChainFactory.hpp"
-#include "Graphics/Factories/DescriptorHandlerFactory.hpp"
 #include "Graphics/Factories/PipelineFactory.hpp"
 
 #include "Platform/Components/WindowComponent.hpp"
@@ -21,12 +20,10 @@
 #include "Graphics/Components/VulkanDeviceComponent.hpp"
 #include "Graphics/GraphicsContexts.hpp"
 #include "Graphics/Components/SwapChainComponent.hpp"
-#include "Graphics/Components/AssetManagerComponent.hpp"
-#include "Graphics/Components/DescriptorHandlerComponent.hpp"
+#include "Graphics/Components/BufferManagerComponent.hpp"
 #include "Graphics/Components/PipelineHandlerComponent.hpp"
 #include "Graphics/Components/FrameDataComponent.hpp"
 #include "Graphics/Components/CurrentFrameComponent.hpp"
-#include "Graphics/Components/GameObjectComponent.hpp"
 #include "Graphics/Systems/RenderSystem.hpp"
 #include "Graphics/Components/TransformComponent.hpp"
 
@@ -60,7 +57,6 @@ void App::run()
 	gm.addComponent<CameraComponent>(cameraEntity, glm::vec3(0.0f, 0.0f, 3.0f));
 	gm.registerContext<MainCameraContext>(cameraEntity);
 	CameraComponent* camera = gm.getContextComponent<MainCameraContext, CameraComponent>();
-	camera->initCameraBuffers(*camera, *vulkanDevice);
 	
 	Entity swapChainEntity = gm.createEntity();
 	gm.registerContext<MainSwapChainContext>(swapChainEntity);
@@ -68,22 +64,20 @@ void App::run()
 	SwapChainFactory::createSwapChain(*swapChain, *vulkanDevice, *window);
 	gm.addComponent<SwapChainComponent>(swapChainEntity, swapChain);
 	
-	Entity assetManagerEntity = gm.createEntity();
-	gm.registerContext<AssetManagerContext>(assetManagerEntity);
-	assetManager = new AssetManager(*vulkanDevice);
-	gm.addComponent<AssetManagerComponent>(assetManagerEntity, assetManager);
+	Entity bufferManagerEntity = gm.createEntity();
+	gm.registerContext<BufferManagerContext>(bufferManagerEntity);
+	bufferManager = new BufferManager(*vulkanDevice);
+	gm.addComponent<BufferManagerComponent>(bufferManagerEntity, bufferManager);
 
 	Entity signatureEntity = gm.createEntity();
 	gm.registerContext<MainSignatureContext>(signatureEntity);
-	descriptorHandler = new DescriptorHandler();
-	DescriptorHandlerFactory::createDescriptorSetLayouts(*vulkanDevice, *descriptorHandler);
-	DescriptorHandlerFactory::createDescriptorPool(*vulkanDevice, *descriptorHandler);
-	DescriptorHandlerFactory::allocateGlobalDescriptorSets(*vulkanDevice, *descriptorHandler, *camera);
-	DescriptorHandlerFactory::updateCameraDescriptors(*vulkanDevice, *descriptorHandler, *camera);
-	gm.addComponent<DescriptorHandlerComponent>(signatureEntity, descriptorHandler);
+
+	camera->descriptorNumber =
+	    bufferManager->createBuffer((vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal),
+	                               1, sizeof(CameraStucture), MAX_FRAMES_IN_FLIGHT, 0);
 	
 	pipelineHandler = new PipelineHandler();
-	PipelineFactory::createGraphicsPipeline(*vulkanDevice, *swapChain, *descriptorHandler, *pipelineHandler);
+	PipelineFactory::createGraphicsPipeline(*vulkanDevice, *swapChain, *bufferManager, *pipelineHandler);
 	gm.addComponent<PipelineHandlerComponent>(signatureEntity, pipelineHandler);
 
 	Entity frameDataEntity = gm.createEntity();
@@ -99,13 +93,11 @@ void App::run()
 
 	Entity modelSSBOsEntity = gm.createEntity();
 	gm.registerContext<ModelSSBOsContext>(modelSSBOsEntity);
-	ModelSSBOsComponent* modelSSBOsComp;
-	SSBOs* ssbos = new SSBOs();
-	modelSSBOsComp = new ModelSSBOsComponent{ssbos};
-	modelSSBOsComp->initGlobalSSBO(*vulkanDevice);
-	DescriptorHandlerFactory::allocateModelSSBOsDescriptors(*vulkanDevice, *descriptorHandler, *modelSSBOsComp);
-	DescriptorHandlerFactory::updateModelSSBOsDescriptors(*vulkanDevice, *modelSSBOsComp);
-	gm.addComponent<ModelSSBOsComponent>(modelSSBOsEntity, *modelSSBOsComp);
+	int descriptorNumber =
+	    bufferManager->createBuffer((vk::MemoryPropertyFlagBits::eHostVisible),
+	                               1000, sizeof(ModelSctructure), MAX_FRAMES_IN_FLIGHT, 0);
+	gm.addComponent<ModelsBuffersComponent>(modelSSBOsEntity, descriptorNumber);
+
 
 	App::setupGameObjects(gm);
 	App::mainLoop(gm);
@@ -143,37 +135,27 @@ void App::cleanup()
 
 void App::setupGameObjects(GeneralManager& gm)
 {
-	for (int i = 0; i < 100; i++)
-	{
-		GameObject gameObject = GameObject();
-		gameObjects.push_back(std::move(gameObject));
-	}
 	int j = 0;
 	int k = 0;
 	for (int i = 0; i < 100; i++)
 	{
-		GameObject& gameObject = gameObjects[i];
 		MeshInfoComponent meshInfo;
-		TextureInfoComponent textureInfo;
+		int numberTexture;
 		if (i > 50)
 		{
-			meshInfo = assetManager->createMesh("assets/models/BlenderMonkey.obj");
-			textureInfo = assetManager->generateTextureData("assets/textures/texture.jpg");
+			meshInfo = bufferManager->createMesh("assets/models/BlenderMonkey.obj");
+			numberTexture = bufferManager->generateTextureData("assets/textures/texture.jpg");
 		}
 		else
 		{
-			meshInfo = assetManager->createMesh("assets/models/viking_room.obj");
-			textureInfo = assetManager->generateTextureData("assets/textures/viking_room.png");
+			meshInfo = bufferManager->createMesh("assets/models/viking_room.obj");
+			numberTexture = bufferManager->generateTextureData("assets/textures/viking_room.png");
 		}
 
-		DescriptorHandlerFactory::allocateObjectDescriptorSets(*vulkanDevice, *descriptorHandler, gameObjects[i]);
-		DescriptorHandlerFactory::updateTextureDescriptors(*vulkanDevice, gameObjects[i], textureInfo, *assetManager);
-
 		Entity gameObjectEntity1 = gm.createEntity();
-		gm.addComponent<GameObjectComponent>(gameObjectEntity1, &gameObject);
 		gm.addComponent<TransformComponent>(gameObjectEntity1, k * 2.0f, 0.0f, j * 2.0f);
 		gm.addComponent<MeshInfoComponent>(gameObjectEntity1, meshInfo);
-		gm.addComponent<TextureInfoComponent>(gameObjectEntity1, textureInfo);
+		gm.addComponent<TextureInfoComponent>(gameObjectEntity1, numberTexture);
 		gm.subscribeEntity<RenderSystem>(gameObjectEntity1);
 
 

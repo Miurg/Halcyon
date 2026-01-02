@@ -1,10 +1,10 @@
 #include "CommandBufferFactory.hpp"
 
 void CommandBufferFactory::recordCommandBuffer(vk::raii::CommandBuffer& commandBuffer, uint32_t imageIndex,
-                                               std::vector<GameObject*>& gameObjects, SwapChain& swapChain,
+                                               std::vector<int>& textureInfo, SwapChain& swapChain,
                                                PipelineHandler& pipelineHandler, uint32_t currentFrame,
-                                               AssetManager& assetManager, std::vector<MeshInfoComponent*>& meshInfo,
-                                               CameraComponent& camera, ModelSSBOsComponent& ssbos)
+                                               BufferManager& bufferManager, std::vector<MeshInfoComponent*>& meshInfo,
+                                               CameraComponent& camera, ModelsBuffersComponent& ssbos)
 {
 	commandBuffer.begin({});
 
@@ -47,17 +47,20 @@ void CommandBufferFactory::recordCommandBuffer(vk::raii::CommandBuffer& commandB
 	                                          static_cast<float>(swapChain.swapChainExtent.height), 0.0f, 1.0f));
 	commandBuffer.setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), swapChain.swapChainExtent));
 
+	
 	commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineHandler.pipelineLayout, 0,
-	                                 *camera.cameraDescriptorSets[currentFrame], nullptr);
+	                                 bufferManager.buffers[camera.descriptorNumber].descriptorSet[currentFrame],
+	                                 nullptr);
 	commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineHandler.pipelineLayout, 2,
-	                                 *ssbos.ssbos->modelSSBOsDescriptorSets[currentFrame], nullptr);
-	for (int i = 0; i < gameObjects.size(); i++)
+	                                 bufferManager.buffers[ssbos.descriptorNumber].descriptorSet[currentFrame], nullptr);
+	for (int i = 0; i < textureInfo.size(); i++)
 	{
-		commandBuffer.bindVertexBuffers(0, *assetManager.meshes[meshInfo[i]->bufferIndex].vertexBuffer, {0});
-		commandBuffer.bindIndexBuffer(*assetManager.meshes[meshInfo[i]->bufferIndex].indexBuffer, 0,
+		commandBuffer.bindVertexBuffers(0, *bufferManager.meshes[meshInfo[i]->bufferIndex].vertexBuffer, {0});
+		commandBuffer.bindIndexBuffer(*bufferManager.meshes[meshInfo[i]->bufferIndex].indexBuffer, 0,
 		                              vk::IndexType::eUint32);
 		commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineHandler.pipelineLayout, 1,
-		                                 *gameObjects[i]->textureDescriptorSet, nullptr);
+		                                 bufferManager.textures[textureInfo[i]].textureDescriptorSet,
+		                                 nullptr);
 		commandBuffer.pushConstants<uint32_t>(*pipelineHandler.pipelineLayout, vk::ShaderStageFlagBits::eVertex, 0, i);
 		commandBuffer.drawIndexed(meshInfo[i]->indexCount, 1, meshInfo[i]->indexOffset, meshInfo[i]->vertexOffset, 0);
 	}

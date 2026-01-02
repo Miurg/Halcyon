@@ -3,6 +3,7 @@
     "glfw3",
     "glm",
     "tinyobjloader",
-    "stb"
+    "stb",
+    "vulkan-memory-allocator"
   ]
 }

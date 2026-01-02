@@ -2,6 +2,7 @@
 
 #include <vulkan/vulkan_raii.hpp>
 #include "VulkanConst.hpp"
+#include "VulkanDevice.hpp"
 
 struct FrameData
 {

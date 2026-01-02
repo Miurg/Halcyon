@@ -5,7 +5,7 @@
 
 
 void PipelineFactory::createGraphicsPipeline(VulkanDevice& vulkanDevice, SwapChain& swapChain,
-                                             DescriptorHandler& descriptorHandler, PipelineHandler& pipelineHandler)
+                                             BufferManager& bufferManager, PipelineHandler& pipelineHandler)
 {
 	vk::raii::ShaderModule shaderModule =
 	    PipelineFactory::createShaderModule(VulkanUtils::readFile("shaders/shader.spv"), vulkanDevice);
@@ -86,15 +86,18 @@ void PipelineFactory::createGraphicsPipeline(VulkanDevice& vulkanDevice, SwapCha
 	pushConstantRange.size = sizeof(uint32_t); 
 
 	vk::PipelineLayoutCreateInfo pipelineLayoutInfo;
-	std::array<vk::DescriptorSetLayout, 3> setLayouts = {
-	    *descriptorHandler.cameraSetLayout,  // Set 0
-	    *descriptorHandler.textureSetLayout, // Set 1
-	    *descriptorHandler.modelSetLayout    // Set 2
+	std::array<vk::DescriptorSetLayout, 3> setLayouts = 
+	{
+	    *bufferManager.globalSetLayout,       // Set 0
+	    *bufferManager.textureSetLayout,   // Set 1
+	    *bufferManager.modelSetLayout    // Set 2
 	};
+
 	pipelineLayoutInfo.setLayoutCount = static_cast<uint32_t>(setLayouts.size());
 	pipelineLayoutInfo.pSetLayouts = setLayouts.data();
 	pipelineLayoutInfo.pushConstantRangeCount = 1;
 	pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;
+
 
 	pipelineHandler.pipelineLayout = vk::raii::PipelineLayout(vulkanDevice.device, pipelineLayoutInfo);
 

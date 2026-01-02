@@ -8,43 +8,43 @@
 #include "../GraphicsContexts.hpp"
 #include "../Factories/CommandBufferFactory.hpp"
 
-
 void RenderSystem::processEntity(Entity entity, GeneralManager& manager, float dt) {}
 
-void RenderSystem::onRegistered(GeneralManager& gm) 
+void RenderSystem::onRegistered(GeneralManager& gm)
 {
 	std::cout << "RenderSystem registered!" << std::endl;
 }
 
-void RenderSystem::onShutdown(GeneralManager& gm) 
+void RenderSystem::onShutdown(GeneralManager& gm)
 {
 	std::cout << "RenderSystem shutdown!" << std::endl;
 }
 
 void RenderSystem::update(float deltaTime, GeneralManager& gm, const std::vector<Entity>& entities)
 {
-	VulkanDevice& vulkanDevice = *gm.getContextComponent<MainVulkanDeviceContext, VulkanDeviceComponent>()->vulkanDeviceInstance;
+	VulkanDevice& vulkanDevice =
+	    *gm.getContextComponent<MainVulkanDeviceContext, VulkanDeviceComponent>()->vulkanDeviceInstance;
 	SwapChain& swapChain = *gm.getContextComponent<MainSwapChainContext, SwapChainComponent>()->swapChainInstance;
-	PipelineHandler& pipelineHandler = *gm.getContextComponent<MainSignatureContext, PipelineHandlerComponent>()->pipelineHandler;
+	PipelineHandler& pipelineHandler =
+	    *gm.getContextComponent<MainSignatureContext, PipelineHandlerComponent>()->pipelineHandler;
 	Window& window = *gm.getContextComponent<MainWindowContext, WindowComponent>()->windowInstance;
-	AssetManager& assetManager =
-	    *gm.getContextComponent<AssetManagerContext, AssetManagerComponent>()->assetManager;
+	BufferManager& bufferManager = *gm.getContextComponent<BufferManagerContext, BufferManagerComponent>()->bufferManager;
 	std::vector<FrameData>& framesData =
 	    *gm.getContextComponent<MainFrameDataContext, FrameDataComponent>()->frameDataArray;
 	CurrentFrameComponent* currentFrameComp = gm.getContextComponent<CurrentFrameContext, CurrentFrameComponent>();
 	CameraComponent* mainCamera = gm.getContextComponent<MainCameraContext, CameraComponent>();
 
-	std::vector<GameObject*> gameObjects;
+	std::vector<int> textureInfo;
 	std::vector<TransformComponent*> transforms;
 	std::vector<MeshInfoComponent*> meshInfos;
 	for (int i = 0; i < entities.size(); i++)
 	{
 		meshInfos.push_back(gm.getComponent<MeshInfoComponent>(entities[i]));
 		transforms.push_back(gm.getComponent<TransformComponent>(entities[i]));
-		auto gameObjectComponent = gm.getComponent<GameObjectComponent>(entities[i]);
-		gameObjects.push_back(gameObjectComponent->objectInstance);
+		auto textureInfoComponent = gm.getComponent<TextureInfoComponent>(entities[i]);
+		textureInfo.push_back(textureInfoComponent->textureIndex);
 	}
-	ModelSSBOsComponent* ssbos = gm.getContextComponent<ModelSSBOsContext, ModelSSBOsComponent>();
+	ModelsBuffersComponent* ssbos = gm.getContextComponent<ModelSSBOsContext, ModelsBuffersComponent>();
 
 	while (vk::Result::eTimeout == vulkanDevice.device.waitForFences(
 	                                   *framesData[currentFrameComp->currentFrame].inFlightFence, vk::True, UINT64_MAX));
@@ -82,12 +82,12 @@ void RenderSystem::update(float deltaTime, GeneralManager& gm, const std::vector
 	vulkanDevice.device.resetFences(*framesData[currentFrameComp->currentFrame].inFlightFence);
 	framesData[currentFrameComp->currentFrame].commandBuffer.reset();
 
-	RenderSystem::updateUniformBuffer(currentFrameComp->currentFrame, gameObjects, swapChain,
-	                                  currentFrameComp->currentFrame, mainCamera, transforms, *ssbos);
+	RenderSystem::updateUniformBuffer(entities.size(), currentFrameComp->currentFrame, swapChain,
+	                                  currentFrameComp->currentFrame, mainCamera, transforms, *ssbos, bufferManager);
 
 	CommandBufferFactory::recordCommandBuffer(framesData[currentFrameComp->currentFrame].commandBuffer, imageIndex,
-	                                          gameObjects, swapChain, pipelineHandler, currentFrameComp->currentFrame,
-	                                          assetManager, meshInfos, *mainCamera,*ssbos);
+	                                          textureInfo, swapChain, pipelineHandler, currentFrameComp->currentFrame,
+	                                          bufferManager, meshInfos, *mainCamera, *ssbos);
 
 	vk::PipelineStageFlags waitDestinationStageMask(vk::PipelineStageFlagBits::eColorAttachmentOutput);
 
@@ -128,9 +128,10 @@ void RenderSystem::update(float deltaTime, GeneralManager& gm, const std::vector
 	currentFrameComp->currentFrame = (currentFrameComp->currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 }
 
-void RenderSystem::updateUniformBuffer(uint32_t currentImage, std::vector<GameObject*>& gameObjects,
+void RenderSystem::updateUniformBuffer(uint32_t numberEntitys, uint32_t currentImage,
                                        SwapChain& swapChain, uint32_t currentFrame, CameraComponent* mainCamera,
-                                       std::vector<TransformComponent*>& transforms, ModelSSBOsComponent& ssbos)
+                                       std::vector<TransformComponent*>& transforms, ModelsBuffersComponent& ssbos,
+                                       BufferManager& bufferManager)
 {
 	static auto startTime = std::chrono::high_resolution_clock::now();
 	auto currentTime = std::chrono::high_resolution_clock::now();
@@ -142,23 +143,25 @@ void RenderSystem::updateUniformBuffer(uint32_t currentImage, std::vector<GameOb
 	                                      static_cast<float>(swapChain.swapChainExtent.height),
 	                                  0.1f, 2000.0f);
 	proj[1][1] *= -1; // Vulkan Y flip
-	CameraUBO cameraUbo{.view = view, .proj = proj};
-	memcpy(mainCamera->cameraBuffersMapped[currentFrame], &cameraUbo, sizeof(cameraUbo));
+	CameraStucture cameraUbo{.view = view, .proj = proj};
+
+	memcpy(bufferManager.buffers[mainCamera->descriptorNumber].bufferMapped[currentFrame], &cameraUbo,
+	       sizeof(cameraUbo));
 
 	glm::mat4 rotation = glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
 	glm::mat4 initialRotation =
 	    glm::rotate(glm::mat4(1.0f), time / 10 * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 	glm::mat4 finalRotation = rotation * initialRotation;
 
-	std::vector<ModelUBO> frameData;
-	frameData.reserve(gameObjects.size());
-	for (size_t i = 0; i < gameObjects.size(); i++)
+	std::vector<ModelSctructure> frameData;
+	frameData.reserve(numberEntitys);
+	for (size_t i = 0; i < numberEntitys; i++)
 	{
 		glm::mat4 model = transforms[i]->getModelMatrix() * finalRotation;
-		ModelUBO modelUbo{.model = glm::transpose(model)};
+		ModelSctructure modelUbo{.model = glm::transpose(model)};
 		frameData.push_back(modelUbo);
 	}
 
-	void* mappedMemory = ssbos.ssbos->modelSSBOsMapped[currentFrame];
-	memcpy(mappedMemory, frameData.data(), frameData.size() * sizeof(ModelUBO));
+	void* mappedMemory = bufferManager.buffers[ssbos.descriptorNumber].bufferMapped[currentFrame];
+	memcpy(mappedMemory, frameData.data(), frameData.size() * sizeof(ModelSctructure));
 }
