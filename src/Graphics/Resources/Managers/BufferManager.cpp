@@ -52,7 +52,37 @@ BufferManager::BufferManager(VulkanDevice& vulkanDevice) : vulkanDevice(vulkanDe
 	modelSetLayout = vk::raii::DescriptorSetLayout(vulkanDevice.device, modelInfo);
 }
 
-BufferManager::~BufferManager() {}
+BufferManager::~BufferManager() 
+{
+	for (auto& texture : textures)
+	{
+		if (texture.textureSampler)
+		{
+			(*vulkanDevice.device).destroySampler(texture.textureSampler);
+		}
+
+		if (texture.textureImageView)
+		{
+			(*vulkanDevice.device).destroyImageView(texture.textureImageView);
+		}
+
+		if (texture.textureImage)
+		{
+			vmaDestroyImage(allocator, texture.textureImage, texture.textureImageAllocation);
+		}
+	}
+	for (auto& buffer : buffers)
+	{
+		for (size_t i = 0; i < buffer.buffer.size(); ++i)
+		{
+			if (buffer.buffer[i])
+			{
+				vmaDestroyBuffer(allocator, buffer.buffer[i], buffer.bufferAllocation[i]);
+			}
+		}
+	}
+
+}
 
 MeshInfoComponent BufferManager::createMesh(const char path[MAX_PATH_LEN])
 {
