@@ -36,7 +36,12 @@ BufferManager::BufferManager(VulkanDevice& vulkanDevice) : vulkanDevice(vulkanDe
 	//===Global===
 	vk::DescriptorSetLayoutBinding globalBinding(0, vk::DescriptorType::eStorageBuffer, 1,
 	                                             vk::ShaderStageFlagBits::eVertex, nullptr);
-	vk::DescriptorSetLayoutCreateInfo globalInfo({}, 1, &globalBinding);
+	vk::DescriptorSetLayoutBinding shadowBinding(1, vk::DescriptorType::eCombinedImageSampler, 1,
+	                                             vk::ShaderStageFlagBits::eFragment, nullptr);
+	std::array<vk::DescriptorSetLayoutBinding, 2> globalBindings = {globalBinding, shadowBinding};
+
+	vk::DescriptorSetLayoutCreateInfo globalInfo({}, static_cast<uint32_t>(globalBindings.size()),
+	                                             globalBindings.data());
 	globalSetLayout = vk::raii::DescriptorSetLayout(vulkanDevice.device, globalInfo);
 
 	//===Textures===
@@ -378,11 +383,12 @@ void BufferManager::allocateTextureDescriptorSets(int textureNumber)
 }
 
 int BufferManager::createBuffer(vk::MemoryPropertyFlags propertyBits, uint_fast16_t numberObjects, size_t sizeBuffer,
-                                uint_fast16_t numberBuffers, uint_fast16_t numberBinding)
+                                uint_fast16_t numberBuffers, uint_fast16_t numberBinding,
+                                vk::DescriptorSetLayout layout)
 {
 	buffers.push_back(Buffer());
 	BufferManager::initGlobalBuffer(propertyBits, buffers.back(), numberObjects, sizeBuffer, numberBuffers);
-	BufferManager::allocateGlobalDescriptorSets(buffers.back(), sizeBuffer, numberBuffers, numberBinding);
+	BufferManager::allocateGlobalDescriptorSets(buffers.back(), sizeBuffer, numberBuffers, numberBinding, layout);
 	return buffers.size() - 1;
 }
 
@@ -430,9 +436,9 @@ void BufferManager::initGlobalBuffer(vk::MemoryPropertyFlags propertyBits, Buffe
 }
 
 void BufferManager::allocateGlobalDescriptorSets(Buffer& bufferIn, size_t sizeBuffer, uint_fast16_t numberBuffers,
-                                                uint_fast16_t numberBinding)
+                                                 uint_fast16_t numberBinding, vk::DescriptorSetLayout layout)
 {
-	std::vector<vk::DescriptorSetLayout> globalLayouts(numberBuffers, globalSetLayout);
+	std::vector<vk::DescriptorSetLayout> globalLayouts(numberBuffers, layout);
 
 	vk::DescriptorSetAllocateInfo allocInfo;
 	allocInfo.descriptorPool = descriptorPool;
@@ -454,6 +460,27 @@ void BufferManager::allocateGlobalDescriptorSets(Buffer& bufferIn, size_t sizeBu
 		descriptorWrite.descriptorType = vk::DescriptorType::eStorageBuffer;
 		descriptorWrite.descriptorCount = 1;
 		descriptorWrite.pBufferInfo = &bufferInfo;
+
+		vulkanDevice.device.updateDescriptorSets(descriptorWrite, {});
+	}
+}
+
+void BufferManager::bindShadowMap(int bufferIndex, vk::ImageView imageView, vk::Sampler sampler)
+{
+	for (size_t i = 0; i < buffers[bufferIndex].descriptorSet.size(); i++)
+	{
+		vk::DescriptorImageInfo imageInfo;
+		imageInfo.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
+		imageInfo.imageView = imageView;
+		imageInfo.sampler = sampler;
+
+		vk::WriteDescriptorSet descriptorWrite;
+		descriptorWrite.dstSet = buffers[bufferIndex].descriptorSet[i];
+		descriptorWrite.dstBinding = 1;
+		descriptorWrite.dstArrayElement = 0;
+		descriptorWrite.descriptorType = vk::DescriptorType::eCombinedImageSampler;
+		descriptorWrite.descriptorCount = 1;
+		descriptorWrite.pImageInfo = &imageInfo;
 
 		vulkanDevice.device.updateDescriptorSets(descriptorWrite, {});
 	}

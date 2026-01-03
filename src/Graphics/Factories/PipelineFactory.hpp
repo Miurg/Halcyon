@@ -11,7 +11,9 @@ class PipelineFactory
 {
 public:
 	static void createGraphicsPipeline(VulkanDevice& vulkanDevice, SwapChain& swapChain, BufferManager& bufferManager,
-	                            PipelineHandler& pipelineHandler);
+	                                   PipelineHandler& pipelineHandler);
+	static void createShadowPipeline(VulkanDevice& vulkanDevice, SwapChain& swapChain, BufferManager& bufferManager,
+	                                 PipelineHandler& pipelineHandler);
 	[[nodiscard]] static vk::raii::ShaderModule createShaderModule(const std::vector<char>& code,
 	                                                               VulkanDevice& vulkanDevice);
 };

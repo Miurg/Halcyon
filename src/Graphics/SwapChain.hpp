@@ -20,4 +20,9 @@ public:
 
 	std::vector<vk::Image> swapChainImages;
 	std::vector<vk::raii::ImageView> swapChainImageViews;
+
+	vk::raii::Image shadowImage = nullptr;
+	vk::raii::DeviceMemory shadowImageMemory = nullptr;
+	vk::raii::ImageView shadowImageView = nullptr;
+	vk::raii::Sampler shadowSampler = nullptr;
 };

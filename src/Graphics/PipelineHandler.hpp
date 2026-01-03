@@ -7,4 +7,5 @@ class PipelineHandler
 public:
 	vk::raii::PipelineLayout pipelineLayout = nullptr;
 	vk::raii::Pipeline graphicsPipeline = nullptr;
+	vk::raii::Pipeline shadowPipeline = nullptr;
 };

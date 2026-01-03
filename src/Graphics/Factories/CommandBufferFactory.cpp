@@ -4,14 +4,70 @@ void CommandBufferFactory::recordCommandBuffer(vk::raii::CommandBuffer& commandB
                                                std::vector<int>& textureInfo, SwapChain& swapChain,
                                                PipelineHandler& pipelineHandler, uint32_t currentFrame,
                                                BufferManager& bufferManager, std::vector<MeshInfoComponent*>& meshInfo,
-                                               CameraComponent& camera, ModelsBuffersComponent& ssbos)
+                                               CameraComponent& camera, ModelsBuffersComponent& ssbos,
+                                               CameraComponent& sunCamera)
 {
 	commandBuffer.begin({});
+
+	// Step 1: SHADOW PASS
+
+	transitionImageLayout(commandBuffer, swapChain.shadowImage, vk::ImageLayout::eUndefined,
+	                      vk::ImageLayout::eDepthAttachmentOptimal,
+	                      vk::AccessFlagBits2::eNone,
+	                      vk::AccessFlagBits2::eDepthStencilAttachmentWrite, 
+	                      vk::PipelineStageFlagBits2::eTopOfPipe,
+	                      vk::PipelineStageFlagBits2::eEarlyFragmentTests,
+	                      vk::ImageAspectFlagBits::eDepth);
+
+	vk::RenderingAttachmentInfo shadowDepthInfo;
+	shadowDepthInfo.imageView = swapChain.shadowImageView;
+	shadowDepthInfo.imageLayout = vk::ImageLayout::eDepthAttachmentOptimal;
+	shadowDepthInfo.loadOp = vk::AttachmentLoadOp::eClear;
+	shadowDepthInfo.storeOp = vk::AttachmentStoreOp::eStore;
+	shadowDepthInfo.clearValue = vk::ClearDepthStencilValue(1.0f, 0);
+
+	vk::RenderingInfo shadowRenderingInfo;
+	shadowRenderingInfo.renderArea.extent = vk::Extent2D(16384, 16384);
+	shadowRenderingInfo.layerCount = 1;
+	shadowRenderingInfo.colorAttachmentCount = 0;
+	shadowRenderingInfo.pDepthAttachment = &shadowDepthInfo;
+
+	commandBuffer.beginRendering(shadowRenderingInfo);
+	commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipelineHandler.shadowPipeline);
+	commandBuffer.setDepthBias(1.25f, 0.0f, 1.75f);
+	commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineHandler.pipelineLayout, 0,
+	                                 bufferManager.buffers[sunCamera.descriptorNumber].descriptorSet[currentFrame],
+	                                 nullptr);
+	commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineHandler.pipelineLayout, 2,
+	                                 bufferManager.buffers[ssbos.descriptorNumber].descriptorSet[currentFrame], nullptr);
+	commandBuffer.setViewport(0, vk::Viewport(0.0f, 0.0f, 16384.0f, 16384.0f, 0.0f, 1.0f));
+	commandBuffer.setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), vk::Extent2D(16384, 16384)));
+
+	for (int i = 0; i < textureInfo.size(); i++)
+	{
+		commandBuffer.bindVertexBuffers(0, *bufferManager.meshes[meshInfo[i]->bufferIndex].vertexBuffer, {0});
+		commandBuffer.bindIndexBuffer(*bufferManager.meshes[meshInfo[i]->bufferIndex].indexBuffer, 0,
+		                              vk::IndexType::eUint32);
+		commandBuffer.pushConstants<uint32_t>(*pipelineHandler.pipelineLayout, vk::ShaderStageFlagBits::eVertex, 0, i);
+		commandBuffer.drawIndexed(meshInfo[i]->indexCount, 1, meshInfo[i]->indexOffset, meshInfo[i]->vertexOffset, 0);
+	}
+
+	commandBuffer.endRendering();
+
+	transitionImageLayout(commandBuffer, swapChain.shadowImage, vk::ImageLayout::eDepthAttachmentOptimal,
+	                      vk::ImageLayout::eShaderReadOnlyOptimal,
+	                      vk::AccessFlagBits2::eDepthStencilAttachmentWrite,
+	                      vk::AccessFlagBits2::eShaderRead,
+	                      vk::PipelineStageFlagBits2::eLateFragmentTests,
+	                      vk::PipelineStageFlagBits2::eFragmentShader,
+	                      vk::ImageAspectFlagBits::eDepth);
+	// Step 2: MAIN PASS
 
 	transitionImageLayout(commandBuffer, swapChain.swapChainImages[imageIndex], vk::ImageLayout::eUndefined,
 	                      vk::ImageLayout::eColorAttachmentOptimal, {}, vk::AccessFlagBits2::eColorAttachmentWrite,
 	                      vk::PipelineStageFlagBits2::eColorAttachmentOutput,
 	                      vk::PipelineStageFlagBits2::eColorAttachmentOutput, vk::ImageAspectFlagBits::eColor);
+
 	transitionImageLayout(commandBuffer, swapChain.depthImage, vk::ImageLayout::eUndefined,
 	                      vk::ImageLayout::eDepthStencilAttachmentOptimal, {},
 	                      vk::AccessFlagBits2::eDepthStencilAttachmentWrite, vk::PipelineStageFlagBits2::eTopOfPipe,
@@ -41,26 +97,26 @@ void CommandBufferFactory::recordCommandBuffer(vk::raii::CommandBuffer& commandB
 	renderingInfo.pDepthAttachment = &depthAttachmentInfo;
 
 	commandBuffer.beginRendering(renderingInfo);
+
 	commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipelineHandler.graphicsPipeline);
 
 	commandBuffer.setViewport(0, vk::Viewport(0.0f, 0.0f, static_cast<float>(swapChain.swapChainExtent.width),
 	                                          static_cast<float>(swapChain.swapChainExtent.height), 0.0f, 1.0f));
 	commandBuffer.setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), swapChain.swapChainExtent));
 
-	
 	commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineHandler.pipelineLayout, 0,
 	                                 bufferManager.buffers[camera.descriptorNumber].descriptorSet[currentFrame],
 	                                 nullptr);
 	commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineHandler.pipelineLayout, 2,
 	                                 bufferManager.buffers[ssbos.descriptorNumber].descriptorSet[currentFrame], nullptr);
+
 	for (int i = 0; i < textureInfo.size(); i++)
 	{
 		commandBuffer.bindVertexBuffers(0, *bufferManager.meshes[meshInfo[i]->bufferIndex].vertexBuffer, {0});
 		commandBuffer.bindIndexBuffer(*bufferManager.meshes[meshInfo[i]->bufferIndex].indexBuffer, 0,
 		                              vk::IndexType::eUint32);
 		commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineHandler.pipelineLayout, 1,
-		                                 bufferManager.textures[textureInfo[i]].textureDescriptorSet,
-		                                 nullptr);
+		                                 bufferManager.textures[textureInfo[i]].textureDescriptorSet, nullptr);
 		commandBuffer.pushConstants<uint32_t>(*pipelineHandler.pipelineLayout, vk::ShaderStageFlagBits::eVertex, 0, i);
 		commandBuffer.drawIndexed(meshInfo[i]->indexCount, 1, meshInfo[i]->indexOffset, meshInfo[i]->vertexOffset, 0);
 	}

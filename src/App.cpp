@@ -27,7 +27,6 @@
 #include "Graphics/Systems/RenderSystem.hpp"
 #include "Graphics/Components/TransformComponent.hpp"
 
-
 namespace
 {
 float deltaTime = 0.0f;
@@ -56,14 +55,19 @@ void App::run()
 	Entity cameraEntity = gm.createEntity();
 	gm.addComponent<CameraComponent>(cameraEntity, glm::vec3(0.0f, 0.0f, 3.0f));
 	gm.registerContext<MainCameraContext>(cameraEntity);
+
+	Entity sunEntity = gm.createEntity();
+	gm.addComponent<CameraComponent>(sunEntity, glm::vec3(10.0f, 20.0f, 10.0f));
+	gm.registerContext<LightCameraContext>(sunEntity);
 	CameraComponent* camera = gm.getContextComponent<MainCameraContext, CameraComponent>();
-	
+	CameraComponent* sun = gm.getContextComponent<LightCameraContext, CameraComponent>();
+
 	Entity swapChainEntity = gm.createEntity();
 	gm.registerContext<MainSwapChainContext>(swapChainEntity);
 	swapChain = new SwapChain();
 	SwapChainFactory::createSwapChain(*swapChain, *vulkanDevice, *window);
 	gm.addComponent<SwapChainComponent>(swapChainEntity, swapChain);
-	
+
 	Entity bufferManagerEntity = gm.createEntity();
 	gm.registerContext<BufferManagerContext>(bufferManagerEntity);
 	bufferManager = new BufferManager(*vulkanDevice);
@@ -72,12 +76,20 @@ void App::run()
 	Entity signatureEntity = gm.createEntity();
 	gm.registerContext<MainSignatureContext>(signatureEntity);
 
-	camera->descriptorNumber =
-	    bufferManager->createBuffer((vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal),
-	                               1, sizeof(CameraStucture), MAX_FRAMES_IN_FLIGHT, 0);
-	
+	camera->descriptorNumber = bufferManager->createBuffer(
+	    (vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal), 1, sizeof(CameraStucture),
+	    MAX_FRAMES_IN_FLIGHT, 0, *bufferManager->globalSetLayout);
+	bufferManager->bindShadowMap(camera->descriptorNumber, swapChain->shadowImageView, *swapChain->shadowSampler);
+
+	sun->descriptorNumber = bufferManager->createBuffer(
+	    (vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal), 1, sizeof(CameraStucture),
+	    MAX_FRAMES_IN_FLIGHT, 0, *bufferManager->globalSetLayout);
+	// We dont use it but must for vulkan
+	bufferManager->bindShadowMap(sun->descriptorNumber, swapChain->shadowImageView, *swapChain->shadowSampler);
+
 	pipelineHandler = new PipelineHandler();
 	PipelineFactory::createGraphicsPipeline(*vulkanDevice, *swapChain, *bufferManager, *pipelineHandler);
+	PipelineFactory::createShadowPipeline(*vulkanDevice, *swapChain, *bufferManager, *pipelineHandler);
 	gm.addComponent<PipelineHandlerComponent>(signatureEntity, pipelineHandler);
 
 	Entity frameDataEntity = gm.createEntity();
@@ -93,17 +105,14 @@ void App::run()
 
 	Entity modelSSBOsEntity = gm.createEntity();
 	gm.registerContext<ModelSSBOsContext>(modelSSBOsEntity);
-	int descriptorNumber =
-	    bufferManager->createBuffer((vk::MemoryPropertyFlagBits::eHostVisible),
-	                               1000, sizeof(ModelSctructure), MAX_FRAMES_IN_FLIGHT, 0);
+	int descriptorNumber = bufferManager->createBuffer((vk::MemoryPropertyFlagBits::eHostVisible), 1000, sizeof(ModelSctructure),
+	                                MAX_FRAMES_IN_FLIGHT, 0, *bufferManager->modelSetLayout);
 	gm.addComponent<ModelsBuffersComponent>(modelSSBOsEntity, descriptorNumber);
-
 
 	App::setupGameObjects(gm);
 	App::mainLoop(gm);
 	App::cleanup();
 }
-
 
 void App::mainLoop(GeneralManager& gm)
 {

@@ -30,7 +30,8 @@ public:
 	std::unordered_map<std::string, int> texturePaths;
 
 	int createBuffer(vk::MemoryPropertyFlags propertyBits, uint_fast16_t numberObjects, size_t sizeBuffer,
-	                  uint_fast16_t numberBuffers, uint_fast16_t numberBinding);
+	                 uint_fast16_t numberBuffers, uint_fast16_t numberBinding, vk::DescriptorSetLayout layout);
+	void bindShadowMap(int bufferIndex, vk::ImageView imageView, vk::Sampler sampler);
 
 	vk::raii::DescriptorSetLayout globalSetLayout = nullptr;
 	vk::raii::DescriptorSetLayout textureSetLayout = nullptr;
@@ -47,7 +48,7 @@ private:
 	void initGlobalBuffer(vk::MemoryPropertyFlags propertyBits, Buffer& bufferIn, uint_fast16_t numberObjects,
 	                      size_t sizeBuffer, uint_fast16_t numberBuffers);
 	void allocateGlobalDescriptorSets(Buffer& bufferIn, size_t sizeBuffer, uint_fast16_t numberBuffers,
-	                                  uint_fast16_t numberBinding);
+	                                  uint_fast16_t numberBinding, vk::DescriptorSetLayout layout);
 
 	void createTextureImage(const char texturePath[MAX_PATH_LEN], Texture& texture);
 	void createTextureImageView(Texture& texture);
@@ -61,6 +62,7 @@ struct CameraStucture
 {
 	alignas(16) glm::mat4 view;
 	alignas(16) glm::mat4 proj;
+	alignas(16) glm::mat4 lightSpaceMatrix;
 };
 
 struct ModelSctructure

@@ -8,3 +8,4 @@ class MainFrameDataContext{};
 class CurrentFrameContext{};
 class MainCameraContext{};
 class ModelSSBOsContext{};
+class LightCameraContext{};

@@ -86,8 +86,14 @@ add_slang_shader_target(
     SOURCES "assets/shaders/shader.slang"
     ENTRY vertMain fragMain
 )
+add_slang_shader_target(
+    shadow
+    SOURCES "assets/shaders/shadow.slang"
+    ENTRY vertShadow
+)
 
 add_dependencies("${CMAKE_PROJECT_NAME}" shader)
+add_dependencies("${CMAKE_PROJECT_NAME}" shadow)
 
 add_custom_command(
     TARGET ${PROJECT_NAME} POST_BUILD

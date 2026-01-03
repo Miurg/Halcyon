@@ -24,4 +24,5 @@ public:
 	static vk::PresentModeKHR
 	chooseSwapPresentMode(const std::vector<vk::PresentModeKHR>& availablePresentModes);
 	static vk::Extent2D chooseSwapExtent(const vk::SurfaceCapabilitiesKHR& capabilities, Window& window);
+	static void createShadowResources(SwapChain& swapChain, VulkanDevice& device);
 };
