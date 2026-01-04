@@ -2,17 +2,13 @@
 #include <cmath>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/quaternion.hpp>
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtc/quaternion.hpp> 
+#include <glm/gtx/quaternion.hpp>
 #include "../../Core/Components/ComponentManager.hpp"
 #include "../VulkanDevice.hpp"
 #include "../VulkanConst.hpp"
 #include "../VulkanUtils.hpp"
-
-const float SPEED = 5.0f;
-const float SENSITIVITY = 0.8f;
-const float FOV = 60.0f;
-const float YAW = -90.0f;
-const float PITCH = 30.0f;
 
 struct CameraComponent
 {
@@ -22,43 +18,52 @@ struct CameraComponent
 	glm::vec3 up;
 	glm::vec3 right;
 	glm::vec3 worldUp;
+
 	float movementSpeed;
 	float mouseSensitivity;
 	float fov;
-	float yaw;
-	float pitch;
 	int descriptorNumber;
 
 	CameraComponent(glm::vec3 position = glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f),
-	                float yaw = YAW, float pitch = PITCH)
-	    : position(position), worldUp(up), movementSpeed(SPEED), mouseSensitivity(SENSITIVITY), fov(FOV), yaw(yaw),
-	      pitch(pitch)
+	                float yaw = -90.0f, float pitch = 0.0f)
+	    : position(position), worldUp(up), movementSpeed(5.0f), mouseSensitivity(0.8f), fov(60.0f)
 	{
+		glm::vec3 eulerAngles(glm::radians(pitch), glm::radians(yaw), 0.0f);
+		rotation = glm::quat(eulerAngles);
+
 		updateCameraVectors();
 	}
 
 	glm::mat4 getViewMatrix()
 	{
-		return glm::lookAt(position, position + front, up);
+		// return glm::lookAt(position, position + front, up);
+		glm::mat4 rotate = glm::mat4_cast(glm::conjugate(rotation));
+		glm::mat4 translate = glm::translate(glm::mat4(1.0f), -position);
+
+		return rotate * translate;
 	}
+
 	void updateCameraVectors()
 	{
-		glm::vec3 newFront;
-
-		newFront.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
-		newFront.y = sin(glm::radians(pitch));
-		newFront.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
-
-		front = glm::normalize(newFront);
-
-		right = glm::normalize(glm::cross(front, worldUp));
-		up = glm::normalize(glm::cross(right, front));
+		front = glm::rotate(rotation, glm::vec3(0.0f, 0.0f, -1.0f));
+		up = glm::rotate(rotation, glm::vec3(0.0f, 1.0f, 0.0f));
+		right = glm::rotate(rotation, glm::vec3(1.0f, 0.0f, 0.0f));
 	}
-	void resetCamera()
+
+	void rotate(float xoffset, float yoffset, bool constrainPitch = true)
 	{
-		position = glm::vec3(10.0f, 10.0f, 10.0f);
-		yaw = YAW;
-		pitch = PITCH;
+		xoffset *= mouseSensitivity;
+		yoffset *= mouseSensitivity;
+
+		// Local y
+		glm::quat qYaw = glm::angleAxis(glm::radians(-xoffset), glm::vec3(0.0f, 1.0f, 0.0f));
+
+		// Local x
+		glm::quat qPitch = glm::angleAxis(glm::radians(yoffset), glm::vec3(1.0f, 0.0f, 0.0f));
+
+		rotation = qYaw * rotation * qPitch;
+		rotation = glm::normalize(rotation);
+
 		updateCameraVectors();
 	}
 };

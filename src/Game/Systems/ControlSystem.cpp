@@ -47,16 +47,12 @@ void ControlSystem::update(float deltaTime, GeneralManager& gm)
 		//=== Mouse ===
 		constexpr float sensitivity = 0.1f;
 		float xoffset = static_cast<float>((cursorPositionState->mousePositionX - lastMousePositionX) * sensitivity);
-		float yoffset = static_cast<float>((lastMousePositionY - cursorPositionState->mousePositionY) * sensitivity);
+		float yoffset = static_cast<float>((cursorPositionState->mousePositionY - lastMousePositionY) * sensitivity);
 		lastMousePositionX = cursorPositionState->mousePositionX;
 		lastMousePositionY = cursorPositionState->mousePositionY;
 		xoffset *= mainCamera->mouseSensitivity;
 		yoffset *= mainCamera->mouseSensitivity;
-
-		mainCamera->yaw += xoffset;
-		mainCamera->pitch += yoffset;
-		if (mainCamera->pitch > 89.0f) mainCamera->pitch = 89.0f;
-		if (mainCamera->pitch < -89.0f) mainCamera->pitch = -89.0f;
+		mainCamera->rotate(xoffset, -yoffset);
 		//=== Keyboard ===
 		float velocity = mainCamera->movementSpeed * deltaTime;
 		if (keyboardState->keys[GLFW_KEY_W]) mainCamera->position += mainCamera->front * velocity;
