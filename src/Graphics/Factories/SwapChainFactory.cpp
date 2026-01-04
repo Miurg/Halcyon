@@ -174,7 +174,7 @@ void SwapChainFactory::createShadowResources(SwapChain& swapChain, VulkanDevice&
 	//Same as depth cuz why not
 	vk::Format shadowFormat = findDepthFormat(device);
 
-	uint32_t shadowResolution = 16384; //Need to be lower
+	uint32_t shadowResolution = 2048; // Need to be lower
 
 	VulkanUtils::createImage(
 	    shadowResolution, shadowResolution, shadowFormat, vk::ImageTiling::eOptimal,

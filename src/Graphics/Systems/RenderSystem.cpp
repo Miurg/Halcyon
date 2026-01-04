@@ -138,13 +138,14 @@ void RenderSystem::updateUniformBuffer(uint32_t numberEntitys, uint32_t currentI
 	static auto startTime = std::chrono::high_resolution_clock::now();
 	auto currentTime = std::chrono::high_resolution_clock::now();
 	float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
-
+	
 	// === Sun ===
-	glm::vec3 lightPos = glm::vec3(20.0f, 20.0f, 20.0f); 
-	glm::vec3 lightTarget = glm::vec3(10.0f, 00.0f, 10.0f);
+	glm::vec3 lightPos =
+	    glm::vec3(20.0f + mainCamera->position.x, 20.0f + mainCamera->position.y, 20.0f + mainCamera->position.z); 
+	glm::vec3 lightTarget = glm::vec3(mainCamera->position.x, mainCamera->position.y, mainCamera->position.z);
 	glm::mat4 lightView = glm::lookAt(lightPos, lightTarget, glm::vec3(0.0f, 1.0f, 0.0f));
 
-	float orthoSize = 25.0f; 
+	float orthoSize = 15.0f; 
 	glm::mat4 lightProj = glm::orthoRH_ZO(-orthoSize, orthoSize, -orthoSize, orthoSize, 0.1f, 500.0f);
 	lightProj[1][1] *= -1; // Y-flip
 
