@@ -31,7 +31,8 @@ public:
 	void onShutdown(GeneralManager& gm) override;
 
 private:
-	void updateUniformBuffer(uint32_t numberEntitys, uint32_t currentImage, SwapChain& swapChain, uint32_t currentFrame,
-	                         CameraComponent* mainCamera, std::vector<TransformComponent*>& tranfsorms,
-	                         ModelsBuffersComponent& ssbos, BufferManager& bufferManager, CameraComponent* sunCamera);
+	void updateBuffers(uint32_t numberEntitys, uint32_t currentImage, SwapChain& swapChain, uint32_t currentFrame,
+	                   CameraComponent* mainCamera, std::vector<TransformComponent*>& tranfsorms,
+	                   ModelsBuffersComponent& ssbos, BufferManager& bufferManager, CameraComponent* sunCamera,
+	                   TransformComponent& mainCameraTransform, TransformComponent& sunCameraTransform);
 };

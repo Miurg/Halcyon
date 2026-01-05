@@ -53,11 +53,13 @@ void App::run()
 	gm.addComponent<VulkanDeviceComponent>(vulkanDeviceEntity, vulkanDevice);
 
 	Entity cameraEntity = gm.createEntity();
-	gm.addComponent<CameraComponent>(cameraEntity, glm::vec3(0.0f, 0.0f, 3.0f));
+	gm.addComponent<CameraComponent>(cameraEntity);
+	gm.addComponent<TransformComponent>(cameraEntity, glm::vec3(0.0f, 0.0f, 3.0f));
 	gm.registerContext<MainCameraContext>(cameraEntity);
 
 	Entity sunEntity = gm.createEntity();
-	gm.addComponent<CameraComponent>(sunEntity, glm::vec3(10.0f, 20.0f, 10.0f));
+	gm.addComponent<CameraComponent>(sunEntity);
+	gm.addComponent<TransformComponent>(sunEntity, glm::vec3(10.0f, 20.0f, 10.0f));
 	gm.registerContext<LightCameraContext>(sunEntity);
 	CameraComponent* camera = gm.getContextComponent<MainCameraContext, CameraComponent>();
 	CameraComponent* sun = gm.getContextComponent<LightCameraContext, CameraComponent>();

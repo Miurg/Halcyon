@@ -28,12 +28,16 @@ void RenderSystem::update(float deltaTime, GeneralManager& gm, const std::vector
 	PipelineHandler& pipelineHandler =
 	    *gm.getContextComponent<MainSignatureContext, PipelineHandlerComponent>()->pipelineHandler;
 	Window& window = *gm.getContextComponent<MainWindowContext, WindowComponent>()->windowInstance;
-	BufferManager& bufferManager = *gm.getContextComponent<BufferManagerContext, BufferManagerComponent>()->bufferManager;
+	BufferManager& bufferManager =
+	    *gm.getContextComponent<BufferManagerContext, BufferManagerComponent>()->bufferManager;
 	std::vector<FrameData>& framesData =
 	    *gm.getContextComponent<MainFrameDataContext, FrameDataComponent>()->frameDataArray;
 	CurrentFrameComponent* currentFrameComp = gm.getContextComponent<CurrentFrameContext, CurrentFrameComponent>();
 	CameraComponent* mainCamera = gm.getContextComponent<MainCameraContext, CameraComponent>();
 	CameraComponent* sunCamera = gm.getContextComponent<LightCameraContext, CameraComponent>();
+	TransformComponent* mainCameraTransform = gm.getContextComponent<MainCameraContext, TransformComponent>();
+	TransformComponent* sunCameraTransform = gm.getContextComponent<LightCameraContext, TransformComponent>();
+
 
 	std::vector<int> textureInfo;
 	std::vector<TransformComponent*> transforms;
@@ -83,9 +87,9 @@ void RenderSystem::update(float deltaTime, GeneralManager& gm, const std::vector
 	vulkanDevice.device.resetFences(*framesData[currentFrameComp->currentFrame].inFlightFence);
 	framesData[currentFrameComp->currentFrame].commandBuffer.reset();
 
-	RenderSystem::updateUniformBuffer(entities.size(), currentFrameComp->currentFrame, swapChain,
-	                                  currentFrameComp->currentFrame, mainCamera, transforms, *ssbos, bufferManager,
-	                                  sunCamera);
+	RenderSystem::updateBuffers(entities.size(), currentFrameComp->currentFrame, swapChain,
+	                            currentFrameComp->currentFrame, mainCamera, transforms, *ssbos, bufferManager, sunCamera,
+	                            *mainCameraTransform, *sunCameraTransform);
 
 	CommandBufferFactory::recordCommandBuffer(framesData[currentFrameComp->currentFrame].commandBuffer, imageIndex,
 	                                          textureInfo, swapChain, pipelineHandler, currentFrameComp->currentFrame,
@@ -130,27 +134,29 @@ void RenderSystem::update(float deltaTime, GeneralManager& gm, const std::vector
 	currentFrameComp->currentFrame = (currentFrameComp->currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 }
 
-void RenderSystem::updateUniformBuffer(uint32_t numberEntitys, uint32_t currentImage,
-                                       SwapChain& swapChain, uint32_t currentFrame, CameraComponent* mainCamera,
-                                       std::vector<TransformComponent*>& transforms, ModelsBuffersComponent& ssbos,
-                                       BufferManager& bufferManager, CameraComponent* sunCamera)
+void RenderSystem::updateBuffers(uint32_t numberEntitys, uint32_t currentImage, SwapChain& swapChain,
+                                 uint32_t currentFrame, CameraComponent* mainCamera,
+                                 std::vector<TransformComponent*>& transforms, ModelsBuffersComponent& ssbos,
+                                 BufferManager& bufferManager, CameraComponent* sunCamera,
+                                 TransformComponent& mainCameraTransform, TransformComponent& sunCameraTransform)
 {
 	static auto startTime = std::chrono::high_resolution_clock::now();
 	auto currentTime = std::chrono::high_resolution_clock::now();
 	float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
-	
+
 	// === Sun ===
-	glm::vec3 lightPos =
-	    glm::vec3(20.0f + mainCamera->position.x, 20.0f + mainCamera->position.y, 20.0f + mainCamera->position.z); 
-	glm::vec3 lightTarget = glm::vec3(mainCamera->position.x, mainCamera->position.y, mainCamera->position.z);
+	glm::vec3 lightPos = glm::vec3(20.0f + mainCameraTransform.position.x, 20.0f + mainCameraTransform.position.y,
+	                               20.0f + mainCameraTransform.position.z);
+	glm::vec3 lightTarget =
+	    glm::vec3(mainCameraTransform.position.x, mainCameraTransform.position.y, mainCameraTransform.position.z);
 	glm::mat4 lightView = glm::lookAt(lightPos, lightTarget, glm::vec3(0.0f, 1.0f, 0.0f));
 
-	float orthoSize = 15.0f; 
+	float orthoSize = 15.0f;
 	glm::mat4 lightProj = glm::orthoRH_ZO(-orthoSize, orthoSize, -orthoSize, orthoSize, 0.1f, 500.0f);
 	lightProj[1][1] *= -1; // Y-flip
 
 	glm::mat4 lightSpaceMatrix = lightProj * lightView;
-	glm::mat4 sunView = sunCamera->getViewMatrix();
+	glm::mat4 sunView = sunCameraTransform.getViewMatrix();
 	glm::mat4 sunProj = glm::perspective(glm::radians(sunCamera->fov),
 	                                     static_cast<float>(swapChain.swapChainExtent.width) /
 	                                         static_cast<float>(swapChain.swapChainExtent.height),
@@ -164,7 +170,7 @@ void RenderSystem::updateUniformBuffer(uint32_t numberEntitys, uint32_t currentI
 	memcpy(bufferManager.buffers[sunCamera->descriptorNumber].bufferMapped[currentFrame], &sunUbo, sizeof(sunUbo));
 
 	// === Camera ===
-	glm::mat4 view = mainCamera->getViewMatrix();
+	glm::mat4 view = mainCameraTransform.getViewMatrix();
 	glm::mat4 proj = glm::perspective(glm::radians(mainCamera->fov),
 	                                  static_cast<float>(swapChain.swapChainExtent.width) /
 	                                      static_cast<float>(swapChain.swapChainExtent.height),
