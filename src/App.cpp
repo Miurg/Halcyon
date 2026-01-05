@@ -26,6 +26,7 @@
 #include "Graphics/Components/CurrentFrameComponent.hpp"
 #include "Graphics/Systems/RenderSystem.hpp"
 #include "Graphics/Components/TransformComponent.hpp"
+#include "Game/Components/ControlComponent.hpp"
 
 namespace
 {
@@ -55,6 +56,7 @@ void App::run()
 	Entity cameraEntity = gm.createEntity();
 	gm.addComponent<CameraComponent>(cameraEntity);
 	gm.addComponent<TransformComponent>(cameraEntity, glm::vec3(0.0f, 0.0f, 3.0f));
+	gm.addComponent<ControlComponent>(cameraEntity);
 	gm.registerContext<MainCameraContext>(cameraEntity);
 
 	Entity sunEntity = gm.createEntity();

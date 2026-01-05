@@ -1,5 +1,6 @@
 #include "ControlSystem.hpp"
 #include "../../Graphics/Components/TransformComponent.hpp"
+#include "../Components/ControlComponent.hpp"
 
 void ControlSystem::cursorDisableToggle(Window* window)
 {
@@ -23,6 +24,7 @@ void ControlSystem::update(float deltaTime, GeneralManager& gm)
 	WindowComponent* windowInstance = gm.getContextComponent<MainWindowContext, WindowComponent>();
 	CameraComponent* mainCamera = gm.getContextComponent<MainCameraContext, CameraComponent>();
 	TransformComponent* mainCameraTransform = gm.getContextComponent<MainCameraContext, TransformComponent>();
+	ControlComponent* mainCameraControl = gm.getContextComponent<MainCameraContext, ControlComponent>();
 
 	if (keyboardState->keys[GLFW_KEY_ESCAPE])
 	{
@@ -48,12 +50,12 @@ void ControlSystem::update(float deltaTime, GeneralManager& gm)
 		float yoffset = static_cast<float>((cursorPositionState->mousePositionY - lastMousePositionY) * sensitivity);
 		lastMousePositionX = cursorPositionState->mousePositionX;
 		lastMousePositionY = cursorPositionState->mousePositionY;
-		xoffset *= mainCamera->mouseSensitivity;
-		yoffset *= mainCamera->mouseSensitivity;
+		xoffset *= mainCameraControl->mouseSensitivity;
+		yoffset *= mainCameraControl->mouseSensitivity;
 		mainCameraTransform->rotateGlobal(glm::radians(-xoffset), glm::vec3(0.0f, 1.0f, 0.0f));
 		mainCameraTransform->rotateLocal(glm::radians(-yoffset), glm::vec3(1.0f, 0.0f, 0.0f));
 		//=== Keyboard ===
-		float velocity = mainCamera->movementSpeed * deltaTime;
+		float velocity = mainCameraControl->movementSpeed * deltaTime;
 		if (keyboardState->keys[GLFW_KEY_W]) mainCameraTransform->position += mainCameraTransform->front * velocity;
 		if (keyboardState->keys[GLFW_KEY_S]) mainCameraTransform->position -= mainCameraTransform->front * velocity;
 		if (keyboardState->keys[GLFW_KEY_A]) mainCameraTransform->position -= mainCameraTransform->right * velocity;
