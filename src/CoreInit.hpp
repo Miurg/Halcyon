@@ -8,6 +8,7 @@
 #include "Platform/Systems/InputSolverSystem.hpp"
 #include "Game/Systems/ControlSystem.hpp"
 #include "Graphics/Systems/RenderSystem.hpp"
+#include "Graphics/Systems/BufferUpdateSystem.hpp"
 
 class CoreInit
 {
@@ -19,8 +20,9 @@ public:
 #endif //_DEBUG
 
 		gm.registerSystem<InputSolverSystem>();
-		gm.registerSystem<RenderSystem>();
 		gm.registerSystem<ControlSystem>();
+		gm.registerSystem<BufferUpdateSystem>();
+		gm.registerSystem<RenderSystem>();
 
 #ifdef _DEBUG
 		std::cout << "COREINIT::RUN::Succes!" << std::endl;

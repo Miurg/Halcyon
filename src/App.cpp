@@ -171,6 +171,7 @@ void App::setupGameObjects(GeneralManager& gm)
 		gm.addComponent<MeshInfoComponent>(gameObjectEntity1, meshInfo);
 		gm.addComponent<TextureInfoComponent>(gameObjectEntity1, numberTexture);
 		gm.subscribeEntity<RenderSystem>(gameObjectEntity1);
+		gm.subscribeEntity<BufferUpdateSystem>(gameObjectEntity1);
 
 		k++;
 		if ((i + 1) % 10 == 0)
