@@ -50,14 +50,15 @@ void BufferUpdateSystem::update(float deltaTime, GeneralManager& gm, const std::
 	}
 
 	// === Sun ===
-	glm::vec3 lightPos = glm::vec3(20.0f + mainCameraTransform->position.x, 20.0f + mainCameraTransform->position.y,
-	                               20.0f + mainCameraTransform->position.z);
+	glm::vec3 lightPos = glm::vec3(sunCameraTransform->position.x + mainCameraTransform->position.x,
+	                               sunCameraTransform->position.y + mainCameraTransform->position.y,
+	                               sunCameraTransform->position.z + mainCameraTransform->position.z);
 	glm::vec3 lightTarget =
 	    glm::vec3(mainCameraTransform->position.x, mainCameraTransform->position.y, mainCameraTransform->position.z);
 	glm::mat4 lightView = glm::lookAt(lightPos, lightTarget, glm::vec3(0.0f, 1.0f, 0.0f));
 
-	float orthoSize = 15.0f;
-	glm::mat4 lightProj = glm::orthoRH_ZO(-orthoSize, orthoSize, -orthoSize, orthoSize, 0.1f, 500.0f);
+	glm::mat4 lightProj = glm::orthoRH_ZO(-sunCamera->orthoSize, sunCamera->orthoSize, -sunCamera->orthoSize,
+	                                      sunCamera->orthoSize, sunCamera->zNear, sunCamera->zFar);
 	lightProj[1][1] *= -1; // Y-flip
 
 	glm::mat4 lightSpaceMatrix = lightProj * lightView;
@@ -74,7 +75,7 @@ void BufferUpdateSystem::update(float deltaTime, GeneralManager& gm, const std::
 	glm::mat4 proj = glm::perspective(glm::radians(mainCamera->fov),
 	                                  static_cast<float>(swapChain.swapChainExtent.width) /
 	                                      static_cast<float>(swapChain.swapChainExtent.height),
-	                                  0.1f, 2000.0f);
+	                                  mainCamera->zNear, mainCamera->zFar);
 	proj[1][1] *= -1; // Y-flip
 
 	CameraStucture cameraUbo{.view = view, .proj = proj, .lightSpaceMatrix = lightSpaceMatrix};
