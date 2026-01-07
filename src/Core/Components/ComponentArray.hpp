@@ -41,8 +41,7 @@ public:
 
 	void sortByEntityId()
 	{
-		if (!_needsSorting)
-			return;
+		if (!_needsSorting) return;
 
 		std::vector<std::pair<Entity, uint32_t>> entityIndexPairs;
 		for (uint32_t i = 0; i < _denseToEntity.size(); ++i)
@@ -75,11 +74,22 @@ public:
 	{
 
 		if (entity >= _sparse.size()) [[unlikely]]
+		{
+			std::cerr << "ERROR::COMPONENTS::Entity " << entity
+			          << " tries to access its component, but has an ID higher than the sparse value " << _sparse.size()
+			          << " in the component: " << typeid(TComponent).name() << std::endl;
 			return nullptr;
+		}
 
 		uint32_t index = _sparse[entity];
+
 		if (index == INVALID_INDEX) [[unlikely]]
+		{
+			std::cerr << "ERROR::COMPONENTS::Entity " << entity
+			          << " tries to access its component, but the dense index is invalid, in the component: "
+			          << typeid(TComponent).name() << std::endl;
 			return nullptr;
+		}
 
 		return &_dense[index];
 	}
