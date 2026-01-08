@@ -58,14 +58,14 @@ void App::run()
 	gm.addComponent<CameraComponent>(cameraEntity);
 	gm.addComponent<TransformComponent>(cameraEntity, glm::vec3(0.0f, 0.0f, 3.0f));
 	gm.addComponent<ControlComponent>(cameraEntity);
-	gm.addComponent<LightComponent>(cameraEntity);
+	gm.addComponent<LightComponent>(cameraEntity, 2048, 2048);
 	gm.registerContext<MainCameraContext>(cameraEntity);
 
 	Entity sunEntity = gm.createEntity();
 	gm.addComponent<CameraComponent>(sunEntity);
 	gm.addComponent<TransformComponent>(sunEntity, glm::vec3(10.0f, 20.0f, 10.0f));
 	gm.registerContext<LightCameraContext>(sunEntity);
-	gm.addComponent<LightComponent>(sunEntity);
+
 	CameraComponent* camera = gm.getContextComponent<MainCameraContext, CameraComponent>();
 	CameraComponent* sun = gm.getContextComponent<LightCameraContext, CameraComponent>();
 	LightComponent* cameraLight = gm.getContextComponent<MainCameraContext, LightComponent>();
@@ -87,7 +87,8 @@ void App::run()
 	camera->descriptorNumber = bufferManager->createBuffer(
 	    (vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal), 1, sizeof(CameraStucture),
 	    MAX_FRAMES_IN_FLIGHT, 0, *bufferManager->globalSetLayout);
-	cameraLight->textureShadowImage = bufferManager->createShadowMap();
+
+	cameraLight->textureShadowImage = bufferManager->createShadowMap(cameraLight->sizeX, cameraLight->sizeY);
 	bufferManager->bindShadowMap(camera->descriptorNumber,
 	                             bufferManager->textures[cameraLight->textureShadowImage].textureImageView,
 	                             bufferManager->textures[cameraLight->textureShadowImage].textureSampler);

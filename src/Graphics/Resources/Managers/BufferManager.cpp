@@ -189,7 +189,7 @@ int BufferManager::generateTextureData(const char texturePath[MAX_PATH_LEN], vk:
 	                          vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled,
 	                          VMA_MEMORY_USAGE_AUTO, texture);
 	BufferManager::uploadTextureFromFile(texturePath, texture);
-	BufferManager::createTextureImageView(texture, format, aspectFlags);
+	BufferManager::createImageView(texture, format, aspectFlags);
 	BufferManager::createTextureSampler(texture);
 
 	int numberTexture;
@@ -275,7 +275,7 @@ void BufferManager::uploadTextureFromFile(const char* texturePath, Texture& text
 	vmaDestroyBuffer(allocator, stagingBuffer, stagingAllocation);
 }
 
-void BufferManager::createTextureImageView(Texture& texture, vk::Format format, vk::ImageAspectFlags aspectFlags)
+void BufferManager::createImageView(Texture& texture, vk::Format format, vk::ImageAspectFlags aspectFlags)
 {
 	vk::ImageViewCreateInfo viewInfo;
 	viewInfo.image = texture.textureImage;
@@ -471,19 +471,18 @@ void BufferManager::allocateGlobalDescriptorSets(Buffer& bufferIn, size_t sizeBu
 	}
 }
 
-int BufferManager::createShadowMap()
+int BufferManager::createShadowMap(uint32_t shadowResolutionX, uint32_t shadowResolutionY)
 {
 	textures.push_back(Texture());
 	Texture& texture = textures.back();
 	vk::Format shadowFormat = findBestFormat();
+	//uint32_t shadowResolution = 2048; // Need to be lower
 
-	uint32_t shadowResolution = 2048; // Need to be lower
-
-	BufferManager::createImage(shadowResolution, shadowResolution, shadowFormat, vk::ImageTiling::eOptimal,
+	BufferManager::createImage(shadowResolutionX, shadowResolutionY, shadowFormat, vk::ImageTiling::eOptimal,
 	                          vk::ImageUsageFlagBits::eDepthStencilAttachment | vk::ImageUsageFlagBits::eSampled,
 	                           VMA_MEMORY_USAGE_AUTO, texture);
-	createTextureImageView(texture, shadowFormat, vk::ImageAspectFlagBits::eDepth);
-	createShadowSampler(texture);
+	BufferManager::createImageView(texture, shadowFormat, vk::ImageAspectFlagBits::eDepth);
+	BufferManager::createShadowSampler(texture);
 	return textures.size()-1;
 }
 

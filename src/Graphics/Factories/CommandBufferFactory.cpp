@@ -28,7 +28,7 @@ void CommandBufferFactory::recordCommandBuffer(vk::raii::CommandBuffer& commandB
 	shadowDepthInfo.clearValue = vk::ClearDepthStencilValue(1.0f, 0);
 
 	vk::RenderingInfo shadowRenderingInfo;
-	shadowRenderingInfo.renderArea.extent = vk::Extent2D(2048, 2048);
+	shadowRenderingInfo.renderArea.extent = vk::Extent2D(lightTexture.sizeX, lightTexture.sizeY);
 	shadowRenderingInfo.layerCount = 1;
 	shadowRenderingInfo.colorAttachmentCount = 0;
 	shadowRenderingInfo.pDepthAttachment = &shadowDepthInfo;
@@ -41,8 +41,8 @@ void CommandBufferFactory::recordCommandBuffer(vk::raii::CommandBuffer& commandB
 	                                 nullptr);
 	commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineHandler.pipelineLayout, 2,
 	                                 bufferManager.buffers[ssbos.descriptorNumber].descriptorSet[currentFrame], nullptr);
-	commandBuffer.setViewport(0, vk::Viewport(0.0f, 0.0f, 2048.0f, 2048.0f, 0.0f, 1.0f));
-	commandBuffer.setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), vk::Extent2D(2048, 2048)));
+	commandBuffer.setViewport(0, vk::Viewport(0.0f, 0.0f, lightTexture.sizeX, lightTexture.sizeY, 0.0f, 1.0f));
+	commandBuffer.setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), vk::Extent2D(lightTexture.sizeX, lightTexture.sizeY)));
 
 	for (int i = 0; i < textureInfo.size(); i++)
 	{
