@@ -36,7 +36,7 @@ VSOutput vertShadow(VSInput input)
     float4 worldPos = mul(float4(input.inPosition, 1.0), data.model);
 
     VSOutput output;
-    output.pos = mul(lightCamera[0].proj, mul(lightCamera[0].view, worldPos));
+    output.pos = mul(lightCamera[0].lightSpaceMatrix, worldPos);
     
     return output;
 }

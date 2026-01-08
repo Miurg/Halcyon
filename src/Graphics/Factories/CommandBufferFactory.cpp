@@ -5,13 +5,14 @@ void CommandBufferFactory::recordCommandBuffer(vk::raii::CommandBuffer& commandB
                                                PipelineHandler& pipelineHandler, uint32_t currentFrame,
                                                BufferManager& bufferManager, std::vector<MeshInfoComponent*>& meshInfo,
                                                CameraComponent& camera, ModelsBuffersComponent& ssbos,
-                                               CameraComponent& sunCamera)
+                                               CameraComponent& sunCamera, LightComponent& lightTexture)
 {
 	commandBuffer.begin({});
 
 	// Step 1: SHADOW PASS
 
-	transitionImageLayout(commandBuffer, swapChain.shadowImage, vk::ImageLayout::eUndefined,
+	transitionImageLayout(commandBuffer, bufferManager.textures[lightTexture.textureShadowImage].textureImage,
+	                      vk::ImageLayout::eUndefined,
 	                      vk::ImageLayout::eDepthAttachmentOptimal,
 	                      vk::AccessFlagBits2::eNone,
 	                      vk::AccessFlagBits2::eDepthStencilAttachmentWrite, 
@@ -20,7 +21,7 @@ void CommandBufferFactory::recordCommandBuffer(vk::raii::CommandBuffer& commandB
 	                      vk::ImageAspectFlagBits::eDepth);
 
 	vk::RenderingAttachmentInfo shadowDepthInfo;
-	shadowDepthInfo.imageView = swapChain.shadowImageView;
+	shadowDepthInfo.imageView = bufferManager.textures[lightTexture.textureShadowImage].textureImageView;
 	shadowDepthInfo.imageLayout = vk::ImageLayout::eDepthAttachmentOptimal;
 	shadowDepthInfo.loadOp = vk::AttachmentLoadOp::eClear;
 	shadowDepthInfo.storeOp = vk::AttachmentStoreOp::eStore;
@@ -36,7 +37,7 @@ void CommandBufferFactory::recordCommandBuffer(vk::raii::CommandBuffer& commandB
 	commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipelineHandler.shadowPipeline);
 	commandBuffer.setDepthBias(1.25f, 0.0f, 1.75f);
 	commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineHandler.pipelineLayout, 0,
-	                                 bufferManager.buffers[sunCamera.descriptorNumber].descriptorSet[currentFrame],
+	                                 bufferManager.buffers[camera.descriptorNumber].descriptorSet[currentFrame],
 	                                 nullptr);
 	commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineHandler.pipelineLayout, 2,
 	                                 bufferManager.buffers[ssbos.descriptorNumber].descriptorSet[currentFrame], nullptr);
@@ -54,7 +55,8 @@ void CommandBufferFactory::recordCommandBuffer(vk::raii::CommandBuffer& commandB
 
 	commandBuffer.endRendering();
 
-	transitionImageLayout(commandBuffer, swapChain.shadowImage, vk::ImageLayout::eDepthAttachmentOptimal,
+	transitionImageLayout(commandBuffer, bufferManager.textures[lightTexture.textureShadowImage].textureImage,
+	                      vk::ImageLayout::eDepthAttachmentOptimal,
 	                      vk::ImageLayout::eShaderReadOnlyOptimal,
 	                      vk::AccessFlagBits2::eDepthStencilAttachmentWrite,
 	                      vk::AccessFlagBits2::eShaderRead,

@@ -24,7 +24,8 @@ public:
 	std::vector<VertexIndexBuffer> meshes;
 	std::unordered_map<std::string, MeshInfoComponent> meshPaths;
 
-	int generateTextureData(const char texturePath[MAX_PATH_LEN]);
+	int generateTextureData(const char texturePath[MAX_PATH_LEN], vk::Format format, vk::ImageAspectFlags aspectFlags);
+	int createShadowMap();
 	bool isTextureLoaded(const char texturePath[MAX_PATH_LEN]);
 	std::vector<Texture> textures;
 	std::unordered_map<std::string, int> texturePaths;
@@ -50,12 +51,18 @@ private:
 	void allocateGlobalDescriptorSets(Buffer& bufferIn, size_t sizeBuffer, uint_fast16_t numberBuffers,
 	                                  uint_fast16_t numberBinding, vk::DescriptorSetLayout layout);
 
-	void createTextureImage(const char texturePath[MAX_PATH_LEN], Texture& texture);
-	void createTextureImageView(Texture& texture);
+	void createTextureImageView(Texture& texture, vk::Format format, vk::ImageAspectFlags aspectFlags);
 	void createTextureSampler(Texture& texture);
 	void transitionImageLayout(vk::Image image, vk::ImageLayout oldLayout, vk::ImageLayout newLayout);
 	void copyBufferToImage(vk::Buffer buffer, vk::Image image, uint32_t width, uint32_t height);
 	void allocateTextureDescriptorSets(int textureNumber);
+	void createShadowSampler(Texture& texture);
+	vk::Format findBestFormat();
+	vk::Format findBestSupportedFormat(const std::vector<vk::Format>& candidates, vk::ImageTiling tiling,
+	                                   vk::FormatFeatureFlags features);
+	void uploadTextureFromFile(const char* texturePath, Texture& texture);
+	void createImage(uint32_t width, uint32_t height, vk::Format format, vk::ImageTiling tiling,
+	                 vk::ImageUsageFlags usage, VmaMemoryUsage memoryUsage, Texture& texture);
 };
 
 struct CameraStucture

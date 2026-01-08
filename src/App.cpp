@@ -27,6 +27,7 @@
 #include "Graphics/Systems/RenderSystem.hpp"
 #include "Graphics/Components/TransformComponent.hpp"
 #include "Game/Components/ControlComponent.hpp"
+#include "Graphics/Components/LightComponent.hpp"
 
 namespace
 {
@@ -57,14 +58,17 @@ void App::run()
 	gm.addComponent<CameraComponent>(cameraEntity);
 	gm.addComponent<TransformComponent>(cameraEntity, glm::vec3(0.0f, 0.0f, 3.0f));
 	gm.addComponent<ControlComponent>(cameraEntity);
+	gm.addComponent<LightComponent>(cameraEntity);
 	gm.registerContext<MainCameraContext>(cameraEntity);
 
 	Entity sunEntity = gm.createEntity();
 	gm.addComponent<CameraComponent>(sunEntity);
 	gm.addComponent<TransformComponent>(sunEntity, glm::vec3(10.0f, 20.0f, 10.0f));
 	gm.registerContext<LightCameraContext>(sunEntity);
+	gm.addComponent<LightComponent>(sunEntity);
 	CameraComponent* camera = gm.getContextComponent<MainCameraContext, CameraComponent>();
 	CameraComponent* sun = gm.getContextComponent<LightCameraContext, CameraComponent>();
+	LightComponent* cameraLight = gm.getContextComponent<MainCameraContext, LightComponent>();
 
 	Entity swapChainEntity = gm.createEntity();
 	gm.registerContext<MainSwapChainContext>(swapChainEntity);
@@ -83,13 +87,10 @@ void App::run()
 	camera->descriptorNumber = bufferManager->createBuffer(
 	    (vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal), 1, sizeof(CameraStucture),
 	    MAX_FRAMES_IN_FLIGHT, 0, *bufferManager->globalSetLayout);
-	bufferManager->bindShadowMap(camera->descriptorNumber, swapChain->shadowImageView, *swapChain->shadowSampler);
-
-	sun->descriptorNumber = bufferManager->createBuffer(
-	    (vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal), 1, sizeof(CameraStucture),
-	    MAX_FRAMES_IN_FLIGHT, 0, *bufferManager->globalSetLayout);
-	// We dont use it but must for vulkan
-	bufferManager->bindShadowMap(sun->descriptorNumber, swapChain->shadowImageView, *swapChain->shadowSampler);
+	cameraLight->textureShadowImage = bufferManager->createShadowMap();
+	bufferManager->bindShadowMap(camera->descriptorNumber,
+	                             bufferManager->textures[cameraLight->textureShadowImage].textureImageView,
+	                             bufferManager->textures[cameraLight->textureShadowImage].textureSampler);
 
 	pipelineHandler = new PipelineHandler();
 	PipelineFactory::createGraphicsPipeline(*vulkanDevice, *swapChain, *bufferManager, *pipelineHandler);
@@ -109,7 +110,8 @@ void App::run()
 
 	Entity modelSSBOsEntity = gm.createEntity();
 	gm.registerContext<ModelSSBOsContext>(modelSSBOsEntity);
-	int descriptorNumber = bufferManager->createBuffer((vk::MemoryPropertyFlagBits::eHostVisible), 1000, sizeof(ModelSctructure),
+	int descriptorNumber =
+	    bufferManager->createBuffer((vk::MemoryPropertyFlagBits::eHostVisible), 1000, sizeof(ModelSctructure),
 	                                MAX_FRAMES_IN_FLIGHT, 0, *bufferManager->modelSetLayout);
 	gm.addComponent<ModelsBuffersComponent>(modelSSBOsEntity, descriptorNumber);
 
@@ -158,12 +160,14 @@ void App::setupGameObjects(GeneralManager& gm)
 		if (i > 50)
 		{
 			meshInfo = bufferManager->createMesh("assets/models/BlenderMonkey.obj");
-			numberTexture = bufferManager->generateTextureData("assets/textures/texture.jpg");
+			numberTexture = bufferManager->generateTextureData("assets/textures/texture.jpg", vk::Format::eR8G8B8A8Srgb,
+			                                                   vk::ImageAspectFlagBits::eColor);
 		}
 		else
 		{
 			meshInfo = bufferManager->createMesh("assets/models/viking_room.obj");
-			numberTexture = bufferManager->generateTextureData("assets/textures/viking_room.png");
+			numberTexture = bufferManager->generateTextureData("assets/textures/viking_room.png",
+			                                                   vk::Format::eR8G8B8A8Srgb, vk::ImageAspectFlagBits::eColor);
 		}
 
 		Entity gameObjectEntity1 = gm.createEntity();

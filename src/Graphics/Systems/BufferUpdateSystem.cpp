@@ -63,13 +63,6 @@ void BufferUpdateSystem::update(float deltaTime, GeneralManager& gm, const std::
 
 	glm::mat4 lightSpaceMatrix = lightProj * lightView;
 
-	CameraStucture sunUbo;
-	sunUbo.view = lightView;
-	sunUbo.proj = lightProj;
-	sunUbo.lightSpaceMatrix = lightSpaceMatrix;
-
-	memcpy(bufferManager.buffers[sunCamera->descriptorNumber].bufferMapped[currentFrame], &sunUbo, sizeof(sunUbo));
-
 	// === Camera ===
 	glm::mat4 view = mainCameraTransform->getViewMatrix();
 	glm::mat4 proj = glm::perspective(glm::radians(mainCamera->fov),

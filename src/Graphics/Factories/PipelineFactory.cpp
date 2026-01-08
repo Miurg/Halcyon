@@ -142,7 +142,7 @@ void PipelineFactory::createShadowPipeline(VulkanDevice& vulkanDevice, SwapChain
 	vk::PipelineShaderStageCreateInfo vertShaderStageInfo;
 	vertShaderStageInfo.stage = vk::ShaderStageFlagBits::eVertex;
 	vertShaderStageInfo.module = shaderModule;
-	vertShaderStageInfo.pName = "vertShadow"; // Или имя твоего shadow-шейдера
+	vertShaderStageInfo.pName = "vertShadow";
 
 	vk::PipelineShaderStageCreateInfo shaderStages[] = {vertShaderStageInfo};
 

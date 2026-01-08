@@ -8,7 +8,6 @@ void SwapChainFactory::createSwapChain(SwapChain& swapChain, VulkanDevice& devic
 	createSwapChainHandle(swapChain, deviceContext, window, oldHandle);
 	createImageViews(swapChain, deviceContext, window);
 	createDepthResources(swapChain, deviceContext, window);
-	createShadowResources(swapChain, deviceContext);
 }
 
 void SwapChainFactory::createSwapChainHandle(SwapChain& swapChain, VulkanDevice& deviceContext, Window& window,
@@ -167,36 +166,4 @@ vk::Format SwapChainFactory::findSupportedFormat(VulkanDevice& device, const std
 	}
 
 	throw std::runtime_error("failed to find supported format!");
-}
-
-void SwapChainFactory::createShadowResources(SwapChain& swapChain, VulkanDevice& device)
-{
-	//Same as depth cuz why not
-	vk::Format shadowFormat = findDepthFormat(device);
-
-	uint32_t shadowResolution = 2048; // Need to be lower
-
-	VulkanUtils::createImage(
-	    shadowResolution, shadowResolution, shadowFormat, vk::ImageTiling::eOptimal,
-	    vk::ImageUsageFlagBits::eDepthStencilAttachment | vk::ImageUsageFlagBits::eSampled, 
-	    vk::MemoryPropertyFlagBits::eDeviceLocal, swapChain.shadowImage, swapChain.shadowImageMemory, device);
-
-	swapChain.shadowImageView =
-	    VulkanUtils::createImageView(swapChain.shadowImage, shadowFormat, vk::ImageAspectFlagBits::eDepth, device);
-
-	vk::SamplerCreateInfo samplerInfo{};
-	samplerInfo.magFilter = vk::Filter::eLinear;
-	samplerInfo.minFilter = vk::Filter::eLinear;
-	samplerInfo.mipmapMode = vk::SamplerMipmapMode::eLinear;
-
-	samplerInfo.addressModeU = vk::SamplerAddressMode::eClampToBorder;
-	samplerInfo.addressModeV = vk::SamplerAddressMode::eClampToBorder;
-	samplerInfo.addressModeW = vk::SamplerAddressMode::eClampToBorder;
-	samplerInfo.borderColor =
-	    vk::BorderColor::eFloatOpaqueWhite; 
-
-	samplerInfo.compareEnable = vk::True;
-	samplerInfo.compareOp = vk::CompareOp::eLess;
-
-	swapChain.shadowSampler = device.device.createSampler(samplerInfo);
 }

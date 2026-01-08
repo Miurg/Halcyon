@@ -44,6 +44,7 @@ void RenderSystem::update(float deltaTime, GeneralManager& gm, const std::vector
 	CurrentFrameComponent* currentFrameComp = gm.getContextComponent<CurrentFrameContext, CurrentFrameComponent>();
 	CameraComponent* mainCamera = gm.getContextComponent<MainCameraContext, CameraComponent>();
 	CameraComponent* sunCamera = gm.getContextComponent<LightCameraContext, CameraComponent>();
+	LightComponent* lightTexture = gm.getContextComponent<MainCameraContext, LightComponent>();
 
 	std::vector<int> textureInfo;
 	std::vector<MeshInfoComponent*> meshInfos;
@@ -93,7 +94,7 @@ void RenderSystem::update(float deltaTime, GeneralManager& gm, const std::vector
 
 	CommandBufferFactory::recordCommandBuffer(framesData[currentFrameComp->currentFrame].commandBuffer, imageIndex,
 	                                          textureInfo, swapChain, pipelineHandler, currentFrameComp->currentFrame,
-	                                          bufferManager, meshInfos, *mainCamera, *ssbos, *sunCamera);
+	                                          bufferManager, meshInfos, *mainCamera, *ssbos, *sunCamera, *lightTexture);
 
 	vk::PipelineStageFlags waitDestinationStageMask(vk::PipelineStageFlagBits::eColorAttachmentOutput);
 
