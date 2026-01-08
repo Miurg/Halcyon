@@ -28,6 +28,7 @@
 #include "Graphics/Components/TransformComponent.hpp"
 #include "Game/Components/ControlComponent.hpp"
 #include "Graphics/Components/LightComponent.hpp"
+#include "Game/GameInit.hpp"
 
 namespace
 {
@@ -116,7 +117,7 @@ void App::run()
 	                                MAX_FRAMES_IN_FLIGHT, 0, *bufferManager->modelSetLayout);
 	gm.addComponent<ModelsBuffersComponent>(modelSSBOsEntity, descriptorNumber);
 
-	App::setupGameObjects(gm);
+	GameInit::gameInitStart(gm);
 	App::mainLoop(gm);
 	App::cleanup();
 }
@@ -148,41 +149,4 @@ void App::cleanup()
 
 	SwapChainFactory::cleanupSwapChain(*swapChain);
 	bufferManager->~BufferManager();
-}
-
-void App::setupGameObjects(GeneralManager& gm)
-{
-	int j = 0;
-	int k = 0;
-	for (int i = 0; i < 100; i++)
-	{
-		MeshInfoComponent meshInfo;
-		int numberTexture;
-		if (i > 50)
-		{
-			meshInfo = bufferManager->createMesh("assets/models/BlenderMonkey.obj");
-			numberTexture = bufferManager->generateTextureData("assets/textures/texture.jpg", vk::Format::eR8G8B8A8Srgb,
-			                                                   vk::ImageAspectFlagBits::eColor);
-		}
-		else
-		{
-			meshInfo = bufferManager->createMesh("assets/models/viking_room.obj");
-			numberTexture = bufferManager->generateTextureData("assets/textures/viking_room.png",
-			                                                   vk::Format::eR8G8B8A8Srgb, vk::ImageAspectFlagBits::eColor);
-		}
-
-		Entity gameObjectEntity1 = gm.createEntity();
-		gm.addComponent<TransformComponent>(gameObjectEntity1, k * 2.0f, 0.0f, j * 2.0f);
-		gm.addComponent<MeshInfoComponent>(gameObjectEntity1, meshInfo);
-		gm.addComponent<TextureInfoComponent>(gameObjectEntity1, numberTexture);
-		gm.subscribeEntity<RenderSystem>(gameObjectEntity1);
-		gm.subscribeEntity<BufferUpdateSystem>(gameObjectEntity1);
-
-		k++;
-		if ((i + 1) % 10 == 0)
-		{
-			j++;
-			k = 0;
-		}
-	}
 }

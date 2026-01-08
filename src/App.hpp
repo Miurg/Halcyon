@@ -30,5 +30,4 @@ private:
 
 	void mainLoop(GeneralManager& gm);
 	void cleanup();
-	void setupGameObjects(GeneralManager& gm);
 };
