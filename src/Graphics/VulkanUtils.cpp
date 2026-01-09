@@ -221,3 +221,21 @@ vk::raii::ImageView VulkanUtils::createImageView(vk::Image image, vk::Format for
 	viewInfo.subresourceRange = {aspectFlags, 0, 1, 0, 1};
 	return vk::raii::ImageView(vulkanDevice.device, viewInfo);
 }
+
+void VulkanUtils::copyBufferToImage(vk::Buffer buffer, vk::Image image, uint32_t width, uint32_t height,
+                                      VulkanDevice& vulkanDevice)
+{
+	vk::raii::CommandBuffer commandBuffer = VulkanUtils::beginSingleTimeCommands(vulkanDevice);
+
+	vk::BufferImageCopy region;
+	region.bufferOffset = 0;
+	region.bufferRowLength = 0;
+	region.bufferImageHeight = 0;
+	region.imageSubresource = {vk::ImageAspectFlagBits::eColor, 0, 0, 1};
+	region.imageOffset = vk::Offset3D{0, 0, 0};
+	region.imageExtent = vk::Extent3D{width, height, 1};
+
+	commandBuffer.copyBufferToImage(buffer, image, vk::ImageLayout::eTransferDstOptimal, {region});
+
+	VulkanUtils::endSingleTimeCommands(commandBuffer, vulkanDevice);
+}

@@ -41,7 +41,6 @@ public:
 
 private:
 	VulkanDevice& vulkanDevice;
-	MeshInfoComponent addMeshFromFile(const char path[MAX_PATH_LEN], VertexIndexBuffer& mesh);
 	VmaAllocator allocator;
 
 	vk::raii::DescriptorPool descriptorPool = nullptr;
@@ -60,7 +59,6 @@ private:
 	vk::Format findBestFormat();
 	vk::Format findBestSupportedFormat(const std::vector<vk::Format>& candidates, vk::ImageTiling tiling,
 	                                   vk::FormatFeatureFlags features);
-	void uploadTextureFromFile(const char* texturePath, Texture& texture);
 	void createImage(uint32_t width, uint32_t height, vk::Format format, vk::ImageTiling tiling,
 	                 vk::ImageUsageFlags usage, VmaMemoryUsage memoryUsage, Texture& texture);
 };

@@ -28,4 +28,6 @@ public:
 	static vk::raii::CommandBuffer beginSingleTimeCommands(VulkanDevice& vulkanDevice);
 	static vk::raii::ImageView createImageView(vk::Image image, vk::Format format, vk::ImageAspectFlags aspectFlags,
 	                                           VulkanDevice& vulkanDevice);
+	static void copyBufferToImage(vk::Buffer buffer, vk::Image image, uint32_t width, uint32_t height,
+	                              VulkanDevice& vulkanDevice);
 };
