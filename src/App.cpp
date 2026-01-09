@@ -29,6 +29,7 @@
 #include "Game/Components/ControlComponent.hpp"
 #include "Graphics/Components/LightComponent.hpp"
 #include "Game/GameInit.hpp"
+#include "Graphics/Resources/Components/ModelsBuffersComponent.hpp"
 
 namespace
 {
