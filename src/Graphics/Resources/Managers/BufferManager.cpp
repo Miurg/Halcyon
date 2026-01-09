@@ -85,40 +85,6 @@ BufferManager::~BufferManager()
 
 }
 
-MeshInfoComponent BufferManager::createMesh(const char path[MAX_PATH_LEN])
-{
-	if (isMeshLoaded(path))
-	{
-		return meshPaths[std::string(path)];
-	}
-	for (int i = 0; i < meshes.size(); i++)
-	{
-		if (sizeof(meshes[i].vertices) < MAX_SIZE_OF_VERTEX_INDEX_BUFFER)
-		{
-			MeshInfoComponent info = LoadFileFactory::addMeshFromFile(path, meshes[i]);
-			info.bufferIndex = static_cast<uint32_t>(i);
-			meshes[i].createVertexBuffer(vulkanDevice);
-			meshes[i].createIndexBuffer(vulkanDevice);
-			meshPaths[std::string(path)] = info;
-			return info;
-		}
-	}
-
-	meshes.push_back(VertexIndexBuffer());
-	MeshInfoComponent info = LoadFileFactory::addMeshFromFile(path, meshes.back());
-	info.bufferIndex = static_cast<uint32_t>(meshes.size() - 1);
-	meshes.back().createVertexBuffer(vulkanDevice);
-	meshes.back().createIndexBuffer(vulkanDevice);
-	meshPaths[std::string(path)] = info;
-	return info;
-}
-
-bool BufferManager::isMeshLoaded(const char path[MAX_PATH_LEN])
-{
-	std::string pathStr(path);
-	return meshPaths.find(pathStr) != meshPaths.end();
-}
-
 int BufferManager::createBuffer(vk::MemoryPropertyFlags propertyBits, uint_fast16_t numberObjects, size_t sizeBuffer,
                                 uint_fast16_t numberBuffers, uint_fast16_t numberBinding,
                                 vk::DescriptorSetLayout layout)

@@ -54,6 +54,8 @@ private:
 	                                   vk::FormatFeatureFlags features);
 	void createImage(uint32_t width, uint32_t height, vk::Format format, vk::ImageTiling tiling,
 	                 vk::ImageUsageFlags usage, VmaMemoryUsage memoryUsage, Texture& texture);
+	void createVertexBuffer(VulkanDevice& vulkanDevice, VertexIndexBuffer& vertexIndexBuffer);
+	void createIndexBuffer(VulkanDevice& vulkanDevice, VertexIndexBuffer& vertexIndexBuffer);
 };
 
 struct CameraStucture

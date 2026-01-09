@@ -18,7 +18,4 @@ public:
 	vk::raii::DeviceMemory vertexBufferMemory = nullptr;
 	vk::raii::Buffer indexBuffer = nullptr;
 	vk::raii::DeviceMemory indexBufferMemory = nullptr;
-
-	void createVertexBuffer(VulkanDevice& vulkanDevice);
-	void createIndexBuffer(VulkanDevice& vulkanDevice);
 };
