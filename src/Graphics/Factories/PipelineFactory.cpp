@@ -81,9 +81,9 @@ void PipelineFactory::createGraphicsPipeline(VulkanDevice& vulkanDevice, SwapCha
 	colorBlending.pAttachments = &colorBlendAttachment;
 
 	vk::PushConstantRange pushConstantRange;
-	pushConstantRange.stageFlags = vk::ShaderStageFlagBits::eVertex; 
+	pushConstantRange.stageFlags = vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment; 
 	pushConstantRange.offset = 0;
-	pushConstantRange.size = sizeof(uint32_t); 
+	pushConstantRange.size = sizeof(uint32_t) * 2; 
 
 	vk::PipelineLayoutCreateInfo pipelineLayoutInfo;
 	std::array<vk::DescriptorSetLayout, 3> setLayouts = 

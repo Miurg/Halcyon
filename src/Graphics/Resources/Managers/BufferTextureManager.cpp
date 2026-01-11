@@ -27,7 +27,6 @@ int BufferManager::createShadowMap(uint32_t shadowResolutionX, uint32_t shadowRe
 	textures.push_back(Texture());
 	Texture& texture = textures.back();
 	vk::Format shadowFormat = findBestFormat();
-	// uint32_t shadowResolution = 2048; // Need to be lower
 
 	BufferManager::createImage(shadowResolutionX, shadowResolutionY, shadowFormat, vk::ImageTiling::eOptimal,
 	                           vk::ImageUsageFlagBits::eDepthStencilAttachment | vk::ImageUsageFlagBits::eSampled,
@@ -102,7 +101,7 @@ int BufferManager::generateTextureData(const char texturePath[MAX_PATH_LEN], vk:
 	int numberTexture;
 	numberTexture = textures.size() - 1;
 	texturePaths[std::string(texturePath)] = numberTexture;
-	allocateTextureDescriptorSets(numberTexture);
+	updateBindlessTextureSet(numberTexture);
 	return numberTexture;
 }
 
@@ -172,26 +171,17 @@ void BufferManager::createTextureSampler(Texture& texture)
 	texture.textureSampler = (*vulkanDevice.device).createSampler(samplerInfo);
 }
 
-void BufferManager::allocateTextureDescriptorSets(int textureNumber)
+void BufferManager::updateBindlessTextureSet(int textureNumber)
 {
-	vk::DescriptorSetAllocateInfo texAllocInfo;
-	texAllocInfo.descriptorPool = descriptorPool;
-	texAllocInfo.descriptorSetCount = 1;
-	vk::DescriptorSetLayout texLayout = textureSetLayout;
-	texAllocInfo.pSetLayouts = &texLayout;
-
-	std::vector<vk::raii::DescriptorSet> allocatedTexSets = vulkanDevice.device.allocateDescriptorSets(texAllocInfo);
-	textures[textureNumber].textureDescriptorSet = allocatedTexSets[0].release();
-
 	vk::DescriptorImageInfo imageInfo;
-	imageInfo.sampler = textures[textureNumber].textureSampler;
+	imageInfo.sampler = textureSampler;
 	imageInfo.imageView = textures[textureNumber].textureImageView;
 	imageInfo.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
 
 	vk::WriteDescriptorSet descriptorWrite;
-	descriptorWrite.dstSet = textures[textureNumber].textureDescriptorSet;
-	descriptorWrite.dstBinding = 0; // Set 1, Binding 0
-	descriptorWrite.dstArrayElement = 0;
+	descriptorWrite.dstSet = bindlessTextureSet;
+	descriptorWrite.dstBinding = 0;
+	descriptorWrite.dstArrayElement = textureNumber;
 	descriptorWrite.descriptorType = vk::DescriptorType::eCombinedImageSampler;
 	descriptorWrite.descriptorCount = 1;
 	descriptorWrite.pImageInfo = &imageInfo;

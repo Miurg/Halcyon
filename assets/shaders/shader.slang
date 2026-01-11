@@ -31,6 +31,7 @@ struct VSOutput
 struct PushConsts
 {
     uint objectIndex;
+    uint textureIndex;
 };
 [[vk::push_constant]] ConstantBuffer<PushConsts> push;
 
@@ -50,12 +51,12 @@ VSOutput vertMain(VSInput input)
     output.fragTexCoord = input.inTexCoord;
     return output;
 }
-[[vk::binding(0, 1)]] Sampler2D texture;
+[[vk::binding(0, 1)]] Sampler2D textureArray[1024];
 
 [shader("fragment")]
 float4 fragMain(VSOutput vertIn) : SV_TARGET
 {
-    float3 color = texture.Sample(vertIn.fragTexCoord).rgb;
+    float3 color = textureArray[push.textureIndex].Sample(vertIn.fragTexCoord).rgb;
 
     float3 projCoords = vertIn.shadowCoord.xyz / vertIn.shadowCoord.w;
 

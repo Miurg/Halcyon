@@ -9,5 +9,4 @@ struct Texture
 	VmaAllocation textureImageAllocation;
 	vk::ImageView textureImageView;
 	vk::Sampler textureSampler;
-	vk::DescriptorSet textureDescriptorSet;
 };

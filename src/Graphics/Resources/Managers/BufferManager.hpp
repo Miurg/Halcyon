@@ -32,7 +32,11 @@ public:
 	std::vector<VertexIndexBuffer> meshes;
 	std::unordered_map<std::string, MeshInfoComponent> meshPaths;
 	vk::raii::DescriptorSetLayout globalSetLayout = nullptr;
+
 	vk::raii::DescriptorSetLayout textureSetLayout = nullptr;
+	vk::Sampler textureSampler;
+	vk::DescriptorSet bindlessTextureSet;
+	
 	vk::raii::DescriptorSetLayout modelSetLayout = nullptr;
 	std::vector<Buffer> buffers;
 
@@ -47,7 +51,7 @@ private:
 	                                  uint_fast16_t numberBinding, vk::DescriptorSetLayout layout);
 	void createImageView(Texture& texture, vk::Format format, vk::ImageAspectFlags aspectFlags);
 	void createTextureSampler(Texture& texture);
-	void allocateTextureDescriptorSets(int textureNumber);
+	void updateBindlessTextureSet(int textureNumber);
 	void createShadowSampler(Texture& texture);
 	vk::Format findBestFormat();
 	vk::Format findBestSupportedFormat(const std::vector<vk::Format>& candidates, vk::ImageTiling tiling,

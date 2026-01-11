@@ -18,12 +18,14 @@ BufferManager::BufferManager(VulkanDevice& vulkanDevice) : vulkanDevice(vulkanDe
 	}
 
 	std::array poolSize{vk::DescriptorPoolSize(vk::DescriptorType::eStorageBuffer, 1000 * MAX_FRAMES_IN_FLIGHT),
-	                    vk::DescriptorPoolSize(vk::DescriptorType::eCombinedImageSampler, 1000 * MAX_FRAMES_IN_FLIGHT),
+	                    vk::DescriptorPoolSize(vk::DescriptorType::eCombinedImageSampler,
+	                                           1000 * MAX_FRAMES_IN_FLIGHT + MAX_BINDLESS_TEXTURES),
 	                    vk::DescriptorPoolSize(vk::DescriptorType::eStorageBuffer, 1000 * MAX_FRAMES_IN_FLIGHT)};
 
 	vk::DescriptorPoolCreateInfo poolInfo;
-	poolInfo.flags = vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet;
-	poolInfo.maxSets = 1000 * 3 * MAX_FRAMES_IN_FLIGHT;
+	poolInfo.flags =
+	    vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet | vk::DescriptorPoolCreateFlagBits::eUpdateAfterBind;
+	poolInfo.maxSets = 1000 * 3 * MAX_FRAMES_IN_FLIGHT + 1;
 	poolInfo.poolSizeCount = static_cast<uint32_t>(poolSize.size());
 	poolInfo.pPoolSizes = poolSize.data();
 
@@ -41,10 +43,38 @@ BufferManager::BufferManager(VulkanDevice& vulkanDevice) : vulkanDevice(vulkanDe
 	globalSetLayout = vk::raii::DescriptorSetLayout(vulkanDevice.device, globalInfo);
 
 	//===Textures===
-	vk::DescriptorSetLayoutBinding textureBinding(0, vk::DescriptorType::eCombinedImageSampler, 1,
+	vk::SamplerCreateInfo samplerInfo = {};
+	samplerInfo.magFilter = vk::Filter::eLinear;
+	samplerInfo.minFilter = vk::Filter::eLinear;
+	samplerInfo.addressModeU = vk::SamplerAddressMode::eRepeat;
+	samplerInfo.addressModeV = vk::SamplerAddressMode::eRepeat;
+	samplerInfo.addressModeW = vk::SamplerAddressMode::eRepeat;
+	samplerInfo.anisotropyEnable = VK_TRUE;
+	samplerInfo.maxAnisotropy = 16.0f; 
+	samplerInfo.borderColor = vk::BorderColor::eIntOpaqueBlack;
+	samplerInfo.unnormalizedCoordinates = VK_FALSE;
+	samplerInfo.mipmapMode = vk::SamplerMipmapMode::eLinear;
+	auto samplerRAII = vk::raii::Sampler(vulkanDevice.device, samplerInfo);
+	textureSampler = samplerRAII.release();
+
+	vk::DescriptorBindingFlags bindingFlags =
+	    vk::DescriptorBindingFlagBits::ePartiallyBound | vk::DescriptorBindingFlagBits::eUpdateAfterBind;
+	vk::DescriptorSetLayoutBindingFlagsCreateInfo bindingFlagsInfo;
+	bindingFlagsInfo.bindingCount = 1;
+	bindingFlagsInfo.pBindingFlags = &bindingFlags;
+	vk::DescriptorSetLayoutBinding textureBinding(0, vk::DescriptorType::eCombinedImageSampler, MAX_BINDLESS_TEXTURES,
 	                                              vk::ShaderStageFlagBits::eFragment, nullptr);
-	vk::DescriptorSetLayoutCreateInfo textureInfo({}, 1, &textureBinding);
+
+	vk::DescriptorSetLayoutCreateInfo textureInfo;
+	textureInfo.flags = vk::DescriptorSetLayoutCreateFlagBits::eUpdateAfterBindPool; 
+	textureInfo.bindingCount = 1;
+	textureInfo.pBindings = &textureBinding;
+	textureInfo.pNext = &bindingFlagsInfo; 
 	textureSetLayout = vk::raii::DescriptorSetLayout(vulkanDevice.device, textureInfo);
+
+	vk::DescriptorSetAllocateInfo allocInfo(*descriptorPool, *textureSetLayout);
+	auto allocatedSets = vulkanDevice.device.allocateDescriptorSets(allocInfo);
+	bindlessTextureSet = allocatedSets[0].release();
 
 	//===Model===
 	vk::DescriptorSetLayoutBinding modelBinding(0, vk::DescriptorType::eStorageBuffer, 1,
@@ -81,6 +111,10 @@ BufferManager::~BufferManager()
 				vmaDestroyBuffer(allocator, buffer.buffer[i], buffer.bufferAllocation[i]);
 			}
 		}
+	}
+	if (textureSampler)
+	{
+		(*vulkanDevice.device).destroySampler(textureSampler);
 	}
 
 }

@@ -7,6 +7,12 @@ void CommandBufferFactory::recordCommandBuffer(vk::raii::CommandBuffer& commandB
                                                CameraComponent& camera, ModelsBuffersComponent& ssbos,
                                                CameraComponent& sunCamera, LightComponent& lightTexture)
 {
+	struct ObjectPushConstants
+	{
+		uint32_t objectIndex;
+		int32_t textureIndex;
+	};
+
 	commandBuffer.begin({});
 
 	// Step 1: SHADOW PASS
@@ -49,7 +55,10 @@ void CommandBufferFactory::recordCommandBuffer(vk::raii::CommandBuffer& commandB
 		commandBuffer.bindVertexBuffers(0, *bufferManager.meshes[meshInfo[i]->bufferIndex].vertexBuffer, {0});
 		commandBuffer.bindIndexBuffer(*bufferManager.meshes[meshInfo[i]->bufferIndex].indexBuffer, 0,
 		                              vk::IndexType::eUint32);
-		commandBuffer.pushConstants<uint32_t>(*pipelineHandler.pipelineLayout, vk::ShaderStageFlagBits::eVertex, 0, i);
+		ObjectPushConstants pc{static_cast<uint32_t>(i), textureInfo[i]};
+		commandBuffer.pushConstants<ObjectPushConstants>(
+		    *pipelineHandler.pipelineLayout, vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment, 0,
+		    pc);
 		commandBuffer.drawIndexed(meshInfo[i]->indexCount, 1, meshInfo[i]->indexOffset, meshInfo[i]->vertexOffset, 0);
 	}
 
@@ -111,15 +120,18 @@ void CommandBufferFactory::recordCommandBuffer(vk::raii::CommandBuffer& commandB
 	                                 nullptr);
 	commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineHandler.pipelineLayout, 2,
 	                                 bufferManager.buffers[ssbos.descriptorNumber].descriptorSet[currentFrame], nullptr);
-
+	commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineHandler.pipelineLayout, 1,
+	                                 bufferManager.bindlessTextureSet, nullptr);
 	for (int i = 0; i < textureInfo.size(); i++)
 	{
 		commandBuffer.bindVertexBuffers(0, *bufferManager.meshes[meshInfo[i]->bufferIndex].vertexBuffer, {0});
 		commandBuffer.bindIndexBuffer(*bufferManager.meshes[meshInfo[i]->bufferIndex].indexBuffer, 0,
 		                              vk::IndexType::eUint32);
-		commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineHandler.pipelineLayout, 1,
-		                                 bufferManager.textures[textureInfo[i]].textureDescriptorSet, nullptr);
-		commandBuffer.pushConstants<uint32_t>(*pipelineHandler.pipelineLayout, vk::ShaderStageFlagBits::eVertex, 0, i);
+		ObjectPushConstants pc{static_cast<uint32_t>(i), textureInfo[i]};
+
+		commandBuffer.pushConstants<ObjectPushConstants>(
+		    *pipelineHandler.pipelineLayout, vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment, 0,
+		    pc);
 		commandBuffer.drawIndexed(meshInfo[i]->indexCount, 1, meshInfo[i]->indexOffset, meshInfo[i]->vertexOffset, 0);
 	}
 
