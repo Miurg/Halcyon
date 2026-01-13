@@ -78,6 +78,10 @@ void App::run()
 	SwapChainFactory::createSwapChain(*swapChain, *vulkanDevice, *window);
 	gm.addComponent<SwapChainComponent>(swapChainEntity, swapChain);
 
+	Entity mainDSetsEntity = gm.createEntity();
+	gm.registerContext<MainDSetsContext>(mainDSetsEntity);
+	gm.addComponent<MaterialDSetComponent>(mainDSetsEntity);
+
 	Entity bufferManagerEntity = gm.createEntity();
 	gm.registerContext<BufferManagerContext>(bufferManagerEntity);
 	bufferManager = new BufferManager(*vulkanDevice);
@@ -85,6 +89,12 @@ void App::run()
 
 	Entity signatureEntity = gm.createEntity();
 	gm.registerContext<MainSignatureContext>(signatureEntity);
+	pipelineHandler = new PipelineHandler();
+	PipelineFactory::createGraphicsPipeline(*vulkanDevice, *swapChain, *bufferManager, *pipelineHandler);
+	PipelineFactory::createShadowPipeline(*vulkanDevice, *swapChain, *bufferManager, *pipelineHandler);
+	gm.addComponent<PipelineHandlerComponent>(signatureEntity, pipelineHandler);
+
+	bufferManager->allocateMaterialDSet(*gm.getContextComponent<MainDSetsContext, MaterialDSetComponent>());
 
 	camera->descriptorNumber = bufferManager->createBuffer(
 	    (vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal), 1, sizeof(CameraStucture),
@@ -95,10 +105,6 @@ void App::run()
 	                             bufferManager->textures[cameraLight->textureShadowImage].textureImageView,
 	                             bufferManager->textures[cameraLight->textureShadowImage].textureSampler);
 
-	pipelineHandler = new PipelineHandler();
-	PipelineFactory::createGraphicsPipeline(*vulkanDevice, *swapChain, *bufferManager, *pipelineHandler);
-	PipelineFactory::createShadowPipeline(*vulkanDevice, *swapChain, *bufferManager, *pipelineHandler);
-	gm.addComponent<PipelineHandlerComponent>(signatureEntity, pipelineHandler);
 
 	Entity frameDataEntity = gm.createEntity();
 	gm.registerContext<MainFrameDataContext>(frameDataEntity);

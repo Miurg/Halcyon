@@ -9,3 +9,4 @@ class CurrentFrameContext{};
 class MainCameraContext{};
 class ModelSSBOsContext{};
 class LightCameraContext{};
+class MainDSetsContext{};

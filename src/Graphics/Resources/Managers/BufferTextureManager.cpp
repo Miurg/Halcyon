@@ -80,7 +80,7 @@ vk::Format BufferManager::findBestSupportedFormat(const std::vector<vk::Format>&
 }
 
 int BufferManager::generateTextureData(const char texturePath[MAX_PATH_LEN], vk::Format format,
-                                       vk::ImageAspectFlags aspectFlags)
+                                       vk::ImageAspectFlags aspectFlags, MaterialDSetComponent& dSetComponent)
 {
 	if (isTextureLoaded(texturePath))
 	{
@@ -101,7 +101,7 @@ int BufferManager::generateTextureData(const char texturePath[MAX_PATH_LEN], vk:
 	int numberTexture;
 	numberTexture = textures.size() - 1;
 	texturePaths[std::string(texturePath)] = numberTexture;
-	updateBindlessTextureSet(numberTexture);
+	updateBindlessTextureSet(numberTexture, dSetComponent);
 	return numberTexture;
 }
 
@@ -171,15 +171,15 @@ void BufferManager::createTextureSampler(Texture& texture)
 	texture.textureSampler = (*vulkanDevice.device).createSampler(samplerInfo);
 }
 
-void BufferManager::updateBindlessTextureSet(int textureNumber)
+void BufferManager::updateBindlessTextureSet(int textureNumber, MaterialDSetComponent& dSetComponent)
 {
 	vk::DescriptorImageInfo imageInfo;
-	imageInfo.sampler = textureSampler;
+	imageInfo.sampler = dSetComponent.textureSampler;
 	imageInfo.imageView = textures[textureNumber].textureImageView;
 	imageInfo.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
 
 	vk::WriteDescriptorSet descriptorWrite;
-	descriptorWrite.dstSet = bindlessTextureSet;
+	descriptorWrite.dstSet = dSetComponent.bindlessTextureSet;
 	descriptorWrite.dstBinding = 0;
 	descriptorWrite.dstArrayElement = textureNumber;
 	descriptorWrite.descriptorType = vk::DescriptorType::eCombinedImageSampler;
@@ -187,4 +187,25 @@ void BufferManager::updateBindlessTextureSet(int textureNumber)
 	descriptorWrite.pImageInfo = &imageInfo;
 
 	vulkanDevice.device.updateDescriptorSets(descriptorWrite, {});
+}
+
+void BufferManager::allocateMaterialDSet(MaterialDSetComponent& dSetComponent) 
+{
+	vk::SamplerCreateInfo samplerInfo = {};
+	samplerInfo.magFilter = vk::Filter::eLinear;
+	samplerInfo.minFilter = vk::Filter::eLinear;
+	samplerInfo.addressModeU = vk::SamplerAddressMode::eRepeat;
+	samplerInfo.addressModeV = vk::SamplerAddressMode::eRepeat;
+	samplerInfo.addressModeW = vk::SamplerAddressMode::eRepeat;
+	samplerInfo.anisotropyEnable = VK_TRUE;
+	samplerInfo.maxAnisotropy = 16.0f;
+	samplerInfo.borderColor = vk::BorderColor::eIntOpaqueBlack;
+	samplerInfo.unnormalizedCoordinates = VK_FALSE;
+	samplerInfo.mipmapMode = vk::SamplerMipmapMode::eLinear;
+	auto samplerRAII = vk::raii::Sampler(vulkanDevice.device, samplerInfo);
+	dSetComponent.textureSampler = samplerRAII.release();
+
+	vk::DescriptorSetAllocateInfo allocInfo(*descriptorPool, *textureSetLayout);
+	auto allocatedSets = vulkanDevice.device.allocateDescriptorSets(allocInfo);
+	dSetComponent.bindlessTextureSet = allocatedSets[0].release();
 }

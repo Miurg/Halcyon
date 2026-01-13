@@ -17,7 +17,7 @@ public:
 	                                PipelineHandler& pipelineHandler, uint32_t currentFrame,
 	                                BufferManager& bufferManager, std::vector<MeshInfoComponent*>& meshInfo,
 	                                CameraComponent& camera, ModelsBuffersComponent& ssbos, CameraComponent& sunCamera,
-	                                LightComponent& lightTexture);
+	                                LightComponent& lightTexture, MaterialDSetComponent& materialDSet);
 	static void transitionImageLayout(vk::raii::CommandBuffer& commandBuffer, vk::Image image, vk::ImageLayout oldLayout,
 	                                  vk::ImageLayout newLayout, vk::AccessFlags2 srcAccessMask,
 	                                  vk::AccessFlags2 dstAccessMask, vk::PipelineStageFlags2 srcStageMask,

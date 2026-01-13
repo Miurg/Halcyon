@@ -10,7 +10,11 @@ BufferManager::BufferManager(VulkanDevice& vulkanDevice) : vulkanDevice(vulkanDe
 	allocatorInfo.device = *vulkanDevice.device;
 	allocatorInfo.instance = *vulkanDevice.instance;
 	allocatorInfo.vulkanApiVersion = VK_API_VERSION_1_4;
+	VmaVulkanFunctions vulkanFunctions = {};
+	vulkanFunctions.vkGetInstanceProcAddr = vkGetInstanceProcAddr;
+	vulkanFunctions.vkGetDeviceProcAddr = vkGetDeviceProcAddr;
 
+	allocatorInfo.pVulkanFunctions = &vulkanFunctions;
 	VkResult result = vmaCreateAllocator(&allocatorInfo, &this->allocator);
 	if (result != VK_SUCCESS)
 	{
@@ -43,20 +47,6 @@ BufferManager::BufferManager(VulkanDevice& vulkanDevice) : vulkanDevice(vulkanDe
 	globalSetLayout = vk::raii::DescriptorSetLayout(vulkanDevice.device, globalInfo);
 
 	//===Textures===
-	vk::SamplerCreateInfo samplerInfo = {};
-	samplerInfo.magFilter = vk::Filter::eLinear;
-	samplerInfo.minFilter = vk::Filter::eLinear;
-	samplerInfo.addressModeU = vk::SamplerAddressMode::eRepeat;
-	samplerInfo.addressModeV = vk::SamplerAddressMode::eRepeat;
-	samplerInfo.addressModeW = vk::SamplerAddressMode::eRepeat;
-	samplerInfo.anisotropyEnable = VK_TRUE;
-	samplerInfo.maxAnisotropy = 16.0f; 
-	samplerInfo.borderColor = vk::BorderColor::eIntOpaqueBlack;
-	samplerInfo.unnormalizedCoordinates = VK_FALSE;
-	samplerInfo.mipmapMode = vk::SamplerMipmapMode::eLinear;
-	auto samplerRAII = vk::raii::Sampler(vulkanDevice.device, samplerInfo);
-	textureSampler = samplerRAII.release();
-
 	vk::DescriptorBindingFlags bindingFlags =
 	    vk::DescriptorBindingFlagBits::ePartiallyBound | vk::DescriptorBindingFlagBits::eUpdateAfterBind;
 	vk::DescriptorSetLayoutBindingFlagsCreateInfo bindingFlagsInfo;
@@ -71,10 +61,6 @@ BufferManager::BufferManager(VulkanDevice& vulkanDevice) : vulkanDevice(vulkanDe
 	textureInfo.pBindings = &textureBinding;
 	textureInfo.pNext = &bindingFlagsInfo; 
 	textureSetLayout = vk::raii::DescriptorSetLayout(vulkanDevice.device, textureInfo);
-
-	vk::DescriptorSetAllocateInfo allocInfo(*descriptorPool, *textureSetLayout);
-	auto allocatedSets = vulkanDevice.device.allocateDescriptorSets(allocInfo);
-	bindlessTextureSet = allocatedSets[0].release();
 
 	//===Model===
 	vk::DescriptorSetLayoutBinding modelBinding(0, vk::DescriptorType::eStorageBuffer, 1,
@@ -112,11 +98,6 @@ BufferManager::~BufferManager()
 			}
 		}
 	}
-	if (textureSampler)
-	{
-		(*vulkanDevice.device).destroySampler(textureSampler);
-	}
-
 }
 
 int BufferManager::createBuffer(vk::MemoryPropertyFlags propertyBits, uint_fast16_t numberObjects, size_t sizeBuffer,
