@@ -12,11 +12,6 @@ struct CameraUBO
 };
 [[vk::binding(0, 0)]] StructuredBuffer<CameraUBO> lightCamera; 
 
-struct PushConsts
-{
-    uint objectIndex;
-};
-[[vk::push_constant]] ConstantBuffer<PushConsts> push;
 
 struct VSInput
 {
@@ -29,9 +24,9 @@ struct VSOutput
 };
 
 [shader("vertex")]
-VSOutput vertShadow(VSInput input)
+VSOutput vertShadow(VSInput input, uint instanceID: SV_InstanceID, uint baseInstance: SV_StartInstanceLocation)
 {
-    ModelData data = objectBuffer[push.objectIndex];
+    ModelData data = objectBuffer[instanceID + baseInstance];
     
     float4 worldPos = mul(float4(input.inPosition, 1.0), data.model);
 

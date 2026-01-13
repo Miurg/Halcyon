@@ -30,15 +30,14 @@ struct VSOutput
 
 struct PushConsts
 {
-    uint objectIndex;
     uint textureIndex;
 };
 [[vk::push_constant]] ConstantBuffer<PushConsts> push;
 
 [shader("vertex")]
-VSOutput vertMain(VSInput input)
+VSOutput vertMain(VSInput input, uint instanceID: SV_InstanceID, uint baseInstance: SV_StartInstanceLocation)
 {
-    ModelData data = objectBuffer[push.objectIndex];
+    ModelData data = objectBuffer[instanceID + baseInstance];
     VSOutput output;
 
     float4 worldPos = mul(float4(input.inPosition, 1.0), data.model);
