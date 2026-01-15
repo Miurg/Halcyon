@@ -53,23 +53,22 @@ BufferManager::~BufferManager()
 	}
 }
 
-int BufferManager::createBuffer(vk::MemoryPropertyFlags propertyBits, uint_fast16_t numberObjects, size_t sizeBuffer,
+int BufferManager::createBuffer(vk::MemoryPropertyFlags propertyBits,
+                                vk::DeviceSize sizeBuffer,
                                 uint_fast16_t numberBuffers, uint_fast16_t numberBinding,
                                 vk::DescriptorSetLayout layout, DescriptorManager& dManager)
 {
 	buffers.push_back(Buffer());
-	BufferManager::initGlobalBuffer(propertyBits, buffers.back(), numberObjects, sizeBuffer, numberBuffers);
+	BufferManager::initGlobalBuffer(propertyBits, buffers.back(), sizeBuffer, numberBuffers);
 	dManager.allocateGlobalDescriptorSets(buffers.back(), sizeBuffer, numberBuffers, numberBinding, layout);
 	return buffers.size() - 1;
 }
 
-void BufferManager::initGlobalBuffer(vk::MemoryPropertyFlags propertyBits, Buffer& bufferIn, uint_fast16_t numberObjects,
-                                  size_t sizeBuffer, uint_fast16_t numberBuffers)
+void BufferManager::initGlobalBuffer(vk::MemoryPropertyFlags propertyBits, Buffer& bufferIn, vk::DeviceSize sizeBuffer,
+                                     uint_fast16_t numberBuffers)
 {
-	vk::DeviceSize bufferSize = sizeBuffer * numberObjects;
-
 	vk::BufferCreateInfo bufferInfo;
-	bufferInfo.size = bufferSize;
+	bufferInfo.size = sizeBuffer;
 	bufferInfo.usage = vk::BufferUsageFlagBits::eStorageBuffer;
 	bufferInfo.sharingMode = vk::SharingMode::eExclusive;
 

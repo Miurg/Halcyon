@@ -103,7 +103,7 @@ void App::run()
 	descriptorManager->allocateMaterialDSet(*gm.getContextComponent<MainDSetsContext, MaterialDSetComponent>());
 
 	camera->descriptorNumber = bufferManager->createBuffer(
-	    (vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal), 1, sizeof(CameraStucture),
+	    (vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal), sizeof(CameraStucture),
 	    MAX_FRAMES_IN_FLIGHT, 0, *descriptorManager->globalSetLayout, *descriptorManager);
 
 	cameraLight->textureShadowImage = bufferManager->createShadowMap(cameraLight->sizeX, cameraLight->sizeY);
@@ -126,7 +126,7 @@ void App::run()
 	Entity modelSSBOsEntity = gm.createEntity();
 	gm.registerContext<ModelSSBOsContext>(modelSSBOsEntity);
 	int descriptorNumber =
-	    bufferManager->createBuffer((vk::MemoryPropertyFlagBits::eHostVisible), 1000, sizeof(ModelSctructure),
+	    bufferManager->createBuffer((vk::MemoryPropertyFlagBits::eHostVisible), 1024 * sizeof(ModelSctructure),
 	                                MAX_FRAMES_IN_FLIGHT, 0, *descriptorManager->modelSetLayout, *descriptorManager);
 	gm.addComponent<ModelsBuffersComponent>(modelSSBOsEntity, descriptorNumber);
 

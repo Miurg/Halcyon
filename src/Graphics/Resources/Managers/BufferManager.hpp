@@ -25,9 +25,8 @@ public:
 	                        MaterialDSetComponent& dSetComponent, DescriptorManager& dManager);
 	int createShadowMap(uint32_t shadowResolutionX, uint32_t shadowResolutionY);
 	bool isTextureLoaded(const char texturePath[MAX_PATH_LEN]);
-	int createBuffer(vk::MemoryPropertyFlags propertyBits, uint_fast16_t numberObjects, size_t sizeBuffer,
-	                 uint_fast16_t numberBuffers, uint_fast16_t numberBinding, vk::DescriptorSetLayout layout,
-	                 DescriptorManager& dManager);
+	int createBuffer(vk::MemoryPropertyFlags propertyBits, vk::DeviceSize sizeBuffer, uint_fast16_t numberBuffers,
+	                 uint_fast16_t numberBinding, vk::DescriptorSetLayout layout, DescriptorManager& dManager);
 
 	std::vector<Texture> textures;
 	std::unordered_map<std::string, int> texturePaths;
@@ -40,8 +39,8 @@ private:
 	VmaAllocator allocator = {};
 
 
-	void initGlobalBuffer(vk::MemoryPropertyFlags propertyBits, Buffer& bufferIn, uint_fast16_t numberObjects,
-	                      size_t sizeBuffer, uint_fast16_t numberBuffers);
+	void initGlobalBuffer(vk::MemoryPropertyFlags propertyBits, Buffer& bufferIn, vk::DeviceSize sizeBuffer,
+	                      uint_fast16_t numberBuffers);
 
 	void createImageView(Texture& texture, vk::Format format, vk::ImageAspectFlags aspectFlags);
 	void createTextureSampler(Texture& texture);
