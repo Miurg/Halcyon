@@ -5,7 +5,7 @@
 
 
 void PipelineFactory::createGraphicsPipeline(VulkanDevice& vulkanDevice, SwapChain& swapChain,
-                                             BufferManager& bufferManager, PipelineHandler& pipelineHandler)
+                                             DescriptorManager& descriptorManager, PipelineHandler& pipelineHandler)
 {
 	vk::raii::ShaderModule shaderModule =
 	    PipelineFactory::createShaderModule(VulkanUtils::readFile("shaders/shader.spv"), vulkanDevice);
@@ -88,9 +88,9 @@ void PipelineFactory::createGraphicsPipeline(VulkanDevice& vulkanDevice, SwapCha
 	vk::PipelineLayoutCreateInfo pipelineLayoutInfo;
 	std::array<vk::DescriptorSetLayout, 3> setLayouts = 
 	{
-	    *bufferManager.globalSetLayout,       // Set 0
-	    *bufferManager.textureSetLayout,   // Set 1
-	    *bufferManager.modelSetLayout    // Set 2
+	    *descriptorManager.globalSetLayout,       // Set 0
+	    *descriptorManager.textureSetLayout,   // Set 1
+	    *descriptorManager.modelSetLayout    // Set 2
 	};
 
 	pipelineLayoutInfo.setLayoutCount = static_cast<uint32_t>(setLayouts.size());
@@ -134,7 +134,8 @@ void PipelineFactory::createGraphicsPipeline(VulkanDevice& vulkanDevice, SwapCha
 }
 
 void PipelineFactory::createShadowPipeline(VulkanDevice& vulkanDevice, SwapChain& swapChain,
-                                           BufferManager& bufferManager, PipelineHandler& pipelineHandler)
+                                           DescriptorManager& descriptorManager,
+                                           PipelineHandler& pipelineHandler)
 {
 	vk::raii::ShaderModule shaderModule =
 	    PipelineFactory::createShaderModule(VulkanUtils::readFile("shaders/shadow.spv"), vulkanDevice);

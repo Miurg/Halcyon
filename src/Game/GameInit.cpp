@@ -5,12 +5,15 @@
 #include "../CoreInit.hpp"
 #include "../Graphics/GraphicsContexts.hpp"
 #include "../Graphics/Components/BufferManagerComponent.hpp"
+#include "../Graphics/Components/DescriptorManagerComponent.hpp"
 #include <vulkan/vulkan_raii.hpp>
 
 void GameInit::gameInitStart(GeneralManager& gm)
 {
 	BufferManager* bufferManager = gm.getContextComponent<BufferManagerContext, BufferManagerComponent>()->bufferManager;
 	MaterialDSetComponent* dSetComponent = gm.getContextComponent<MainDSetsContext, MaterialDSetComponent>();
+	DescriptorManager* dManager =
+	    gm.getContextComponent<DescriptorManagerContext, DescriptorManagerComponent>()->descriptorManager;
 	int j = 0;
 	int k = 0;
 	for (int i = 0; i < 100; i++)
@@ -21,13 +24,13 @@ void GameInit::gameInitStart(GeneralManager& gm)
 		{
 			meshInfo = bufferManager->createMesh("assets/models/BlenderMonkey.obj");
 			numberTexture = bufferManager->generateTextureData("assets/textures/texture.jpg", vk::Format::eR8G8B8A8Srgb,
-			                                                   vk::ImageAspectFlagBits::eColor, *dSetComponent);
+			                                                   vk::ImageAspectFlagBits::eColor, *dSetComponent, *dManager);
 		}
 		else
 		{
 			meshInfo = bufferManager->createMesh("assets/models/viking_room.obj");
 			numberTexture = bufferManager->generateTextureData("assets/textures/viking_room.png", vk::Format::eR8G8B8A8Srgb,
-			                                       vk::ImageAspectFlagBits::eColor, *dSetComponent);
+			                                       vk::ImageAspectFlagBits::eColor, *dSetComponent, *dManager);
 		}
 
 		Entity gameObjectEntity1 = gm.createEntity();

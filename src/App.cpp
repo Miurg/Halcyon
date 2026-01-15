@@ -30,6 +30,7 @@
 #include "Graphics/Components/LightComponent.hpp"
 #include "Game/GameInit.hpp"
 #include "Graphics/Resources/Components/ModelsBuffersComponent.hpp"
+#include "Graphics/Components/DescriptorManagerComponent.hpp"
 
 namespace
 {
@@ -87,23 +88,28 @@ void App::run()
 	bufferManager = new BufferManager(*vulkanDevice);
 	gm.addComponent<BufferManagerComponent>(bufferManagerEntity, bufferManager);
 
+	Entity descriptorManagerEntity = gm.createEntity();
+	gm.registerContext<DescriptorManagerContext>(descriptorManagerEntity);
+	descriptorManager = new DescriptorManager(*vulkanDevice);
+	gm.addComponent<DescriptorManagerComponent>(descriptorManagerEntity, descriptorManager);
+
 	Entity signatureEntity = gm.createEntity();
 	gm.registerContext<MainSignatureContext>(signatureEntity);
 	pipelineHandler = new PipelineHandler();
-	PipelineFactory::createGraphicsPipeline(*vulkanDevice, *swapChain, *bufferManager, *pipelineHandler);
-	PipelineFactory::createShadowPipeline(*vulkanDevice, *swapChain, *bufferManager, *pipelineHandler);
+	PipelineFactory::createGraphicsPipeline(*vulkanDevice, *swapChain, *descriptorManager, *pipelineHandler);
+	PipelineFactory::createShadowPipeline(*vulkanDevice, *swapChain, *descriptorManager, *pipelineHandler);
 	gm.addComponent<PipelineHandlerComponent>(signatureEntity, pipelineHandler);
 
-	bufferManager->allocateMaterialDSet(*gm.getContextComponent<MainDSetsContext, MaterialDSetComponent>());
+	descriptorManager->allocateMaterialDSet(*gm.getContextComponent<MainDSetsContext, MaterialDSetComponent>());
 
 	camera->descriptorNumber = bufferManager->createBuffer(
 	    (vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal), 1, sizeof(CameraStucture),
-	    MAX_FRAMES_IN_FLIGHT, 0, *bufferManager->globalSetLayout);
+	    MAX_FRAMES_IN_FLIGHT, 0, *descriptorManager->globalSetLayout, *descriptorManager);
 
 	cameraLight->textureShadowImage = bufferManager->createShadowMap(cameraLight->sizeX, cameraLight->sizeY);
-	bufferManager->bindShadowMap(camera->descriptorNumber,
+	descriptorManager->bindShadowMap(camera->descriptorNumber,
 	                             bufferManager->textures[cameraLight->textureShadowImage].textureImageView,
-	                             bufferManager->textures[cameraLight->textureShadowImage].textureSampler);
+	                             bufferManager->textures[cameraLight->textureShadowImage].textureSampler, *bufferManager);
 
 
 	Entity frameDataEntity = gm.createEntity();
@@ -121,7 +127,7 @@ void App::run()
 	gm.registerContext<ModelSSBOsContext>(modelSSBOsEntity);
 	int descriptorNumber =
 	    bufferManager->createBuffer((vk::MemoryPropertyFlagBits::eHostVisible), 1000, sizeof(ModelSctructure),
-	                                MAX_FRAMES_IN_FLIGHT, 0, *bufferManager->modelSetLayout);
+	                                MAX_FRAMES_IN_FLIGHT, 0, *descriptorManager->modelSetLayout, *descriptorManager);
 	gm.addComponent<ModelsBuffersComponent>(modelSSBOsEntity, descriptorNumber);
 
 	GameInit::gameInitStart(gm);

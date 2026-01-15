@@ -10,3 +10,4 @@ class MainCameraContext{};
 class ModelSSBOsContext{};
 class LightCameraContext{};
 class MainDSetsContext{};
+class DescriptorManagerContext{};

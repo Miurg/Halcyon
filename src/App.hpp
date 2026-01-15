@@ -23,6 +23,7 @@ private:
 	SwapChain* swapChain;
 	BufferManager* bufferManager;
 	PipelineHandler* pipelineHandler;
+	DescriptorManager* descriptorManager;
 	std::vector<FrameData>* framesData;
 
 	uint32_t frameCount = 0;

@@ -1,26 +1,6 @@
 #include "BufferManager.hpp"
 #include "../Factories/LoadFileFactory.hpp"
-
-void BufferManager::bindShadowMap(int bufferIndex, vk::ImageView imageView, vk::Sampler sampler)
-{
-	for (size_t i = 0; i < buffers[bufferIndex].descriptorSet.size(); i++)
-	{
-		vk::DescriptorImageInfo imageInfo;
-		imageInfo.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
-		imageInfo.imageView = imageView;
-		imageInfo.sampler = sampler;
-
-		vk::WriteDescriptorSet descriptorWrite;
-		descriptorWrite.dstSet = buffers[bufferIndex].descriptorSet[i];
-		descriptorWrite.dstBinding = 1;
-		descriptorWrite.dstArrayElement = 0;
-		descriptorWrite.descriptorType = vk::DescriptorType::eCombinedImageSampler;
-		descriptorWrite.descriptorCount = 1;
-		descriptorWrite.pImageInfo = &imageInfo;
-
-		vulkanDevice.device.updateDescriptorSets(descriptorWrite, {});
-	}
-}
+#include "DescriptorManager.hpp"
 
 int BufferManager::createShadowMap(uint32_t shadowResolutionX, uint32_t shadowResolutionY)
 {
@@ -80,7 +60,8 @@ vk::Format BufferManager::findBestSupportedFormat(const std::vector<vk::Format>&
 }
 
 int BufferManager::generateTextureData(const char texturePath[MAX_PATH_LEN], vk::Format format,
-                                       vk::ImageAspectFlags aspectFlags, MaterialDSetComponent& dSetComponent)
+                                       vk::ImageAspectFlags aspectFlags, MaterialDSetComponent& dSetComponent,
+                                       DescriptorManager& dManager)
 {
 	if (isTextureLoaded(texturePath))
 	{
@@ -101,7 +82,7 @@ int BufferManager::generateTextureData(const char texturePath[MAX_PATH_LEN], vk:
 	int numberTexture;
 	numberTexture = textures.size() - 1;
 	texturePaths[std::string(texturePath)] = numberTexture;
-	updateBindlessTextureSet(numberTexture, dSetComponent);
+	dManager.updateBindlessTextureSet(numberTexture, dSetComponent, *this);
 	return numberTexture;
 }
 
@@ -171,41 +152,3 @@ void BufferManager::createTextureSampler(Texture& texture)
 	texture.textureSampler = (*vulkanDevice.device).createSampler(samplerInfo);
 }
 
-void BufferManager::updateBindlessTextureSet(int textureNumber, MaterialDSetComponent& dSetComponent)
-{
-	vk::DescriptorImageInfo imageInfo;
-	imageInfo.sampler = dSetComponent.textureSampler;
-	imageInfo.imageView = textures[textureNumber].textureImageView;
-	imageInfo.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
-
-	vk::WriteDescriptorSet descriptorWrite;
-	descriptorWrite.dstSet = dSetComponent.bindlessTextureSet;
-	descriptorWrite.dstBinding = 0;
-	descriptorWrite.dstArrayElement = textureNumber;
-	descriptorWrite.descriptorType = vk::DescriptorType::eCombinedImageSampler;
-	descriptorWrite.descriptorCount = 1;
-	descriptorWrite.pImageInfo = &imageInfo;
-
-	vulkanDevice.device.updateDescriptorSets(descriptorWrite, {});
-}
-
-void BufferManager::allocateMaterialDSet(MaterialDSetComponent& dSetComponent) 
-{
-	vk::SamplerCreateInfo samplerInfo = {};
-	samplerInfo.magFilter = vk::Filter::eLinear;
-	samplerInfo.minFilter = vk::Filter::eLinear;
-	samplerInfo.addressModeU = vk::SamplerAddressMode::eRepeat;
-	samplerInfo.addressModeV = vk::SamplerAddressMode::eRepeat;
-	samplerInfo.addressModeW = vk::SamplerAddressMode::eRepeat;
-	samplerInfo.anisotropyEnable = VK_TRUE;
-	samplerInfo.maxAnisotropy = 16.0f;
-	samplerInfo.borderColor = vk::BorderColor::eIntOpaqueBlack;
-	samplerInfo.unnormalizedCoordinates = VK_FALSE;
-	samplerInfo.mipmapMode = vk::SamplerMipmapMode::eLinear;
-	auto samplerRAII = vk::raii::Sampler(vulkanDevice.device, samplerInfo);
-	dSetComponent.textureSampler = samplerRAII.release();
-
-	vk::DescriptorSetAllocateInfo allocInfo(*descriptorPool, *textureSetLayout);
-	auto allocatedSets = vulkanDevice.device.allocateDescriptorSets(allocInfo);
-	dSetComponent.bindlessTextureSet = allocatedSets[0].release();
-}
