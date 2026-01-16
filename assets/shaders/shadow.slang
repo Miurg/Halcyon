@@ -6,8 +6,7 @@ struct ModelData
 
 struct CameraUBO
 {
-    float4x4 view;
-    float4x4 proj;
+    float4x4 cameraSpaceMatrix;
     float4x4 lightSpaceMatrix;
 };
 [[vk::binding(0, 0)]] StructuredBuffer<CameraUBO> lightCamera; 

@@ -71,7 +71,9 @@ void BufferUpdateSystem::update(float deltaTime, GeneralManager& gm, const std::
 	                                  mainCamera->zNear, mainCamera->zFar);
 	proj[1][1] *= -1; // Y-flip
 
-	CameraStucture cameraUbo{.view = view, .proj = proj, .lightSpaceMatrix = lightSpaceMatrix};
+	glm::mat4 cameraSpaceMatrix = proj * view;
+
+	CameraStucture cameraUbo{.cameraSpaceMatrix = cameraSpaceMatrix, .lightSpaceMatrix = lightSpaceMatrix};
 	memcpy(bufferManager.buffers[mainCamera->descriptorNumber].bufferMapped[currentFrame], &cameraUbo,
 	       sizeof(cameraUbo));
 

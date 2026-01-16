@@ -6,8 +6,7 @@ struct ModelData
 
 struct CameraUBO
 {
-    float4x4 view;
-    float4x4 proj;
+    float4x4 cameraSpaceMatrix;
     float4x4 lightSpaceMatrix;
 };
 [[vk::binding(0, 0)]] StructuredBuffer<CameraUBO> camera;
@@ -42,7 +41,7 @@ VSOutput vertMain(VSInput input, uint instanceID: SV_InstanceID, uint baseInstan
 
     float4 worldPos = mul(float4(input.inPosition, 1.0), data.model);
 
-    output.pos = mul(camera[0].proj, mul(camera[0].view, worldPos));
+    output.pos = mul(camera[0].cameraSpaceMatrix, worldPos);
 
     output.shadowCoord = mul(camera[0].lightSpaceMatrix, worldPos);
 
