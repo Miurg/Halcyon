@@ -4,9 +4,9 @@ void CommandBufferFactory::recordCommandBuffer(vk::raii::CommandBuffer& commandB
                                                std::vector<int>& textureInfo, SwapChain& swapChain,
                                                PipelineHandler& pipelineHandler, uint32_t currentFrame,
                                                BufferManager& bufferManager, std::vector<MeshInfoComponent*>& meshInfo,
-                                               CameraComponent& camera, ModelsBuffersComponent& ssbos,
-                                               CameraComponent& sunCamera, LightComponent& lightTexture,
-                                               MaterialDSetComponent& materialDSet)
+                                               CameraComponent& camera, ModelsBuffersComponent& ssbos, LightComponent& lightTexture,
+                                               BindlessTextureDSetComponent& bindlessTextureDSetComponent,
+                                               DescriptorManagerComponent& dManager)
 {
 	struct ObjectPushConstants
 	{
@@ -119,7 +119,7 @@ void CommandBufferFactory::recordCommandBuffer(vk::raii::CommandBuffer& commandB
 	commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineHandler.pipelineLayout, 2,
 	                                 bufferManager.buffers[ssbos.descriptorNumber].descriptorSet[currentFrame], nullptr);
 	commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineHandler.pipelineLayout, 1,
-	                                 materialDSet.bindlessTextureSet, nullptr);
+	    dManager.descriptorManager->descriptorSets[bindlessTextureDSetComponent.bindlessTextureSet][0], nullptr);
 	for (int i = 0; i < textureInfo.size(); i++)
 	{
 		commandBuffer.bindVertexBuffers(0, *bufferManager.meshes[meshInfo[i]->bufferIndex].vertexBuffer, {0});

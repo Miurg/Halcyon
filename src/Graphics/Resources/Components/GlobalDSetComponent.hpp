@@ -6,5 +6,5 @@ struct GlobalDSetComponent
 {
 	std::vector<vk::DescriptorSet> objectDSets;
 
-	int buffer
+	int buffer = -1;
 };

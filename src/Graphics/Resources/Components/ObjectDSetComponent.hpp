@@ -4,7 +4,7 @@
 
 struct ObjectDSetComponent
 {
-	vk::DescriptorSet ssboDSet[MAX_FRAMES_IN_FLIGHT];
+	vk::DescriptorSet StorageBufferDSet[MAX_FRAMES_IN_FLIGHT];
 
-	int ssboBufer = -1;
+	int StorageBuffer = -1;
 };

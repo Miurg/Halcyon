@@ -51,77 +51,37 @@ DescriptorManager::DescriptorManager(VulkanDevice& vulkanDevice) : vulkanDevice(
 	modelSetLayout = vk::raii::DescriptorSetLayout(vulkanDevice.device, modelInfo);
 }
 
-void DescriptorManager::allocateGlobalDescriptorSets(Buffer& bufferIn, size_t sizeBuffer, uint_fast16_t numberBuffers,
-                                                 uint_fast16_t numberBinding, vk::DescriptorSetLayout layout)
+void DescriptorManager::allocateBindlessTextureDSet(BindlessTextureDSetComponent& dSetComponent)
 {
-	std::vector<vk::DescriptorSetLayout> globalLayouts(numberBuffers, layout);
-
-	vk::DescriptorSetAllocateInfo allocInfo;
-	allocInfo.descriptorPool = descriptorPool;
-	allocInfo.descriptorSetCount = static_cast<uint32_t>(globalLayouts.size());
-	allocInfo.pSetLayouts = globalLayouts.data();
-
-	bufferIn.descriptorSet = (*vulkanDevice.device).allocateDescriptorSets(allocInfo);
-	for (size_t i = 0; i < numberBuffers; i++)
-	{
-		vk::DescriptorBufferInfo bufferInfo;
-		bufferInfo.buffer = bufferIn.buffer[i];
-		bufferInfo.offset = 0;
-		bufferInfo.range = VK_WHOLE_SIZE;
-
-		vk::WriteDescriptorSet descriptorWrite;
-		descriptorWrite.dstSet = bufferIn.descriptorSet[i];
-		descriptorWrite.dstBinding = numberBinding;
-		descriptorWrite.dstArrayElement = 0;
-		descriptorWrite.descriptorType = vk::DescriptorType::eStorageBuffer;
-		descriptorWrite.descriptorCount = 1;
-		descriptorWrite.pBufferInfo = &bufferInfo;
-
-		vulkanDevice.device.updateDescriptorSets(descriptorWrite, {});
-	}
-}
-
-void DescriptorManager::allocateMaterialDSet(MaterialDSetComponent& dSetComponent)
-{
-	vk::SamplerCreateInfo samplerInfo = {};
-	samplerInfo.magFilter = vk::Filter::eLinear;
-	samplerInfo.minFilter = vk::Filter::eLinear;
-	samplerInfo.addressModeU = vk::SamplerAddressMode::eRepeat;
-	samplerInfo.addressModeV = vk::SamplerAddressMode::eRepeat;
-	samplerInfo.addressModeW = vk::SamplerAddressMode::eRepeat;
-	samplerInfo.anisotropyEnable = VK_TRUE;
-	samplerInfo.maxAnisotropy = 16.0f;
-	samplerInfo.borderColor = vk::BorderColor::eIntOpaqueBlack;
-	samplerInfo.unnormalizedCoordinates = VK_FALSE;
-	samplerInfo.mipmapMode = vk::SamplerMipmapMode::eLinear;
-	auto samplerRAII = vk::raii::Sampler(vulkanDevice.device, samplerInfo);
-	dSetComponent.textureSampler = samplerRAII.release();
-
 	vk::DescriptorSetAllocateInfo allocInfo(*descriptorPool, *textureSetLayout);
 	auto allocatedSets = vulkanDevice.device.allocateDescriptorSets(allocInfo);
-	dSetComponent.bindlessTextureSet = allocatedSets[0].release();
+	std::vector descriptors = {allocatedSets[0].release()};
+	descriptorSets.push_back(descriptors);
+	dSetComponent.bindlessTextureSet = descriptorSets.size()-1;
 }
 
-void DescriptorManager::updateBindlessTextureSet(int textureNumber, MaterialDSetComponent& dSetComponent,
+void DescriptorManager::updateBindlessTextureSet(int textureNumber, BindlessTextureDSetComponent& dSetComponent,
                                                  BufferManager& bManager)
 {
 	vk::DescriptorImageInfo imageInfo;
-	imageInfo.sampler = dSetComponent.textureSampler;
+	imageInfo.sampler = bManager.textures[textureNumber].textureSampler;
 	imageInfo.imageView = bManager.textures[textureNumber].textureImageView;
 	imageInfo.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
 
 	vk::WriteDescriptorSet descriptorWrite;
-	descriptorWrite.dstSet = dSetComponent.bindlessTextureSet;
+	descriptorWrite.dstSet = descriptorSets[dSetComponent.bindlessTextureSet][0];
 	descriptorWrite.dstBinding = 0;
 	descriptorWrite.dstArrayElement = textureNumber;
 	descriptorWrite.descriptorType = vk::DescriptorType::eCombinedImageSampler;
 	descriptorWrite.descriptorCount = 1;
 	descriptorWrite.pImageInfo = &imageInfo;
+	
+	dSetComponent.bindlessTextureBuffer = textureNumber;
 
 	vulkanDevice.device.updateDescriptorSets(descriptorWrite, {});
 }
 
-void DescriptorManager::bindShadowMap(int bufferIndex, vk::ImageView imageView, vk::Sampler sampler,
+void DescriptorManager::updateShadowDSet(int bufferIndex, vk::ImageView imageView, vk::Sampler sampler,
                                   BufferManager& bManager)
 {
 	for (size_t i = 0; i < bManager.buffers[bufferIndex].descriptorSet.size(); i++)
@@ -141,4 +101,48 @@ void DescriptorManager::bindShadowMap(int bufferIndex, vk::ImageView imageView, 
 
 		vulkanDevice.device.updateDescriptorSets(descriptorWrite, {});
 	}
+}
+
+void DescriptorManager::allocateStorageBufferDSets(Buffer& buffer, uint32_t count, vk::DescriptorSetLayout layout)
+{
+	buffer.descriptorSet.resize(count);
+
+	std::vector<vk::DescriptorSetLayout> layouts(count, layout);
+
+	vk::DescriptorSetAllocateInfo allocInfo{};
+	allocInfo.descriptorPool = descriptorPool;
+	allocInfo.descriptorSetCount = count;
+	allocInfo.pSetLayouts = layouts.data();
+
+	buffer.descriptorSet = (*vulkanDevice.device).allocateDescriptorSets(allocInfo);
+}
+
+void DescriptorManager::updateStorageBufferDescriptors(Buffer& buffer, uint32_t binding)
+{
+	const size_t count = buffer.descriptorSet.size();
+	assert(buffer.buffer.size() >= count);
+
+	std::vector<vk::WriteDescriptorSet> writes;
+	writes.reserve(count);
+
+	std::vector<vk::DescriptorBufferInfo> bufferInfos(count);
+
+	for (size_t i = 0; i < count; ++i)
+	{
+		bufferInfos[i].buffer = buffer.buffer[i];
+		bufferInfos[i].offset = 0;
+		bufferInfos[i].range = VK_WHOLE_SIZE;
+
+		vk::WriteDescriptorSet write{};
+		write.dstSet = buffer.descriptorSet[i];
+		write.dstBinding = binding;
+		write.dstArrayElement = 0;
+		write.descriptorType = vk::DescriptorType::eStorageBuffer;
+		write.descriptorCount = 1;
+		write.pBufferInfo = &bufferInfos[i];
+
+		writes.push_back(write);
+	}
+
+	(*vulkanDevice.device).updateDescriptorSets(writes, {});
 }

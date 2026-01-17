@@ -16,6 +16,7 @@
 #include "../FrameData.hpp"
 #include "../Components/FrameDataComponent.hpp"
 #include "../Components/CurrentFrameComponent.hpp"
+#include "../Components/DescriptorManagerComponent.hpp"
 
 void RenderSystem::processEntity(Entity entity, GeneralManager& manager, float dt) {}
 
@@ -43,9 +44,10 @@ void RenderSystem::update(float deltaTime, GeneralManager& gm, const std::vector
 	    *gm.getContextComponent<MainFrameDataContext, FrameDataComponent>()->frameDataArray;
 	CurrentFrameComponent* currentFrameComp = gm.getContextComponent<CurrentFrameContext, CurrentFrameComponent>();
 	CameraComponent* mainCamera = gm.getContextComponent<MainCameraContext, CameraComponent>();
-	CameraComponent* sunCamera = gm.getContextComponent<LightCameraContext, CameraComponent>();
 	LightComponent* lightTexture = gm.getContextComponent<MainCameraContext, LightComponent>();
-	MaterialDSetComponent* materialDSetComponent = gm.getContextComponent<MainDSetsContext, MaterialDSetComponent>();
+	BindlessTextureDSetComponent* materialDSetComponent = gm.getContextComponent<MainDSetsContext, BindlessTextureDSetComponent>();
+	DescriptorManagerComponent* dManager =
+	    gm.getContextComponent<DescriptorManagerContext, DescriptorManagerComponent>();
 
 	std::vector<int> textureInfo;
 	std::vector<MeshInfoComponent*> meshInfos;
@@ -95,8 +97,8 @@ void RenderSystem::update(float deltaTime, GeneralManager& gm, const std::vector
 
 	CommandBufferFactory::recordCommandBuffer(framesData[currentFrameComp->currentFrame].commandBuffer, imageIndex,
 	                                          textureInfo, swapChain, pipelineHandler, currentFrameComp->currentFrame,
-	                                          bufferManager, meshInfos, *mainCamera, *ssbos, *sunCamera, *lightTexture,
-	                                          *materialDSetComponent);
+	                                          bufferManager, meshInfos, *mainCamera, *ssbos, *lightTexture,
+	                                          *materialDSetComponent, *dManager);
 
 	vk::PipelineStageFlags waitDestinationStageMask(vk::PipelineStageFlagBits::eColorAttachmentOutput);
 

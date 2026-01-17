@@ -60,7 +60,8 @@ int BufferManager::createBuffer(vk::MemoryPropertyFlags propertyBits,
 {
 	buffers.push_back(Buffer());
 	BufferManager::initGlobalBuffer(propertyBits, buffers.back(), sizeBuffer, numberBuffers);
-	dManager.allocateGlobalDescriptorSets(buffers.back(), sizeBuffer, numberBuffers, numberBinding, layout);
+	dManager.allocateStorageBufferDSets(buffers.back(), numberBuffers, layout);
+	dManager.updateStorageBufferDescriptors(buffers.back(), numberBinding);
 	return buffers.size() - 1;
 }
 

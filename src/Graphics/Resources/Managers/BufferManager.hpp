@@ -8,7 +8,7 @@
 #include <vk_mem_alloc.h>
 #include "Texture.hpp"
 #include "Buffer.hpp"
-#include "../Components/MaterialDSetComponent.hpp"
+#include "../Components/BindlessTextureDSetComponent.hpp"
 
 class DescriptorManager;
 
@@ -22,7 +22,7 @@ public:
 	bool isMeshLoaded(const char path[MAX_PATH_LEN]);
 
 	int generateTextureData(const char texturePath[MAX_PATH_LEN], vk::Format format, vk::ImageAspectFlags aspectFlags,
-	                        MaterialDSetComponent& dSetComponent, DescriptorManager& dManager);
+	                        BindlessTextureDSetComponent& dSetComponent, DescriptorManager& dManager);
 	int createShadowMap(uint32_t shadowResolutionX, uint32_t shadowResolutionY);
 	bool isTextureLoaded(const char texturePath[MAX_PATH_LEN]);
 	int createBuffer(vk::MemoryPropertyFlags propertyBits, vk::DeviceSize sizeBuffer, uint_fast16_t numberBuffers,
@@ -38,10 +38,8 @@ private:
 	VulkanDevice& vulkanDevice;
 	VmaAllocator allocator = {};
 
-
 	void initGlobalBuffer(vk::MemoryPropertyFlags propertyBits, Buffer& bufferIn, vk::DeviceSize sizeBuffer,
 	                      uint_fast16_t numberBuffers);
-
 	void createImageView(Texture& texture, vk::Format format, vk::ImageAspectFlags aspectFlags);
 	void createTextureSampler(Texture& texture);
 	void createShadowSampler(Texture& texture);

@@ -8,14 +8,7 @@
 #include "Graphics/Factories/VulkanDeviceFactory.hpp"
 #include "Graphics/Factories/SwapChainFactory.hpp"
 #include "Graphics/Factories/PipelineFactory.hpp"
-
 #include "Platform/Components/WindowComponent.hpp"
-#include "Platform/Components/KeyboardStateComponent.hpp"
-#include "Platform/Components/MouseStateComponent.hpp"
-#include "Platform/Components/CursorPositionComponent.hpp"
-#include "Platform/Components/WindowSizeComponent.hpp"
-#include "Platform/Components/ScrollDeltaComponent.hpp"
-#include "Platform/Systems/InputSolverSystem.hpp"
 #include "Platform/PlatformContexts.hpp"
 #include "Graphics/Components/VulkanDeviceComponent.hpp"
 #include "Graphics/GraphicsContexts.hpp"
@@ -24,7 +17,6 @@
 #include "Graphics/Components/PipelineHandlerComponent.hpp"
 #include "Graphics/Components/FrameDataComponent.hpp"
 #include "Graphics/Components/CurrentFrameComponent.hpp"
-#include "Graphics/Systems/RenderSystem.hpp"
 #include "Graphics/Components/TransformComponent.hpp"
 #include "Game/Components/ControlComponent.hpp"
 #include "Graphics/Components/LightComponent.hpp"
@@ -81,7 +73,7 @@ void App::run()
 
 	Entity mainDSetsEntity = gm.createEntity();
 	gm.registerContext<MainDSetsContext>(mainDSetsEntity);
-	gm.addComponent<MaterialDSetComponent>(mainDSetsEntity);
+	gm.addComponent<BindlessTextureDSetComponent>(mainDSetsEntity);
 
 	Entity bufferManagerEntity = gm.createEntity();
 	gm.registerContext<BufferManagerContext>(bufferManagerEntity);
@@ -100,17 +92,16 @@ void App::run()
 	PipelineFactory::createShadowPipeline(*vulkanDevice, *swapChain, *descriptorManager, *pipelineHandler);
 	gm.addComponent<PipelineHandlerComponent>(signatureEntity, pipelineHandler);
 
-	descriptorManager->allocateMaterialDSet(*gm.getContextComponent<MainDSetsContext, MaterialDSetComponent>());
+	descriptorManager->allocateBindlessTextureDSet(*gm.getContextComponent<MainDSetsContext, BindlessTextureDSetComponent>());
 
 	camera->descriptorNumber = bufferManager->createBuffer(
 	    (vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal), sizeof(CameraStucture),
 	    MAX_FRAMES_IN_FLIGHT, 0, *descriptorManager->globalSetLayout, *descriptorManager);
 
 	cameraLight->textureShadowImage = bufferManager->createShadowMap(cameraLight->sizeX, cameraLight->sizeY);
-	descriptorManager->bindShadowMap(camera->descriptorNumber,
+	descriptorManager->updateShadowDSet(camera->descriptorNumber,
 	                             bufferManager->textures[cameraLight->textureShadowImage].textureImageView,
 	                             bufferManager->textures[cameraLight->textureShadowImage].textureSampler, *bufferManager);
-
 
 	Entity frameDataEntity = gm.createEntity();
 	gm.registerContext<MainFrameDataContext>(frameDataEntity);

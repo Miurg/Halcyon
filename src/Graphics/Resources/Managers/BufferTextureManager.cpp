@@ -60,7 +60,7 @@ vk::Format BufferManager::findBestSupportedFormat(const std::vector<vk::Format>&
 }
 
 int BufferManager::generateTextureData(const char texturePath[MAX_PATH_LEN], vk::Format format,
-                                       vk::ImageAspectFlags aspectFlags, MaterialDSetComponent& dSetComponent,
+                                       vk::ImageAspectFlags aspectFlags, BindlessTextureDSetComponent& dSetComponent,
                                        DescriptorManager& dManager)
 {
 	if (isTextureLoaded(texturePath))

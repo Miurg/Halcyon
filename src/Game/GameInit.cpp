@@ -11,7 +11,7 @@
 void GameInit::gameInitStart(GeneralManager& gm)
 {
 	BufferManager* bufferManager = gm.getContextComponent<BufferManagerContext, BufferManagerComponent>()->bufferManager;
-	MaterialDSetComponent* dSetComponent = gm.getContextComponent<MainDSetsContext, MaterialDSetComponent>();
+	BindlessTextureDSetComponent* dSetComponent = gm.getContextComponent<MainDSetsContext, BindlessTextureDSetComponent>();
 	DescriptorManager* dManager =
 	    gm.getContextComponent<DescriptorManagerContext, DescriptorManagerComponent>()->descriptorManager;
 	int j = 0;
