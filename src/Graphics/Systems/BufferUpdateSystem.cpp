@@ -45,11 +45,11 @@ void BufferUpdateSystem::update(float deltaTime, GeneralManager& gm, const std::
 	auto currentTime = std::chrono::high_resolution_clock::now();
 	float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 
-	std::vector<TransformComponent*> transforms;
+	std::vector<TransformComponent> transforms;
 	transforms.reserve(entities.size());
 	for (const auto& entity : entities)
 	{
-		transforms.push_back(gm.getComponent<TransformComponent>(entity));
+		transforms.push_back(*gm.getComponent<TransformComponent>(entity));
 	}
 
 	// === Sun ===
@@ -93,7 +93,7 @@ void BufferUpdateSystem::update(float deltaTime, GeneralManager& gm, const std::
 
 	for (size_t i = 0; i < count; ++i)
 	{
-		const glm::mat4 model = transforms[i]->getModelMatrix() * finalRotation;
+		const glm::mat4 model = transforms[i].getModelMatrix() * finalRotation;
 
 		dstPtr[i].model = glm::transpose(model);
 	}
