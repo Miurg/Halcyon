@@ -21,8 +21,9 @@
 #include "Game/Components/ControlComponent.hpp"
 #include "Graphics/Components/LightComponent.hpp"
 #include "Game/GameInit.hpp"
-#include "Graphics/Resources/Components/ModelsBuffersComponent.hpp"
 #include "Graphics/Components/DescriptorManagerComponent.hpp"
+#include "Graphics/Resources/Components/GlobalDSetComponent.hpp"
+#include "Graphics/Resources/Components/ObjectDSetComponent.hpp"
 
 namespace
 {
@@ -61,47 +62,28 @@ void App::run()
 	gm.addComponent<TransformComponent>(sunEntity, glm::vec3(10.0f, 20.0f, 10.0f));
 	gm.registerContext<LightCameraContext>(sunEntity);
 
-	CameraComponent* camera = gm.getContextComponent<MainCameraContext, CameraComponent>();
-	CameraComponent* sun = gm.getContextComponent<LightCameraContext, CameraComponent>();
-	LightComponent* cameraLight = gm.getContextComponent<MainCameraContext, LightComponent>();
-
 	Entity swapChainEntity = gm.createEntity();
 	gm.registerContext<MainSwapChainContext>(swapChainEntity);
 	swapChain = new SwapChain();
 	SwapChainFactory::createSwapChain(*swapChain, *vulkanDevice, *window);
 	gm.addComponent<SwapChainComponent>(swapChainEntity, swapChain);
 
-	Entity mainDSetsEntity = gm.createEntity();
-	gm.registerContext<MainDSetsContext>(mainDSetsEntity);
-	gm.addComponent<BindlessTextureDSetComponent>(mainDSetsEntity);
-
 	Entity bufferManagerEntity = gm.createEntity();
 	gm.registerContext<BufferManagerContext>(bufferManagerEntity);
-	bufferManager = new BufferManager(*vulkanDevice);
-	gm.addComponent<BufferManagerComponent>(bufferManagerEntity, bufferManager);
+	bManager = new BufferManager(*vulkanDevice);
+	gm.addComponent<BufferManagerComponent>(bufferManagerEntity, bManager);
 
 	Entity descriptorManagerEntity = gm.createEntity();
 	gm.registerContext<DescriptorManagerContext>(descriptorManagerEntity);
-	descriptorManager = new DescriptorManager(*vulkanDevice);
-	gm.addComponent<DescriptorManagerComponent>(descriptorManagerEntity, descriptorManager);
+	dManager = new DescriptorManager(*vulkanDevice);
+	gm.addComponent<DescriptorManagerComponent>(descriptorManagerEntity, dManager);
 
 	Entity signatureEntity = gm.createEntity();
 	gm.registerContext<MainSignatureContext>(signatureEntity);
 	pipelineHandler = new PipelineHandler();
-	PipelineFactory::createGraphicsPipeline(*vulkanDevice, *swapChain, *descriptorManager, *pipelineHandler);
-	PipelineFactory::createShadowPipeline(*vulkanDevice, *swapChain, *descriptorManager, *pipelineHandler);
+	PipelineFactory::createGraphicsPipeline(*vulkanDevice, *swapChain, *dManager, *pipelineHandler);
+	PipelineFactory::createShadowPipeline(*vulkanDevice, *swapChain, *dManager, *pipelineHandler);
 	gm.addComponent<PipelineHandlerComponent>(signatureEntity, pipelineHandler);
-
-	descriptorManager->allocateBindlessTextureDSet(*gm.getContextComponent<MainDSetsContext, BindlessTextureDSetComponent>());
-
-	camera->descriptorNumber = bufferManager->createBuffer(
-	    (vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal), sizeof(CameraStucture),
-	    MAX_FRAMES_IN_FLIGHT, 0, *descriptorManager->globalSetLayout, *descriptorManager);
-
-	cameraLight->textureShadowImage = bufferManager->createShadowMap(cameraLight->sizeX, cameraLight->sizeY);
-	descriptorManager->updateShadowDSet(camera->descriptorNumber,
-	                             bufferManager->textures[cameraLight->textureShadowImage].textureImageView,
-	                             bufferManager->textures[cameraLight->textureShadowImage].textureSampler, *bufferManager);
 
 	Entity frameDataEntity = gm.createEntity();
 	gm.registerContext<MainFrameDataContext>(frameDataEntity);
@@ -114,13 +96,42 @@ void App::run()
 	gm.addComponent<FrameDataComponent>(frameDataEntity, framesData);
 	gm.addComponent<CurrentFrameComponent>(frameDataEntity);
 
-	Entity modelSSBOsEntity = gm.createEntity();
-	gm.registerContext<ModelSSBOsContext>(modelSSBOsEntity);
-	int descriptorNumber =
-	    bufferManager->createBuffer((vk::MemoryPropertyFlagBits::eHostVisible), 1024 * sizeof(ModelSctructure),
-	                                MAX_FRAMES_IN_FLIGHT, 0, *descriptorManager->modelSetLayout, *descriptorManager);
-	gm.addComponent<ModelsBuffersComponent>(modelSSBOsEntity, descriptorNumber);
+	CameraComponent* camera = gm.getContextComponent<MainCameraContext, CameraComponent>();
+	CameraComponent* sun = gm.getContextComponent<LightCameraContext, CameraComponent>();
+	LightComponent* cameraLight = gm.getContextComponent<MainCameraContext, LightComponent>();
 
+	Entity mainDSetsEntity = gm.createEntity();
+	gm.registerContext<MainDSetsContext>(mainDSetsEntity);
+	gm.addComponent<BindlessTextureDSetComponent>(mainDSetsEntity);
+	gm.addComponent<GlobalDSetComponent>(mainDSetsEntity);
+	gm.addComponent<ObjectDSetComponent>(mainDSetsEntity);
+
+	BindlessTextureDSetComponent* bTextureDSetComponent =
+	    gm.getContextComponent<MainDSetsContext, BindlessTextureDSetComponent>();
+	bTextureDSetComponent->bindlessTextureSet = dManager->allocateBindlessTextureDSet();
+
+	GlobalDSetComponent* globalDSetComponent = gm.getContextComponent<MainDSetsContext, GlobalDSetComponent>();
+	globalDSetComponent->cameraBuffers =
+	    bManager->createBuffer((vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal),
+	                           sizeof(CameraStucture), MAX_FRAMES_IN_FLIGHT, 0, *dManager->globalSetLayout);
+	camera->bufferNubmer = globalDSetComponent->cameraBuffers;
+	globalDSetComponent->globalDSets = dManager->allocateStorageBufferDSets(MAX_FRAMES_IN_FLIGHT, *dManager->globalSetLayout);
+	dManager->updateStorageBufferDescriptors(*bManager, globalDSetComponent->cameraBuffers,
+	                                         globalDSetComponent->globalDSets, 0);
+
+	cameraLight->textureShadowImage = bManager->createShadowMap(cameraLight->sizeX, cameraLight->sizeY);
+	dManager->updateShadowDSet(globalDSetComponent->globalDSets,
+	                           bManager->textures[cameraLight->textureShadowImage].textureImageView,
+	                           bManager->textures[cameraLight->textureShadowImage].textureSampler);
+
+	ObjectDSetComponent* objectDSetComponent = gm.getContextComponent<MainDSetsContext, ObjectDSetComponent>();
+	objectDSetComponent->storageBuffer =
+	    bManager->createBuffer((vk::MemoryPropertyFlagBits::eHostVisible), 1024 * sizeof(ModelSctructure),
+	                           MAX_FRAMES_IN_FLIGHT, 0, *dManager->modelSetLayout);
+	objectDSetComponent->storageBufferDSet =
+	    dManager->allocateStorageBufferDSets(MAX_FRAMES_IN_FLIGHT, *dManager->modelSetLayout);
+	dManager->updateStorageBufferDescriptors(*bManager, objectDSetComponent->storageBuffer,
+	                                         objectDSetComponent->storageBufferDSet, 0);
 	GameInit::gameInitStart(gm);
 	App::mainLoop(gm);
 	App::cleanup();
@@ -152,5 +163,5 @@ void App::cleanup()
 	vulkanDevice->device.waitIdle();
 
 	SwapChainFactory::cleanupSwapChain(*swapChain);
-	bufferManager->~BufferManager();
+	bManager->~BufferManager();
 }

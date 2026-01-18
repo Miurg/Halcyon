@@ -8,5 +8,4 @@ struct Buffer
 	std::vector<vk::Buffer> buffer;
 	std::vector<VmaAllocation> bufferAllocation;
 	std::vector<void*> bufferMapped;
-	std::vector<vk::DescriptorSet> descriptorSet;
 };

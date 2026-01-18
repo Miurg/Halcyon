@@ -15,11 +15,12 @@ public:
 	vk::raii::DescriptorSetLayout textureSetLayout = nullptr;
 	vk::raii::DescriptorSetLayout modelSetLayout = nullptr;
 
-	void allocateBindlessTextureDSet(BindlessTextureDSetComponent& dSetComponent);
-	void updateBindlessTextureSet(int textureNumber, BindlessTextureDSetComponent& dSetComponent, BufferManager& bManager);
-	void updateShadowDSet(int bufferIndex, vk::ImageView imageView, vk::Sampler sampler, BufferManager& bManager);
-	void allocateStorageBufferDSets(Buffer& buffer, uint32_t count, vk::DescriptorSetLayout layout);
-	void updateStorageBufferDescriptors(Buffer& buffer, uint32_t binding);
+	int allocateBindlessTextureDSet();
+	void updateBindlessTextureSet(int textureNumber, BindlessTextureDSetComponent& dSetComponent,
+	                              BufferManager& bManager);
+	void updateShadowDSet(int dIndex, vk::ImageView imageView, vk::Sampler sampler);
+	int allocateStorageBufferDSets(uint32_t count, vk::DescriptorSetLayout layout);
+	void updateStorageBufferDescriptors(BufferManager& bManager, int bNumber, int dSet, uint32_t binding);
 	std::vector<std::vector<vk::DescriptorSet>> descriptorSets;
 
 private:

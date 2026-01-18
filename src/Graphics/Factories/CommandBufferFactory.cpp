@@ -1,16 +1,16 @@
 #include "CommandBufferFactory.hpp"
 
-void CommandBufferFactory::recordCommandBuffer(vk::raii::CommandBuffer& commandBuffer, uint32_t imageIndex,
-                                               std::vector<int>& textureInfo, SwapChain& swapChain,
-                                               PipelineHandler& pipelineHandler, uint32_t currentFrame,
-                                               BufferManager& bufferManager, std::vector<MeshInfoComponent*>& meshInfo,
-                                               CameraComponent& camera, ModelsBuffersComponent& ssbos, LightComponent& lightTexture,
-                                               BindlessTextureDSetComponent& bindlessTextureDSetComponent,
-                                               DescriptorManagerComponent& dManager)
+void CommandBufferFactory::recordCommandBuffer(
+    vk::raii::CommandBuffer& commandBuffer, uint32_t imageIndex, std::vector<int>& textureInfo, SwapChain& swapChain,
+    PipelineHandler& pipelineHandler, uint32_t currentFrame, BufferManager& bufferManager,
+    std::vector<MeshInfoComponent*>& meshInfo, CameraComponent& camera,
+    LightComponent& lightTexture, BindlessTextureDSetComponent& bindlessTextureDSetComponent,
+    DescriptorManagerComponent& dManager, GlobalDSetComponent* globalDSetComponent,
+    ObjectDSetComponent* objectDSetComponent)
 {
 	struct ObjectPushConstants
 	{
-		//uint32_t objectIndex;
+		// uint32_t objectIndex;
 		int32_t textureIndex;
 	};
 
@@ -19,12 +19,9 @@ void CommandBufferFactory::recordCommandBuffer(vk::raii::CommandBuffer& commandB
 	// Step 1: SHADOW PASS
 
 	transitionImageLayout(commandBuffer, bufferManager.textures[lightTexture.textureShadowImage].textureImage,
-	                      vk::ImageLayout::eUndefined,
-	                      vk::ImageLayout::eDepthAttachmentOptimal,
-	                      vk::AccessFlagBits2::eNone,
-	                      vk::AccessFlagBits2::eDepthStencilAttachmentWrite, 
-	                      vk::PipelineStageFlagBits2::eTopOfPipe,
-	                      vk::PipelineStageFlagBits2::eEarlyFragmentTests,
+	                      vk::ImageLayout::eUndefined, vk::ImageLayout::eDepthAttachmentOptimal,
+	                      vk::AccessFlagBits2::eNone, vk::AccessFlagBits2::eDepthStencilAttachmentWrite,
+	                      vk::PipelineStageFlagBits2::eTopOfPipe, vk::PipelineStageFlagBits2::eEarlyFragmentTests,
 	                      vk::ImageAspectFlagBits::eDepth);
 
 	vk::RenderingAttachmentInfo shadowDepthInfo;
@@ -43,11 +40,12 @@ void CommandBufferFactory::recordCommandBuffer(vk::raii::CommandBuffer& commandB
 	commandBuffer.beginRendering(shadowRenderingInfo);
 	commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipelineHandler.shadowPipeline);
 	commandBuffer.setDepthBias(1.25f, 0.0f, 1.75f);
-	commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineHandler.pipelineLayout, 0,
-	                                 bufferManager.buffers[camera.descriptorNumber].descriptorSet[currentFrame],
-	                                 nullptr);
-	commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineHandler.pipelineLayout, 2,
-	                                 bufferManager.buffers[ssbos.descriptorNumber].descriptorSet[currentFrame], nullptr);
+	commandBuffer.bindDescriptorSets(
+	    vk::PipelineBindPoint::eGraphics, *pipelineHandler.pipelineLayout, 0,
+	    dManager.descriptorManager->descriptorSets[globalDSetComponent->globalDSets][currentFrame], nullptr);
+	commandBuffer.bindDescriptorSets(
+	    vk::PipelineBindPoint::eGraphics, *pipelineHandler.pipelineLayout, 2,
+	    dManager.descriptorManager->descriptorSets[objectDSetComponent->storageBufferDSet][currentFrame], nullptr);
 	commandBuffer.setViewport(0, vk::Viewport(0.0f, 0.0f, lightTexture.sizeX, lightTexture.sizeY, 0.0f, 1.0f));
 	commandBuffer.setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), vk::Extent2D(lightTexture.sizeX, lightTexture.sizeY)));
 
@@ -63,12 +61,9 @@ void CommandBufferFactory::recordCommandBuffer(vk::raii::CommandBuffer& commandB
 	commandBuffer.endRendering();
 
 	transitionImageLayout(commandBuffer, bufferManager.textures[lightTexture.textureShadowImage].textureImage,
-	                      vk::ImageLayout::eDepthAttachmentOptimal,
-	                      vk::ImageLayout::eShaderReadOnlyOptimal,
-	                      vk::AccessFlagBits2::eDepthStencilAttachmentWrite,
-	                      vk::AccessFlagBits2::eShaderRead,
-	                      vk::PipelineStageFlagBits2::eLateFragmentTests,
-	                      vk::PipelineStageFlagBits2::eFragmentShader,
+	                      vk::ImageLayout::eDepthAttachmentOptimal, vk::ImageLayout::eShaderReadOnlyOptimal,
+	                      vk::AccessFlagBits2::eDepthStencilAttachmentWrite, vk::AccessFlagBits2::eShaderRead,
+	                      vk::PipelineStageFlagBits2::eLateFragmentTests, vk::PipelineStageFlagBits2::eFragmentShader,
 	                      vk::ImageAspectFlagBits::eDepth);
 	// Step 2: MAIN PASS
 
@@ -113,12 +108,14 @@ void CommandBufferFactory::recordCommandBuffer(vk::raii::CommandBuffer& commandB
 	                                          static_cast<float>(swapChain.swapChainExtent.height), 0.0f, 1.0f));
 	commandBuffer.setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), swapChain.swapChainExtent));
 
-	commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineHandler.pipelineLayout, 0,
-	                                 bufferManager.buffers[camera.descriptorNumber].descriptorSet[currentFrame],
-	                                 nullptr);
-	commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineHandler.pipelineLayout, 2,
-	                                 bufferManager.buffers[ssbos.descriptorNumber].descriptorSet[currentFrame], nullptr);
-	commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineHandler.pipelineLayout, 1,
+	commandBuffer.bindDescriptorSets(
+	    vk::PipelineBindPoint::eGraphics, *pipelineHandler.pipelineLayout, 0,
+	    dManager.descriptorManager->descriptorSets[globalDSetComponent->globalDSets][currentFrame], nullptr);
+	commandBuffer.bindDescriptorSets(
+	    vk::PipelineBindPoint::eGraphics, *pipelineHandler.pipelineLayout, 2,
+	    dManager.descriptorManager->descriptorSets[objectDSetComponent->storageBufferDSet][currentFrame], nullptr);
+	commandBuffer.bindDescriptorSets(
+	    vk::PipelineBindPoint::eGraphics, *pipelineHandler.pipelineLayout, 1,
 	    dManager.descriptorManager->descriptorSets[bindlessTextureDSetComponent.bindlessTextureSet][0], nullptr);
 	for (int i = 0; i < textureInfo.size(); i++)
 	{

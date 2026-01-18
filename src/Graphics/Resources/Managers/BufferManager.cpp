@@ -56,12 +56,10 @@ BufferManager::~BufferManager()
 int BufferManager::createBuffer(vk::MemoryPropertyFlags propertyBits,
                                 vk::DeviceSize sizeBuffer,
                                 uint_fast16_t numberBuffers, uint_fast16_t numberBinding,
-                                vk::DescriptorSetLayout layout, DescriptorManager& dManager)
+                                vk::DescriptorSetLayout layout)
 {
 	buffers.push_back(Buffer());
 	BufferManager::initGlobalBuffer(propertyBits, buffers.back(), sizeBuffer, numberBuffers);
-	dManager.allocateStorageBufferDSets(buffers.back(), numberBuffers, layout);
-	dManager.updateStorageBufferDescriptors(buffers.back(), numberBinding);
 	return buffers.size() - 1;
 }
 

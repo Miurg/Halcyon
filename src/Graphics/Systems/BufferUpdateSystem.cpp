@@ -1,7 +1,6 @@
 #include "BufferUpdateSystem.hpp"
 #include "../Components/CameraComponent.hpp"
 #include "../Components/TransformComponent.hpp"
-#include "../Resources/Components/ModelsBuffersComponent.hpp"
 #include "../Resources/Managers/BufferManager.hpp"
 #include <iostream>
 #include <chrono>
@@ -13,6 +12,8 @@
 #include "../FrameData.hpp"
 #include "../Components/FrameDataComponent.hpp"
 #include "../Components/CurrentFrameComponent.hpp"
+#include "../Resources/Components/GlobalDSetComponent.hpp"
+#include "../Resources/Components/ObjectDSetComponent.hpp"
 
 void BufferUpdateSystem::processEntity(Entity entity, GeneralManager& manager, float dt) {}
 
@@ -33,11 +34,13 @@ void BufferUpdateSystem::update(float deltaTime, GeneralManager& gm, const std::
 	SwapChain& swapChain = *gm.getContextComponent<MainSwapChainContext, SwapChainComponent>()->swapChainInstance;
 	BufferManager& bufferManager =
 	    *gm.getContextComponent<BufferManagerContext, BufferManagerComponent>()->bufferManager;
-	ModelsBuffersComponent* ssbos = gm.getContextComponent<ModelSSBOsContext, ModelsBuffersComponent>();
 	CameraComponent* mainCamera = gm.getContextComponent<MainCameraContext, CameraComponent>();
 	TransformComponent* mainCameraTransform = gm.getContextComponent<MainCameraContext, TransformComponent>();
 	CameraComponent* sunCamera = gm.getContextComponent<LightCameraContext, CameraComponent>();
 	TransformComponent* sunCameraTransform = gm.getContextComponent<LightCameraContext, TransformComponent>();
+	GlobalDSetComponent* globalDSetComponent = gm.getContextComponent<MainDSetsContext, GlobalDSetComponent>();
+	ObjectDSetComponent* objectDSetComponent = gm.getContextComponent<MainDSetsContext, ObjectDSetComponent>();
+
 	static auto startTime = std::chrono::high_resolution_clock::now();
 	auto currentTime = std::chrono::high_resolution_clock::now();
 	float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
@@ -74,7 +77,7 @@ void BufferUpdateSystem::update(float deltaTime, GeneralManager& gm, const std::
 	glm::mat4 cameraSpaceMatrix = proj * view;
 
 	CameraStucture cameraUbo{.cameraSpaceMatrix = cameraSpaceMatrix, .lightSpaceMatrix = lightSpaceMatrix};
-	memcpy(bufferManager.buffers[mainCamera->descriptorNumber].bufferMapped[currentFrame], &cameraUbo,
+	memcpy(bufferManager.buffers[globalDSetComponent->cameraBuffers].bufferMapped[currentFrame], &cameraUbo,
 	       sizeof(cameraUbo));
 
 	// === Models ===
@@ -93,6 +96,6 @@ void BufferUpdateSystem::update(float deltaTime, GeneralManager& gm, const std::
 		frameData.push_back(modelUbo);
 	}
 
-	void* mappedMemory = bufferManager.buffers[ssbos->descriptorNumber].bufferMapped[currentFrame];
+	void* mappedMemory = bufferManager.buffers[objectDSetComponent->storageBuffer].bufferMapped[currentFrame];
 	memcpy(mappedMemory, frameData.data(), frameData.size() * sizeof(ModelSctructure));
 }

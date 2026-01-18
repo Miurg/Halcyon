@@ -48,6 +48,8 @@ void RenderSystem::update(float deltaTime, GeneralManager& gm, const std::vector
 	BindlessTextureDSetComponent* materialDSetComponent = gm.getContextComponent<MainDSetsContext, BindlessTextureDSetComponent>();
 	DescriptorManagerComponent* dManager =
 	    gm.getContextComponent<DescriptorManagerContext, DescriptorManagerComponent>();
+	GlobalDSetComponent* globalDSetComponent = gm.getContextComponent<MainDSetsContext, GlobalDSetComponent>();
+	ObjectDSetComponent* objectDSetComponent = gm.getContextComponent<MainDSetsContext, ObjectDSetComponent>();
 
 	std::vector<int> textureInfo;
 	std::vector<MeshInfoComponent*> meshInfos;
@@ -57,7 +59,6 @@ void RenderSystem::update(float deltaTime, GeneralManager& gm, const std::vector
 		auto textureInfoComponent = gm.getComponent<TextureInfoComponent>(entities[i]);
 		textureInfo.push_back(textureInfoComponent->textureIndex);
 	}
-	ModelsBuffersComponent* ssbos = gm.getContextComponent<ModelSSBOsContext, ModelsBuffersComponent>();
 
 	while (vk::Result::eTimeout == vulkanDevice.device.waitForFences(
 	                                   *framesData[currentFrameComp->currentFrame].inFlightFence, vk::True, UINT64_MAX));
@@ -97,8 +98,8 @@ void RenderSystem::update(float deltaTime, GeneralManager& gm, const std::vector
 
 	CommandBufferFactory::recordCommandBuffer(framesData[currentFrameComp->currentFrame].commandBuffer, imageIndex,
 	                                          textureInfo, swapChain, pipelineHandler, currentFrameComp->currentFrame,
-	                                          bufferManager, meshInfos, *mainCamera, *ssbos, *lightTexture,
-	                                          *materialDSetComponent, *dManager);
+	                                          bufferManager, meshInfos, *mainCamera, *lightTexture,
+	    *materialDSetComponent, *dManager, globalDSetComponent, objectDSetComponent);
 
 	vk::PipelineStageFlags waitDestinationStageMask(vk::PipelineStageFlagBits::eColorAttachmentOutput);
 

@@ -1,10 +1,10 @@
 #pragma once
 
-#include <vulkan/vulkan_raii.hpp>
+#include <algorithm>
+#include <iterator>
 
 struct ObjectDSetComponent
 {
-	vk::DescriptorSet StorageBufferDSet[MAX_FRAMES_IN_FLIGHT];
-
-	int StorageBuffer = -1;
+	int storageBufferDSet = -1;
+	int storageBuffer = -1;
 };

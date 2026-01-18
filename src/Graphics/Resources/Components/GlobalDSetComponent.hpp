@@ -1,10 +1,11 @@
 #pragma once
 
-#include <vulkan/vulkan_raii.hpp>
+#include <algorithm>
+#include <iterator>
 
 struct GlobalDSetComponent
 {
-	std::vector<vk::DescriptorSet> objectDSets;
-
-	int buffer = -1;
+	int globalDSets = -1;
+	int cameraBuffers = -1;
+	int lightBuffers = -1;
 };

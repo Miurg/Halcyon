@@ -21,9 +21,9 @@ private:
 	Window* window;
 	VulkanDevice* vulkanDevice;
 	SwapChain* swapChain;
-	BufferManager* bufferManager;
+	BufferManager* bManager;
 	PipelineHandler* pipelineHandler;
-	DescriptorManager* descriptorManager;
+	DescriptorManager* dManager;
 	std::vector<FrameData>* framesData;
 
 	uint32_t frameCount = 0;
