@@ -17,6 +17,7 @@
 #include "../Components/FrameDataComponent.hpp"
 #include "../Components/CurrentFrameComponent.hpp"
 #include "../Components/DescriptorManagerComponent.hpp"
+#include "../Components/FrameImageComponent.hpp"
 
 void RenderSystem::processEntity(Entity entity, GeneralManager& manager, float dt) {}
 
@@ -32,12 +33,9 @@ void RenderSystem::onShutdown(GeneralManager& gm)
 
 void RenderSystem::update(float deltaTime, GeneralManager& gm, const std::vector<Entity>& entities)
 {
-	VulkanDevice& vulkanDevice =
-	    *gm.getContextComponent<MainVulkanDeviceContext, VulkanDeviceComponent>()->vulkanDeviceInstance;
 	SwapChain& swapChain = *gm.getContextComponent<MainSwapChainContext, SwapChainComponent>()->swapChainInstance;
 	PipelineHandler& pipelineHandler =
 	    *gm.getContextComponent<MainSignatureContext, PipelineHandlerComponent>()->pipelineHandler;
-	Window& window = *gm.getContextComponent<MainWindowContext, WindowComponent>()->windowInstance;
 	BufferManager& bufferManager =
 	    *gm.getContextComponent<BufferManagerContext, BufferManagerComponent>()->bufferManager;
 	std::vector<FrameData>& framesData =
@@ -45,12 +43,15 @@ void RenderSystem::update(float deltaTime, GeneralManager& gm, const std::vector
 	CurrentFrameComponent* currentFrameComp = gm.getContextComponent<CurrentFrameContext, CurrentFrameComponent>();
 	CameraComponent* mainCamera = gm.getContextComponent<MainCameraContext, CameraComponent>();
 	LightComponent* lightTexture = gm.getContextComponent<MainCameraContext, LightComponent>();
-	BindlessTextureDSetComponent* materialDSetComponent = gm.getContextComponent<MainDSetsContext, BindlessTextureDSetComponent>();
+	BindlessTextureDSetComponent* materialDSetComponent =
+	    gm.getContextComponent<MainDSetsContext, BindlessTextureDSetComponent>();
 	DescriptorManagerComponent* dManager =
 	    gm.getContextComponent<DescriptorManagerContext, DescriptorManagerComponent>();
 	GlobalDSetComponent* globalDSetComponent = gm.getContextComponent<MainDSetsContext, GlobalDSetComponent>();
 	ObjectDSetComponent* objectDSetComponent = gm.getContextComponent<MainDSetsContext, ObjectDSetComponent>();
-
+	
+	uint32_t imageIndex = gm.getContextComponent<FrameImageContext, FrameImageComponent>()->imageIndex;
+	
 	std::vector<int> textureInfo;
 	std::vector<MeshInfoComponent*> meshInfos;
 	for (int i = 0; i < entities.size(); i++)
@@ -60,82 +61,8 @@ void RenderSystem::update(float deltaTime, GeneralManager& gm, const std::vector
 		textureInfo.push_back(textureInfoComponent->textureIndex);
 	}
 
-	while (vk::Result::eTimeout == vulkanDevice.device.waitForFences(
-	                                   *framesData[currentFrameComp->currentFrame].inFlightFence, vk::True, UINT64_MAX));
-
-	// Handle window resize
-	if (window.framebufferResized)
-	{
-		SwapChainFactory::recreateSwapChain(swapChain, vulkanDevice, window);
-		window.framebufferResized = false;
-		return;
-	}
-
-	// Acquire the next image from the swap chain
-	auto [result, imageIndex] = swapChain.swapChainHandle.acquireNextImage(
-	    UINT64_MAX, *framesData[currentFrameComp->currentFrame].presentCompleteSemaphore, nullptr);
-	try
-	{
-		if (result == vk::Result::eErrorOutOfDateKHR)
-		{
-			window.framebufferResized = false;
-			SwapChainFactory::recreateSwapChain(swapChain, vulkanDevice, window);
-			return;
-		}
-	}
-	catch (vk::OutOfDateKHRError&)
-	{
-		SwapChainFactory::recreateSwapChain(swapChain, vulkanDevice, window);
-		return;
-	}
-	catch (vk::SystemError& e)
-	{
-		throw std::runtime_error("failed to acquire swap chain image!");
-	}
-
-	vulkanDevice.device.resetFences(*framesData[currentFrameComp->currentFrame].inFlightFence);
-	framesData[currentFrameComp->currentFrame].commandBuffer.reset();
-
-	CommandBufferFactory::recordCommandBuffer(framesData[currentFrameComp->currentFrame].commandBuffer, imageIndex,
-	                                          textureInfo, swapChain, pipelineHandler, currentFrameComp->currentFrame,
-	                                          bufferManager, meshInfos, *mainCamera, *lightTexture,
-	    *materialDSetComponent, *dManager, globalDSetComponent, objectDSetComponent);
-
-	vk::PipelineStageFlags waitDestinationStageMask(vk::PipelineStageFlagBits::eColorAttachmentOutput);
-
-	const vk::SubmitInfo submitInfo(*framesData[currentFrameComp->currentFrame].presentCompleteSemaphore,
-	                                waitDestinationStageMask, *framesData[currentFrameComp->currentFrame].commandBuffer,
-	                                *framesData[imageIndex].renderFinishedSemaphore);
-
-	vulkanDevice.graphicsQueue.submit(submitInfo, *framesData[currentFrameComp->currentFrame].inFlightFence);
-
-	// Present the image
-	const vk::PresentInfoKHR presentInfoKHR(*framesData[imageIndex].renderFinishedSemaphore, *swapChain.swapChainHandle,
-	                                        imageIndex);
-	vk::Result presentResult;
-	try
-	{
-		presentResult = vulkanDevice.presentQueue.presentKHR(presentInfoKHR);
-	}
-	catch (vk::OutOfDateKHRError&)
-	{
-		presentResult = vk::Result::eErrorOutOfDateKHR;
-	}
-	catch (vk::SystemError& e)
-	{
-		throw std::runtime_error("failed to present swap chain image!");
-	}
-
-	// Check the result of the presentation
-	if (presentResult == vk::Result::eErrorOutOfDateKHR || presentResult == vk::Result::eSuboptimalKHR)
-	{
-		window.framebufferResized = false;
-		SwapChainFactory::recreateSwapChain(swapChain, vulkanDevice, window);
-	}
-	else if (presentResult != vk::Result::eSuccess)
-	{
-		throw std::runtime_error("failed to present swap chain image!");
-	}
-
-	currentFrameComp->currentFrame = (currentFrameComp->currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+	CommandBufferFactory::recordCommandBuffer(
+	    framesData[currentFrameComp->currentFrame].commandBuffer, imageIndex, textureInfo, swapChain, pipelineHandler,
+	    currentFrameComp->currentFrame, bufferManager, meshInfos, *mainCamera, *lightTexture, *materialDSetComponent,
+	    *dManager, globalDSetComponent, objectDSetComponent);
 }

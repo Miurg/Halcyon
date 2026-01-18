@@ -24,6 +24,7 @@
 #include "Graphics/Components/DescriptorManagerComponent.hpp"
 #include "Graphics/Resources/Components/GlobalDSetComponent.hpp"
 #include "Graphics/Resources/Components/ObjectDSetComponent.hpp"
+#include "Graphics/Components/FrameImageComponent.hpp"
 
 namespace
 {
@@ -50,18 +51,6 @@ void App::run()
 	VulkanDeviceFactory::createVulkanDevice(*window, *vulkanDevice);
 	gm.addComponent<VulkanDeviceComponent>(vulkanDeviceEntity, vulkanDevice);
 
-	Entity cameraEntity = gm.createEntity();
-	gm.addComponent<CameraComponent>(cameraEntity);
-	gm.addComponent<TransformComponent>(cameraEntity, glm::vec3(0.0f, 0.0f, 3.0f));
-	gm.addComponent<ControlComponent>(cameraEntity);
-	gm.addComponent<LightComponent>(cameraEntity, 2048, 2048);
-	gm.registerContext<MainCameraContext>(cameraEntity);
-
-	Entity sunEntity = gm.createEntity();
-	gm.addComponent<CameraComponent>(sunEntity);
-	gm.addComponent<TransformComponent>(sunEntity, glm::vec3(10.0f, 20.0f, 10.0f));
-	gm.registerContext<LightCameraContext>(sunEntity);
-
 	Entity swapChainEntity = gm.createEntity();
 	gm.registerContext<MainSwapChainContext>(swapChainEntity);
 	swapChain = new SwapChain();
@@ -85,6 +74,10 @@ void App::run()
 	PipelineFactory::createShadowPipeline(*vulkanDevice, *swapChain, *dManager, *pipelineHandler);
 	gm.addComponent<PipelineHandlerComponent>(signatureEntity, pipelineHandler);
 
+	Entity frameImageEntity = gm.createEntity();
+	gm.registerContext<FrameImageContext>(frameImageEntity);
+	gm.addComponent<FrameImageComponent>(frameImageEntity);
+
 	Entity frameDataEntity = gm.createEntity();
 	gm.registerContext<MainFrameDataContext>(frameDataEntity);
 	gm.registerContext<CurrentFrameContext>(frameDataEntity);
@@ -95,6 +88,18 @@ void App::run()
 	}
 	gm.addComponent<FrameDataComponent>(frameDataEntity, framesData);
 	gm.addComponent<CurrentFrameComponent>(frameDataEntity);
+
+	Entity cameraEntity = gm.createEntity();
+	gm.addComponent<CameraComponent>(cameraEntity);
+	gm.addComponent<TransformComponent>(cameraEntity, glm::vec3(0.0f, 0.0f, 3.0f));
+	gm.addComponent<ControlComponent>(cameraEntity);
+	gm.addComponent<LightComponent>(cameraEntity, 2048, 2048);
+	gm.registerContext<MainCameraContext>(cameraEntity);
+
+	Entity sunEntity = gm.createEntity();
+	gm.addComponent<CameraComponent>(sunEntity);
+	gm.addComponent<TransformComponent>(sunEntity, glm::vec3(10.0f, 20.0f, 10.0f));
+	gm.registerContext<LightCameraContext>(sunEntity);
 
 	CameraComponent* camera = gm.getContextComponent<MainCameraContext, CameraComponent>();
 	CameraComponent* sun = gm.getContextComponent<LightCameraContext, CameraComponent>();

@@ -11,3 +11,4 @@ class ModelSSBOsContext{};
 class LightCameraContext{};
 class MainDSetsContext{};
 class DescriptorManagerContext{};
+class FrameImageContext{};
