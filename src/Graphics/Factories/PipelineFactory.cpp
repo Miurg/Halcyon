@@ -80,11 +80,6 @@ void PipelineFactory::createGraphicsPipeline(VulkanDevice& vulkanDevice, SwapCha
 	colorBlending.attachmentCount = 1;
 	colorBlending.pAttachments = &colorBlendAttachment;
 
-	vk::PushConstantRange pushConstantRange;
-	pushConstantRange.stageFlags = vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment; 
-	pushConstantRange.offset = 0;
-	pushConstantRange.size = sizeof(uint32_t) * 2; 
-
 	vk::PipelineLayoutCreateInfo pipelineLayoutInfo;
 	std::array<vk::DescriptorSetLayout, 3> setLayouts = 
 	{
@@ -95,9 +90,6 @@ void PipelineFactory::createGraphicsPipeline(VulkanDevice& vulkanDevice, SwapCha
 
 	pipelineLayoutInfo.setLayoutCount = static_cast<uint32_t>(setLayouts.size());
 	pipelineLayoutInfo.pSetLayouts = setLayouts.data();
-	pipelineLayoutInfo.pushConstantRangeCount = 1;
-	pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;
-
 
 	pipelineHandler.pipelineLayout = vk::raii::PipelineLayout(vulkanDevice.device, pipelineLayoutInfo);
 
@@ -195,12 +187,6 @@ void PipelineFactory::createShadowPipeline(VulkanDevice& vulkanDevice, SwapChain
 	colorBlending.logicOp = vk::LogicOp::eCopy;
 	colorBlending.attachmentCount = 0; 
 	colorBlending.pAttachments = nullptr;
-
-	//Temp for model id
-	vk::PushConstantRange pushConstantRange;
-	pushConstantRange.stageFlags = vk::ShaderStageFlagBits::eVertex;
-	pushConstantRange.offset = 0;
-	pushConstantRange.size = sizeof(uint32_t);
 
 	vk::PipelineRenderingCreateInfo pipelineRenderingCreateInfo;
 	pipelineRenderingCreateInfo.colorAttachmentCount = 0; 
