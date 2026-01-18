@@ -6,7 +6,7 @@
 #include "../Resources/Components/TextureInfoComponent.hpp"
 #include "../Resources/Components/MeshInfoComponent.hpp"
 
-class PresentSystem : public SystemContextual<PresentSystem>
+class FrameEndSystem : public SystemContextual<FrameEndSystem>
 {
 public:
 	void update(float deltaTime, GeneralManager& gm) override;

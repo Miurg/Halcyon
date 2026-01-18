@@ -1,4 +1,4 @@
-#include "PresentSystem.hpp"
+#include "FrameEndSystem.hpp"
 #include "../VulkanConst.hpp"
 #include <iostream>
 #include <chrono>
@@ -19,17 +19,17 @@
 #include "../Components/DescriptorManagerComponent.hpp"
 #include "../Components/FrameImageComponent.hpp"
 
-void PresentSystem::onRegistered(GeneralManager& gm)
+void FrameEndSystem::onRegistered(GeneralManager& gm)
 {
 	std::cout << "PresentSystem registered!" << std::endl;
 }
 
-void PresentSystem::onShutdown(GeneralManager& gm)
+void FrameEndSystem::onShutdown(GeneralManager& gm)
 {
 	std::cout << "PresentSystem shutdown!" << std::endl;
 }
 
-void PresentSystem::update(float deltaTime, GeneralManager& gm)
+void FrameEndSystem::update(float deltaTime, GeneralManager& gm)
 {
 	VulkanDevice& vulkanDevice =
 	    *gm.getContextComponent<MainVulkanDeviceContext, VulkanDeviceComponent>()->vulkanDeviceInstance;
