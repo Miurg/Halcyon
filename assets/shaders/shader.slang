@@ -1,6 +1,7 @@
 struct ModelData
 {
     float4x4 model;
+    uint textureIndex;
 };
 [[vk::binding(0, 2)]] StructuredBuffer<ModelData> objectBuffer;
 
@@ -25,13 +26,8 @@ struct VSOutput
     float3 fragColor;
     float2 fragTexCoord;
     float4 shadowCoord;
-};
-
-struct PushConsts
-{
     uint textureIndex;
 };
-[[vk::push_constant]] ConstantBuffer<PushConsts> push;
 
 [shader("vertex")]
 VSOutput vertMain(VSInput input, uint instanceID: SV_InstanceID, uint baseInstance: SV_StartInstanceLocation)
@@ -47,6 +43,7 @@ VSOutput vertMain(VSInput input, uint instanceID: SV_InstanceID, uint baseInstan
 
     output.fragColor = input.inColor;
     output.fragTexCoord = input.inTexCoord;
+    output.textureIndex = data.textureIndex;
     return output;
 }
 [[vk::binding(0, 1)]] Sampler2D textureArray[1024];
@@ -54,7 +51,7 @@ VSOutput vertMain(VSInput input, uint instanceID: SV_InstanceID, uint baseInstan
 [shader("fragment")]
 float4 fragMain(VSOutput vertIn) : SV_TARGET
 {
-    float3 color = textureArray[push.textureIndex].Sample(vertIn.fragTexCoord).rgb;
+    float3 color = textureArray[vertIn.textureIndex].Sample(vertIn.fragTexCoord).rgb;
 
     float3 projCoords = vertIn.shadowCoord.xyz / vertIn.shadowCoord.w;
 

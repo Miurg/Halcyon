@@ -8,12 +8,6 @@ void CommandBufferFactory::recordCommandBuffer(
     DescriptorManagerComponent& dManager, GlobalDSetComponent* globalDSetComponent,
     ObjectDSetComponent* objectDSetComponent)
 {
-	struct ObjectPushConstants
-	{
-		// uint32_t objectIndex;
-		int32_t textureIndex;
-	};
-
 	commandBuffer.begin({});
 
 	// Step 1: SHADOW PASS
@@ -108,12 +102,12 @@ void CommandBufferFactory::recordCommandBuffer(
 	                                          static_cast<float>(swapChain.swapChainExtent.height), 0.0f, 1.0f));
 	commandBuffer.setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), swapChain.swapChainExtent));
 
-	commandBuffer.bindDescriptorSets(
-	    vk::PipelineBindPoint::eGraphics, *pipelineHandler.pipelineLayout, 0,
-	    dManager.descriptorManager->descriptorSets[globalDSetComponent->globalDSets][currentFrame], nullptr);
-	commandBuffer.bindDescriptorSets(
-	    vk::PipelineBindPoint::eGraphics, *pipelineHandler.pipelineLayout, 2,
-	    dManager.descriptorManager->descriptorSets[objectDSetComponent->storageBufferDSet][currentFrame], nullptr);
+	//commandBuffer.bindDescriptorSets(
+	//    vk::PipelineBindPoint::eGraphics, *pipelineHandler.pipelineLayout, 0,
+	//    dManager.descriptorManager->descriptorSets[globalDSetComponent->globalDSets][currentFrame], nullptr);
+	//commandBuffer.bindDescriptorSets(
+	//    vk::PipelineBindPoint::eGraphics, *pipelineHandler.pipelineLayout, 2,
+	//    dManager.descriptorManager->descriptorSets[objectDSetComponent->storageBufferDSet][currentFrame], nullptr);
 	commandBuffer.bindDescriptorSets(
 	    vk::PipelineBindPoint::eGraphics, *pipelineHandler.pipelineLayout, 1,
 	    dManager.descriptorManager->descriptorSets[bindlessTextureDSetComponent.bindlessTextureSet][0], nullptr);
@@ -122,11 +116,6 @@ void CommandBufferFactory::recordCommandBuffer(
 		commandBuffer.bindVertexBuffers(0, *bufferManager.meshes[meshInfo[i]->bufferIndex].vertexBuffer, {0});
 		commandBuffer.bindIndexBuffer(*bufferManager.meshes[meshInfo[i]->bufferIndex].indexBuffer, 0,
 		                              vk::IndexType::eUint32);
-		ObjectPushConstants pushConst{textureInfo[i]};
-
-		commandBuffer.pushConstants<ObjectPushConstants>(
-		    *pipelineHandler.pipelineLayout, vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment, 0,
-		    pushConst);
 		commandBuffer.drawIndexed(meshInfo[i]->indexCount, 1, meshInfo[i]->indexOffset, meshInfo[i]->vertexOffset,
 		                          static_cast<uint32_t>(i));
 	}

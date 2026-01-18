@@ -61,5 +61,7 @@ struct CameraStucture
 
 struct ModelSctructure
 {
-	alignas(16) glm::mat4 model;
+	alignas(16) glm::mat4 model; // 64 bytes
+	uint32_t textureIndex; // 4 bytes
+	uint32_t _padding[3]; // 12 bytes (64 + 4 + 12 = 80)
 };

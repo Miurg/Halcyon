@@ -1,6 +1,7 @@
 struct ModelData
 {
     float4x4 model;
+    uint textureIndex;
 };
 [[vk::binding(0, 2)]] StructuredBuffer<ModelData> objectBuffer;
 

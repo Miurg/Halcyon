@@ -46,10 +46,13 @@ void BufferUpdateSystem::update(float deltaTime, GeneralManager& gm, const std::
 	float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 
 	std::vector<TransformComponent> transforms;
+	std::vector<TextureInfoComponent> textures;
 	transforms.reserve(entities.size());
+	textures.reserve(entities.size());
 	for (const auto& entity : entities)
 	{
 		transforms.push_back(*gm.getComponent<TransformComponent>(entity));
+		textures.push_back(*gm.getComponent<TextureInfoComponent>(entity));
 	}
 
 	// === Sun ===
@@ -89,12 +92,11 @@ void BufferUpdateSystem::update(float deltaTime, GeneralManager& gm, const std::
 	    glm::rotate(glm::mat4(1.0f), time / 10.0f * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 	const glm::mat4 finalRotation = rotation * initialRotation;
 
-	const size_t count = entities.size();
-
-	for (size_t i = 0; i < count; ++i)
+	for (size_t i = 0; i < entities.size(); ++i)
 	{
 		const glm::mat4 model = transforms[i].getModelMatrix() * finalRotation;
 
 		dstPtr[i].model = glm::transpose(model);
+		dstPtr[i].textureIndex = textures[i].textureIndex;
 	}
 }

@@ -1,8 +1,9 @@
 #pragma once
 #include "../../Core/Systems/SystemSubscribed.hpp"
 #include "../Components/TransformComponent.hpp"
+#include "../Resources/Components/TextureInfoComponent.hpp"
 
-class BufferUpdateSystem : public SystemSubscribed<BufferUpdateSystem, TransformComponent>
+class BufferUpdateSystem : public SystemSubscribed<BufferUpdateSystem, TransformComponent, TextureInfoComponent>
 {
 public:
 	void update(float deltaTime, GeneralManager& gm, const std::vector<Entity>& entities) override;

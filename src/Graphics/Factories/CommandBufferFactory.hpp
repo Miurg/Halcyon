@@ -19,10 +19,29 @@ public:
 	                                PipelineHandler& pipelineHandler, uint32_t currentFrame,
 	                                BufferManager& bufferManager, std::vector<MeshInfoComponent*>& meshInfo,
 	                                CameraComponent& camera, LightComponent& lightTexture,
-	                                BindlessTextureDSetComponent& materialDSet, DescriptorManagerComponent& dManager,
+	                                BindlessTextureDSetComponent& bindlessTextureDSetComponent,
+	                                DescriptorManagerComponent& dManager,
 	                                GlobalDSetComponent* globalDSetComponent, ObjectDSetComponent* objectDSetComponent);
 	static void transitionImageLayout(vk::raii::CommandBuffer& commandBuffer, vk::Image image, vk::ImageLayout oldLayout,
 	                                  vk::ImageLayout newLayout, vk::AccessFlags2 srcAccessMask,
 	                                  vk::AccessFlags2 dstAccessMask, vk::PipelineStageFlags2 srcStageMask,
 	                                  vk::PipelineStageFlags2 dstStageMask, vk::ImageAspectFlags imageAspectFlags);
+};
+
+struct CommandBufferStruct
+{
+	vk::raii::CommandBuffer& commandBuffer;
+	uint32_t imageIndex;
+	std::vector<int>& textureInfo;
+	SwapChain& swapChain;
+	PipelineHandler& pipelineHandler;
+	uint32_t currentFrame;
+	BufferManager& bufferManager;
+	std::vector<MeshInfoComponent*>& meshInfo;
+	CameraComponent& camera;
+	LightComponent& lightTexture;
+	BindlessTextureDSetComponent& materialDSet;
+	DescriptorManagerComponent& dManager;
+	GlobalDSetComponent* globalDSetComponent;
+	ObjectDSetComponent* objectDSetComponent;
 };

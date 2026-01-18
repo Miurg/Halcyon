@@ -61,6 +61,7 @@ void RenderSystem::update(float deltaTime, GeneralManager& gm, const std::vector
 		textureInfo.push_back(textureInfoComponent->textureIndex);
 	}
 
+
 	CommandBufferFactory::recordCommandBuffer(
 	    framesData[currentFrameComp->currentFrame].commandBuffer, imageIndex, textureInfo, swapChain, pipelineHandler,
 	    currentFrameComp->currentFrame, bufferManager, meshInfos, *mainCamera, *lightTexture, *materialDSetComponent,
