@@ -81,21 +81,20 @@ void BufferUpdateSystem::update(float deltaTime, GeneralManager& gm, const std::
 	       sizeof(cameraUbo));
 
 	// === Models ===
-	glm::mat4 rotation = glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-	glm::mat4 initialRotation =
-	    glm::rotate(glm::mat4(1.0f), time / 10 * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-	glm::mat4 finalRotation = rotation * initialRotation;
+	auto* dstPtr = static_cast<ModelSctructure*>(
+	    bufferManager.buffers[objectDSetComponent->storageBuffer].bufferMapped[currentFrame]);
 
-	std::vector<ModelSctructure> frameData;
-	frameData.reserve(entities.size());
+	const glm::mat4 rotation = glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+	const glm::mat4 initialRotation =
+	    glm::rotate(glm::mat4(1.0f), time / 10.0f * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+	const glm::mat4 finalRotation = rotation * initialRotation;
 
-	for (size_t i = 0; i < entities.size(); i++)
+	const size_t count = entities.size();
+
+	for (size_t i = 0; i < count; ++i)
 	{
-		glm::mat4 model = transforms[i]->getModelMatrix() * finalRotation;
-		ModelSctructure modelUbo{.model = glm::transpose(model)};
-		frameData.push_back(modelUbo);
-	}
+		const glm::mat4 model = transforms[i]->getModelMatrix() * finalRotation;
 
-	void* mappedMemory = bufferManager.buffers[objectDSetComponent->storageBuffer].bufferMapped[currentFrame];
-	memcpy(mappedMemory, frameData.data(), frameData.size() * sizeof(ModelSctructure));
+		dstPtr[i].model = glm::transpose(model);
+	}
 }
