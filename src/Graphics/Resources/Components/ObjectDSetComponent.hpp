@@ -1,8 +1,5 @@
 #pragma once
 
-#include <algorithm>
-#include <iterator>
-
 struct ObjectDSetComponent
 {
 	int storageBufferDSet = -1;

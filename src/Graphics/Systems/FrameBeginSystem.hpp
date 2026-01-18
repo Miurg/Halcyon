@@ -1,10 +1,6 @@
 #pragma once
 
-#include <vector>
 #include "../../Core/Systems/SystemContextual.hpp"
-#include "../Components/TransformComponent.hpp"
-#include "../Resources/Components/TextureInfoComponent.hpp"
-#include "../Resources/Components/MeshInfoComponent.hpp"
 
 class FrameBeginSystem
     : public SystemContextual<FrameBeginSystem>

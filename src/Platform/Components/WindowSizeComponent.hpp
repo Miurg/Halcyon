@@ -1,4 +1,5 @@
 #pragma once
+
 struct WindowSizeComponent
 {
 	unsigned int windowWidth = 0, windowHeight = 0;

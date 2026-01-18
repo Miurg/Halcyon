@@ -1,17 +1,10 @@
 #include "RenderSystem.hpp"
-#include "../VulkanConst.hpp"
 #include <iostream>
-#include <chrono>
-#include <vulkan/vulkan_raii.hpp>
-#include "../Factories/SwapChainFactory.hpp"
 #include "../../Core/GeneralManager.hpp"
 #include "../GraphicsContexts.hpp"
 #include "../Factories/CommandBufferFactory.hpp"
-#include "../Components/VulkanDeviceComponent.hpp"
 #include "../Components/PipelineHandlerComponent.hpp"
 #include "../Components/SwapChainComponent.hpp"
-#include "../../Platform/PlatformContexts.hpp"
-#include "../../Platform/Components/WindowComponent.hpp"
 #include "../Components/BufferManagerComponent.hpp"
 #include "../FrameData.hpp"
 #include "../Components/FrameDataComponent.hpp"

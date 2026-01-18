@@ -1,5 +1,4 @@
 #include "VulkanUtils.hpp"
-#include <iostream>
 #include <fstream>
 
 /// <summary>

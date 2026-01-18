@@ -1,12 +1,7 @@
 #pragma once
 
-#include "../../VulkanDevice.hpp"
 #include <vector>
 #include <vulkan/vulkan_raii.hpp>
-#include <glm/glm.hpp>
-#include <array>
-#include <string>
-#include <functional>
 #include "Vertex.hpp"
 
 class VertexIndexBuffer

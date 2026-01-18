@@ -2,10 +2,9 @@
 
 #include "../Managers/VertexIndexBuffer.hpp"
 #include "../Managers/Texture.hpp"
-#include "../Managers/Buffer.hpp"
 #include "../Components/MeshInfoComponent.hpp"
-#include "../Components/TextureInfoComponent.hpp"
 #include <vk_mem_alloc.h>
+#include "../../VulkanDevice.hpp"
 
 class LoadFileFactory
 {

@@ -1,4 +1,5 @@
 #pragma once
+
 struct KeyboardStateComponent
 {
 	bool keys[1024] = {false};

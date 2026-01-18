@@ -9,6 +9,7 @@
 #include "Texture.hpp"
 #include "Buffer.hpp"
 #include "../Components/BindlessTextureDSetComponent.hpp"
+#include "../../VulkanDevice.hpp"
 
 class DescriptorManager;
 

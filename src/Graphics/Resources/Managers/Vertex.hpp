@@ -4,7 +4,6 @@
 #include <vulkan/vulkan_raii.hpp>
 #include <glm/glm.hpp>
 
-
 struct Vertex
 {
 	glm::vec3 pos;

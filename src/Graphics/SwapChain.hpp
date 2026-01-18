@@ -1,8 +1,6 @@
 #pragma once
 
 #include <vulkan/vulkan_raii.hpp>
-#include "VulkanDevice.hpp"
-#include "../Platform/Window.hpp"
 
 class SwapChain
 {

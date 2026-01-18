@@ -1,4 +1,5 @@
 #pragma once
+
 struct MouseStateComponent
 {
 	bool keys[32] = {false};

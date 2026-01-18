@@ -4,13 +4,10 @@
 #include "../Resources/Managers/BufferManager.hpp"
 #include <iostream>
 #include <chrono>
-#include <vulkan/vulkan_raii.hpp>
 #include "../../Core/GeneralManager.hpp"
 #include "../GraphicsContexts.hpp"
 #include "../Components/SwapChainComponent.hpp"
 #include "../Components/BufferManagerComponent.hpp"
-#include "../FrameData.hpp"
-#include "../Components/FrameDataComponent.hpp"
 #include "../Components/CurrentFrameComponent.hpp"
 #include "../Resources/Components/GlobalDSetComponent.hpp"
 #include "../Resources/Components/ObjectDSetComponent.hpp"

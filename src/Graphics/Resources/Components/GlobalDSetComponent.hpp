@@ -1,8 +1,5 @@
 #pragma once
 
-#include <algorithm>
-#include <iterator>
-
 struct GlobalDSetComponent
 {
 	int globalDSets = -1;

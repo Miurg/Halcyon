@@ -1,5 +1,7 @@
 #pragma once
+
 #include "../Window.hpp"
+
 struct WindowComponent
 {
 	Window* windowInstance;

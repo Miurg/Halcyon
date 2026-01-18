@@ -1,6 +1,5 @@
 #pragma once
 
-#include <memory>
 #include "../VulkanDevice.hpp"
 
 struct VulkanDeviceComponent

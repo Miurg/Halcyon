@@ -1,6 +1,5 @@
 #pragma once
 
-#include <memory>
 #include "../Resources/Managers/BufferManager.hpp"
 
 struct BufferManagerComponent
