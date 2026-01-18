@@ -12,6 +12,18 @@
 
 class GeneralManager;
 
+enum class SystemKind : uint8_t
+{
+	Subscribed,
+	Contextual
+};
+
+struct SystemOrderEntry
+{
+	SystemKind kind;
+	uint32_t index;
+};
+
 class SystemManager
 {
 private:
@@ -19,6 +31,7 @@ private:
 	std::vector<std::unique_ptr<ISystemSubscribed>> SystemsSubscribed;
 	std::unordered_map<std::type_index, std::vector<Entity>> SystemToEntities;
 	std::unordered_map<Entity, std::vector<std::type_index>> EntityToSystems;
+	std::vector<SystemOrderEntry> executionOrder;
 
 public:
 	void onShutdown(GeneralManager& gm)
@@ -43,12 +56,16 @@ public:
 			auto system = std::make_unique<TSystem>(std::forward<Args>(args)...);
 			SystemsSubscribed.push_back(std::move(system));
 			SystemsSubscribed.back()->onRegistered(gm);
+			uint32_t index = static_cast<uint32_t>(SystemsSubscribed.size() - 1);
+			executionOrder.push_back(SystemOrderEntry{SystemKind::Subscribed, index});
 		}
 		else
 		{
 			auto system = std::make_unique<TSystem>(std::forward<Args>(args)...);
 			SystemContextual.push_back(std::move(system));
 			SystemContextual.back()->onRegistered(gm);
+			uint32_t index = static_cast<uint32_t>(SystemContextual.size() - 1);
+			executionOrder.push_back(SystemOrderEntry{SystemKind::Contextual, index});
 		}
 	}
 
@@ -188,18 +205,22 @@ public:
 
 	void updateSystems(float deltaTime, GeneralManager& gm)
 	{
-		for (auto& system : SystemsSubscribed)
+		for (auto& entry : executionOrder)
 		{
-			std::type_index systemType = typeid(*system);
-			auto it = SystemToEntities.find(systemType);
-			if (it != SystemToEntities.end())
+			if (entry.kind == SystemKind::Subscribed)
 			{
-				system->update(deltaTime, gm, it->second);
+				auto& system = SystemsSubscribed[entry.index];
+				std::type_index systemType = typeid(*system);
+				auto it = SystemToEntities.find(systemType);
+				if (it != SystemToEntities.end())
+				{
+					SystemsSubscribed[entry.index]->update(deltaTime, gm, it->second);
+				}
 			}
-		}
-		for (auto& system : SystemContextual)
-		{
-			system->update(deltaTime, gm);
+			else
+			{
+				SystemContextual[entry.index]->update(deltaTime, gm);
+			}
 		}
 	}
 };
