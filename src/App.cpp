@@ -99,11 +99,11 @@ void App::run()
 	Entity sunEntity = gm.createEntity();
 	gm.addComponent<CameraComponent>(sunEntity);
 	gm.addComponent<TransformComponent>(sunEntity, glm::vec3(10.0f, 20.0f, 10.0f));
+	gm.addComponent<LightComponent>(sunEntity, 2048, 2048);
 	gm.registerContext<LightCameraContext>(sunEntity);
 
 	CameraComponent* camera = gm.getContextComponent<MainCameraContext, CameraComponent>();
-	CameraComponent* sun = gm.getContextComponent<LightCameraContext, CameraComponent>();
-	LightComponent* cameraLight = gm.getContextComponent<MainCameraContext, LightComponent>();
+	LightComponent* sunLight = gm.getContextComponent<LightCameraContext, LightComponent>();
 
 	Entity mainDSetsEntity = gm.createEntity();
 	gm.registerContext<MainDSetsContext>(mainDSetsEntity);
@@ -124,10 +124,10 @@ void App::run()
 	dManager->updateStorageBufferDescriptors(*bManager, globalDSetComponent->cameraBuffers,
 	                                         globalDSetComponent->globalDSets, 0);
 
-	cameraLight->textureShadowImage = bManager->createShadowMap(cameraLight->sizeX, cameraLight->sizeY);
+	sunLight->textureShadowImage = bManager->createShadowMap(sunLight->sizeX, sunLight->sizeY);
 	dManager->updateShadowDSet(globalDSetComponent->globalDSets,
-	                           bManager->textures[cameraLight->textureShadowImage].textureImageView,
-	                           bManager->textures[cameraLight->textureShadowImage].textureSampler);
+	                           bManager->textures[sunLight->textureShadowImage].textureImageView,
+	                           bManager->textures[sunLight->textureShadowImage].textureSampler);
 
 	ObjectDSetComponent* objectDSetComponent = gm.getContextComponent<MainDSetsContext, ObjectDSetComponent>();
 	objectDSetComponent->storageBuffer =

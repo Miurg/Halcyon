@@ -35,7 +35,7 @@ void RenderSystem::update(float deltaTime, GeneralManager& gm, const std::vector
 	    *gm.getContextComponent<MainFrameDataContext, FrameDataComponent>()->frameDataArray;
 	CurrentFrameComponent* currentFrameComp = gm.getContextComponent<CurrentFrameContext, CurrentFrameComponent>();
 	CameraComponent* mainCamera = gm.getContextComponent<MainCameraContext, CameraComponent>();
-	LightComponent* lightTexture = gm.getContextComponent<MainCameraContext, LightComponent>();
+	LightComponent* lightTexture = gm.getContextComponent<LightCameraContext, LightComponent>();
 	BindlessTextureDSetComponent* materialDSetComponent =
 	    gm.getContextComponent<MainDSetsContext, BindlessTextureDSetComponent>();
 	DescriptorManagerComponent* dManager =
