@@ -52,34 +52,6 @@ void BufferUpdateSystem::update(float deltaTime, GeneralManager& gm, const std::
 		textures.push_back(*gm.getComponent<TextureInfoComponent>(entity));
 	}
 
-	// === Sun ===
-	glm::vec3 lightPos = glm::vec3(sunCameraTransform->position.x + mainCameraTransform->position.x,
-	                               sunCameraTransform->position.y + mainCameraTransform->position.y,
-	                               sunCameraTransform->position.z + mainCameraTransform->position.z);
-	glm::vec3 lightTarget =
-	    glm::vec3(mainCameraTransform->position.x, mainCameraTransform->position.y, mainCameraTransform->position.z);
-	glm::mat4 lightView = glm::lookAt(lightPos, lightTarget, glm::vec3(0.0f, 1.0f, 0.0f));
-
-	glm::mat4 lightProj = glm::orthoRH_ZO(-sunCamera->orthoSize, sunCamera->orthoSize, -sunCamera->orthoSize,
-	                                      sunCamera->orthoSize, sunCamera->zNear, sunCamera->zFar);
-	lightProj[1][1] *= -1; // Y-flip
-
-	glm::mat4 lightSpaceMatrix = lightProj * lightView;
-
-	// === Camera ===
-	glm::mat4 view = mainCameraTransform->getViewMatrix();
-	glm::mat4 proj = glm::perspective(glm::radians(mainCamera->fov),
-	                                  static_cast<float>(swapChain.swapChainExtent.width) /
-	                                      static_cast<float>(swapChain.swapChainExtent.height),
-	                                  mainCamera->zNear, mainCamera->zFar);
-	proj[1][1] *= -1; // Y-flip
-
-	glm::mat4 cameraSpaceMatrix = proj * view;
-
-	CameraStucture cameraUbo{.cameraSpaceMatrix = cameraSpaceMatrix, .lightSpaceMatrix = lightSpaceMatrix};
-	memcpy(bufferManager.buffers[globalDSetComponent->cameraBuffers].bufferMapped[currentFrame], &cameraUbo,
-	       sizeof(cameraUbo));
-
 	// === Models ===
 	auto* dstPtr = static_cast<ModelSctructure*>(
 	    bufferManager.buffers[objectDSetComponent->storageBuffer].bufferMapped[currentFrame]);

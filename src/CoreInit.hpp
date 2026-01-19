@@ -5,6 +5,8 @@
 #include "Graphics/Systems/BufferUpdateSystem.hpp"
 #include "Graphics/Systems/FrameBeginSystem.hpp"
 #include "Graphics/Systems/FrameEndSystem.hpp"
+#include "Graphics/Systems/CameraMatrixSystem.hpp"
+
 
 class CoreInit
 {
@@ -17,6 +19,7 @@ public:
 
 		gm.registerSystem<InputSolverSystem>();
 		gm.registerSystem<ControlSystem>();
+		gm.registerSystem<CameraMatrixSystem>();
 		gm.registerSystem<BufferUpdateSystem>();
 		gm.registerSystem<FrameBeginSystem>();
 		gm.registerSystem<RenderSystem>();
