@@ -14,6 +14,10 @@ struct TransformComponent
 	glm::vec3 front;
 	glm::vec3 up;
 	glm::vec3 right;
+	mutable glm::mat4 model = glm::mat4(1.0f); 
+	mutable glm::mat4 view = glm::mat4(1.0f); 
+	mutable bool isModelDirty = true;
+	mutable bool isViewDirty = true;
 
 	TransformComponent() = default;
 
@@ -72,22 +76,31 @@ struct TransformComponent
 		front = glm::rotate(rotation, glm::vec3(0.0f, 0.0f, -1.0f));
 		up = glm::rotate(rotation, glm::vec3(0.0f, 1.0f, 0.0f));
 		right = glm::rotate(rotation, glm::vec3(1.0f, 0.0f, 0.0f));
+		isModelDirty = true;
+		isViewDirty = true;
 	}
 
 	glm::mat4 getModelMatrix() const
 	{
-		glm::mat4 model = glm::mat4(1.0f);
-		model = glm::translate(model, position);
-		model *= glm::mat4_cast(rotation);
-		model = glm::scale(model, scale);
+		if (isModelDirty)
+		{
+			model = glm::translate(glm::mat4(1.0f), position);
+			model *= glm::mat4_cast(rotation);
+			model = glm::scale(model, scale);
+			isModelDirty = false;
+		}
 		return model;
 	}
 
 	glm::mat4 getViewMatrix() const
 	{
-		// R^T * T^-1
-		glm::mat4 view = glm::mat4_cast(glm::conjugate(rotation));
-		view = glm::translate(view, -position);
+		if (isViewDirty)
+		{
+			// R^T * T^-1
+			view = glm::mat4_cast(glm::conjugate(rotation));
+			view = glm::translate(view, -position);
+			isViewDirty = false;
+		}
 		return view;
 	}
 
