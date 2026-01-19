@@ -5,13 +5,11 @@ struct ModelData
 };
 [[vk::binding(0, 2)]] StructuredBuffer<ModelData> objectBuffer;
 
-struct CameraUBO
+struct SunUBO
 {
-    float4x4 cameraSpaceMatrix;
     float4x4 lightSpaceMatrix;
 };
-[[vk::binding(0, 0)]] StructuredBuffer<CameraUBO> lightCamera; 
-
+[[vk::binding(2, 0)]] StructuredBuffer<SunUBO> sun;
 
 struct VSInput
 {
@@ -31,7 +29,7 @@ VSOutput vertShadow(VSInput input, uint instanceID: SV_InstanceID, uint baseInst
     float4 worldPos = mul(float4(input.inPosition, 1.0), data.model);
 
     VSOutput output;
-    output.pos = mul(lightCamera[0].lightSpaceMatrix, worldPos);
+    output.pos = mul(sun[0].lightSpaceMatrix, worldPos);
     
     return output;
 }

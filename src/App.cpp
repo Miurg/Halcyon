@@ -93,7 +93,6 @@ void App::run()
 	gm.addComponent<CameraComponent>(cameraEntity);
 	gm.addComponent<TransformComponent>(cameraEntity, glm::vec3(0.0f, 0.0f, 3.0f));
 	gm.addComponent<ControlComponent>(cameraEntity);
-	gm.addComponent<LightComponent>(cameraEntity, 2048, 2048);
 	gm.registerContext<MainCameraContext>(cameraEntity);
 
 	Entity sunEntity = gm.createEntity();
@@ -103,6 +102,7 @@ void App::run()
 	gm.registerContext<LightCameraContext>(sunEntity);
 
 	CameraComponent* camera = gm.getContextComponent<MainCameraContext, CameraComponent>();
+	CameraComponent* sunCamera = gm.getContextComponent<LightCameraContext, CameraComponent>();
 	LightComponent* sunLight = gm.getContextComponent<LightCameraContext, LightComponent>();
 
 	Entity mainDSetsEntity = gm.createEntity();
@@ -116,18 +116,25 @@ void App::run()
 	bTextureDSetComponent->bindlessTextureSet = dManager->allocateBindlessTextureDSet();
 
 	GlobalDSetComponent* globalDSetComponent = gm.getContextComponent<MainDSetsContext, GlobalDSetComponent>();
+	globalDSetComponent->globalDSets = dManager->allocateStorageBufferDSets(MAX_FRAMES_IN_FLIGHT, *dManager->globalSetLayout);
 	globalDSetComponent->cameraBuffers =
 	    bManager->createBuffer((vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal),
 	                           sizeof(CameraStucture), MAX_FRAMES_IN_FLIGHT, 0, *dManager->globalSetLayout);
-	camera->bufferNubmer = globalDSetComponent->cameraBuffers;
-	globalDSetComponent->globalDSets = dManager->allocateStorageBufferDSets(MAX_FRAMES_IN_FLIGHT, *dManager->globalSetLayout);
+	globalDSetComponent->sunCameraBuffers =
+	    bManager->createBuffer((vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal),
+	                           sizeof(CameraStucture), MAX_FRAMES_IN_FLIGHT, 2, *dManager->globalSetLayout);
+
 	dManager->updateStorageBufferDescriptors(*bManager, globalDSetComponent->cameraBuffers,
 	                                         globalDSetComponent->globalDSets, 0);
+	dManager->updateStorageBufferDescriptors(*bManager, globalDSetComponent->sunCameraBuffers,
+	                                         globalDSetComponent->globalDSets, 2);
 
 	sunLight->textureShadowImage = bManager->createShadowMap(sunLight->sizeX, sunLight->sizeY);
 	dManager->updateShadowDSet(globalDSetComponent->globalDSets,
 	                           bManager->textures[sunLight->textureShadowImage].textureImageView,
 	                           bManager->textures[sunLight->textureShadowImage].textureSampler);
+	sunCamera->bufferNubmer = globalDSetComponent->sunCameraBuffers;
+	camera->bufferNubmer = globalDSetComponent->cameraBuffers;
 
 	ObjectDSetComponent* objectDSetComponent = gm.getContextComponent<MainDSetsContext, ObjectDSetComponent>();
 	objectDSetComponent->storageBuffer =

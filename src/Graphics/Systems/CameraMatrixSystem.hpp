@@ -1,5 +1,6 @@
 #pragma once
 #include "../../Core/Systems/SystemContextual.hpp"
+
 class CameraMatrixSystem : public SystemContextual<CameraMatrixSystem>
 {
 public:

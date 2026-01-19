@@ -5,13 +5,18 @@ struct ModelData
 };
 [[vk::binding(0, 2)]] StructuredBuffer<ModelData> objectBuffer;
 
-struct CameraUBO
+struct CameraData
 {
     float4x4 cameraSpaceMatrix;
+};
+[[vk::binding(0, 0)]] StructuredBuffer<CameraData> camera;
+[[vk::binding(1, 0)]] Sampler2DShadow shadowMap;
+
+struct SunData
+{
     float4x4 lightSpaceMatrix;
 };
-[[vk::binding(0, 0)]] StructuredBuffer<CameraUBO> camera;
-[[vk::binding(1, 0)]] Sampler2DShadow shadowMap;
+[[vk::binding(2, 0)]] StructuredBuffer<SunData> sun;
 
 struct VSInput
 {
@@ -39,7 +44,7 @@ VSOutput vertMain(VSInput input, uint instanceID: SV_InstanceID, uint baseInstan
 
     output.pos = mul(camera[0].cameraSpaceMatrix, worldPos);
 
-    output.shadowCoord = mul(camera[0].lightSpaceMatrix, worldPos);
+    output.shadowCoord = mul(sun[0].lightSpaceMatrix, worldPos);
 
     output.fragColor = input.inColor;
     output.fragTexCoord = input.inTexCoord;

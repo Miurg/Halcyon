@@ -102,12 +102,12 @@ void CommandBufferFactory::recordCommandBuffer(
 	                                          static_cast<float>(swapChain.swapChainExtent.height), 0.0f, 1.0f));
 	commandBuffer.setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), swapChain.swapChainExtent));
 
-	//commandBuffer.bindDescriptorSets(
-	//    vk::PipelineBindPoint::eGraphics, *pipelineHandler.pipelineLayout, 0,
-	//    dManager.descriptorManager->descriptorSets[globalDSetComponent->globalDSets][currentFrame], nullptr);
-	//commandBuffer.bindDescriptorSets(
-	//    vk::PipelineBindPoint::eGraphics, *pipelineHandler.pipelineLayout, 2,
-	//    dManager.descriptorManager->descriptorSets[objectDSetComponent->storageBufferDSet][currentFrame], nullptr);
+	commandBuffer.bindDescriptorSets(
+	    vk::PipelineBindPoint::eGraphics, *pipelineHandler.pipelineLayout, 0,
+	    dManager.descriptorManager->descriptorSets[globalDSetComponent->globalDSets][currentFrame], nullptr);
+	commandBuffer.bindDescriptorSets(
+	    vk::PipelineBindPoint::eGraphics, *pipelineHandler.pipelineLayout, 2,
+	    dManager.descriptorManager->descriptorSets[objectDSetComponent->storageBufferDSet][currentFrame], nullptr);
 	commandBuffer.bindDescriptorSets(
 	    vk::PipelineBindPoint::eGraphics, *pipelineHandler.pipelineLayout, 1,
 	    dManager.descriptorManager->descriptorSets[bindlessTextureDSetComponent.bindlessTextureSet][0], nullptr);

@@ -57,6 +57,10 @@ private:
 struct CameraStucture
 {
 	alignas(16) glm::mat4 cameraSpaceMatrix;
+};
+
+struct SunStructue
+{
 	alignas(16) glm::mat4 lightSpaceMatrix;
 };
 

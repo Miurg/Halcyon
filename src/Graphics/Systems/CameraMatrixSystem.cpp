@@ -9,6 +9,8 @@
 #include "../Components/CurrentFrameComponent.hpp"
 #include "../Resources/Components/GlobalDSetComponent.hpp"
 #include "../Resources/Components/ObjectDSetComponent.hpp"
+#include "../Components/TransformComponent.hpp"
+#include "../Components/CameraComponent.hpp"
 
 void CameraMatrixSystem::onRegistered(GeneralManager& gm)
 {
@@ -47,6 +49,10 @@ void CameraMatrixSystem::update(float deltaTime, GeneralManager& gm)
 
 	glm::mat4 lightSpaceMatrix = lightProj * lightView;
 
+	SunStructue sunUbo{.lightSpaceMatrix = lightSpaceMatrix};
+	memcpy(bufferManager.buffers[globalDSetComponent->sunCameraBuffers].bufferMapped[currentFrame], &sunUbo,
+	       sizeof(sunUbo));
+
 	// === Camera ===
 	glm::mat4 view = mainCameraTransform->getViewMatrix();
 	glm::mat4 proj = glm::perspective(glm::radians(mainCamera->fov),
@@ -57,7 +63,7 @@ void CameraMatrixSystem::update(float deltaTime, GeneralManager& gm)
 
 	glm::mat4 cameraSpaceMatrix = proj * view;
 
-	CameraStucture cameraUbo{.cameraSpaceMatrix = cameraSpaceMatrix, .lightSpaceMatrix = lightSpaceMatrix};
+	CameraStucture cameraUbo{.cameraSpaceMatrix = cameraSpaceMatrix};
 	memcpy(bufferManager.buffers[globalDSetComponent->cameraBuffers].bufferMapped[currentFrame], &cameraUbo,
 	       sizeof(cameraUbo));
 }
