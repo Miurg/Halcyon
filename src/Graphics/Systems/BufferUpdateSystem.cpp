@@ -65,7 +65,7 @@ void BufferUpdateSystem::update(float deltaTime, GeneralManager& gm, const std::
 	{
 		const glm::mat4 model = transforms[i].getModelMatrix() * finalRotation;
 
-		dstPtr[i].model = glm::transpose(model);
+		dstPtr[i].model = model;
 		dstPtr[i].textureIndex = textures[i].textureIndex;
 	}
 }

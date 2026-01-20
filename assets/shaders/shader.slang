@@ -40,7 +40,7 @@ VSOutput vertMain(VSInput input, uint instanceID: SV_InstanceID, uint baseInstan
     ModelData data = objectBuffer[instanceID + baseInstance];
     VSOutput output;
 
-    float4 worldPos = mul(float4(input.inPosition, 1.0), data.model);
+    float4 worldPos = mul(data.model, float4(input.inPosition, 1.0));
 
     output.pos = mul(camera[0].cameraSpaceMatrix, worldPos);
 
