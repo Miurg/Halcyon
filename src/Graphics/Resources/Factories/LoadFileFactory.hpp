@@ -5,11 +5,12 @@
 #include "../Components/MeshInfoComponent.hpp"
 #include <vk_mem_alloc.h>
 #include "../../VulkanDevice.hpp"
+#include "../Managers/MeshInfo.hpp"
 
 class LoadFileFactory
 {
 public:
-	static MeshInfoComponent addMeshFromFile(const char path[MAX_PATH_LEN], VertexIndexBuffer& mesh);
+	static MeshInfo addMeshFromFile(const char path[MAX_PATH_LEN], VertexIndexBuffer& mesh);
 	static void uploadTextureFromFile(const char* texturePath, Texture& texture, VmaAllocator& allocator,
 	                                  VulkanDevice& vulkanDevice);
 	static std::tuple<int, int> getSizesFromFileTexture(const char texturePath[MAX_PATH_LEN]);

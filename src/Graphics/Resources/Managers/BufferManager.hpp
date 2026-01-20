@@ -10,6 +10,7 @@
 #include "Buffer.hpp"
 #include "../Components/BindlessTextureDSetComponent.hpp"
 #include "../../VulkanDevice.hpp"
+#include "MeshInfo.hpp"
 
 class DescriptorManager;
 
@@ -19,7 +20,7 @@ public:
 	BufferManager(VulkanDevice& vulkanDevice);
 	~BufferManager();
 
-	MeshInfoComponent createMesh(const char path[MAX_PATH_LEN]);
+	int createMesh(const char path[MAX_PATH_LEN]);
 	bool isMeshLoaded(const char path[MAX_PATH_LEN]);
 
 	int generateTextureData(const char texturePath[MAX_PATH_LEN], vk::Format format, vk::ImageAspectFlags aspectFlags,
@@ -31,8 +32,9 @@ public:
 
 	std::vector<Texture> textures;
 	std::unordered_map<std::string, int> texturePaths;
-	std::vector<VertexIndexBuffer> meshes;
-	std::unordered_map<std::string, MeshInfoComponent> meshPaths;
+	std::vector<VertexIndexBuffer> meshBuffers;
+	std::unordered_map<std::string, int> meshPaths;
+	std::vector<MeshInfo> meshes;
 	std::vector<Buffer> buffers;
 
 private:

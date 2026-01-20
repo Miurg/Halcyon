@@ -3,32 +3,34 @@
 #include "../Factories/LoadFileFactory.hpp"
 #include "../../VulkanUtils.hpp"
 
-MeshInfoComponent BufferManager::createMesh(const char path[MAX_PATH_LEN])
+int BufferManager::createMesh(const char path[MAX_PATH_LEN])
 {
 	if (isMeshLoaded(path))
 	{
 		return meshPaths[std::string(path)];
 	}
-	for (int i = 0; i < meshes.size(); i++)
+	for (int i = 0; i < meshBuffers.size(); i++)
 	{
-		if (sizeof(meshes[i].vertices) < MAX_SIZE_OF_VERTEX_INDEX_BUFFER)
+		if (sizeof(meshBuffers[i].vertices) < MAX_SIZE_OF_VERTEX_INDEX_BUFFER)
 		{
-			MeshInfoComponent info = LoadFileFactory::addMeshFromFile(path, meshes[i]);
+			MeshInfo info = LoadFileFactory::addMeshFromFile(path, meshBuffers[i]);
 			info.bufferIndex = static_cast<uint32_t>(i);
-			createVertexBuffer(vulkanDevice, meshes[i]);
-			createIndexBuffer(vulkanDevice, meshes[i]);
-			meshPaths[std::string(path)] = info;
-			return info;
+			createVertexBuffer(vulkanDevice, meshBuffers[i]);
+			createIndexBuffer(vulkanDevice, meshBuffers[i]);
+			meshes.push_back(info);
+			meshPaths[std::string(path)] = meshes.size()-1;
+			return meshes.size() - 1;
 		}
 	}
 
-	meshes.push_back(VertexIndexBuffer());
-	MeshInfoComponent info = LoadFileFactory::addMeshFromFile(path, meshes.back());
-	info.bufferIndex = static_cast<uint32_t>(meshes.size() - 1);
-	createVertexBuffer(vulkanDevice, meshes.back());
-	createIndexBuffer(vulkanDevice, meshes.back());
-	meshPaths[std::string(path)] = info;
-	return info;
+	meshBuffers.push_back(VertexIndexBuffer());
+	MeshInfo info = LoadFileFactory::addMeshFromFile(path, meshBuffers.back());
+	info.bufferIndex = static_cast<uint32_t>(meshBuffers.size() - 1);
+	createVertexBuffer(vulkanDevice, meshBuffers.back());
+	createIndexBuffer(vulkanDevice, meshBuffers.back());
+	meshes.push_back(info);
+	meshPaths[std::string(path)] = meshes.size() - 1;
+	return meshes.size() - 1;
 }
 
 bool BufferManager::isMeshLoaded(const char path[MAX_PATH_LEN])

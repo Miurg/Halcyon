@@ -14,14 +14,12 @@
 class CommandBufferFactory
 {
 public:
-	static void recordCommandBuffer(vk::raii::CommandBuffer& commandBuffer, uint32_t imageIndex,
-	                                std::vector<int>& textureInfo, SwapChain& swapChain,
+	static void recordCommandBuffer(vk::raii::CommandBuffer& commandBuffer, uint32_t imageIndex, SwapChain& swapChain,
 	                                PipelineHandler& pipelineHandler, uint32_t currentFrame,
-	                                BufferManager& bufferManager, std::vector<MeshInfoComponent*>& meshInfo,
-	                                CameraComponent& camera, LightComponent& lightTexture,
+	                                BufferManager& bufferManager, LightComponent& lightTexture,
 	                                BindlessTextureDSetComponent& bindlessTextureDSetComponent,
-	                                DescriptorManagerComponent& dManager,
-	                                GlobalDSetComponent* globalDSetComponent, ObjectDSetComponent* objectDSetComponent);
+	                                DescriptorManagerComponent& dManager, GlobalDSetComponent* globalDSetComponent,
+	                                ObjectDSetComponent* objectDSetComponent);
 	static void transitionImageLayout(vk::raii::CommandBuffer& commandBuffer, vk::Image image, vk::ImageLayout oldLayout,
 	                                  vk::ImageLayout newLayout, vk::AccessFlags2 srcAccessMask,
 	                                  vk::AccessFlags2 dstAccessMask, vk::PipelineStageFlags2 srcStageMask,

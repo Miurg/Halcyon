@@ -1,5 +1,4 @@
 #include "BufferUpdateSystem.hpp"
-#include "../Components/CameraComponent.hpp"
 #include "../Components/TransformComponent.hpp"
 #include "../Resources/Managers/BufferManager.hpp"
 #include <iostream>
@@ -9,48 +8,47 @@
 #include "../Components/SwapChainComponent.hpp"
 #include "../Components/BufferManagerComponent.hpp"
 #include "../Components/CurrentFrameComponent.hpp"
-#include "../Resources/Components/GlobalDSetComponent.hpp"
 #include "../Resources/Components/ObjectDSetComponent.hpp"
-
+#include "../Resources/Components/MeshInfoComponent.hpp"
+#include <map>
 void BufferUpdateSystem::processEntity(Entity entity, GeneralManager& manager, float dt) {}
 
-void BufferUpdateSystem::onRegistered(GeneralManager& gm) 
+void BufferUpdateSystem::onRegistered(GeneralManager& gm)
 {
 	std::cout << "BufferUpdateSystem registered!" << std::endl;
 }
 
-void BufferUpdateSystem::onShutdown(GeneralManager& gm) 
+void BufferUpdateSystem::onShutdown(GeneralManager& gm)
 {
 	std::cout << "BufferUpdateSystem shutdown!" << std::endl;
 }
 
-void BufferUpdateSystem::update(float deltaTime, GeneralManager& gm, const std::vector<Entity>& entities) 
+void BufferUpdateSystem::update(float deltaTime, GeneralManager& gm, const std::vector<Entity>& entities)
 {
 	CurrentFrameComponent* currentFrameComp = gm.getContextComponent<CurrentFrameContext, CurrentFrameComponent>();
 	uint32_t currentFrame = currentFrameComp->currentFrame;
 	SwapChain& swapChain = *gm.getContextComponent<MainSwapChainContext, SwapChainComponent>()->swapChainInstance;
 	BufferManager& bufferManager =
 	    *gm.getContextComponent<BufferManagerContext, BufferManagerComponent>()->bufferManager;
-	CameraComponent* mainCamera = gm.getContextComponent<MainCameraContext, CameraComponent>();
-	TransformComponent* mainCameraTransform = gm.getContextComponent<MainCameraContext, TransformComponent>();
-	CameraComponent* sunCamera = gm.getContextComponent<LightCameraContext, CameraComponent>();
-	TransformComponent* sunCameraTransform = gm.getContextComponent<LightCameraContext, TransformComponent>();
-	GlobalDSetComponent* globalDSetComponent = gm.getContextComponent<MainDSetsContext, GlobalDSetComponent>();
 	ObjectDSetComponent* objectDSetComponent = gm.getContextComponent<MainDSetsContext, ObjectDSetComponent>();
 
 	static auto startTime = std::chrono::high_resolution_clock::now();
 	auto currentTime = std::chrono::high_resolution_clock::now();
 	float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 
-	std::vector<TransformComponent> transforms;
-	std::vector<TextureInfoComponent> textures;
-	transforms.reserve(entities.size());
-	textures.reserve(entities.size());
+	std::vector<std::pair<int, Entity>> batch;
+	std::map<int, int> counts;
 	for (const auto& entity : entities)
 	{
-		transforms.push_back(*gm.getComponent<TransformComponent>(entity));
-		textures.push_back(*gm.getComponent<TextureInfoComponent>(entity));
+		MeshInfoComponent& meshinfo = *gm.getComponent<MeshInfoComponent>(entity);
+		batch.push_back({meshinfo.mesh, entity});
+		counts[meshinfo.mesh]++;
 	}
+	for (const auto& [key, count] : counts)
+	{
+		bufferManager.meshes[key].entitiesSubscribed = count;
+	}
+	std::sort(batch.begin(), batch.end());
 
 	// === Models ===
 	auto* dstPtr = static_cast<ModelSctructure*>(
@@ -61,11 +59,16 @@ void BufferUpdateSystem::update(float deltaTime, GeneralManager& gm, const std::
 	    glm::rotate(glm::mat4(1.0f), time / 10.0f * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 	const glm::mat4 finalRotation = rotation * initialRotation;
 
-	for (size_t i = 0; i < entities.size(); ++i)
+	int temp = 0;
+	for (const auto& entity : batch)
 	{
-		const glm::mat4 model = transforms[i].getModelMatrix() * finalRotation;
+		TransformComponent& transform = *gm.getComponent<TransformComponent>(entity.second);
+		const glm::mat4 model = transform.getModelMatrix() * finalRotation;
+		dstPtr[temp].model = model;
 
-		dstPtr[i].model = model;
-		dstPtr[i].textureIndex = textures[i].textureIndex;
+		TextureInfoComponent& texture = *gm.getComponent<TextureInfoComponent>(entity.second);
+		dstPtr[temp].textureIndex = texture.textureIndex;
+		temp++;
 	}
+
 }

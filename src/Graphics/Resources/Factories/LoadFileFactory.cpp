@@ -5,7 +5,7 @@
 #include <stb_image.h>
 #include "../../VulkanUtils.hpp"
 
-MeshInfoComponent LoadFileFactory::addMeshFromFile(const char path[MAX_PATH_LEN], VertexIndexBuffer& mesh)
+MeshInfo LoadFileFactory::addMeshFromFile(const char path[MAX_PATH_LEN], VertexIndexBuffer& mesh)
 {
 	uint32_t firstIndex = static_cast<uint32_t>(mesh.indices.size());
 	int32_t vertexOffset = static_cast<int32_t>(mesh.vertices.size());
@@ -47,7 +47,7 @@ MeshInfoComponent LoadFileFactory::addMeshFromFile(const char path[MAX_PATH_LEN]
 
 	uint32_t indexCount = static_cast<uint32_t>(mesh.indices.size()) - firstIndex;
 
-	MeshInfoComponent info;
+	MeshInfo info;
 	info.indexCount = indexCount;
 	info.indexOffset = firstIndex;
 	info.vertexOffset = vertexOffset;

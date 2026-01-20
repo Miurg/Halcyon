@@ -22,13 +22,13 @@ void GameInit::gameInitStart(GeneralManager& gm)
 		int numberTexture;
 		if (i > 50)
 		{
-			meshInfo = bufferManager->createMesh("assets/models/BlenderMonkey.obj");
+			meshInfo.mesh = bufferManager->createMesh("assets/models/BlenderMonkey.obj");
 			numberTexture = bufferManager->generateTextureData("assets/textures/texture.jpg", vk::Format::eR8G8B8A8Srgb,
 			                                                   vk::ImageAspectFlagBits::eColor, *dSetComponent, *dManager);
 		}
 		else
 		{
-			meshInfo = bufferManager->createMesh("assets/models/viking_room.obj");
+			meshInfo.mesh = bufferManager->createMesh("assets/models/viking_room.obj");
 			numberTexture = bufferManager->generateTextureData("assets/textures/viking_room.png", vk::Format::eR8G8B8A8Srgb,
 			                                       vk::ImageAspectFlagBits::eColor, *dSetComponent, *dManager);
 		}

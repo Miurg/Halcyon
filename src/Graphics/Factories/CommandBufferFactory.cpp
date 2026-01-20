@@ -1,9 +1,8 @@
 #include "CommandBufferFactory.hpp"
 
 void CommandBufferFactory::recordCommandBuffer(
-    vk::raii::CommandBuffer& commandBuffer, uint32_t imageIndex, std::vector<int>& textureInfo, SwapChain& swapChain,
+    vk::raii::CommandBuffer& commandBuffer, uint32_t imageIndex, SwapChain& swapChain,
     PipelineHandler& pipelineHandler, uint32_t currentFrame, BufferManager& bufferManager,
-    std::vector<MeshInfoComponent*>& meshInfo, CameraComponent& camera,
     LightComponent& lightTexture, BindlessTextureDSetComponent& bindlessTextureDSetComponent,
     DescriptorManagerComponent& dManager, GlobalDSetComponent* globalDSetComponent,
     ObjectDSetComponent* objectDSetComponent)
@@ -43,14 +42,21 @@ void CommandBufferFactory::recordCommandBuffer(
 	commandBuffer.setViewport(0, vk::Viewport(0.0f, 0.0f, lightTexture.sizeX, lightTexture.sizeY, 0.0f, 1.0f));
 	commandBuffer.setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), vk::Extent2D(lightTexture.sizeX, lightTexture.sizeY)));
 
-	for (int i = 0; i < textureInfo.size(); i++)
+	for (int i = 0; i < bufferManager.meshes.size(); i++)
 	{
-		commandBuffer.bindVertexBuffers(0, *bufferManager.meshes[meshInfo[i]->bufferIndex].vertexBuffer, {0});
-		commandBuffer.bindIndexBuffer(*bufferManager.meshes[meshInfo[i]->bufferIndex].indexBuffer, 0,
+		commandBuffer.bindVertexBuffers(0, *bufferManager.meshBuffers[bufferManager.meshes[i].bufferIndex].vertexBuffer,
+		                                {0});
+		commandBuffer.bindIndexBuffer(*bufferManager.meshBuffers[bufferManager.meshes[i].bufferIndex].indexBuffer, 0,
 		                              vk::IndexType::eUint32);
-		commandBuffer.drawIndexed(meshInfo[i]->indexCount, 1, meshInfo[i]->indexOffset, meshInfo[i]->vertexOffset,
-		                          static_cast<uint32_t>(i));
+		int temp;
+		if (i == 0)
+			temp = 0;
+		else
+			temp = bufferManager.meshes[i - 1].entitiesSubscribed;
+		commandBuffer.drawIndexed(bufferManager.meshes[i].indexCount, bufferManager.meshes[i].entitiesSubscribed,
+		                          bufferManager.meshes[i].indexOffset, bufferManager.meshes[i].vertexOffset, temp);
 	}
+
 
 	commandBuffer.endRendering();
 
@@ -111,13 +117,21 @@ void CommandBufferFactory::recordCommandBuffer(
 	commandBuffer.bindDescriptorSets(
 	    vk::PipelineBindPoint::eGraphics, *pipelineHandler.pipelineLayout, 1,
 	    dManager.descriptorManager->descriptorSets[bindlessTextureDSetComponent.bindlessTextureSet][0], nullptr);
-	for (int i = 0; i < textureInfo.size(); i++)
+	for (int i = 0; i < bufferManager.meshes.size(); i++)
 	{
-		commandBuffer.bindVertexBuffers(0, *bufferManager.meshes[meshInfo[i]->bufferIndex].vertexBuffer, {0});
-		commandBuffer.bindIndexBuffer(*bufferManager.meshes[meshInfo[i]->bufferIndex].indexBuffer, 0,
+		commandBuffer.bindVertexBuffers(
+		    0, *bufferManager.meshBuffers[bufferManager.meshes[i].bufferIndex].vertexBuffer, {0});
+		commandBuffer.bindIndexBuffer(
+		    *bufferManager.meshBuffers[bufferManager.meshes[i].bufferIndex].indexBuffer, 0,
 		                              vk::IndexType::eUint32);
-		commandBuffer.drawIndexed(meshInfo[i]->indexCount, 1, meshInfo[i]->indexOffset, meshInfo[i]->vertexOffset,
-		                          static_cast<uint32_t>(i));
+		int temp;
+		if (i == 0)
+			temp = 0;
+		else
+			temp = bufferManager.meshes[i-1].entitiesSubscribed;
+		commandBuffer.drawIndexed(bufferManager.meshes[i].indexCount, bufferManager.meshes[i].entitiesSubscribed,
+		                          bufferManager.meshes[i].indexOffset,
+		                          bufferManager.meshes[i].vertexOffset, temp);
 	}
 
 	commandBuffer.endRendering();

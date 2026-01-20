@@ -34,7 +34,6 @@ void RenderSystem::update(float deltaTime, GeneralManager& gm, const std::vector
 	std::vector<FrameData>& framesData =
 	    *gm.getContextComponent<MainFrameDataContext, FrameDataComponent>()->frameDataArray;
 	CurrentFrameComponent* currentFrameComp = gm.getContextComponent<CurrentFrameContext, CurrentFrameComponent>();
-	CameraComponent* mainCamera = gm.getContextComponent<MainCameraContext, CameraComponent>();
 	LightComponent* lightTexture = gm.getContextComponent<LightCameraContext, LightComponent>();
 	BindlessTextureDSetComponent* materialDSetComponent =
 	    gm.getContextComponent<MainDSetsContext, BindlessTextureDSetComponent>();
@@ -42,21 +41,10 @@ void RenderSystem::update(float deltaTime, GeneralManager& gm, const std::vector
 	    gm.getContextComponent<DescriptorManagerContext, DescriptorManagerComponent>();
 	GlobalDSetComponent* globalDSetComponent = gm.getContextComponent<MainDSetsContext, GlobalDSetComponent>();
 	ObjectDSetComponent* objectDSetComponent = gm.getContextComponent<MainDSetsContext, ObjectDSetComponent>();
-	
 	uint32_t imageIndex = gm.getContextComponent<FrameImageContext, FrameImageComponent>()->imageIndex;
-	
-	std::vector<int> textureInfo;
-	std::vector<MeshInfoComponent*> meshInfos;
-	for (int i = 0; i < entities.size(); i++)
-	{
-		meshInfos.push_back(gm.getComponent<MeshInfoComponent>(entities[i]));
-		auto textureInfoComponent = gm.getComponent<TextureInfoComponent>(entities[i]);
-		textureInfo.push_back(textureInfoComponent->textureIndex);
-	}
-
 
 	CommandBufferFactory::recordCommandBuffer(
-	    framesData[currentFrameComp->currentFrame].commandBuffer, imageIndex, textureInfo, swapChain, pipelineHandler,
-	    currentFrameComp->currentFrame, bufferManager, meshInfos, *mainCamera, *lightTexture, *materialDSetComponent,
+	    framesData[currentFrameComp->currentFrame].commandBuffer, imageIndex, swapChain, pipelineHandler,
+	    currentFrameComp->currentFrame, bufferManager, *lightTexture, *materialDSetComponent,
 	    *dManager, globalDSetComponent, objectDSetComponent);
 }
