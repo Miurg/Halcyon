@@ -31,7 +31,7 @@ struct VSOutput
     float3 fragColor;
     float2 fragTexCoord;
     float4 shadowCoord;
-    uint textureIndex;
+    nointerpolation uint textureIndex;
 };
 
 [shader("vertex")]
@@ -56,25 +56,23 @@ VSOutput vertMain(VSInput input, uint instanceID: SV_InstanceID, uint baseInstan
 [shader("fragment")]
 float4 fragMain(VSOutput vertIn) : SV_TARGET
 {
-    float3 color = textureArray[vertIn.textureIndex].Sample(vertIn.fragTexCoord).rgb;
+    float4 albedo = textureArray[NonUniformResourceIndex(vertIn.textureIndex)].Sample(vertIn.fragTexCoord);
+    if (albedo.a < 0.1) discard;
 
     float3 projCoords = vertIn.shadowCoord.xyz / vertIn.shadowCoord.w;
 
     projCoords.xy = projCoords.xy * 0.5 + 0.5;
 
-    float shadowFactor = 0.0;
+    float shadowFactor = 1.0;
 
-    if (projCoords.z > 0.0 && projCoords.z < 1.0 && 
-        projCoords.x > 0.0 && projCoords.x < 1.0 && 
-        projCoords.y > 0.0 && projCoords.y < 1.0)
+    if (saturate(projCoords.x) == projCoords.x && 
+        saturate(projCoords.y) == projCoords.y && 
+        projCoords.z > 0.0 && projCoords.z < 1.0)
     {
         shadowFactor = shadowMap.SampleCmpLevelZero(projCoords.xy, projCoords.z);
     }
-    else
-    {
-        shadowFactor = 1.0;
-    }
 
     float lightIntensity = 0.2 + (shadowFactor * 0.8);
-    return float4(color * lightIntensity, 1.0);
+
+    return float4(albedo.rgb * vertIn.fragColor * lightIntensity, albedo.a);
 }
