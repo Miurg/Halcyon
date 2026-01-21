@@ -54,18 +54,13 @@ void BufferUpdateSystem::update(float deltaTime, GeneralManager& gm, const std::
 	auto* dstPtr = static_cast<ModelSctructure*>(
 	    bufferManager.buffers[objectDSetComponent->storageBuffer].bufferMapped[currentFrame]);
 
-	const glm::mat4 rotation = glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-	const glm::mat4 initialRotation =
-	    glm::rotate(glm::mat4(1.0f), time / 10.0f * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-	const glm::mat4 finalRotation = rotation * initialRotation;
-
 	int temp = 0;
 	for (const auto& entitys : batch)
 	{
 		for (const auto& entity : entitys)
 		{
 			TransformComponent& transform = *gm.getComponent<TransformComponent>(entity);
-			const glm::mat4 model = transform.getModelMatrix() * finalRotation;
+			const glm::mat4 model = transform.getModelMatrix();
 			dstPtr[temp].model = model;
 
 			TextureInfoComponent& texture = *gm.getComponent<TextureInfoComponent>(entity);

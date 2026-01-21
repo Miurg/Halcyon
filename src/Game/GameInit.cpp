@@ -18,25 +18,29 @@ void GameInit::gameInitStart(GeneralManager& gm)
 	int k = 0;
 	for (int i = 0; i < 10000; i++)
 	{
+		Entity gameObjectEntity1 = gm.createEntity();
 		MeshInfoComponent meshInfo;
 		int numberTexture;
 		if (j%2 == 0)
 		{
+			gm.addComponent<TransformComponent>(gameObjectEntity1, k * 2.0f, 0.0f, j * 2.0f, 0.0f, 0.0f, 0.0f);
 			meshInfo.mesh = bufferManager->createMesh("assets/models/BlenderMonkey.obj");
 			numberTexture = bufferManager->generateTextureData("assets/textures/texture.jpg", vk::Format::eR8G8B8A8Srgb,
 			                                                   vk::ImageAspectFlagBits::eColor, *dSetComponent, *dManager);
 		}
 		else
 		{
+			gm.addComponent<TransformComponent>(gameObjectEntity1, k * 2.0f, 0.0f, j * 2.0f, -90.0f, 0.0f, 0.0f);
 			meshInfo.mesh = bufferManager->createMesh("assets/models/viking_room.obj");
 			numberTexture = bufferManager->generateTextureData("assets/textures/viking_room.png", vk::Format::eR8G8B8A8Srgb,
 			                                       vk::ImageAspectFlagBits::eColor, *dSetComponent, *dManager);
 		}
 
-		Entity gameObjectEntity1 = gm.createEntity();
-		gm.addComponent<TransformComponent>(gameObjectEntity1, k * 2.0f, 0.0f, j * 2.0f);
+
+
 		gm.addComponent<MeshInfoComponent>(gameObjectEntity1, meshInfo);
 		gm.addComponent<TextureInfoComponent>(gameObjectEntity1, numberTexture);
+		gm.subscribeEntity<RotationSystem>(gameObjectEntity1);
 		gm.subscribeEntity<RenderSystem>(gameObjectEntity1);
 		gm.subscribeEntity<BufferUpdateSystem>(gameObjectEntity1);
 
