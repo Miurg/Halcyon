@@ -27,7 +27,7 @@ struct TransformComponent
 	}
 
 	//Eulers
-	TransformComponent(glm::vec3 pos, glm::vec3 rotEuler) : position(pos), rotation(glm::quat(rotEuler)) 
+	TransformComponent(glm::vec3 pos, glm::vec3 rotEuler) : position(pos), rotation(glm::quat(glm::radians(rotEuler))) 
 	{
 		updateDirectionVectors();
 	}
@@ -38,7 +38,7 @@ struct TransformComponent
 	}
 
 	TransformComponent(glm::vec3 pos, glm::vec3 rotEuler, glm::vec3 scl)
-	    : position(pos), rotation(glm::quat(rotEuler)), scale(scl)
+	    : position(pos), rotation(glm::quat(glm::radians(rotEuler))), scale(scl)
 	{
 		updateDirectionVectors();
 	}
@@ -54,13 +54,14 @@ struct TransformComponent
 	}
 
 	TransformComponent(float px, float py, float pz, float rx, float ry, float rz)
-	    : position(glm::vec3(px, py, pz)), rotation(glm::quat(glm::vec3(rx, ry, rz)))
+	    : position(glm::vec3(px, py, pz)), rotation(glm::quat(glm::radians(glm::vec3(rx, ry, rz))))
 	{
 		updateDirectionVectors();
 	}
 
 	TransformComponent(float px, float py, float pz, float rx, float ry, float rz, float sx, float sy, float sz)
-	    : position(glm::vec3(px, py, pz)), rotation(glm::quat(glm::vec3(rx, ry, rz))), scale(glm::vec3(sx, sy, sz))
+	    : position(glm::vec3(px, py, pz)), rotation(glm::quat(glm::radians(glm::vec3(rx, ry, rz)))),
+	      scale(glm::vec3(sx, sy, sz))
 	{
 		updateDirectionVectors();
 	}
@@ -80,25 +81,38 @@ struct TransformComponent
 		isViewDirty = true;
 	}
 
-	glm::mat4 getModelMatrix() const
+	const glm::mat4& getModelMatrix() const
 	{
 		if (isModelDirty)
 		{
-			model = glm::translate(glm::mat4(1.0f), position);
-			model *= glm::mat4_cast(rotation);
-			model = glm::scale(model, scale);
+			// R * S + T
+			const glm::mat3 rotationMatrix = glm::mat3_cast(rotation);
+			// X axis
+			model[0] = glm::vec4(rotationMatrix[0] * scale.x, 0.0f);
+			// Y axis
+			model[1] = glm::vec4(rotationMatrix[1] * scale.y, 0.0f);
+			// Z axis
+			model[2] = glm::vec4(rotationMatrix[2] * scale.z, 0.0f);
+			// Position
+			model[3] = glm::vec4(position, 1.0f);
+
 			isModelDirty = false;
 		}
 		return model;
 	}
 
-	glm::mat4 getViewMatrix() const
+	const glm::mat4& getViewMatrix() const
 	{
 		if (isViewDirty)
 		{
-			// R^T * T^-1
-			view = glm::mat4_cast(glm::conjugate(rotation));
-			view = glm::translate(view, -position);
+			// R^T * -T
+			glm::mat3 R = glm::mat3_cast(rotation);
+			glm::mat3 R_view = glm::transpose(R);
+			// Construct view matrix
+			view = glm::mat4(R_view);
+			// Position
+			view[3] = glm::vec4(R_view * (-position), 1.0f);
+
 			isViewDirty = false;
 		}
 		return view;
