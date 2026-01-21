@@ -22,9 +22,10 @@ public:
 		gm.registerSystem<ControlSystem>();
 		gm.registerSystem<RotationSystem>();
 
+		gm.registerSystem<FrameBeginSystem>();
 		gm.registerSystem<CameraMatrixSystem>();
 		gm.registerSystem<BufferUpdateSystem>();
-		gm.registerSystem<FrameBeginSystem>();
+
 		gm.registerSystem<RenderSystem>();
 		gm.registerSystem<FrameEndSystem>();
 
