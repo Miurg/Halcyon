@@ -36,19 +36,19 @@ void BufferUpdateSystem::update(float deltaTime, GeneralManager& gm, const std::
 	auto currentTime = std::chrono::high_resolution_clock::now();
 	float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 
-	std::vector<std::pair<int, Entity>> batch;
+	std::vector<std::vector<Entity>> batch;
+	batch.resize(bufferManager.meshes.size());
 	std::map<int, int> counts;
 	for (const auto& entity : entities)
 	{
 		MeshInfoComponent& meshinfo = *gm.getComponent<MeshInfoComponent>(entity);
-		batch.push_back({meshinfo.mesh, entity});
+		batch[meshinfo.mesh].push_back(entity);
 		counts[meshinfo.mesh]++;
 	}
 	for (const auto& [key, count] : counts)
 	{
 		bufferManager.meshes[key].entitiesSubscribed = count;
 	}
-	std::sort(batch.begin(), batch.end());
 
 	// === Models ===
 	auto* dstPtr = static_cast<ModelSctructure*>(
@@ -60,15 +60,17 @@ void BufferUpdateSystem::update(float deltaTime, GeneralManager& gm, const std::
 	const glm::mat4 finalRotation = rotation * initialRotation;
 
 	int temp = 0;
-	for (const auto& entity : batch)
+	for (const auto& entitys : batch)
 	{
-		TransformComponent& transform = *gm.getComponent<TransformComponent>(entity.second);
-		const glm::mat4 model = transform.getModelMatrix() * finalRotation;
-		dstPtr[temp].model = model;
+		for (const auto& entity : entitys)
+		{
+			TransformComponent& transform = *gm.getComponent<TransformComponent>(entity);
+			const glm::mat4 model = transform.getModelMatrix() * finalRotation;
+			dstPtr[temp].model = model;
 
-		TextureInfoComponent& texture = *gm.getComponent<TextureInfoComponent>(entity.second);
-		dstPtr[temp].textureIndex = texture.textureIndex;
-		temp++;
+			TextureInfoComponent& texture = *gm.getComponent<TextureInfoComponent>(entity);
+			dstPtr[temp].textureIndex = texture.textureIndex;
+			temp++;
+		}	
 	}
-
 }

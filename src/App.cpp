@@ -138,7 +138,7 @@ void App::run()
 
 	ObjectDSetComponent* objectDSetComponent = gm.getContextComponent<MainDSetsContext, ObjectDSetComponent>();
 	objectDSetComponent->storageBuffer =
-	    bManager->createBuffer((vk::MemoryPropertyFlagBits::eHostVisible), 1024 * sizeof(ModelSctructure),
+	    bManager->createBuffer((vk::MemoryPropertyFlagBits::eHostVisible), 10240 * sizeof(ModelSctructure),
 	                           MAX_FRAMES_IN_FLIGHT, 0, *dManager->modelSetLayout);
 	objectDSetComponent->storageBufferDSet =
 	    dManager->allocateStorageBufferDSets(MAX_FRAMES_IN_FLIGHT, *dManager->modelSetLayout);

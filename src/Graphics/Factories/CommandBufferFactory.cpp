@@ -42,19 +42,18 @@ void CommandBufferFactory::recordCommandBuffer(
 	commandBuffer.setViewport(0, vk::Viewport(0.0f, 0.0f, lightTexture.sizeX, lightTexture.sizeY, 0.0f, 1.0f));
 	commandBuffer.setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), vk::Extent2D(lightTexture.sizeX, lightTexture.sizeY)));
 
+	uint32_t currentInstanceOffset = 0;
 	for (int i = 0; i < bufferManager.meshes.size(); i++)
 	{
 		commandBuffer.bindVertexBuffers(0, *bufferManager.meshBuffers[bufferManager.meshes[i].bufferIndex].vertexBuffer,
 		                                {0});
 		commandBuffer.bindIndexBuffer(*bufferManager.meshBuffers[bufferManager.meshes[i].bufferIndex].indexBuffer, 0,
 		                              vk::IndexType::eUint32);
-		int temp;
-		if (i == 0)
-			temp = 0;
-		else
-			temp = bufferManager.meshes[i - 1].entitiesSubscribed;
+
 		commandBuffer.drawIndexed(bufferManager.meshes[i].indexCount, bufferManager.meshes[i].entitiesSubscribed,
-		                          bufferManager.meshes[i].indexOffset, bufferManager.meshes[i].vertexOffset, temp);
+		                          bufferManager.meshes[i].indexOffset, bufferManager.meshes[i].vertexOffset,
+		                          currentInstanceOffset);
+		currentInstanceOffset += bufferManager.meshes[i].entitiesSubscribed;
 	}
 
 
@@ -73,7 +72,7 @@ void CommandBufferFactory::recordCommandBuffer(
 	                      vk::PipelineStageFlagBits2::eColorAttachmentOutput, vk::ImageAspectFlagBits::eColor);
 
 	transitionImageLayout(commandBuffer, swapChain.depthImage, vk::ImageLayout::eUndefined,
-	                      vk::ImageLayout::eDepthStencilAttachmentOptimal, {},
+	                      vk::ImageLayout::eDepthAttachmentOptimal, {},
 	                      vk::AccessFlagBits2::eDepthStencilAttachmentWrite, vk::PipelineStageFlagBits2::eTopOfPipe,
 	                      vk::PipelineStageFlagBits2::eEarlyFragmentTests, vk::ImageAspectFlagBits::eDepth);
 
@@ -117,21 +116,20 @@ void CommandBufferFactory::recordCommandBuffer(
 	commandBuffer.bindDescriptorSets(
 	    vk::PipelineBindPoint::eGraphics, *pipelineHandler.pipelineLayout, 1,
 	    dManager.descriptorManager->descriptorSets[bindlessTextureDSetComponent.bindlessTextureSet][0], nullptr);
+
+	currentInstanceOffset = 0; 
 	for (int i = 0; i < bufferManager.meshes.size(); i++)
 	{
-		commandBuffer.bindVertexBuffers(
-		    0, *bufferManager.meshBuffers[bufferManager.meshes[i].bufferIndex].vertexBuffer, {0});
-		commandBuffer.bindIndexBuffer(
-		    *bufferManager.meshBuffers[bufferManager.meshes[i].bufferIndex].indexBuffer, 0,
+		commandBuffer.bindVertexBuffers(0, *bufferManager.meshBuffers[bufferManager.meshes[i].bufferIndex].vertexBuffer,
+		                                {0});
+		commandBuffer.bindIndexBuffer(*bufferManager.meshBuffers[bufferManager.meshes[i].bufferIndex].indexBuffer, 0,
 		                              vk::IndexType::eUint32);
-		int temp;
-		if (i == 0)
-			temp = 0;
-		else
-			temp = bufferManager.meshes[i-1].entitiesSubscribed;
+
 		commandBuffer.drawIndexed(bufferManager.meshes[i].indexCount, bufferManager.meshes[i].entitiesSubscribed,
-		                          bufferManager.meshes[i].indexOffset,
-		                          bufferManager.meshes[i].vertexOffset, temp);
+		                          bufferManager.meshes[i].indexOffset, bufferManager.meshes[i].vertexOffset,
+		                          currentInstanceOffset 
+		);
+		currentInstanceOffset += bufferManager.meshes[i].entitiesSubscribed;
 	}
 
 	commandBuffer.endRendering();

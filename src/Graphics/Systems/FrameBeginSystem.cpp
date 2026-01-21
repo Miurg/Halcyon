@@ -33,6 +33,7 @@ void FrameBeginSystem::update(float deltaTime, GeneralManager& gm)
 	    *gm.getContextComponent<MainFrameDataContext, FrameDataComponent>()->frameDataArray;
 	CurrentFrameComponent* currentFrameComp = gm.getContextComponent<CurrentFrameContext, CurrentFrameComponent>();
 	FrameImageComponent* frameImageComponent = gm.getContextComponent<FrameImageContext, FrameImageComponent>();
+	currentFrameComp->frameValid = false;
 
 	while (vk::Result::eTimeout == vulkanDevice.device.waitForFences(
 	                                   *framesData[currentFrameComp->currentFrame].inFlightFence, vk::True, UINT64_MAX));
@@ -71,4 +72,5 @@ void FrameBeginSystem::update(float deltaTime, GeneralManager& gm)
 	framesData[currentFrameComp->currentFrame].commandBuffer.reset();
 
 	frameImageComponent->imageIndex = imageIndex;
+	currentFrameComp->frameValid = true;
 }

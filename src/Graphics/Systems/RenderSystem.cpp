@@ -42,6 +42,7 @@ void RenderSystem::update(float deltaTime, GeneralManager& gm, const std::vector
 	GlobalDSetComponent* globalDSetComponent = gm.getContextComponent<MainDSetsContext, GlobalDSetComponent>();
 	ObjectDSetComponent* objectDSetComponent = gm.getContextComponent<MainDSetsContext, ObjectDSetComponent>();
 	uint32_t imageIndex = gm.getContextComponent<FrameImageContext, FrameImageComponent>()->imageIndex;
+	if (!currentFrameComp->frameValid) return;
 
 	CommandBufferFactory::recordCommandBuffer(
 	    framesData[currentFrameComp->currentFrame].commandBuffer, imageIndex, swapChain, pipelineHandler,

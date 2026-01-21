@@ -16,11 +16,11 @@ void GameInit::gameInitStart(GeneralManager& gm)
 	    gm.getContextComponent<DescriptorManagerContext, DescriptorManagerComponent>()->descriptorManager;
 	int j = 0;
 	int k = 0;
-	for (int i = 0; i < 100; i++)
+	for (int i = 0; i < 10000; i++)
 	{
 		MeshInfoComponent meshInfo;
 		int numberTexture;
-		if (i > 50)
+		if (j%2 == 0)
 		{
 			meshInfo.mesh = bufferManager->createMesh("assets/models/BlenderMonkey.obj");
 			numberTexture = bufferManager->generateTextureData("assets/textures/texture.jpg", vk::Format::eR8G8B8A8Srgb,
@@ -41,7 +41,7 @@ void GameInit::gameInitStart(GeneralManager& gm)
 		gm.subscribeEntity<BufferUpdateSystem>(gameObjectEntity1);
 
 		k++;
-		if ((i + 1) % 10 == 0)
+		if ((i + 1) % 100 == 0)
 		{
 			j++;
 			k = 0;
