@@ -22,7 +22,7 @@ void RotationSystem::update(float deltaTime, GeneralManager& gm, const std::vect
 		TransformComponent* transform = gm.getComponent<TransformComponent>(entity);
 		if (transform)
 		{
-			transform->rotateLocal(glm::radians(45.0f) * deltaTime, glm::vec3(0.0f, 0.0f, 1.0f));
+			transform->rotateGlobal(glm::radians(45.0f) * deltaTime, glm::vec3(0.0f, 1.0f, 0.0f));
 		}
 	}
 }

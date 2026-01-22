@@ -42,7 +42,6 @@ void GameInit::gameInitStart(GeneralManager& gm)
 		gm.addComponent<TextureInfoComponent>(gameObjectEntity1, numberTexture);
 		gm.subscribeEntity<RotationSystem>(gameObjectEntity1);
 		gm.subscribeEntity<RenderSystem>(gameObjectEntity1);
-		gm.subscribeEntity<BufferUpdateSystem>(gameObjectEntity1);
 
 		k++;
 		if ((i + 1) % 100 == 0)
