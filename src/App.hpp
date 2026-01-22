@@ -18,14 +18,6 @@ public:
 	void run();
 
 private:
-	Window* window = nullptr;
-	VulkanDevice* vulkanDevice = nullptr;
-	SwapChain* swapChain = nullptr;
-	BufferManager* bManager = nullptr;
-	PipelineHandler* pipelineHandler = nullptr;
-	DescriptorManager* dManager = nullptr;
-	std::vector<FrameData>* framesData = nullptr;
-
 	uint32_t frameCount = 0;
 	float time = 0;
 

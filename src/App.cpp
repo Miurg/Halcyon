@@ -25,6 +25,7 @@
 #include "Graphics/Resources/Components/GlobalDSetComponent.hpp"
 #include "Graphics/Resources/Components/ObjectDSetComponent.hpp"
 #include "Graphics/Components/FrameImageComponent.hpp"
+#include "Graphics/GraphicsInit.hpp"
 
 namespace
 {
@@ -36,121 +37,19 @@ App::App() {}
 
 void App::run()
 {
-	//=== ECS ===
 	GeneralManager gm;
 
 	CoreInit::Run(gm);
-
-	//=== ECS END ===
-
-	window = gm.getContextComponent<MainWindowContext, WindowComponent>()->windowInstance;
-
-	Entity vulkanDeviceEntity = gm.createEntity();
-	gm.registerContext<MainVulkanDeviceContext>(vulkanDeviceEntity);
-	vulkanDevice = new VulkanDevice();
-	VulkanDeviceFactory::createVulkanDevice(*window, *vulkanDevice);
-	gm.addComponent<VulkanDeviceComponent>(vulkanDeviceEntity, vulkanDevice);
-
-	Entity swapChainEntity = gm.createEntity();
-	gm.registerContext<MainSwapChainContext>(swapChainEntity);
-	swapChain = new SwapChain();
-	SwapChainFactory::createSwapChain(*swapChain, *vulkanDevice, *window);
-	gm.addComponent<SwapChainComponent>(swapChainEntity, swapChain);
-
-	Entity bufferManagerEntity = gm.createEntity();
-	gm.registerContext<BufferManagerContext>(bufferManagerEntity);
-	bManager = new BufferManager(*vulkanDevice);
-	gm.addComponent<BufferManagerComponent>(bufferManagerEntity, bManager);
-
-	Entity descriptorManagerEntity = gm.createEntity();
-	gm.registerContext<DescriptorManagerContext>(descriptorManagerEntity);
-	dManager = new DescriptorManager(*vulkanDevice);
-	gm.addComponent<DescriptorManagerComponent>(descriptorManagerEntity, dManager);
-
-	Entity signatureEntity = gm.createEntity();
-	gm.registerContext<MainSignatureContext>(signatureEntity);
-	pipelineHandler = new PipelineHandler();
-	PipelineFactory::createGraphicsPipeline(*vulkanDevice, *swapChain, *dManager, *pipelineHandler);
-	PipelineFactory::createShadowPipeline(*vulkanDevice, *swapChain, *dManager, *pipelineHandler);
-	gm.addComponent<PipelineHandlerComponent>(signatureEntity, pipelineHandler);
-
-	Entity frameImageEntity = gm.createEntity();
-	gm.registerContext<FrameImageContext>(frameImageEntity);
-	gm.addComponent<FrameImageComponent>(frameImageEntity);
-
-	Entity frameDataEntity = gm.createEntity();
-	gm.registerContext<MainFrameDataContext>(frameDataEntity);
-	gm.registerContext<CurrentFrameContext>(frameDataEntity);
-	std::vector<FrameData>* framesData = new std::vector<FrameData>(MAX_FRAMES_IN_FLIGHT);
-	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
-	{
-		FrameData::initFrameData((*framesData)[i], *vulkanDevice);
-	}
-	gm.addComponent<FrameDataComponent>(frameDataEntity, framesData);
-	gm.addComponent<CurrentFrameComponent>(frameDataEntity);
-
-	Entity cameraEntity = gm.createEntity();
-	gm.addComponent<CameraComponent>(cameraEntity);
-	gm.addComponent<TransformComponent>(cameraEntity, glm::vec3(0.0f, 0.0f, 3.0f));
-	gm.addComponent<ControlComponent>(cameraEntity);
-	gm.registerContext<MainCameraContext>(cameraEntity);
-
-	Entity sunEntity = gm.createEntity();
-	gm.addComponent<CameraComponent>(sunEntity);
-	gm.addComponent<TransformComponent>(sunEntity, glm::vec3(10.0f, 20.0f, 10.0f));
-	gm.addComponent<LightComponent>(sunEntity, 2048, 2048);
-	gm.registerContext<LightCameraContext>(sunEntity);
-
-	CameraComponent* camera = gm.getContextComponent<MainCameraContext, CameraComponent>();
-	CameraComponent* sunCamera = gm.getContextComponent<LightCameraContext, CameraComponent>();
-	LightComponent* sunLight = gm.getContextComponent<LightCameraContext, LightComponent>();
-
-	Entity mainDSetsEntity = gm.createEntity();
-	gm.registerContext<MainDSetsContext>(mainDSetsEntity);
-	gm.addComponent<BindlessTextureDSetComponent>(mainDSetsEntity);
-	gm.addComponent<GlobalDSetComponent>(mainDSetsEntity);
-	gm.addComponent<ObjectDSetComponent>(mainDSetsEntity);
-
-	BindlessTextureDSetComponent* bTextureDSetComponent =
-	    gm.getContextComponent<MainDSetsContext, BindlessTextureDSetComponent>();
-	bTextureDSetComponent->bindlessTextureSet = dManager->allocateBindlessTextureDSet();
-
-	GlobalDSetComponent* globalDSetComponent = gm.getContextComponent<MainDSetsContext, GlobalDSetComponent>();
-	globalDSetComponent->globalDSets = dManager->allocateStorageBufferDSets(MAX_FRAMES_IN_FLIGHT, *dManager->globalSetLayout);
-	globalDSetComponent->cameraBuffers =
-	    bManager->createBuffer((vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal),
-	                           sizeof(CameraStucture), MAX_FRAMES_IN_FLIGHT, 0, *dManager->globalSetLayout);
-	globalDSetComponent->sunCameraBuffers =
-	    bManager->createBuffer((vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal),
-	                           sizeof(CameraStucture), MAX_FRAMES_IN_FLIGHT, 2, *dManager->globalSetLayout);
-
-	dManager->updateStorageBufferDescriptors(*bManager, globalDSetComponent->cameraBuffers,
-	                                         globalDSetComponent->globalDSets, 0);
-	dManager->updateStorageBufferDescriptors(*bManager, globalDSetComponent->sunCameraBuffers,
-	                                         globalDSetComponent->globalDSets, 2);
-
-	sunLight->textureShadowImage = bManager->createShadowMap(sunLight->sizeX, sunLight->sizeY);
-	dManager->updateShadowDSet(globalDSetComponent->globalDSets,
-	                           bManager->textures[sunLight->textureShadowImage].textureImageView,
-	                           bManager->textures[sunLight->textureShadowImage].textureSampler);
-	sunCamera->bufferNubmer = globalDSetComponent->sunCameraBuffers;
-	camera->bufferNubmer = globalDSetComponent->cameraBuffers;
-
-	ObjectDSetComponent* objectDSetComponent = gm.getContextComponent<MainDSetsContext, ObjectDSetComponent>();
-	objectDSetComponent->storageBuffer =
-	    bManager->createBuffer((vk::MemoryPropertyFlagBits::eHostVisible), 10240 * sizeof(ModelSctructure),
-	                           MAX_FRAMES_IN_FLIGHT, 0, *dManager->modelSetLayout);
-	objectDSetComponent->storageBufferDSet =
-	    dManager->allocateStorageBufferDSets(MAX_FRAMES_IN_FLIGHT, *dManager->modelSetLayout);
-	dManager->updateStorageBufferDescriptors(*bManager, objectDSetComponent->storageBuffer,
-	                                         objectDSetComponent->storageBufferDSet, 0);
+	GraphicsInit::Run(gm);
 	GameInit::gameInitStart(gm);
+
 	App::mainLoop(gm);
 	App::cleanup();
 }
 
 void App::mainLoop(GeneralManager& gm)
 {
+	Window* window = gm.getContextComponent<MainWindowContext, WindowComponent>()->windowInstance;
 	while (!window->shouldClose())
 	{
 		float currentFrame = static_cast<float>(glfwGetTime());
@@ -172,8 +71,9 @@ void App::mainLoop(GeneralManager& gm)
 
 void App::cleanup()
 {
-	vulkanDevice->device.waitIdle();
 
-	SwapChainFactory::cleanupSwapChain(*swapChain);
-	bManager->~BufferManager();
+	//vulkanDevice->device.waitIdle();
+
+	//SwapChainFactory::cleanupSwapChain(*swapChain);
+	//bManager->~BufferManager();
 }
