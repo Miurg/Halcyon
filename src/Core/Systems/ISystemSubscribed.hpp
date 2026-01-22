@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vector>
+#include <typeindex>
 
 class GeneralManager;
 class ISystemSubscribed
