@@ -33,46 +33,8 @@ private:
 	std::unordered_map<Entity, std::vector<std::type_index>> EntityToSystems;
 	std::vector<SystemOrderEntry> executionOrder;
 
-public:
-	void onShutdown(GeneralManager& gm)
+	void subscribeInternal(Entity entity, std::type_index systemType, GeneralManager& gm)
 	{
-		for (auto it = SystemContextual.rbegin(); it != SystemContextual.rend(); ++it)
-		{
-			(*it)->onShutdown(gm);
-		}
-		for (auto it = SystemsSubscribed.rbegin(); it != SystemsSubscribed.rend(); ++it)
-		{
-			(*it)->onShutdown(gm);
-		}
-	}
-
-	template <typename TSystem, typename... Args>
-	void addSystem(GeneralManager& gm, Args&&... args)
-	{
-		static_assert(std::is_base_of_v<ISystemSubscribed, TSystem> || std::is_base_of_v<ISystemContextual, TSystem>,
-		              "TSystem must derive from either ISystemSubscribed or ISystemContextual");
-		if constexpr (std::is_base_of_v<ISystemSubscribed, TSystem>)
-		{
-			auto system = std::make_unique<TSystem>(std::forward<Args>(args)...);
-			SystemsSubscribed.push_back(std::move(system));
-			SystemsSubscribed.back()->onRegistered(gm);
-			uint32_t index = static_cast<uint32_t>(SystemsSubscribed.size() - 1);
-			executionOrder.push_back(SystemOrderEntry{SystemKind::Subscribed, index});
-		}
-		else
-		{
-			auto system = std::make_unique<TSystem>(std::forward<Args>(args)...);
-			SystemContextual.push_back(std::move(system));
-			SystemContextual.back()->onRegistered(gm);
-			uint32_t index = static_cast<uint32_t>(SystemContextual.size() - 1);
-			executionOrder.push_back(SystemOrderEntry{SystemKind::Contextual, index});
-		}
-	}
-
-	template <typename TSystem>
-	void subscribe(Entity entity, GeneralManager& gm)
-	{
-		std::type_index systemType = typeid(TSystem);
 		ISystemSubscribed* system = nullptr;
 
 		for (auto& sys : SystemsSubscribed)
@@ -114,6 +76,48 @@ public:
 		{
 			subscribeInternal(entity, depType, gm);
 		}
+	}
+
+public:
+	void onShutdown(GeneralManager& gm)
+	{
+		for (auto it = SystemContextual.rbegin(); it != SystemContextual.rend(); ++it)
+		{
+			(*it)->onShutdown(gm);
+		}
+		for (auto it = SystemsSubscribed.rbegin(); it != SystemsSubscribed.rend(); ++it)
+		{
+			(*it)->onShutdown(gm);
+		}
+	}
+
+	template <typename TSystem, typename... Args>
+	void addSystem(GeneralManager& gm, Args&&... args)
+	{
+		static_assert(std::is_base_of_v<ISystemSubscribed, TSystem> || std::is_base_of_v<ISystemContextual, TSystem>,
+		              "TSystem must derive from either ISystemSubscribed or ISystemContextual");
+		if constexpr (std::is_base_of_v<ISystemSubscribed, TSystem>)
+		{
+			auto system = std::make_unique<TSystem>(std::forward<Args>(args)...);
+			SystemsSubscribed.push_back(std::move(system));
+			SystemsSubscribed.back()->onRegistered(gm);
+			uint32_t index = static_cast<uint32_t>(SystemsSubscribed.size() - 1);
+			executionOrder.push_back(SystemOrderEntry{SystemKind::Subscribed, index});
+		}
+		else
+		{
+			auto system = std::make_unique<TSystem>(std::forward<Args>(args)...);
+			SystemContextual.push_back(std::move(system));
+			SystemContextual.back()->onRegistered(gm);
+			uint32_t index = static_cast<uint32_t>(SystemContextual.size() - 1);
+			executionOrder.push_back(SystemOrderEntry{SystemKind::Contextual, index});
+		}
+	}
+
+	template <typename TSystem>
+	void subscribe(Entity entity, GeneralManager& gm)
+	{
+		subscribeInternal(entity, typeid(TSystem), gm);
 	}
 
 	template <typename TSystem>
