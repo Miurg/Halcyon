@@ -6,6 +6,22 @@
 #include "Graphics/VulkanDevice.hpp"
 #include "Core/GeneralManager.hpp"
 #include "Graphics/Resources/Managers/BufferManager.hpp"
+#include "Factories/VulkanDeviceFactory.hpp"
+#include "Components/VulkanDeviceComponent.hpp"
+#include "Factories/SwapChainFactory.hpp"
+#include "Components/SwapChainComponent.hpp"
+#include "Components/BufferManagerComponent.hpp"
+#include "Components/DescriptorManagerComponent.hpp"
+#include "Resources/Components/GlobalDSetComponent.hpp"
+#include "Resources/Components/ObjectDSetComponent.hpp"
+#include "../Core/Entitys/EntityManager.hpp"
+#include "Factories/PipelineFactory.hpp"
+#include "Components/PipelineHandlerComponent.hpp"
+#include "Components/FrameImageComponent.hpp"
+#include "Components/FrameDataComponent.hpp"
+#include "Components/CurrentFrameComponent.hpp"
+#include "../Game/Components/ControlComponent.hpp"
+#include "Components/LightComponent.hpp"
 class GraphicsInit
 {
 public:
@@ -143,8 +159,6 @@ private:
 		dManager->updateShadowDSet(globalDSetComponent->globalDSets,
 		                           bManager->textures[sunLight->textureShadowImage].textureImageView,
 		                           bManager->textures[sunLight->textureShadowImage].textureSampler);
-		sunCamera->bufferNubmer = globalDSetComponent->sunCameraBuffers;
-		camera->bufferNubmer = globalDSetComponent->cameraBuffers;
 
 		// === Cameras and Lights END ===
 
