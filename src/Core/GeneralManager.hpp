@@ -65,6 +65,9 @@ public:
 		}
 
 		TComponent* component = _componentManager.addComponent<TComponent>(entity, std::forward<Args>(args)...);
+		
+		_systemManager.checkForNewSubscriptions(entity, *this);
+
 		return component;
 	}
 

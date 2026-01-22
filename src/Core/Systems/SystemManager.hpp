@@ -203,6 +203,37 @@ public:
 		}
 	}
 
+	void checkForNewSubscriptions(Entity entity, GeneralManager& gm)
+	{
+		auto& currentSystems = EntityToSystems[entity];
+
+		for (auto& system : SystemsSubscribed)
+		{
+			// Если система не обязательная - скипаем
+			if (!system->isSubscribtionMandatory()) continue;
+
+			std::type_index systemType = typeid(*system);
+
+			bool alreadySubscribed = false;
+			for (const auto& existingType : currentSystems)
+			{
+				if (existingType == systemType)
+				{
+					alreadySubscribed = true;
+					break;
+				}
+			}
+
+			if (alreadySubscribed) continue;
+
+			if (system->shouldProcessEntity(entity, gm))
+			{
+				SystemToEntities[systemType].push_back(entity);
+				EntityToSystems[entity].push_back(systemType);
+			}
+		}
+	}
+
 	void updateSystems(float deltaTime, GeneralManager& gm)
 	{
 		for (auto& entry : executionOrder)

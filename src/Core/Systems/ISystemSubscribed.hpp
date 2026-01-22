@@ -11,4 +11,9 @@ public:
 	virtual bool shouldProcessEntity(Entity entity, GeneralManager& gm) = 0;
 	virtual void onRegistered(GeneralManager& gm) = 0;
 	virtual void onShutdown(GeneralManager& gm) = 0;
+
+	virtual bool isSubscribtionMandatory() const
+	{
+		return false;
+	}
 };
