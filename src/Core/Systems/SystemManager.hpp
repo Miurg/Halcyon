@@ -33,6 +33,51 @@ private:
 	std::unordered_map<Entity, std::vector<std::type_index>> EntityToSystems;
 	std::vector<SystemOrderEntry> executionOrder;
 
+	void subscribeInternal(Entity entity, std::type_index systemType, GeneralManager& gm)
+	{
+		ISystemSubscribed* system = nullptr;
+
+		for (auto& sys : SystemsSubscribed)
+		{
+			if (std::type_index(typeid(*sys)) == systemType)
+			{
+				system = sys.get();
+				break;
+			}
+		}
+
+		if (!system)
+		{
+			std::cerr << "WARNING::SYSTEM_MANAGER::Entity " << entity << " trying to subscribe to a non-existent system "
+			          << systemType.name() << ". Cant subscribe!" << std::endl;
+			return;
+		}
+
+		if (!system->shouldProcessEntity(entity, gm))
+		{
+			std::cerr << "WARNING::SYSTEM_MANAGER::Entity " << entity
+			          << " doesn't have all required components for system " << systemType.name() << ". Cant subscribe!"
+			          << std::endl;
+			return;
+		}
+
+		auto& currentSystems = EntityToSystems[entity];
+
+		if (std::find(currentSystems.begin(), currentSystems.end(), systemType) != currentSystems.end())
+		{
+			return;
+		}
+
+		SystemToEntities[systemType].push_back(entity);
+		EntityToSystems[entity].push_back(systemType);
+
+		const auto& dependencies = system->getSystemDependencies();
+		for (const auto& depType : dependencies)
+		{
+			subscribeInternal(entity, depType, gm);
+		}
+	}
+
 public:
 	void onShutdown(GeneralManager& gm)
 	{
@@ -72,36 +117,7 @@ public:
 	template <typename TSystem>
 	void subscribe(Entity entity, GeneralManager& gm)
 	{
-		std::type_index systemType = typeid(TSystem);
-		ISystemSubscribed* system = nullptr;
-
-		{
-			for (auto& sys : SystemsSubscribed)
-			{
-				if (std::type_index(typeid(*sys)) == systemType)
-				{
-					system = sys.get();
-					break;
-				}
-			}
-		}
-
-		if (!system)
-		{
-			std::cerr << "WARNING::SYSTEM_MANAGER::Entity " << entity << " trying to subscribe to a non-existent system "
-			          << systemType.name() << ". Cant subscribe!" << std::endl;
-		}
-		else if (!system->shouldProcessEntity(entity, gm))
-		{
-			std::cerr << "WARNING::SYSTEM_MANAGER::Entity " << entity
-			          << " doesn't have all required components for system " << systemType.name() << ". Cant subscribe!"
-			          << std::endl;
-		}
-		else
-		{
-			SystemToEntities[systemType].push_back(entity);
-			EntityToSystems[entity].push_back(systemType);
-		}
+		subscribeInternal(entity, typeid(TSystem), gm);
 	}
 
 	template <typename TSystem>

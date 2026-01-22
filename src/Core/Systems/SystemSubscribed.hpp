@@ -36,14 +36,18 @@ public:
 		}
 	}
 
-	virtual inline void processEntity(Entity entity, GeneralManager& gm, float deltaTime) = 0;
-
 	virtual bool shouldProcessEntity(Entity entity, GeneralManager& gm)
 	{
 		return hasAllComponents<RequiredComponents...>(entity, gm, typeid(Derived).name());
 	}
 
+	virtual bool isSubscribtionMandatory() const
+	{
+		return false;
+	}
 
-	virtual void onRegistered(GeneralManager& gm) = 0;
-	virtual void onShutdown(GeneralManager& gm) = 0;
+	virtual std::vector<std::type_index> getSystemDependencies() const
+	{
+		return {};
+	}
 };
