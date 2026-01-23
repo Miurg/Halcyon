@@ -32,11 +32,8 @@ void TransformSystem::updateTransformRecursive(Entity entity, GeneralManager& gm
 	GlobalTransformComponent& globalTransform = 
 		*gm.getComponent<GlobalTransformComponent>(entity);
 
-	// Scale 
-	tempScale = parentScale * localTransform.localScale; 
-	// Rotation 
+	tempScale = parentScale * localTransform.localScale;  
 	tempRotation = glm::normalize(parentRotation * localTransform.localRotation);
-	// Position 
 	tempPosition = parentPosition + (parentRotation * (parentScale * localTransform.localPosition));
 
 	globalTransform.globalPosition = tempPosition;
@@ -69,6 +66,5 @@ void TransformSystem::update(float deltaTime, GeneralManager& gm)
 			GlobalTransformComponent& globalTransform = *gm.getComponent<GlobalTransformComponent>(entity);
 			updateTransformRecursive(entity, gm, tempPosition, tempRotation, tempScale);
 		}
-		
 	}
 }

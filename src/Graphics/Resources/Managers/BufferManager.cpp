@@ -41,6 +41,17 @@ BufferManager::~BufferManager()
 			vmaDestroyImage(allocator, texture.textureImage, texture.textureImageAllocation);
 		}
 	}
+	for (auto& meshBuffer : meshBuffers)
+	{
+		if (meshBuffer.vertexBuffer)
+		{
+			vmaDestroyBuffer(allocator, meshBuffer.vertexBuffer, meshBuffer.vertexBufferAllocation);
+		}
+		if (meshBuffer.indexBuffer)
+		{
+			vmaDestroyBuffer(allocator, meshBuffer.indexBuffer, meshBuffer.indexBufferAllocation);
+		}
+	}
 	for (auto& buffer : buffers)
 	{
 		for (size_t i = 0; i < buffer.buffer.size(); ++i)

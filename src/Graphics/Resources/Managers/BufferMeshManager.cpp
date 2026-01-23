@@ -43,30 +43,54 @@ void BufferManager::createVertexBuffer(VulkanDevice& vulkanDevice, VertexIndexBu
 {
 	vk::DeviceSize bufferSize = sizeof(vertexIndexBuffer.vertices[0]) * vertexIndexBuffer.vertices.size();
 
-	auto result = VulkanUtils::createBuffer(
-	    bufferSize, vk::BufferUsageFlagBits::eVertexBuffer,
-	    vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, vulkanDevice);
+	vk::BufferCreateInfo bufferInfo;
+	bufferInfo.size = bufferSize;
+	bufferInfo.usage = vk::BufferUsageFlagBits::eVertexBuffer;
+	bufferInfo.sharingMode = vk::SharingMode::eExclusive;
 
-	vertexIndexBuffer.vertexBuffer = std::move(result.first);
-	vertexIndexBuffer.vertexBufferMemory = std::move(result.second);
+	VmaAllocationCreateInfo allocInfo = {};
+	allocInfo.usage = VMA_MEMORY_USAGE_AUTO;
+	allocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
+	allocInfo.flags |= VMA_ALLOCATION_CREATE_MAPPED_BIT;
 
-	void* data = vertexIndexBuffer.vertexBufferMemory.mapMemory(0, bufferSize);
+	VkBuffer buffer;
+	VmaAllocation allocation;
+	VmaAllocationInfo allocResultInfo;
+
+	VkBufferCreateInfo bufferInfoC = (VkBufferCreateInfo)bufferInfo;
+	vmaCreateBuffer(allocator, &bufferInfoC, &allocInfo, &buffer, &allocation, &allocResultInfo);
+
+	vertexIndexBuffer.vertexBuffer = vk::Buffer(buffer);
+	vertexIndexBuffer.vertexBufferAllocation = allocation;
+
+	void* data = allocResultInfo.pMappedData;
 	memcpy(data, vertexIndexBuffer.vertices.data(), static_cast<size_t>(bufferSize));
-	vertexIndexBuffer.vertexBufferMemory.unmapMemory();
 }
 
 void BufferManager::createIndexBuffer(VulkanDevice& vulkanDevice, VertexIndexBuffer& vertexIndexBuffer)
 {
 	vk::DeviceSize bufferSize = sizeof(vertexIndexBuffer.indices[0]) * vertexIndexBuffer.indices.size();
 
-	auto result = VulkanUtils::createBuffer(
-	    bufferSize, vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eIndexBuffer,
-	    vk::MemoryPropertyFlagBits::eHostVisible, vulkanDevice);
+	vk::BufferCreateInfo bufferInfo;
+	bufferInfo.size = bufferSize;
+	bufferInfo.usage = vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eIndexBuffer;
+	bufferInfo.sharingMode = vk::SharingMode::eExclusive;
 
-	vertexIndexBuffer.indexBuffer = std::move(result.first);
-	vertexIndexBuffer.indexBufferMemory = std::move(result.second);
+	VmaAllocationCreateInfo allocInfo = {};
+	allocInfo.usage = VMA_MEMORY_USAGE_AUTO;
+	allocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
+	allocInfo.flags |= VMA_ALLOCATION_CREATE_MAPPED_BIT;
 
-	void* data = vertexIndexBuffer.indexBufferMemory.mapMemory(0, bufferSize);
+	VkBuffer buffer;
+	VmaAllocation allocation;
+	VmaAllocationInfo allocResultInfo;
+
+	VkBufferCreateInfo bufferInfoC = (VkBufferCreateInfo)bufferInfo;
+	vmaCreateBuffer(allocator, &bufferInfoC, &allocInfo, &buffer, &allocation, &allocResultInfo);
+
+	vertexIndexBuffer.indexBuffer = vk::Buffer(buffer);
+	vertexIndexBuffer.indexBufferAllocation = allocation;
+
+	void* data = allocResultInfo.pMappedData;
 	memcpy(data, vertexIndexBuffer.indices.data(), static_cast<size_t>(bufferSize));
-	vertexIndexBuffer.indexBufferMemory.unmapMemory();
 }
