@@ -17,4 +17,8 @@ public:
 	{
 		entities.push_back(entity);
 	}
+	void onEntityUnsubscribed(Entity entity, GeneralManager& gm) override
+	{
+		entities.erase(std::remove(entities.begin(), entities.end(), entity), entities.end());
+	}
 };

@@ -1,4 +1,3 @@
-#pragma once
 
 #include <vector>
 #include "../../Core/Systems/SystemCore.hpp"
@@ -6,9 +5,13 @@
 #include "../../Core/GeneralManager.hpp"
 #include "../../Core/Entitys/EntityManager.hpp"
 
-class RotationSystem : public SystemCore<RotationSystem, LocalTransformComponent>
+class SpawnSystem : public SystemCore<SpawnSystem>
 {
+
 public:
+	int j = 0;
+	int k = 0;
+	float time = 0;
 	std::vector<Entity> entities;
 	void update(float deltaTime, GeneralManager& gm) override;
 	void onRegistered(GeneralManager& gm) override;

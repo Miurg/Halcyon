@@ -1,3 +1,4 @@
+#pragma once
 #include "Core/GeneralManager.hpp"
 #include "Platform/Systems/InputSolverSystem.hpp"
 #include "Game/Systems/ControlSystem.hpp"
@@ -8,6 +9,7 @@
 #include "Graphics/Systems/CameraMatrixSystem.hpp"
 #include "Game/Systems/RotationSystem.hpp"
 #include "Graphics/Systems/TransformSystem.hpp"
+#include "Game/Systems/SpawnSystem.hpp"
 
 
 class CoreInit
@@ -22,13 +24,13 @@ public:
 		gm.registerSystem<InputSolverSystem>();
 		gm.registerSystem<ControlSystem>();
 		gm.registerSystem<RotationSystem>();
-
+		gm.registerSystem<SpawnSystem>();
 
 		gm.registerSystem<TransformSystem>();
 		gm.registerSystem<FrameBeginSystem>();
 		gm.registerSystem<CameraMatrixSystem>();
 		gm.registerSystem<BufferUpdateSystem>();
-
+		
 		gm.registerSystem<RenderSystem>();
 		gm.registerSystem<FrameEndSystem>();
 

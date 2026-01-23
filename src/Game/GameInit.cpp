@@ -2,7 +2,6 @@
 #include "../Graphics/Resources/Components/MeshInfoComponent.hpp"
 #include "../Graphics/Resources/Managers/BufferManager.hpp"
 #include "../Graphics/Resources/Components/TextureInfoComponent.hpp"
-#include "../CoreInit.hpp"
 #include "../Graphics/GraphicsContexts.hpp"
 #include "../Graphics/Components/BufferManagerComponent.hpp"
 #include "../Graphics/Components/DescriptorManagerComponent.hpp"
@@ -10,6 +9,9 @@
 #include "../Graphics/Components/GlobalTransformComponent.hpp"
 #include "../Graphics/Components/LocalTransformComponent.hpp"
 #include "../Graphics/Components/RelationshipComponent.hpp"
+#include "../Graphics/Systems/TransformSystem.hpp"
+#include "Systems/RotationSystem.hpp"
+#include "../Graphics/Systems/RenderSystem.hpp"
 
 void GameInit::gameInitStart(GeneralManager& gm)
 {
@@ -19,7 +21,7 @@ void GameInit::gameInitStart(GeneralManager& gm)
 	    gm.getContextComponent<DescriptorManagerContext, DescriptorManagerComponent>()->descriptorManager;
 	int j = 0;
 	int k = 0;
-	for (int i = 0; i < 1000; i++)
+	for (int i = 0; i < 10; i++)
 	{
 		Entity gameObjectEntity1 = gm.createEntity();
 		MeshInfoComponent meshInfo;

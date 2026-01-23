@@ -22,4 +22,8 @@ public:
 	void onRegistered(GeneralManager& gm) override;
 	void onShutdown(GeneralManager& gm) override;
 	void onEntitySubscribed(Entity entity, GeneralManager& gm) override;
+	void onEntityUnsubscribed(Entity entity, GeneralManager& gm) override
+	{
+		entities.erase(std::remove(entities.begin(), entities.end(), entity), entities.end());
+	}
 };
