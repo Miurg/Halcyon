@@ -6,38 +6,23 @@
 #include <unordered_map>
 #include <vector>
 
-#include "ISystemContextual.hpp"
-#include "ISystemSubscribed.hpp"
+#include "ISystemCore.hpp"
 #include "../Entitys/ActiveEntitySet.hpp"
 
 class GeneralManager;
 
-enum class SystemKind : uint8_t
-{
-	Subscribed,
-	Contextual
-};
-
-struct SystemOrderEntry
-{
-	SystemKind kind;
-	uint32_t index;
-};
-
 class SystemManager
 {
 private:
-	std::vector<std::unique_ptr<ISystemContextual>> SystemContextual;
-	std::vector<std::unique_ptr<ISystemSubscribed>> SystemsSubscribed;
+	std::vector<std::unique_ptr<ISystemCore>> SystemContextual;
 	std::unordered_map<std::type_index, std::vector<Entity>> SystemToEntities;
 	std::unordered_map<Entity, std::vector<std::type_index>> EntityToSystems;
-	std::vector<SystemOrderEntry> executionOrder;
 
 	void subscribeInternal(Entity entity, std::type_index systemType, GeneralManager& gm)
 	{
-		ISystemSubscribed* system = nullptr;
+		ISystemCore* system = nullptr;
 
-		for (auto& sys : SystemsSubscribed)
+		for (auto& sys : SystemContextual)
 		{
 			if (std::type_index(typeid(*sys)) == systemType)
 			{
@@ -65,8 +50,13 @@ private:
 
 		if (std::find(currentSystems.begin(), currentSystems.end(), systemType) != currentSystems.end())
 		{
+			std::cout << "WARNING::SYSTEM_MANAGER::Entity " << entity
+			          << " trying to subscribe to a system that is already subscribed to  " << systemType.name()
+			          << ". Cant subscribe!" << std::endl;
 			return;
 		}
+
+		system->onEntitySubscribed(entity, gm);
 
 		SystemToEntities[systemType].push_back(entity);
 		EntityToSystems[entity].push_back(systemType);
@@ -85,33 +75,16 @@ public:
 		{
 			(*it)->onShutdown(gm);
 		}
-		for (auto it = SystemsSubscribed.rbegin(); it != SystemsSubscribed.rend(); ++it)
-		{
-			(*it)->onShutdown(gm);
-		}
 	}
 
 	template <typename TSystem, typename... Args>
 	void addSystem(GeneralManager& gm, Args&&... args)
 	{
-		static_assert(std::is_base_of_v<ISystemSubscribed, TSystem> || std::is_base_of_v<ISystemContextual, TSystem>,
-		              "TSystem must derive from either ISystemSubscribed or ISystemContextual");
-		if constexpr (std::is_base_of_v<ISystemSubscribed, TSystem>)
-		{
-			auto system = std::make_unique<TSystem>(std::forward<Args>(args)...);
-			SystemsSubscribed.push_back(std::move(system));
-			SystemsSubscribed.back()->onRegistered(gm);
-			uint32_t index = static_cast<uint32_t>(SystemsSubscribed.size() - 1);
-			executionOrder.push_back(SystemOrderEntry{SystemKind::Subscribed, index});
-		}
-		else
-		{
+		static_assert(std::is_base_of_v<ISystemCore, TSystem>,
+		              "TSystem must derive from ISystemCore");
 			auto system = std::make_unique<TSystem>(std::forward<Args>(args)...);
 			SystemContextual.push_back(std::move(system));
 			SystemContextual.back()->onRegistered(gm);
-			uint32_t index = static_cast<uint32_t>(SystemContextual.size() - 1);
-			executionOrder.push_back(SystemOrderEntry{SystemKind::Contextual, index});
-		}
 	}
 
 	template <typename TSystem>
@@ -125,10 +98,10 @@ public:
 	{
 		std::type_index systemType = typeid(TSystem);
 
-		ISystemSubscribed* system = nullptr;
+		ISystemCore* system = nullptr;
 
 		{
-			for (auto& sys : SystemsSubscribed)
+			for (auto& sys : SystemContextual)
 			{
 				if (std::type_index(typeid(*sys)) == systemType)
 				{
@@ -193,7 +166,7 @@ public:
 			std::type_index systemType = *it;
 
 			bool shouldRemove = true;
-			for (auto& system : SystemsSubscribed)
+			for (auto& system : SystemContextual)
 			{
 				if (std::type_index(typeid(*system)) == systemType)
 				{
@@ -223,9 +196,8 @@ public:
 	{
 		auto& currentSystems = EntityToSystems[entity];
 
-		for (auto& system : SystemsSubscribed)
+		for (auto& system : SystemContextual)
 		{
-			// Если система не обязательная - скипаем
 			if (!system->isSubscribtionMandatory()) continue;
 
 			std::type_index systemType = typeid(*system);
@@ -252,22 +224,9 @@ public:
 
 	void updateSystems(float deltaTime, GeneralManager& gm)
 	{
-		for (auto& entry : executionOrder)
+		for (auto& entry : SystemContextual)
 		{
-			if (entry.kind == SystemKind::Subscribed)
-			{
-				auto& system = SystemsSubscribed[entry.index];
-				std::type_index systemType = typeid(*system);
-				auto it = SystemToEntities.find(systemType);
-				if (it != SystemToEntities.end())
-				{
-					SystemsSubscribed[entry.index]->update(deltaTime, gm, it->second);
-				}
-			}
-			else
-			{
-				SystemContextual[entry.index]->update(deltaTime, gm);
-			}
+			entry->update(deltaTime, gm);
 		}
 	}
 };

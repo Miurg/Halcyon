@@ -1,8 +1,8 @@
 #pragma once
 
-#include "../../Core/Systems/SystemContextual.hpp"
+#include "../../Core/Systems/SystemCore.hpp"
 
-class FrameEndSystem : public SystemContextual<FrameEndSystem>
+class FrameEndSystem : public SystemCore<FrameEndSystem>
 {
 public:
 	void update(float deltaTime, GeneralManager& gm) override;

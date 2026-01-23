@@ -1,14 +1,20 @@
 #pragma once
-#include "../../Core/Systems/SystemSubscribed.hpp"
+#include "../../Core/Systems/SystemCore.hpp"
 #include "../Components/TransformComponent.hpp"
 #include "../Resources/Components/TextureInfoComponent.hpp"
 #include "../Resources/Components/MeshInfoComponent.hpp"
+#include "../../Core/Entitys/EntityManager.hpp"
 
-class BufferUpdateSystem : public SystemSubscribed<BufferUpdateSystem, TransformComponent, TextureInfoComponent, MeshInfoComponent>
+class BufferUpdateSystem
+    : public SystemCore<BufferUpdateSystem, TransformComponent, TextureInfoComponent, MeshInfoComponent>
 {
 public:
-	void update(float deltaTime, GeneralManager& gm, const std::vector<Entity>& entities) override;
-	void processEntity(Entity entity, GeneralManager& manager, float dt) override;
+	std::vector<Entity> entities;
+	void update(float deltaTime, GeneralManager& gm) override;
 	void onRegistered(GeneralManager& gm) override;
 	void onShutdown(GeneralManager& gm) override;
+	void onEntitySubscribed(Entity entity, GeneralManager& gm) override
+	{
+		entities.push_back(entity);
+	}
 };

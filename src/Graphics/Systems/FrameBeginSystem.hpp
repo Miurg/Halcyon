@@ -1,9 +1,9 @@
 #pragma once
 
-#include "../../Core/Systems/SystemContextual.hpp"
+#include "../../Core/Systems/SystemCore.hpp"
 
 class FrameBeginSystem
-    : public SystemContextual<FrameBeginSystem>
+    : public SystemCore<FrameBeginSystem>
 {
 public:
 	void update(float deltaTime, GeneralManager& gm) override;

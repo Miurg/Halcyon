@@ -111,7 +111,7 @@ private:
 	static void placeholderEntitysCreate(GeneralManager& gm)
 	{
 #ifdef _DEBUG
-		std::cout << "GRAPHICSINIT::PLACEHOLDERENTITYS::Start creating placeholder entitys" << std::endl;
+		std::cout << "GRAPHICSINIT::PLACEHOLDERENTITYS::Start creating placeholder entities" << std::endl;
 #endif //_DEBUG
 		// === Placeholder Entities ===
 

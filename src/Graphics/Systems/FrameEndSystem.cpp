@@ -16,12 +16,12 @@
 
 void FrameEndSystem::onRegistered(GeneralManager& gm)
 {
-	std::cout << "PresentSystem registered!" << std::endl;
+	std::cout << "FrameEndSystem registered!" << std::endl;
 }
 
 void FrameEndSystem::onShutdown(GeneralManager& gm)
 {
-	std::cout << "PresentSystem shutdown!" << std::endl;
+	std::cout << "FrameEndSystem shutdown!" << std::endl;
 }
 
 void FrameEndSystem::update(float deltaTime, GeneralManager& gm)

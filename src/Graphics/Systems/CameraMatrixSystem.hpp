@@ -1,7 +1,7 @@
 #pragma once
-#include "../../Core/Systems/SystemContextual.hpp"
+#include "../../Core/Systems/SystemCore.hpp"
 
-class CameraMatrixSystem : public SystemContextual<CameraMatrixSystem>
+class CameraMatrixSystem : public SystemCore<CameraMatrixSystem>
 {
 public:
 	void update(float deltaTime, GeneralManager& gm) override;

@@ -36,8 +36,6 @@ void GameInit::gameInitStart(GeneralManager& gm)
 			                                       vk::ImageAspectFlagBits::eColor, *dSetComponent, *dManager);
 		}
 
-
-
 		gm.addComponent<MeshInfoComponent>(gameObjectEntity1, meshInfo);
 		gm.addComponent<TextureInfoComponent>(gameObjectEntity1, numberTexture);
 		gm.subscribeEntity<RotationSystem>(gameObjectEntity1);

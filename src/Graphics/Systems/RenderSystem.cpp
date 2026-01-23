@@ -12,8 +12,6 @@
 #include "../Components/DescriptorManagerComponent.hpp"
 #include "../Components/FrameImageComponent.hpp"
 
-void RenderSystem::processEntity(Entity entity, GeneralManager& manager, float dt) {}
-
 void RenderSystem::onRegistered(GeneralManager& gm)
 {
 	std::cout << "RenderSystem registered!" << std::endl;
@@ -24,7 +22,7 @@ void RenderSystem::onShutdown(GeneralManager& gm)
 	std::cout << "RenderSystem shutdown!" << std::endl;
 }
 
-void RenderSystem::update(float deltaTime, GeneralManager& gm, const std::vector<Entity>& entities)
+void RenderSystem::update(float deltaTime, GeneralManager& gm)
 {
 	SwapChain& swapChain = *gm.getContextComponent<MainSwapChainContext, SwapChainComponent>()->swapChainInstance;
 	PipelineHandler& pipelineHandler =

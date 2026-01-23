@@ -3,8 +3,6 @@
 #include "../../Core/GeneralManager.hpp"
 #include "../../Graphics/GraphicsContexts.hpp"
 
-void RotationSystem::processEntity(Entity entity, GeneralManager& manager, float dt) {}
-
 void RotationSystem::onRegistered(GeneralManager& gm)
 {
 	std::cout << "RotationSystem registered!" << std::endl;
@@ -15,7 +13,7 @@ void RotationSystem::onShutdown(GeneralManager& gm)
 	std::cout << "RotationSystem shutdown!" << std::endl;
 }
 
-void RotationSystem::update(float deltaTime, GeneralManager& gm, const std::vector<Entity>& entities)
+void RotationSystem::update(float deltaTime, GeneralManager& gm)
 {
 	for (auto entity : entities)
 	{

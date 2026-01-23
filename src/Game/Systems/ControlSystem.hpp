@@ -2,14 +2,14 @@
 #include <GLFW/glfw3.h>
 #include "../../Graphics/GraphicsContexts.hpp"
 #include "../../Platform/PlatformContexts.hpp"
-#include "../../Core/Systems/SystemContextual.hpp"
+#include "../../Core/Systems/SystemCore.hpp"
 #include "../../Core/GeneralManager.hpp"
 #include "../../Graphics/Components/CameraComponent.hpp"
 #include "../../Platform/Components/WindowComponent.hpp"
 #include "../../Platform/Components/KeyboardStateComponent.hpp"
 #include "../../Platform/Components/CursorPositionComponent.hpp"
 
-class ControlSystem : public SystemContextual<ControlSystem>
+class ControlSystem : public SystemCore<ControlSystem>
 {
 private:
 	bool cursorDisable = true;

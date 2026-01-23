@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../Core/Systems/SystemSubscribed.hpp"
+#include "../../Core/Systems/SystemCore.hpp"
 #include "../Components/CursorPositionComponent.hpp"
 #include "../Components/WindowSizeComponent.hpp"
 #include "../Components/KeyboardStateComponent.hpp"
@@ -9,11 +9,16 @@
 #include "../Components/WindowComponent.hpp"
 
 class InputSolverSystem
-    : public SystemSubscribed<InputSolverSystem, WindowComponent, CursorPositionComponent, WindowSizeComponent,
+    : public SystemCore<InputSolverSystem, WindowComponent, CursorPositionComponent, WindowSizeComponent,
                               KeyboardStateComponent, MouseStateComponent, ScrollDeltaComponent>
 {
 public:
-	void processEntity(Entity entity, GeneralManager& gm, float deltaTime);
+	std::vector<Entity> entities;
+	void update(float deltaTime, GeneralManager& gm) override;
 	void onRegistered(GeneralManager& gm) override;
 	void onShutdown(GeneralManager& gm) override;
+	void onEntitySubscribed(Entity entity, GeneralManager& gm) override
+	{
+		entities.push_back(entity);
+	}
 };

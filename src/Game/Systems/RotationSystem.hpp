@@ -1,15 +1,19 @@
 #pragma once
 
 #include <vector>
-#include "../../Core/Systems/SystemSubscribed.hpp"
+#include "../../Core/Systems/SystemCore.hpp"
 #include "../../Graphics/Components/TransformComponent.hpp"
 
 
-class RotationSystem: public SystemSubscribed<RotationSystem,TransformComponent>
+class RotationSystem : public SystemCore<RotationSystem, TransformComponent>
 {
 public:
-	void update(float deltaTime, GeneralManager& gm, const std::vector<Entity>& entities) override;
-	void processEntity(Entity entity, GeneralManager& manager, float dt) override;
+	std::vector<Entity> entities;
+	void update(float deltaTime, GeneralManager& gm) override;
 	void onRegistered(GeneralManager& gm) override;
 	void onShutdown(GeneralManager& gm) override;
+	void onEntitySubscribed(Entity entity, GeneralManager& gm) override
+	{
+		entities.push_back(entity);
+	}
 };
