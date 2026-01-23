@@ -14,7 +14,7 @@ class GeneralManager;
 class SystemManager
 {
 private:
-	std::vector<std::unique_ptr<ISystemCore>> SystemContextual;
+	std::vector<std::unique_ptr<ISystemCore>> SystemCore;
 	std::unordered_map<std::type_index, std::vector<Entity>> SystemToEntities;
 	std::unordered_map<Entity, std::vector<std::type_index>> EntityToSystems;
 
@@ -22,7 +22,7 @@ private:
 	{
 		ISystemCore* system = nullptr;
 
-		for (auto& sys : SystemContextual)
+		for (auto& sys : SystemCore)
 		{
 			if (std::type_index(typeid(*sys)) == systemType)
 			{
@@ -71,7 +71,7 @@ private:
 public:
 	void onShutdown(GeneralManager& gm)
 	{
-		for (auto it = SystemContextual.rbegin(); it != SystemContextual.rend(); ++it)
+		for (auto it = SystemCore.rbegin(); it != SystemCore.rend(); ++it)
 		{
 			(*it)->onShutdown(gm);
 		}
@@ -80,11 +80,10 @@ public:
 	template <typename TSystem, typename... Args>
 	void addSystem(GeneralManager& gm, Args&&... args)
 	{
-		static_assert(std::is_base_of_v<ISystemCore, TSystem>,
-		              "TSystem must derive from ISystemCore");
-			auto system = std::make_unique<TSystem>(std::forward<Args>(args)...);
-			SystemContextual.push_back(std::move(system));
-			SystemContextual.back()->onRegistered(gm);
+		static_assert(std::is_base_of_v<ISystemCore, TSystem>, "TSystem must derive from ISystemCore");
+		auto system = std::make_unique<TSystem>(std::forward<Args>(args)...);
+		SystemCore.push_back(std::move(system));
+		SystemCore.back()->onRegistered(gm);
 	}
 
 	template <typename TSystem>
@@ -98,7 +97,7 @@ public:
 		ISystemCore* system = nullptr;
 
 		{
-			for (auto& sys : SystemContextual)
+			for (auto& sys : SystemCore)
 			{
 				if (std::type_index(typeid(*sys)) == systemType)
 				{
@@ -170,7 +169,7 @@ public:
 			std::type_index systemType = *it;
 
 			bool shouldRemove = true;
-			for (auto& system : SystemContextual)
+			for (auto& system : SystemCore)
 			{
 				if (std::type_index(typeid(*system)) == systemType)
 				{
@@ -200,35 +199,19 @@ public:
 	{
 		auto& currentSystems = EntityToSystems[entity];
 
-		for (auto& system : SystemContextual)
+		for (auto& system : SystemCore)
 		{
 			if (!system->isSubscribtionMandatory()) continue;
 
 			std::type_index systemType = typeid(*system);
 
-			bool alreadySubscribed = false;
-			for (const auto& existingType : currentSystems)
-			{
-				if (existingType == systemType)
-				{
-					alreadySubscribed = true;
-					break;
-				}
-			}
-
-			if (alreadySubscribed) continue;
-
-			if (system->shouldProcessEntity(entity, gm))
-			{
-				SystemToEntities[systemType].push_back(entity);
-				EntityToSystems[entity].push_back(systemType);
-			}
+			subscribeInternal(entity, systemType, gm);
 		}
 	}
 
 	void updateSystems(float deltaTime, GeneralManager& gm)
 	{
-		for (auto& entry : SystemContextual)
+		for (auto& entry : SystemCore)
 		{
 			entry->update(deltaTime, gm);
 		}

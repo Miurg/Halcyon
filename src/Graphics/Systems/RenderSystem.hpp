@@ -2,13 +2,13 @@
 
 #include <vector>
 #include "../../Core/Systems/SystemCore.hpp"
-#include "../Components/TransformComponent.hpp"
+#include "../Components/GlobalTransformComponent.hpp"
 #include "../Resources/Components/TextureInfoComponent.hpp"
 #include "../Resources/Components/MeshInfoComponent.hpp"
 #include "BufferUpdateSystem.hpp"
 
 
-class RenderSystem : public SystemCore<RenderSystem, TextureInfoComponent, TransformComponent, MeshInfoComponent>
+class RenderSystem : public SystemCore<RenderSystem, TextureInfoComponent, GlobalTransformComponent, MeshInfoComponent>
 {
 public:
 	void update(float deltaTime, GeneralManager& gm) override;

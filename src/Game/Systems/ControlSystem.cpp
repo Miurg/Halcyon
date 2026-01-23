@@ -1,6 +1,16 @@
 #include "ControlSystem.hpp"
-#include "../../Graphics/Components/TransformComponent.hpp"
+#include "../../Graphics/Components/LocalTransformComponent.hpp"
+#include "../../Graphics/Components/CameraComponent.hpp"
+#include "../../Platform/Components/KeyboardStateComponent.hpp"
+#include "../../Platform/Components/CursorPositionComponent.hpp"
+#include <GLFW/glfw3.h>
+#include "../../Graphics/GraphicsContexts.hpp"
+#include "../../Platform/PlatformContexts.hpp"
 #include "../Components/ControlComponent.hpp"
+#include "../../Platform/Components/WindowComponent.hpp"
+#include "../../Core/GeneralManager.hpp"
+#include "../../Platform/Window.hpp"
+#include "../../Graphics/Components/GlobalTransformComponent.hpp"
 
 void ControlSystem::cursorDisableToggle(Window* window)
 {
@@ -23,7 +33,8 @@ void ControlSystem::update(float deltaTime, GeneralManager& gm)
 	CursorPositionComponent* cursorPositionState = gm.getContextComponent<InputDataContext, CursorPositionComponent>();
 	WindowComponent* windowInstance = gm.getContextComponent<MainWindowContext, WindowComponent>();
 	CameraComponent* mainCamera = gm.getContextComponent<MainCameraContext, CameraComponent>();
-	TransformComponent* mainCameraTransform = gm.getContextComponent<MainCameraContext, TransformComponent>();
+	GlobalTransformComponent* mainCameraTransform =
+	    gm.getContextComponent<MainCameraContext, GlobalTransformComponent>();
 	ControlComponent* mainCameraControl = gm.getContextComponent<MainCameraContext, ControlComponent>();
 
 	if (keyboardState->keys[GLFW_KEY_ESCAPE])
@@ -56,9 +67,9 @@ void ControlSystem::update(float deltaTime, GeneralManager& gm)
 		mainCameraTransform->rotateLocal(glm::radians(-yoffset), glm::vec3(1.0f, 0.0f, 0.0f));
 		//=== Keyboard ===
 		float velocity = mainCameraControl->movementSpeed * deltaTime;
-		if (keyboardState->keys[GLFW_KEY_W]) mainCameraTransform->position += mainCameraTransform->front * velocity;
-		if (keyboardState->keys[GLFW_KEY_S]) mainCameraTransform->position -= mainCameraTransform->front * velocity;
-		if (keyboardState->keys[GLFW_KEY_A]) mainCameraTransform->position -= mainCameraTransform->right * velocity;
-		if (keyboardState->keys[GLFW_KEY_D]) mainCameraTransform->position += mainCameraTransform->right * velocity;
+		if (keyboardState->keys[GLFW_KEY_W]) mainCameraTransform->globalPosition += mainCameraTransform->front * velocity;
+		if (keyboardState->keys[GLFW_KEY_S]) mainCameraTransform->globalPosition -= mainCameraTransform->front * velocity;
+		if (keyboardState->keys[GLFW_KEY_A]) mainCameraTransform->globalPosition -= mainCameraTransform->right * velocity;
+		if (keyboardState->keys[GLFW_KEY_D]) mainCameraTransform->globalPosition += mainCameraTransform->right * velocity;
 	}
 }

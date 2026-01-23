@@ -1,7 +1,8 @@
 #include "RotationSystem.hpp"
 #include <iostream>
 #include "../../Core/GeneralManager.hpp"
-#include "../../Graphics/GraphicsContexts.hpp"
+#include "../../Graphics/Components/LocalTransformComponent.hpp"
+#include "../../Graphics/Components/GlobalTransformComponent.hpp"
 
 void RotationSystem::onRegistered(GeneralManager& gm)
 {
@@ -17,10 +18,10 @@ void RotationSystem::update(float deltaTime, GeneralManager& gm)
 {
 	for (auto entity : entities)
 	{
-		TransformComponent* transform = gm.getComponent<TransformComponent>(entity);
+		LocalTransformComponent* transform = gm.getComponent<LocalTransformComponent>(entity);
 		if (transform)
 		{
-			transform->rotateGlobal(glm::radians(45.0f) * deltaTime, glm::vec3(0.0f, 1.0f, 0.0f));
+			transform->rotateGlobal(glm::radians(5.0f) * deltaTime, glm::vec3(0.0f, 1.0f, 0.0f));
 		}
 	}
 }

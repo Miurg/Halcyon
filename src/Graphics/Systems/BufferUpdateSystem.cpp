@@ -1,5 +1,4 @@
 #include "BufferUpdateSystem.hpp"
-#include "../Components/TransformComponent.hpp"
 #include "../Resources/Managers/BufferManager.hpp"
 #include <iostream>
 #include <chrono>
@@ -53,8 +52,8 @@ void BufferUpdateSystem::update(float deltaTime, GeneralManager& gm)
 	{
 		for (const auto& entity : entities)
 		{
-			TransformComponent& transform = *gm.getComponent<TransformComponent>(entity);
-			const glm::mat4 model = transform.getModelMatrix();
+			GlobalTransformComponent& transform = *gm.getComponent<GlobalTransformComponent>(entity);
+			const glm::mat4 model = transform.getGlobalModelMatrix();
 			dstPtr[temp].model = model;
 
 			TextureInfoComponent& texture = *gm.getComponent<TextureInfoComponent>(entity);

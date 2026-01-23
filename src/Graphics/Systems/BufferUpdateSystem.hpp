@@ -1,12 +1,12 @@
 #pragma once
 #include "../../Core/Systems/SystemCore.hpp"
-#include "../Components/TransformComponent.hpp"
+#include "../Components/GlobalTransformComponent.hpp"
 #include "../Resources/Components/TextureInfoComponent.hpp"
 #include "../Resources/Components/MeshInfoComponent.hpp"
 #include "../../Core/Entitys/EntityManager.hpp"
 
 class BufferUpdateSystem
-    : public SystemCore<BufferUpdateSystem, TransformComponent, TextureInfoComponent, MeshInfoComponent>
+    : public SystemCore<BufferUpdateSystem, GlobalTransformComponent, TextureInfoComponent, MeshInfoComponent>
 {
 public:
 	std::vector<Entity> entities;

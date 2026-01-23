@@ -1,14 +1,7 @@
 #pragma once
-#include <GLFW/glfw3.h>
-#include "../../Graphics/GraphicsContexts.hpp"
-#include "../../Platform/PlatformContexts.hpp"
 #include "../../Core/Systems/SystemCore.hpp"
 #include "../../Core/GeneralManager.hpp"
-#include "../../Graphics/Components/CameraComponent.hpp"
-#include "../../Platform/Components/WindowComponent.hpp"
-#include "../../Platform/Components/KeyboardStateComponent.hpp"
-#include "../../Platform/Components/CursorPositionComponent.hpp"
-
+#include "../../Platform/Window.hpp"
 class ControlSystem : public SystemCore<ControlSystem>
 {
 private:

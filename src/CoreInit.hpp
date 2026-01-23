@@ -7,6 +7,7 @@
 #include "Graphics/Systems/FrameEndSystem.hpp"
 #include "Graphics/Systems/CameraMatrixSystem.hpp"
 #include "Game/Systems/RotationSystem.hpp"
+#include "Graphics/Systems/TransformSystem.hpp"
 
 
 class CoreInit
@@ -22,6 +23,8 @@ public:
 		gm.registerSystem<ControlSystem>();
 		gm.registerSystem<RotationSystem>();
 
+
+		gm.registerSystem<TransformSystem>();
 		gm.registerSystem<FrameBeginSystem>();
 		gm.registerSystem<CameraMatrixSystem>();
 		gm.registerSystem<BufferUpdateSystem>();

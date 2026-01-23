@@ -2,10 +2,11 @@
 
 #include <vector>
 #include "../../Core/Systems/SystemCore.hpp"
-#include "../../Graphics/Components/TransformComponent.hpp"
+#include "../../Graphics/Components/LocalTransformComponent.hpp"
+#include "../../Core/GeneralManager.hpp"
+#include "../../Core/Entitys/EntityManager.hpp"
 
-
-class RotationSystem : public SystemCore<RotationSystem, TransformComponent>
+class RotationSystem : public SystemCore<RotationSystem, LocalTransformComponent>
 {
 public:
 	std::vector<Entity> entities;

@@ -20,8 +20,8 @@ protected:
 		if (gm.getComponent<T>(entity) == nullptr)
 		{
 			// Твой лог ошибок
-			std::cerr << "WARNING::SYSTEM::Entity " << entity << " should not be processed by " << systemName
-			          << " because it doesn't have required component: " << typeid(T).name() << std::endl;
+			//std::cerr << "WARNING::SYSTEM::Entity " << entity << " should not be processed by " << systemName
+			//          << " because it doesn't have required component: " << typeid(T).name() << std::endl;
 			return false;
 		}
 		return true;

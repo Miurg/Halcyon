@@ -120,7 +120,6 @@ public:
 
 	auto begin()
 	{
-		sortByEntityId();
 		return _dense.begin();
 	}
 
