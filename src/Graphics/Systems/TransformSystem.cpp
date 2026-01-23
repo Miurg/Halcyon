@@ -18,11 +18,7 @@ void TransformSystem::onShutdown(GeneralManager& gm)
 
 void TransformSystem::onEntitySubscribed(Entity entity, GeneralManager& gm) 
 {
-	RelationshipComponent* relationship = gm.getComponent<RelationshipComponent>(entity);
-	if (relationship->parent == NULL_ENTITY) 
-	{
-		entities.push_back(entity);
-	}
+	entities.push_back(entity);
 }
 
 void TransformSystem::updateTransformRecursive(Entity entity, GeneralManager& gm, glm::vec3 parentPosition,
@@ -64,9 +60,15 @@ void TransformSystem::update(float deltaTime, GeneralManager& gm)
 	glm::vec3 tempPosition = {0.0f, 0.0f, 0.0f};
 	glm::quat tempRotation = {1.0f, 0.0f, 0.0f, 0.0f};
 	glm::vec3 tempScale = {1.0f, 1.0f, 1.0f};
+	
 	for (auto entity : entities)
 	{
-		GlobalTransformComponent& globalTransform = *gm.getComponent<GlobalTransformComponent>(entity);
-		updateTransformRecursive(entity, gm, tempPosition, tempRotation, tempScale);
+		RelationshipComponent* relationship = gm.getComponent<RelationshipComponent>(entity);
+		if (relationship->parent == NULL_ENTITY)
+		{
+			GlobalTransformComponent& globalTransform = *gm.getComponent<GlobalTransformComponent>(entity);
+			updateTransformRecursive(entity, gm, tempPosition, tempRotation, tempScale);
+		}
+		
 	}
 }

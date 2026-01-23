@@ -47,7 +47,7 @@ void GameInit::gameInitStart(GeneralManager& gm)
 		gm.addComponent<MeshInfoComponent>(gameObjectEntity1, meshInfo);
 		gm.addComponent<TextureInfoComponent>(gameObjectEntity1, numberTexture);
 		
-		
+		gm.subscribeEntity<TransformSystem>(gameObjectEntity1);
 		gm.subscribeEntity<RotationSystem>(gameObjectEntity1);
 		gm.subscribeEntity<RenderSystem>(gameObjectEntity1);
 
@@ -61,6 +61,6 @@ void GameInit::gameInitStart(GeneralManager& gm)
 			j++;
 			k = 0;
 		}
-		gm.subscribeEntity<TransformSystem>(gameObjectEntity1);
+
 	}
 }
