@@ -93,11 +93,8 @@ public:
 		subscribeInternal(entity, typeid(TSystem), gm);
 	}
 
-	template <typename TSystem>
-	void unsubscribe(Entity entity)
+	void unsubscribe(Entity entity, std::type_index systemType, GeneralManager& gm)
 	{
-		std::type_index systemType = typeid(TSystem);
-
 		ISystemCore* system = nullptr;
 
 		{
@@ -114,9 +111,11 @@ public:
 				std::cerr << "WARNING::SYSTEM_MANAGER::Entity " << entity
 				          << " trying to unsubscribe from a non-existent system " << systemType.name()
 				          << ". Cant unsubscribe!" << std::endl;
+				return;
 			}
 		}
 
+		system->onEntityUnsubscribed(entity, gm);
 		auto systemIt = SystemToEntities.find(systemType);
 		if (systemIt != SystemToEntities.end())
 		{
@@ -140,17 +139,22 @@ public:
 		}
 	}
 
-	void unsubscribeFromAll(Entity entity)
+	template <typename TSystem>
+	void unsubscribe(Entity entity, GeneralManager& gm)
+	{
+		unsubscribe(entity, std::type_index(typeid(TSystem)), gm);
+	}
+
+	void unsubscribeFromAll(Entity entity, GeneralManager& gm)
 	{
 		auto it = EntityToSystems.find(entity);
 		if (it != EntityToSystems.end())
 		{
-			for (const auto& systemType : it->second)
+			std::vector<std::type_index> systems = it->second;
+			for (const auto& systemType : systems)
 			{
-				auto& entities = SystemToEntities[systemType];
-				entities.erase(std::remove(entities.begin(), entities.end(), entity), entities.end());
+				unsubscribe(entity, systemType, gm);
 			}
-			EntityToSystems.erase(it);
 		}
 	}
 
