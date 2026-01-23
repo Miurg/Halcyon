@@ -122,16 +122,12 @@ private:
 		// === Cameras and Lights ===
 		Entity cameraEntity = gm.createEntity();
 		gm.addComponent<CameraComponent>(cameraEntity);
-		gm.addComponent<RelationshipComponent>(cameraEntity);
-		gm.addComponent<LocalTransformComponent>(cameraEntity, glm::vec3(0.0f, 0.0f, 0.0f));
 		gm.addComponent<GlobalTransformComponent>(cameraEntity, glm::vec3(0.0f, 0.0f, 3.0f));
 		gm.addComponent<ControlComponent>(cameraEntity);
 		gm.registerContext<MainCameraContext>(cameraEntity);
 
 		Entity sunEntity = gm.createEntity();
 		gm.addComponent<CameraComponent>(sunEntity);
-		gm.addComponent<RelationshipComponent>(sunEntity);
-		gm.addComponent<LocalTransformComponent>(sunEntity, glm::vec3(0.0f, 0.0f, 0.0f));
 		gm.addComponent<GlobalTransformComponent>(sunEntity, glm::vec3(10.0f, 20.0f, 10.0f));
 		gm.addComponent<LightComponent>(sunEntity, 2048, 2048);
 		gm.registerContext<LightCameraContext>(sunEntity);

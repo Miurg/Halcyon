@@ -195,20 +195,6 @@ public:
 		}
 	}
 
-	void checkForNewSubscriptions(Entity entity, GeneralManager& gm)
-	{
-		auto& currentSystems = EntityToSystems[entity];
-
-		for (auto& system : SystemCore)
-		{
-			if (!system->isSubscribtionMandatory()) continue;
-
-			std::type_index systemType = typeid(*system);
-
-			subscribeInternal(entity, systemType, gm);
-		}
-	}
-
 	void updateSystems(float deltaTime, GeneralManager& gm)
 	{
 		for (auto& entry : SystemCore)

@@ -19,9 +19,8 @@ protected:
 	{
 		if (gm.getComponent<T>(entity) == nullptr)
 		{
-			// Твой лог ошибок
-			//std::cerr << "WARNING::SYSTEM::Entity " << entity << " should not be processed by " << systemName
-			//          << " because it doesn't have required component: " << typeid(T).name() << std::endl;
+			std::cerr << "WARNING::SYSTEM::Entity " << entity << " should not be processed by " << systemName
+			          << " because it doesn't have required component: " << typeid(T).name() << std::endl;
 			return false;
 		}
 		return true;
@@ -38,11 +37,6 @@ public:
 	virtual bool shouldProcessEntity(Entity entity, GeneralManager& gm)
 	{
 		return hasAllComponents<RequiredComponents...>(entity, gm, typeid(Derived).name());
-	}
-
-	virtual bool isSubscribtionMandatory() const
-	{
-		return false;
 	}
 
 	virtual std::vector<std::type_index> getSystemDependencies() const

@@ -22,8 +22,4 @@ public:
 	void onRegistered(GeneralManager& gm) override;
 	void onShutdown(GeneralManager& gm) override;
 	void onEntitySubscribed(Entity entity, GeneralManager& gm) override;
-	bool isSubscribtionMandatory() const override
-	{
-		return false;
-	}
 };
