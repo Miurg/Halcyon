@@ -18,6 +18,7 @@ find_package(Vulkan REQUIRED)
 find_package(glm CONFIG REQUIRED)
 find_package(glfw3 CONFIG REQUIRED)
 find_package(tinyobjloader CONFIG REQUIRED)
+find_path(TINYGLTF_INCLUDE_DIRS "tiny_gltf.h")
 find_package(VulkanMemoryAllocator CONFIG REQUIRED)
 
 add_executable("${CMAKE_PROJECT_NAME}" ${MY_SOURCES})
@@ -26,6 +27,7 @@ target_precompile_headers("${CMAKE_PROJECT_NAME}" PRIVATE "${CMAKE_CURRENT_SOURC
 target_link_libraries("${CMAKE_PROJECT_NAME}" PRIVATE Vulkan::Vulkan)
 target_link_libraries("${CMAKE_PROJECT_NAME}" PRIVATE glm::glm)
 target_link_libraries("${CMAKE_PROJECT_NAME}" PRIVATE glfw)
+target_include_directories("${CMAKE_PROJECT_NAME}" PRIVATE ${TINYGLTF_INCLUDE_DIRS})
 target_link_libraries("${CMAKE_PROJECT_NAME}" PRIVATE tinyobjloader::tinyobjloader)
 target_link_libraries("${CMAKE_PROJECT_NAME}" PRIVATE GPUOpen::VulkanMemoryAllocator)
 

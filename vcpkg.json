@@ -4,6 +4,7 @@
     "glm",
     "tinyobjloader",
     "stb",
-    "vulkan-memory-allocator"
+    "vulkan-memory-allocator",
+    "tinygltf"
   ]
 }

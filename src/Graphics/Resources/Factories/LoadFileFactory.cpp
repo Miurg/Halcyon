@@ -1,6 +1,7 @@
 #include "LoadFileFactory.hpp"
-#define TINYOBJLOADER_IMPLEMENTATION
-#include <tiny_obj_loader.h>
+#define TINYGLTF_IMPLEMENTATION
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include <tiny_gltf.h>
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 #include "../../VulkanUtils.hpp"
@@ -8,40 +9,118 @@
 MeshInfo LoadFileFactory::addMeshFromFile(const char path[MAX_PATH_LEN], VertexIndexBuffer& mesh)
 {
 	uint32_t firstIndex = static_cast<uint32_t>(mesh.indices.size());
-	int32_t vertexOffset = static_cast<int32_t>(mesh.vertices.size());
-	tinyobj::attrib_t attrib;
-	std::vector<tinyobj::shape_t> shapes;
-	std::vector<tinyobj::material_t> materials;
-	std::string warn, err;
+	int32_t globalVertexOffset = static_cast<int32_t>(mesh.vertices.size()); // To adjust indices
 
-	std::unordered_map<Vertex, uint32_t> uniqueVertices{};
-
-	if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, path))
+	tinygltf::Model model;
+	tinygltf::TinyGLTF loader;
+	std::string err, warn;
+	bool ret = false;
+	loader.SetImageLoader([](tinygltf::Image*, const int, std::string*, std::string*, int, int, const unsigned char*,
+	                         int, void*) { return true; },
+	                      nullptr); // Off image loading
+	std::string pathStr = path;
+	if (pathStr.size() >= 4 && pathStr.substr(pathStr.size() - 4) == ".glb")
 	{
-		throw std::runtime_error(warn + err);
+		ret = loader.LoadBinaryFromFile(&model, &err, &warn, path);
+	}
+	else
+	{
+		ret = loader.LoadASCIIFromFile(&model, &err, &warn, path);
 	}
 
-	for (const auto& shape : shapes)
+	if (!err.empty())
 	{
-		for (const auto& index : shape.mesh.indices)
+		throw std::runtime_error("glTF error: " + err);
+	}
+	if (!ret)
+	{
+		throw std::runtime_error("Failed to load glTF model");
+	}
+
+	for (const auto& gltfMesh : model.meshes)
+	{
+		for (const auto& primitive : gltfMesh.primitives)
 		{
-			Vertex vertex{};
+			// Read positions
+			const tinygltf::Accessor& posAccessor = model.accessors[primitive.attributes.at("POSITION")];
+			const tinygltf::BufferView& posBufferView = model.bufferViews[posAccessor.bufferView];
+			const tinygltf::Buffer& posBuffer = model.buffers[posBufferView.buffer];
 
-			vertex.pos = {attrib.vertices[3 * index.vertex_index + 0], attrib.vertices[3 * index.vertex_index + 1],
-			              attrib.vertices[3 * index.vertex_index + 2]};
-
-			vertex.texCoord = {attrib.texcoords[2 * index.texcoord_index + 0],
-			                   1.0f - attrib.texcoords[2 * index.texcoord_index + 1]};
-
-			vertex.color = {1.0f, 1.0f, 1.0f};
-
-			if (uniqueVertices.count(vertex) == 0)
+			// Read texture coordinates if present
+			const tinygltf::Accessor* texAccessor = nullptr;
+			const tinygltf::BufferView* texBufferView = nullptr;
+			const tinygltf::Buffer* texBuffer = nullptr;
+			if (primitive.attributes.find("TEXCOORD_0") != primitive.attributes.end())
 			{
-				uniqueVertices[vertex] = static_cast<uint32_t>(mesh.vertices.size()) - vertexOffset;
-				mesh.vertices.push_back(vertex);
+				texAccessor = &model.accessors[primitive.attributes.at("TEXCOORD_0")];
+				texBufferView = &model.bufferViews[texAccessor->bufferView];
+				texBuffer = &model.buffers[texBufferView->buffer];
 			}
 
-			mesh.indices.push_back(uniqueVertices[vertex]);
+			uint32_t currentLocalOffset = static_cast<uint32_t>(mesh.vertices.size()) - globalVertexOffset;
+
+			const unsigned char* posDataStart = &posBuffer.data[posBufferView.byteOffset + posAccessor.byteOffset];
+			int posByteStride =
+			    posAccessor.ByteStride(posBufferView) ? posAccessor.ByteStride(posBufferView) : sizeof(float) * 3;
+
+			const unsigned char* texDataStart = nullptr;
+			int texByteStride = 0;
+			if (texAccessor)
+			{
+				texDataStart = &texBuffer->data[texBufferView->byteOffset + texAccessor->byteOffset];
+				texByteStride =
+				    texAccessor->ByteStride(*texBufferView) ? texAccessor->ByteStride(*texBufferView) : sizeof(float) * 2;
+			}
+
+			// Read vertices
+			size_t oldVertexSize = mesh.vertices.size();
+			mesh.vertices.resize(oldVertexSize + posAccessor.count);
+			Vertex* outputVertices = mesh.vertices.data() + oldVertexSize;
+			for (size_t i = 0; i < posAccessor.count; i++)
+			{
+				Vertex& v = outputVertices[i];
+
+				const float* pos = reinterpret_cast<const float*>(posDataStart + (i * posByteStride));
+				v.pos = {pos[0], pos[1], pos[2]};
+
+				if (texAccessor)
+				{
+					const float* tex = reinterpret_cast<const float*>(texDataStart + (i * texByteStride));
+					v.texCoord = {tex[0], 1.0f - tex[1]};
+				}
+				else
+				{
+					v.texCoord = {0.0f, 0.0f};
+				}
+				v.color = {1.0f, 1.0f, 1.0f};
+			}
+
+			// Read indices
+			const tinygltf::Accessor& indexAccessor = model.accessors[primitive.indices];
+			const tinygltf::BufferView& indexBufferView = model.bufferViews[indexAccessor.bufferView];
+			const tinygltf::Buffer& indexBuffer = model.buffers[indexBufferView.buffer];
+			const unsigned char* indexData = &indexBuffer.data[indexBufferView.byteOffset + indexAccessor.byteOffset];
+			size_t oldIndexSize = mesh.indices.size();
+			mesh.indices.resize(oldIndexSize + indexAccessor.count);
+			uint32_t* outputIndices = mesh.indices.data() + oldIndexSize;
+
+			// Support only unsigned types
+			auto pushIndex = [&](uint32_t gltfIndex, size_t i) { outputIndices[i] = currentLocalOffset + gltfIndex; };
+			if (indexAccessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT)
+			{
+				const uint16_t* buf = reinterpret_cast<const uint16_t*>(indexData);
+				for (size_t i = 0; i < indexAccessor.count; i++) pushIndex(buf[i], i);
+			}
+			else if (indexAccessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT)
+			{
+				const uint32_t* buf = reinterpret_cast<const uint32_t*>(indexData);
+				for (size_t i = 0; i < indexAccessor.count; i++) pushIndex(buf[i], i);
+			}
+			else if (indexAccessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE)
+			{
+				const uint8_t* buf = reinterpret_cast<const uint8_t*>(indexData);
+				for (size_t i = 0; i < indexAccessor.count; i++) pushIndex(buf[i], i);
+			}
 		}
 	}
 
@@ -50,7 +129,7 @@ MeshInfo LoadFileFactory::addMeshFromFile(const char path[MAX_PATH_LEN], VertexI
 	MeshInfo info;
 	info.indexCount = indexCount;
 	info.indexOffset = firstIndex;
-	info.vertexOffset = vertexOffset;
+	info.vertexOffset = globalVertexOffset;
 	memcpy(info.path, path, MAX_PATH_LEN);
 	return info;
 }
