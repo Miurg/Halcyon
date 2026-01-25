@@ -116,7 +116,7 @@ PrimitivesInfo LoadFileFactory::addMeshFromFile(const char path[MAX_PATH_LEN], V
 				if (texAccessor)
 				{
 					const float* tex = reinterpret_cast<const float*>(texDataStart + (i * texByteStride));
-					v.texCoord = {tex[0], 1.0f - tex[1]};
+					v.texCoord = {tex[0], tex[1]};
 				}
 				else
 				{
