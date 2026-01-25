@@ -129,7 +129,8 @@ private:
 		Entity sunEntity = gm.createEntity();
 		gm.addComponent<CameraComponent>(sunEntity);
 		gm.addComponent<GlobalTransformComponent>(sunEntity, glm::vec3(10.0f, 20.0f, 10.0f));
-		gm.addComponent<LightComponent>(sunEntity, 2048, 2048);
+		gm.addComponent<LightComponent>(sunEntity, 2048, 2048, glm::vec4(1.0f, 1.0f, 1.0f, 3.0f),
+		                                glm::vec4(1.0f, 1.0f, 1.0f, 0.1f));
 		gm.registerContext<SunContext>(sunEntity);
 
 		CameraComponent* camera = gm.getContextComponent<MainCameraContext, CameraComponent>();

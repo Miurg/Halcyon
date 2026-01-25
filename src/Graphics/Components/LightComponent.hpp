@@ -11,4 +11,6 @@ struct LightComponent
 	LightComponent() = default;
 
 	LightComponent(int sizeX, int sizeY) : sizeX(sizeX), sizeY(sizeY) {};
+	LightComponent(int sizeX, int sizeY, glm::vec4 color, glm::vec4 ambient)
+		: sizeX(sizeX), sizeY(sizeY), color(color), ambient(ambient) {};
 };
