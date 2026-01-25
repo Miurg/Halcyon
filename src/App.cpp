@@ -1,7 +1,7 @@
 #include "App.hpp"
 
 #include <iostream>
-
+#define GLM_FORCE_SIMD_AVX2
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <GLFW/glfw3.h>
 #include "CoreInit.hpp"
