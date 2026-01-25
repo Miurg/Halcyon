@@ -23,7 +23,8 @@ DescriptorManager::DescriptorManager(VulkanDevice& vulkanDevice) : vulkanDevice(
 	vk::DescriptorSetLayoutBinding shadowBinding(1, vk::DescriptorType::eCombinedImageSampler, 1,
 	                                             vk::ShaderStageFlagBits::eFragment, nullptr);
 	vk::DescriptorSetLayoutBinding sunBinding(2, vk::DescriptorType::eStorageBuffer, 1,
-	                                             vk::ShaderStageFlagBits::eVertex, nullptr);
+	                                          vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment,
+	                                          nullptr);
 	std::array<vk::DescriptorSetLayoutBinding, 3> globalBindings = {cameraBinding, shadowBinding, sunBinding};
 
 	vk::DescriptorSetLayoutCreateInfo globalInfo({}, static_cast<uint32_t>(globalBindings.size()),

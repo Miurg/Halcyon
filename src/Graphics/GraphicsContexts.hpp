@@ -8,7 +8,7 @@ class MainFrameDataContext{};
 class CurrentFrameContext{};
 class MainCameraContext{};
 class ModelSSBOsContext{};
-class LightCameraContext{};
+class SunContext{};
 class MainDSetsContext{};
 class DescriptorManagerContext{};
 class FrameImageContext{};

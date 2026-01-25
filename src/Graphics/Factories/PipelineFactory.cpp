@@ -170,13 +170,10 @@ void PipelineFactory::createShadowPipeline(VulkanDevice& vulkanDevice, SwapChain
 	rasterizer.polygonMode = vk::PolygonMode::eFill;
 	rasterizer.lineWidth = 1.0f;
 	rasterizer.depthBiasEnable = vk::False;
-	rasterizer.cullMode = vk::CullModeFlagBits::eFront;
+	rasterizer.cullMode = vk::CullModeFlagBits::eBack;
 	rasterizer.frontFace = vk::FrontFace::eCounterClockwise;
 
-	rasterizer.depthBiasEnable = vk::True;
-	rasterizer.depthBiasConstantFactor = 1.0f; //Need experiments
-	rasterizer.depthBiasClamp = 0.0f;
-	rasterizer.depthBiasSlopeFactor = 1.75f;
+	rasterizer.depthBiasEnable = vk::False;
 
 	vk::PipelineMultisampleStateCreateInfo multisampling;
 	multisampling.rasterizationSamples = vk::SampleCountFlagBits::e1;

@@ -16,6 +16,9 @@ struct CameraData
 struct SunData
 {
     float4x4 lightSpaceMatrix;
+    float4 sunDirection;
+    float4 sunColor;
+    float4 sunAmbient;
 };
 [[vk::binding(2, 0)]] StructuredBuffer<SunData> sun;
 
@@ -60,25 +63,33 @@ VSOutput vertMain(VSInput input, uint instanceID: SV_InstanceID, uint baseInstan
 [shader("fragment")]
 float4 fragMain(VSOutput vertIn) : SV_TARGET
 {
-    float4 albedo = textureArray[NonUniformResourceIndex(vertIn.textureIndex)].Sample(vertIn.fragTexCoord);
+    float2 dx = ddx(vertIn.fragTexCoord);
+    float2 dy = ddy(vertIn.fragTexCoord);
+    float4 albedo = textureArray[NonUniformResourceIndex(vertIn.textureIndex)].SampleGrad(vertIn.fragTexCoord, dx, dy);
     if (albedo.a < 0.1) discard;
 
-    float3 projCoords = vertIn.shadowCoord.xyz / vertIn.shadowCoord.w;
+    float3 norm = normalize(vertIn.fragNormal);
 
+    float3 lightDir = normalize(sun[0].sunDirection.xyz);
+
+    float3 projCoords = vertIn.shadowCoord.xyz / vertIn.shadowCoord.w;
     projCoords.xy = projCoords.xy * 0.5 + 0.5;
 
     float shadowFactor = 1.0;
+    float bias = 0.002;
 
     if (saturate(projCoords.x) == projCoords.x && 
         saturate(projCoords.y) == projCoords.y && 
         projCoords.z > 0.0 && projCoords.z < 1.0)
     {
-        shadowFactor = shadowMap.SampleCmpLevelZero(projCoords.xy, projCoords.z);
+        shadowFactor = shadowMap.SampleCmpLevelZero(projCoords.xy, projCoords.z - bias);
     }
 
-    float3 lightDir = normalize(float3(1.0, 2.0, -1.0));
-    float diffuse = max(dot(normalize(vertIn.fragNormal), lightDir), 0.0);
-    float lightIntensity = 0.2 + (shadowFactor * 0.8 * diffuse);
+    float diff = max(dot(norm, lightDir), 0.0);
 
-    return float4(albedo.rgb * vertIn.fragColor * lightIntensity, albedo.a);
+    float3 sunLight = sun[0].sunColor.rgb * sun[0].sunColor.a * diff * shadowFactor;
+    float3 ambientLight = sun[0].sunAmbient.rgb * sun[0].sunAmbient.a;
+    float3 finalColor = (sunLight + ambientLight) * albedo.rgb * vertIn.fragColor;
+
+    return float4(finalColor, albedo.a);
 }

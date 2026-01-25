@@ -11,6 +11,7 @@
 #include "../Resources/Components/ObjectDSetComponent.hpp"
 #include "../Components/CameraComponent.hpp"
 #include "../Components/GlobalTransformComponent.hpp"
+#include "../Components/LightComponent.hpp"
 
 void CameraMatrixSystem::onRegistered(GeneralManager& gm)
 {
@@ -30,17 +31,19 @@ void CameraMatrixSystem::update(float deltaTime, GeneralManager& gm)
 	    *gm.getContextComponent<BufferManagerContext, BufferManagerComponent>()->bufferManager;
 	SwapChain& swapChain = *gm.getContextComponent<MainSwapChainContext, SwapChainComponent>()->swapChainInstance;
 	CameraComponent* mainCamera = gm.getContextComponent<MainCameraContext, CameraComponent>();
-	GlobalTransformComponent* mainCameraTransform = gm.getContextComponent<MainCameraContext, GlobalTransformComponent>();
-	CameraComponent* sunCamera = gm.getContextComponent<LightCameraContext, CameraComponent>();
-	GlobalTransformComponent* sunCameraTransform = gm.getContextComponent<LightCameraContext, GlobalTransformComponent>();
+	GlobalTransformComponent* mainCameraTransform =
+	    gm.getContextComponent<MainCameraContext, GlobalTransformComponent>();
+	CameraComponent* sunCamera = gm.getContextComponent<SunContext, CameraComponent>();
+	GlobalTransformComponent* sunCameraTransform = gm.getContextComponent<SunContext, GlobalTransformComponent>();
 	GlobalDSetComponent* globalDSetComponent = gm.getContextComponent<MainDSetsContext, GlobalDSetComponent>();
+	LightComponent* lightComponent = gm.getContextComponent<SunContext, LightComponent>();
 
 	// === Sun ===
 	glm::vec3 lightPos = glm::vec3(sunCameraTransform->globalPosition.x + mainCameraTransform->globalPosition.x,
 	                               sunCameraTransform->globalPosition.y + mainCameraTransform->globalPosition.y,
 	                               sunCameraTransform->globalPosition.z + mainCameraTransform->globalPosition.z);
-	glm::vec3 lightTarget =
-	    glm::vec3(mainCameraTransform->globalPosition.x, mainCameraTransform->globalPosition.y, mainCameraTransform->globalPosition.z);
+	glm::vec3 lightTarget = glm::vec3(mainCameraTransform->globalPosition.x, mainCameraTransform->globalPosition.y,
+	                                  mainCameraTransform->globalPosition.z);
 	glm::mat4 lightView = glm::lookAt(lightPos, lightTarget, glm::vec3(0.0f, 1.0f, 0.0f));
 
 	glm::mat4 lightProj = glm::orthoRH_ZO(-sunCamera->orthoSize, sunCamera->orthoSize, -sunCamera->orthoSize,
@@ -49,7 +52,15 @@ void CameraMatrixSystem::update(float deltaTime, GeneralManager& gm)
 
 	glm::mat4 lightSpaceMatrix = lightProj * lightView;
 
-	SunStructue sunUbo{.lightSpaceMatrix = lightSpaceMatrix};
+	glm::vec3 lightDirection = normalize(lightTarget - lightPos);
+
+	SunStructure sunUbo
+	{
+		.lightSpaceMatrix = lightSpaceMatrix,
+	    .direction = glm::vec4(-lightDirection, 1.0f),
+	    .color = lightComponent->color,
+	    .ambient = lightComponent->ambient,
+	};
 	memcpy(bufferManager.buffers[globalDSetComponent->sunCameraBuffers].bufferMapped[currentFrame], &sunUbo,
 	       sizeof(sunUbo));
 

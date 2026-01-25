@@ -130,11 +130,11 @@ private:
 		gm.addComponent<CameraComponent>(sunEntity);
 		gm.addComponent<GlobalTransformComponent>(sunEntity, glm::vec3(10.0f, 20.0f, 10.0f));
 		gm.addComponent<LightComponent>(sunEntity, 2048, 2048);
-		gm.registerContext<LightCameraContext>(sunEntity);
+		gm.registerContext<SunContext>(sunEntity);
 
 		CameraComponent* camera = gm.getContextComponent<MainCameraContext, CameraComponent>();
-		CameraComponent* sunCamera = gm.getContextComponent<LightCameraContext, CameraComponent>();
-		LightComponent* sunLight = gm.getContextComponent<LightCameraContext, LightComponent>();
+		CameraComponent* sunCamera = gm.getContextComponent<SunContext, CameraComponent>();
+		LightComponent* sunLight = gm.getContextComponent<SunContext, LightComponent>();
 
 		DescriptorManager* dManager =
 		    gm.getContextComponent<DescriptorManagerContext, DescriptorManagerComponent>()->descriptorManager;
@@ -152,7 +152,7 @@ private:
 		                           sizeof(CameraStucture), MAX_FRAMES_IN_FLIGHT, 0, *dManager->globalSetLayout);
 		globalDSetComponent->sunCameraBuffers =
 		    bManager->createBuffer((vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal),
-		                           sizeof(CameraStucture), MAX_FRAMES_IN_FLIGHT, 2, *dManager->globalSetLayout);
+		                           sizeof(SunStructure), MAX_FRAMES_IN_FLIGHT, 2, *dManager->globalSetLayout);
 
 		dManager->updateStorageBufferDescriptors(*bManager, globalDSetComponent->cameraBuffers,
 		                                         globalDSetComponent->globalDSets, 0);

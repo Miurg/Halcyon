@@ -79,7 +79,6 @@ struct GlobalTransformComponent
 		front = glm::rotate(globalRotation, glm::vec3(0.0f, 0.0f, -1.0f));
 		up = glm::rotate(globalRotation, glm::vec3(0.0f, 1.0f, 0.0f));
 		right = glm::rotate(globalRotation, glm::vec3(1.0f, 0.0f, 0.0f));
-		isModelDirty = true;
 		isViewDirty = true;
 	}
 

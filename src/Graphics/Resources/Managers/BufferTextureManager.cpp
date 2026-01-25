@@ -15,7 +15,7 @@ int BufferManager::createShadowMap(uint32_t shadowResolutionX, uint32_t shadowRe
 	BufferManager::createShadowSampler(texture);
 	return textures.size() - 1;
 }
-
+	
 void BufferManager::createShadowSampler(Texture& texture)
 {
 	vk::SamplerCreateInfo samplerInfo;

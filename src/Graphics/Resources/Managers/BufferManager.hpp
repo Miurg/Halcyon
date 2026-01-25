@@ -61,9 +61,12 @@ struct CameraStucture
 	alignas(16) glm::mat4 cameraSpaceMatrix;
 };
 
-struct SunStructue
+struct SunStructure
 {
 	alignas(16) glm::mat4 lightSpaceMatrix;
+	glm::vec4 direction; // xyz: direction, w: padding
+	glm::vec4 color;     // rgb: color, w: intensity of light
+	glm::vec4 ambient;   // rgb: ambient color, w: intensity of ambient
 };
 
 struct ModelSctructure

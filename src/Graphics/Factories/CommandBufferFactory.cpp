@@ -32,7 +32,6 @@ void CommandBufferFactory::recordCommandBuffer(
 
 	commandBuffer.beginRendering(shadowRenderingInfo);
 	commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipelineHandler.shadowPipeline);
-	commandBuffer.setDepthBias(1.25f, 0.0f, 1.75f);
 	commandBuffer.bindDescriptorSets(
 	    vk::PipelineBindPoint::eGraphics, *pipelineHandler.pipelineLayout, 0,
 	    dManager.descriptorManager->descriptorSets[globalDSetComponent->globalDSets][currentFrame], nullptr);
