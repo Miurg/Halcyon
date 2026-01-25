@@ -10,7 +10,7 @@
 #include "Buffer.hpp"
 #include "../Components/BindlessTextureDSetComponent.hpp"
 #include "../../VulkanDevice.hpp"
-#include "MeshInfo.hpp"
+#include "PrimitivesInfo.hpp"
 
 class DescriptorManager;
 
@@ -34,7 +34,7 @@ public:
 	std::unordered_map<std::string, int> texturePaths;
 	std::vector<VertexIndexBuffer> meshBuffers;
 	std::unordered_map<std::string, int> meshPaths;
-	std::vector<MeshInfo> meshes;
+	std::vector<PrimitivesInfo> meshes;
 	std::vector<Buffer> buffers;
 
 private:

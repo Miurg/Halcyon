@@ -42,7 +42,7 @@ void SpawnSystem::update(float deltaTime, GeneralManager& gm)
 		else
 		{
 			gm.addComponent<GlobalTransformComponent>(gameObjectEntity1);
-			gm.addComponent<LocalTransformComponent>(gameObjectEntity1, k * -2.0f, 0.0f, j * -2.0f, -90.0f, 0.0f, 0.0f,
+			gm.addComponent<LocalTransformComponent>(gameObjectEntity1, k * -2.0f, 0.0f, j * -2.0f, 0.0f, 0.0f, 0.0f,
 			                                         5.0f, 5.0f, 5.0f );
 
 			meshInfo.mesh = bufferManager->createMesh("assets/models/marble_bust_01_4k.glb");

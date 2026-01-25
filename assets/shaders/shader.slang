@@ -23,6 +23,7 @@ struct VSInput
 {
     float3 inPosition;
     float3 inColor;
+    float3 inNormal;
     float2 inTexCoord;
 };
 
@@ -30,6 +31,7 @@ struct VSOutput
 {
     float4 pos : SV_Position;
     float3 fragColor;
+    float3 fragNormal;
     float2 fragTexCoord;
     float4 shadowCoord;
     nointerpolation uint textureIndex;
@@ -48,7 +50,8 @@ VSOutput vertMain(VSInput input, uint instanceID: SV_InstanceID, uint baseInstan
     output.shadowCoord = mul(sun[0].lightSpaceMatrix, worldPos);
 
     output.fragColor = input.inColor;
-    output.fragTexCoord = input.inTexCoord;
+    output.fragTexCoord = input.inTexCoord; 
+    output.fragNormal = normalize(mul((float3x3)data.model, input.inNormal));
     output.textureIndex = data.textureIndex;
     return output;
 }
@@ -73,7 +76,9 @@ float4 fragMain(VSOutput vertIn) : SV_TARGET
         shadowFactor = shadowMap.SampleCmpLevelZero(projCoords.xy, projCoords.z);
     }
 
-    float lightIntensity = 0.2 + (shadowFactor * 0.8);
+    float3 lightDir = normalize(float3(1.0, 2.0, -1.0));
+    float diffuse = max(dot(normalize(vertIn.fragNormal), lightDir), 0.0);
+    float lightIntensity = 0.2 + (shadowFactor * 0.8 * diffuse);
 
     return float4(albedo.rgb * vertIn.fragColor * lightIntensity, albedo.a);
 }

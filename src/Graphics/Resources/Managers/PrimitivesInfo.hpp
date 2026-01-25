@@ -2,7 +2,7 @@
 
 #include "../../VulkanConst.hpp"
 
-struct MeshInfo
+struct PrimitivesInfo
 {
 	uint32_t vertexOffset = -1;
 	uint32_t indexOffset = -1;

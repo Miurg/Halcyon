@@ -13,7 +13,7 @@ int BufferManager::createMesh(const char path[MAX_PATH_LEN])
 	{
 		if (sizeof(meshBuffers[i].vertices) < MAX_SIZE_OF_VERTEX_INDEX_BUFFER)
 		{
-			MeshInfo info = LoadFileFactory::addMeshFromFile(path, meshBuffers[i]);
+			PrimitivesInfo info = LoadFileFactory::addMeshFromFile(path, meshBuffers[i]);
 			info.bufferIndex = static_cast<uint32_t>(i);
 			createVertexBuffer(vulkanDevice, meshBuffers[i]);
 			createIndexBuffer(vulkanDevice, meshBuffers[i]);
@@ -24,7 +24,7 @@ int BufferManager::createMesh(const char path[MAX_PATH_LEN])
 	}
 
 	meshBuffers.push_back(VertexIndexBuffer());
-	MeshInfo info = LoadFileFactory::addMeshFromFile(path, meshBuffers.back());
+	PrimitivesInfo info = LoadFileFactory::addMeshFromFile(path, meshBuffers.back());
 	info.bufferIndex = static_cast<uint32_t>(meshBuffers.size() - 1);
 	createVertexBuffer(vulkanDevice, meshBuffers.back());
 	createIndexBuffer(vulkanDevice, meshBuffers.back());

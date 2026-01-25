@@ -6,7 +6,7 @@
 #include <stb_image.h>
 #include "../../VulkanUtils.hpp"
 
-MeshInfo LoadFileFactory::addMeshFromFile(const char path[MAX_PATH_LEN], VertexIndexBuffer& mesh)
+PrimitivesInfo LoadFileFactory::addMeshFromFile(const char path[MAX_PATH_LEN], VertexIndexBuffer& mesh)
 {
 	uint32_t firstIndex = static_cast<uint32_t>(mesh.indices.size());
 	int32_t globalVertexOffset = static_cast<int32_t>(mesh.vertices.size()); // To adjust indices
@@ -57,7 +57,19 @@ MeshInfo LoadFileFactory::addMeshFromFile(const char path[MAX_PATH_LEN], VertexI
 				texBuffer = &model.buffers[texBufferView->buffer];
 			}
 
+			// Read normals if present
+			const tinygltf::Accessor* normAccessor = nullptr;
+			const tinygltf::BufferView* normBufferView = nullptr;
+			const tinygltf::Buffer* normBuffer = nullptr;
+			if (primitive.attributes.find("NORMAL") != primitive.attributes.end())
+			{
+				normAccessor = &model.accessors[primitive.attributes.at("NORMAL")];
+				normBufferView = &model.bufferViews[normAccessor->bufferView];
+				normBuffer = &model.buffers[normBufferView->buffer];
+			}
+
 			uint32_t currentLocalOffset = static_cast<uint32_t>(mesh.vertices.size()) - globalVertexOffset;
+			
 
 			const unsigned char* posDataStart = &posBuffer.data[posBufferView.byteOffset + posAccessor.byteOffset];
 			int posByteStride =
@@ -72,6 +84,14 @@ MeshInfo LoadFileFactory::addMeshFromFile(const char path[MAX_PATH_LEN], VertexI
 				    texAccessor->ByteStride(*texBufferView) ? texAccessor->ByteStride(*texBufferView) : sizeof(float) * 2;
 			}
 
+			const unsigned char* normDataStart = nullptr;
+			int normByteStride = 0;
+			if (normAccessor)
+			{
+				normDataStart = &normBuffer->data[normBufferView->byteOffset + normAccessor->byteOffset];
+				normByteStride = normAccessor->ByteStride(*normBufferView) ? normAccessor->ByteStride(*normBufferView)
+				                                                           : sizeof(float) * 3;
+			}
 			// Read vertices
 			size_t oldVertexSize = mesh.vertices.size();
 			mesh.vertices.resize(oldVertexSize + posAccessor.count);
@@ -82,6 +102,16 @@ MeshInfo LoadFileFactory::addMeshFromFile(const char path[MAX_PATH_LEN], VertexI
 
 				const float* pos = reinterpret_cast<const float*>(posDataStart + (i * posByteStride));
 				v.pos = {pos[0], pos[1], pos[2]};
+
+				if (normAccessor)
+				{
+					const float* norm = reinterpret_cast<const float*>(normDataStart + (i * normByteStride));
+					v.normal = {norm[0], norm[1], norm[2]};
+				}
+				else
+				{
+					v.normal = {0.0f, 1.0f, 0.0f}; // Default normal
+				}
 
 				if (texAccessor)
 				{
@@ -126,7 +156,7 @@ MeshInfo LoadFileFactory::addMeshFromFile(const char path[MAX_PATH_LEN], VertexI
 
 	uint32_t indexCount = static_cast<uint32_t>(mesh.indices.size()) - firstIndex;
 
-	MeshInfo info;
+	PrimitivesInfo info;
 	info.indexCount = indexCount;
 	info.indexOffset = firstIndex;
 	info.vertexOffset = globalVertexOffset;
