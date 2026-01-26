@@ -1,6 +1,5 @@
 #include "BufferManager.hpp"
 #include <stdexcept>
-#include "../Factories/LoadFileFactory.hpp"
 #include "DescriptorManager.hpp"
 
 BufferManager::BufferManager(VulkanDevice& vulkanDevice) : vulkanDevice(vulkanDevice) 

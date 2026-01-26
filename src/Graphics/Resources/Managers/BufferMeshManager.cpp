@@ -1,45 +1,13 @@
 #include "BufferManager.hpp"
 #include <stdexcept>
-#include "../Factories/LoadFileFactory.hpp"
 #include "../../VulkanUtils.hpp"
 #include <cstring>
+#include "../Factories/GltfLoader.hpp"
 
-int BufferManager::createMesh(const char path[MAX_PATH_LEN], BindlessTextureDSetComponent& dSetComponent,
-                              DescriptorManager& dManager)
+int BufferManager::createMeshInternal(const char path[MAX_PATH_LEN], BindlessTextureDSetComponent& dSetComponent,
+                                           DescriptorManager& dManager)
 {
-	if (isMeshLoaded(path))
-	{
-		return meshPaths[std::string(path)];
-	}
-	for (int i = 0; i < vertexIndexBuffers.size(); i++)
-	{
-		if (sizeof(vertexIndexBuffers[i].vertices) < MAX_SIZE_OF_VERTEX_INDEX_BUFFER)
-		{
-			auto infoTuple = LoadFileFactory::addMeshFromFile(path, vertexIndexBuffers.back());
-			PrimitivesInfo info = std::get<0>(infoTuple);
-			std::vector<unsigned char> textureData = std::get<1>(infoTuple);
-			int texWidth = std::get<2>(infoTuple);
-			int texHeight = std::get<3>(infoTuple);
-			if (!textureData.empty())
-			{
-				info.textureIndex =
-				    generateTextureData(path, texWidth, texHeight, textureData.data(), dSetComponent, dManager);
-			}
-			createVertexBuffer(vulkanDevice, vertexIndexBuffers.back());
-			createIndexBuffer(vulkanDevice, vertexIndexBuffers.back());
-			MeshInfo meshInfo;
-			meshInfo.primitives.push_back(info);
-			meshInfo.vertexIndexBufferID = static_cast<uint32_t>(vertexIndexBuffers.size() - 1);
-			strcpy(meshInfo.path, path);
-			meshes.push_back(meshInfo);
-			meshPaths[std::string(path)] = meshes.size() - 1;
-			return meshes.size() - 1;
-		}
-	}
-
-	vertexIndexBuffers.push_back(VertexIndexBuffer());
-
-	auto infoTuple = LoadFileFactory::addMeshFromFile(path, vertexIndexBuffers.back());
+	auto infoTuple = GltfLoader::loadMeshFromFile(path, vertexIndexBuffers.back());
 	PrimitivesInfo info = std::get<0>(infoTuple);
 	std::vector<unsigned char> textureData = std::get<1>(infoTuple);
 	int texWidth = std::get<2>(infoTuple);
@@ -57,6 +25,26 @@ int BufferManager::createMesh(const char path[MAX_PATH_LEN], BindlessTextureDSet
 	meshes.push_back(meshInfo);
 	meshPaths[std::string(path)] = meshes.size() - 1;
 	return meshes.size() - 1;
+}
+
+int BufferManager::createMesh(const char path[MAX_PATH_LEN], BindlessTextureDSetComponent& dSetComponent,
+                              DescriptorManager& dManager)
+{
+	if (isMeshLoaded(path))
+	{
+		return meshPaths[std::string(path)];
+	}
+	for (int i = 0; i < vertexIndexBuffers.size(); i++)
+	{
+		if (sizeof(vertexIndexBuffers[i].vertices) < MAX_SIZE_OF_VERTEX_INDEX_BUFFER)
+		{
+			return createMeshInternal(path, dSetComponent, dManager);	
+		}
+	}
+
+	vertexIndexBuffers.push_back(VertexIndexBuffer());
+
+	return createMeshInternal(path, dSetComponent, dManager);
 }
 
 bool BufferManager::isMeshLoaded(const char path[MAX_PATH_LEN])

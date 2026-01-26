@@ -56,7 +56,8 @@ private:
 	                 vk::ImageUsageFlags usage, VmaMemoryUsage memoryUsage, Texture& texture);
 	void createVertexBuffer(VulkanDevice& vulkanDevice, VertexIndexBuffer& vertexIndexBuffer);
 	void createIndexBuffer(VulkanDevice& vulkanDevice, VertexIndexBuffer& vertexIndexBuffer);
-
+	int createMeshInternal(const char path[MAX_PATH_LEN], BindlessTextureDSetComponent& dSetComponent,
+	                       DescriptorManager& dManager);
 };
 
 struct CameraStucture

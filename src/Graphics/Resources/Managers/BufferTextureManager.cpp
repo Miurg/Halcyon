@@ -1,6 +1,6 @@
 #include "BufferManager.hpp"
-#include "../Factories/LoadFileFactory.hpp"
 #include "DescriptorManager.hpp"
+#include "../Factories/TextureUploader.hpp"
 
 int BufferManager::createShadowMap(uint32_t shadowResolutionX, uint32_t shadowResolutionY)
 {
@@ -76,7 +76,7 @@ int BufferManager::generateTextureData(const char texturePath[MAX_PATH_LEN], int
 
 	BufferManager::createImage(texWidth, texHeight, vk::Format::eR8G8B8A8Srgb, vk::ImageTiling::eOptimal,
 	    vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled, VMA_MEMORY_USAGE_AUTO, texture);
-	LoadFileFactory::uploadTextureFromBuffer(pixels, texWidth, texHeight, texture, allocator, vulkanDevice);
+	TextureUploader::uploadTextureFromBuffer(pixels, texWidth, texHeight, texture, allocator, vulkanDevice);
 	BufferManager::createImageView(texture, vk::Format::eR8G8B8A8Srgb, vk::ImageAspectFlagBits::eColor);
 	BufferManager::createTextureSampler(texture);
 

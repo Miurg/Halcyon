@@ -3,13 +3,16 @@
 #include <iostream>
 #define GLM_FORCE_SIMD_AVX2
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
+#define TINYGLTF_IMPLEMENTATION
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#define STB_IMAGE_IMPLEMENTATION
 #include <GLFW/glfw3.h>
 #include "CoreInit.hpp"
 #include "Platform/Components/WindowComponent.hpp"
 #include "Platform/PlatformContexts.hpp"
 #include "Game/GameInit.hpp"
 #include "Graphics/GraphicsInit.hpp"
-
+#include <tiny_gltf.h>
 namespace
 {
 float deltaTime = 0.0f;
