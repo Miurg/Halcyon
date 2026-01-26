@@ -51,16 +51,13 @@ void CommandBufferFactory::recordCommandBuffer(
 		    vk::IndexType::eUint32);
 		for (int j = 0; j < bufferManager.meshes[i].primitives.size(); j++)
 		{
-			
-
 			commandBuffer.drawIndexed(bufferManager.meshes[i].primitives[j].indexCount,
 			                          bufferManager.meshes[i].entitiesSubscribed,
 			                          bufferManager.meshes[i].primitives[j].indexOffset,
 			                          bufferManager.meshes[i].primitives[j].vertexOffset, currentInstanceOffset);
+			currentInstanceOffset += bufferManager.meshes[i].entitiesSubscribed;
 		}
-		currentInstanceOffset += bufferManager.meshes[i].entitiesSubscribed;
 	}
-
 	commandBuffer.endRendering();
 
 	transitionImageLayout(commandBuffer, bufferManager.textures[lightTexture.textureShadowImage].textureImage,
@@ -136,9 +133,10 @@ void CommandBufferFactory::recordCommandBuffer(
 			                          bufferManager.meshes[i].entitiesSubscribed,
 			                          bufferManager.meshes[i].primitives[j].indexOffset,
 			                          bufferManager.meshes[i].primitives[j].vertexOffset, currentInstanceOffset);
+			currentInstanceOffset += bufferManager.meshes[i].entitiesSubscribed;
 		}
 
-		currentInstanceOffset += bufferManager.meshes[i].entitiesSubscribed;
+		
 	}
 
 	commandBuffer.endRendering();

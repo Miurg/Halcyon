@@ -184,7 +184,7 @@ private:
 		objectDSetComponent->transformBuffer =
 		    bManager->createBuffer((vk::MemoryPropertyFlagBits::eHostVisible), 10240 * sizeof(TransformStructure),
 		                           MAX_FRAMES_IN_FLIGHT, 1, *dManager->modelSetLayout);
-		dManager->updateStorageBufferDescriptors(*bManager, objectDSetComponent->primitiveBuffer,
+		dManager->updateStorageBufferDescriptors(*bManager, objectDSetComponent->transformBuffer,
 		                                         objectDSetComponent->modelBufferDSet, 1);
 
 		// === Primitives END ===

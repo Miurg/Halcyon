@@ -1,10 +1,16 @@
 struct ModelData
 {
-    float4x4 model;
+    uint transformIndex;
     uint textureIndex;
-    uint _padding[3];
+    uint _padding[2];
 };
 [[vk::binding(0, 2)]] StructuredBuffer<ModelData> objectBuffer;
+
+struct TransformData
+{
+    float4x4 model;
+};
+[[vk::binding(1, 2)]] StructuredBuffer<TransformData> transformBuffer;
 
 struct CameraData
 {
@@ -44,17 +50,18 @@ struct VSOutput
 VSOutput vertMain(VSInput input, uint instanceID: SV_InstanceID, uint baseInstance: SV_StartInstanceLocation)
 {
     ModelData data = objectBuffer[instanceID + baseInstance];
+    TransformData transform = transformBuffer[data.transformIndex];
     VSOutput output;
 
-    float4 worldPos = mul(data.model, float4(input.inPosition, 1.0));
+    float4 worldPos = mul(transform.model, float4(input.inPosition, 1.0));
 
     output.pos = mul(camera[0].cameraSpaceMatrix, worldPos);
 
     output.shadowCoord = mul(sun[0].lightSpaceMatrix, worldPos);
 
     output.fragColor = input.inColor;
-    output.fragTexCoord = input.inTexCoord; 
-    output.fragNormal = normalize(mul((float3x3)data.model, input.inNormal));
+    output.fragTexCoord = input.inTexCoord;
+    output.fragNormal = normalize(mul((float3x3)transform.model, input.inNormal));
     output.textureIndex = data.textureIndex;
     return output;
 }

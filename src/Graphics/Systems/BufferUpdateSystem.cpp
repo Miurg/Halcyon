@@ -49,18 +49,41 @@ void BufferUpdateSystem::update(float deltaTime, GeneralManager& gm)
 	auto* transfromMeshPtr = static_cast<TransformStructure*>(
 	    bufferManager.buffers[modelDSetComponent->transformBuffer].bufferMapped[currentFrame]);
 
-	int temp = 0;
+	int globalTransformIndex = 0; 
+	int globalPrimitiveIndex = 0; 
+
 	for (const auto& entities : batch)
 	{
+		int baseTransformIndexForMesh = globalTransformIndex;
+
 		for (const auto& entity : entities)
 		{
 			GlobalTransformComponent& transform = *gm.getComponent<GlobalTransformComponent>(entity);
-			const glm::mat4 model = transform.getGlobalModelMatrix();
-			primitivePtr[temp].model = model;
+			transfromMeshPtr[globalTransformIndex].model = transform.getGlobalModelMatrix();
+			globalTransformIndex++;
+		}
 
-			MeshInfoComponent& meshinfo = *gm.getComponent<MeshInfoComponent>(entity);
-			primitivePtr[temp].textureIndex = bufferManager.meshes[meshinfo.mesh].primitives[0].textureIndex;
-			temp++;
-		}	
+		if (entities.empty()) continue;
+
+		MeshInfoComponent& meshBaseInfo = *gm.getComponent<MeshInfoComponent>(entities[0]);
+		int primitiveCount = bufferManager.meshes[meshBaseInfo.mesh].primitives.size();
+
+		for (int i = 0; i < primitiveCount; i++)
+		{
+			int currentEntityTransformIndex = baseTransformIndexForMesh;
+
+			for (const auto& entity : entities)
+			{
+				MeshInfoComponent& meshinfo = *gm.getComponent<MeshInfoComponent>(entity);
+
+				primitivePtr[globalPrimitiveIndex].textureIndex =
+				    bufferManager.meshes[meshinfo.mesh].primitives[i].textureIndex;
+
+				primitivePtr[globalPrimitiveIndex].transformIndex = currentEntityTransformIndex;
+
+				globalPrimitiveIndex++;
+				currentEntityTransformIndex++;
+			}
+		}
 	}
 }
