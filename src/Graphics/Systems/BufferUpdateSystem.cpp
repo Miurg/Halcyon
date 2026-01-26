@@ -7,7 +7,7 @@
 #include "../Components/SwapChainComponent.hpp"
 #include "../Components/BufferManagerComponent.hpp"
 #include "../Components/CurrentFrameComponent.hpp"
-#include "../Resources/Components/ObjectDSetComponent.hpp"
+#include "../Resources/Components/ModelDSetComponent.hpp"
 #include "../Resources/Components/MeshInfoComponent.hpp"
 #include <map>
 void BufferUpdateSystem::onRegistered(GeneralManager& gm)
@@ -27,7 +27,7 @@ void BufferUpdateSystem::update(float deltaTime, GeneralManager& gm)
 	SwapChain& swapChain = *gm.getContextComponent<MainSwapChainContext, SwapChainComponent>()->swapChainInstance;
 	BufferManager& bufferManager =
 	    *gm.getContextComponent<BufferManagerContext, BufferManagerComponent>()->bufferManager;
-	ObjectDSetComponent* objectDSetComponent = gm.getContextComponent<MainDSetsContext, ObjectDSetComponent>();
+	ModelDSetComponent* modelDSetComponent = gm.getContextComponent<MainDSetsContext, ModelDSetComponent>();
 
 	std::vector<std::vector<Entity>> batch;
 	batch.resize(bufferManager.meshes.size());
@@ -44,8 +44,10 @@ void BufferUpdateSystem::update(float deltaTime, GeneralManager& gm)
 	}
 
 	// === Models ===
-	auto* dstPtr = static_cast<ModelSctructure*>(
-	    bufferManager.buffers[objectDSetComponent->storageBuffer].bufferMapped[currentFrame]);
+	auto* primitivePtr = static_cast<PrimitiveSctructure*>(
+	    bufferManager.buffers[modelDSetComponent->primitiveBuffer].bufferMapped[currentFrame]);
+	auto* transfromMeshPtr = static_cast<TransformStructure*>(
+	    bufferManager.buffers[modelDSetComponent->transformBuffer].bufferMapped[currentFrame]);
 
 	int temp = 0;
 	for (const auto& entities : batch)
@@ -54,10 +56,10 @@ void BufferUpdateSystem::update(float deltaTime, GeneralManager& gm)
 		{
 			GlobalTransformComponent& transform = *gm.getComponent<GlobalTransformComponent>(entity);
 			const glm::mat4 model = transform.getGlobalModelMatrix();
-			dstPtr[temp].model = model;
+			primitivePtr[temp].model = model;
 
-			TextureInfoComponent& texture = *gm.getComponent<TextureInfoComponent>(entity);
-			dstPtr[temp].textureIndex = texture.textureIndex;
+			MeshInfoComponent& meshinfo = *gm.getComponent<MeshInfoComponent>(entity);
+			primitivePtr[temp].textureIndex = bufferManager.meshes[meshinfo.mesh].primitives[0].textureIndex;
 			temp++;
 		}	
 	}

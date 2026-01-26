@@ -38,7 +38,7 @@ void RenderSystem::update(float deltaTime, GeneralManager& gm)
 	DescriptorManagerComponent* dManager =
 	    gm.getContextComponent<DescriptorManagerContext, DescriptorManagerComponent>();
 	GlobalDSetComponent* globalDSetComponent = gm.getContextComponent<MainDSetsContext, GlobalDSetComponent>();
-	ObjectDSetComponent* objectDSetComponent = gm.getContextComponent<MainDSetsContext, ObjectDSetComponent>();
+	ModelDSetComponent* objectDSetComponent = gm.getContextComponent<MainDSetsContext, ModelDSetComponent>();
 	uint32_t imageIndex = gm.getContextComponent<FrameImageContext, FrameImageComponent>()->imageIndex;
 	if (!currentFrameComp->frameValid) return;
 

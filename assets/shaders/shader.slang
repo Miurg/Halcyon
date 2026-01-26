@@ -76,7 +76,7 @@ float4 fragMain(VSOutput vertIn) : SV_TARGET
     projCoords.xy = projCoords.xy * 0.5 + 0.5;
 
     float shadowFactor = 1.0;
-    float bias = 0.002;
+    float bias = 0.001;
 
     if (saturate(projCoords.x) == projCoords.x && 
         saturate(projCoords.y) == projCoords.y && 

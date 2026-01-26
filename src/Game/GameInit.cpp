@@ -21,7 +21,7 @@ void GameInit::gameInitStart(GeneralManager& gm)
 	    gm.getContextComponent<DescriptorManagerContext, DescriptorManagerComponent>()->descriptorManager;
 	int j = 0;
 	int k = 0;
-	for (int i = 0; i < 10; i++)
+	for (int i = 0; i < 100; i++)
 	{
 		Entity gameObjectEntity1 = gm.createEntity();
 		MeshInfoComponent meshInfo;
@@ -30,9 +30,7 @@ void GameInit::gameInitStart(GeneralManager& gm)
 		{
 			gm.addComponent<GlobalTransformComponent>(gameObjectEntity1);
 			gm.addComponent<LocalTransformComponent>(gameObjectEntity1, k * 2.0f, 0.0f, j * 2.0f, 0.0f, 0.0f, 0.0f);
-			meshInfo.mesh = bufferManager->createMesh("assets/models/Suzanne.glb");
-			numberTexture = bufferManager->generateTextureData("assets/textures/texture.jpg", vk::Format::eR8G8B8A8Srgb,
-			                                                   vk::ImageAspectFlagBits::eColor, *dSetComponent, *dManager);
+			meshInfo.mesh = bufferManager->createMesh("assets/models/Suzanne.glb", *dSetComponent, *dManager);
 		}
 		else
 		{
@@ -40,14 +38,11 @@ void GameInit::gameInitStart(GeneralManager& gm)
 			gm.addComponent<LocalTransformComponent>(gameObjectEntity1, k * 2.0f, 0.0f, j * 2.0f, -90.0f, 0.0f, 0.0f);
 			
 
-			meshInfo.mesh = bufferManager->createMesh("assets/models/marble_bust_01_4k.glb");
-			numberTexture = bufferManager->generateTextureData("assets/textures/marble_bust_01_diff_4k.jpg", vk::Format::eR8G8B8A8Srgb,
-			                                       vk::ImageAspectFlagBits::eColor, *dSetComponent, *dManager);
+			meshInfo.mesh = bufferManager->createMesh("assets/models/marble_bust_01_4k.glb", *dSetComponent, *dManager);
 		}
 
 		gm.addComponent<RelationshipComponent>(gameObjectEntity1);
 		gm.addComponent<MeshInfoComponent>(gameObjectEntity1, meshInfo);
-		gm.addComponent<TextureInfoComponent>(gameObjectEntity1, numberTexture);
 		
 		gm.subscribeEntity<TransformSystem>(gameObjectEntity1);
 		gm.subscribeEntity<RotationSystem>(gameObjectEntity1);

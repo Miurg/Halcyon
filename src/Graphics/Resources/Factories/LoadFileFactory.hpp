@@ -10,10 +10,14 @@
 class LoadFileFactory
 {
 public:
-	static PrimitivesInfo addMeshFromFile(const char path[MAX_PATH_LEN], VertexIndexBuffer& mesh);
+	static std::tuple<PrimitivesInfo, std::vector<unsigned char>, int, int>
+	addMeshFromFile(const char path[MAX_PATH_LEN],
+	                                                                                  VertexIndexBuffer& mesh);
 	static void uploadTextureFromFile(const char* texturePath, Texture& texture, VmaAllocator& allocator,
 	                                  VulkanDevice& vulkanDevice);
 	static std::tuple<int, int> getSizesFromFileTexture(const char texturePath[MAX_PATH_LEN]);
 	static void transitionImageLayout(vk::Image image, vk::ImageLayout oldLayout, vk::ImageLayout newLayout,
 	                                  VulkanDevice& vulkanDevice);
+	static void uploadTextureFromBuffer(const unsigned char* pixels, int texWidth, int texHeight,
+	                                              Texture& texture, VmaAllocator& allocator, VulkanDevice& vulkanDevice);
 };

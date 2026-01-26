@@ -6,18 +6,81 @@
 #include <stb_image.h>
 #include "../../VulkanUtils.hpp"
 
-PrimitivesInfo LoadFileFactory::addMeshFromFile(const char path[MAX_PATH_LEN], VertexIndexBuffer& mesh)
+static std::vector<unsigned char> convertToRGBA(const tinygltf::Image& img)
+{
+	if (img.image.empty() || img.width <= 0 || img.height <= 0)
+	{
+		return {};
+	}
+
+	int components = img.component; // 1, 2, 3 или 4
+	int pixelType = img.pixel_type; // TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE обычно
+
+	std::vector<unsigned char> rgbaData;
+	rgbaData.resize(img.width * img.height * 4);
+
+	const unsigned char* src = img.image.data();
+	unsigned char* dst = rgbaData.data();
+
+	for (int y = 0; y < img.height; y++)
+	{
+		for (int x = 0; x < img.width; x++)
+		{
+			int srcIdx = (y * img.width + x) * components;
+			int dstIdx = (y * img.width + x) * 4;
+
+			if (components == 1)
+			{
+				// Grayscale -> RGBA
+				dst[dstIdx + 0] = src[srcIdx];
+				dst[dstIdx + 1] = src[srcIdx];
+				dst[dstIdx + 2] = src[srcIdx];
+				dst[dstIdx + 3] = 255;
+			}
+			else if (components == 2)
+			{
+				// Grayscale + Alpha -> RGBA
+				dst[dstIdx + 0] = src[srcIdx];
+				dst[dstIdx + 1] = src[srcIdx];
+				dst[dstIdx + 2] = src[srcIdx];
+				dst[dstIdx + 3] = src[srcIdx + 1];
+			}
+			else if (components == 3)
+			{
+				// RGB -> RGBA
+				dst[dstIdx + 0] = src[srcIdx + 0];
+				dst[dstIdx + 1] = src[srcIdx + 1];
+				dst[dstIdx + 2] = src[srcIdx + 2];
+				dst[dstIdx + 3] = 255;
+			}
+			else if (components == 4)
+			{
+				// RGBA -> RGBA (просто копируем)
+				dst[dstIdx + 0] = src[srcIdx + 0];
+				dst[dstIdx + 1] = src[srcIdx + 1];
+				dst[dstIdx + 2] = src[srcIdx + 2];
+				dst[dstIdx + 3] = src[srcIdx + 3];
+			}
+		}
+	}
+
+	return rgbaData;
+}
+
+std::tuple<PrimitivesInfo, std::vector<unsigned char>, int, int>
+LoadFileFactory::addMeshFromFile(const char path[MAX_PATH_LEN], VertexIndexBuffer& mesh)
 {
 	uint32_t firstIndex = static_cast<uint32_t>(mesh.indices.size());
 	int32_t globalVertexOffset = static_cast<int32_t>(mesh.vertices.size()); // To adjust indices
 
 	tinygltf::Model model;
 	tinygltf::TinyGLTF loader;
+	tinygltf::Image img; 
 	std::string err, warn;
 	bool ret = false;
-	loader.SetImageLoader([](tinygltf::Image*, const int, std::string*, std::string*, int, int, const unsigned char*,
-	                         int, void*) { return true; },
-	                      nullptr); // Off image loading
+	//loader.SetImageLoader([](tinygltf::Image*, const int, std::string*, std::string*, int, int, const unsigned char*,
+	//                         int, void*) { return true; },
+	//                      nullptr); // Off image loading
 	std::string pathStr = path;
 	if (pathStr.size() >= 4 && pathStr.substr(pathStr.size() - 4) == ".glb")
 	{
@@ -151,6 +214,24 @@ PrimitivesInfo LoadFileFactory::addMeshFromFile(const char path[MAX_PATH_LEN], V
 				const uint8_t* buf = reinterpret_cast<const uint8_t*>(indexData);
 				for (size_t i = 0; i < indexAccessor.count; i++) pushIndex(buf[i], i);
 			}
+			if (primitive.material >= 0)
+			{
+				const tinygltf::Material& mat = model.materials[primitive.material];
+
+				auto texIt = mat.values.find("baseColorTexture");
+				if (texIt != mat.values.end())
+				{
+					int textureIndex = texIt->second.TextureIndex();
+					if (textureIndex >= 0 && textureIndex < model.textures.size())
+					{
+						const tinygltf::Texture& tex = model.textures[textureIndex];
+						if (tex.source >= 0 && tex.source < model.images.size())
+						{
+							img = model.images[tex.source];
+						}
+					}
+				}
+			}
 		}
 	}
 
@@ -160,8 +241,15 @@ PrimitivesInfo LoadFileFactory::addMeshFromFile(const char path[MAX_PATH_LEN], V
 	info.indexCount = indexCount;
 	info.indexOffset = firstIndex;
 	info.vertexOffset = globalVertexOffset;
-	memcpy(info.path, path, MAX_PATH_LEN);
-	return info;
+
+	std::vector<unsigned char> rgbaData = convertToRGBA(img);
+
+	if (img.image.empty() || img.width <= 0 || img.height <= 0)
+	{
+		return {info, {}, 0, 0};
+	}
+
+	return {info, std::move(rgbaData), img.width, img.height};
 }
 
 std::tuple<int, int> LoadFileFactory::getSizesFromFileTexture(const char texturePath[MAX_PATH_LEN])
@@ -182,36 +270,9 @@ void LoadFileFactory::uploadTextureFromFile(const char* texturePath, Texture& te
 		throw std::runtime_error("failed to load texture image!");
 	}
 
-	vk::DeviceSize imageSize = texWidth * texHeight * 4;
-
-	VkBufferCreateInfo bufferInfo = {VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO};
-	bufferInfo.size = imageSize;
-	bufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-
-	VmaAllocationCreateInfo allocInfo = {};
-	allocInfo.usage = VMA_MEMORY_USAGE_AUTO;
-	allocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
-
-	VkBuffer stagingBuffer;
-	VmaAllocation stagingAllocation;
-	VmaAllocationInfo stagingAllocInfo;
-
-	vmaCreateBuffer(allocator, &bufferInfo, &allocInfo, &stagingBuffer, &stagingAllocation, &stagingAllocInfo);
-
-	memcpy(stagingAllocInfo.pMappedData, pixels, static_cast<size_t>(imageSize));
+	uploadTextureFromBuffer(pixels, texWidth, texHeight, texture, allocator, vulkanDevice);
 
 	stbi_image_free(pixels);
-
-	transitionImageLayout(texture.textureImage, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal,
-	                      vulkanDevice);
-
-	VulkanUtils::copyBufferToImage(stagingBuffer, texture.textureImage, static_cast<uint32_t>(texWidth),
-	                               static_cast<uint32_t>(texHeight), vulkanDevice);
-
-	transitionImageLayout(texture.textureImage, vk::ImageLayout::eTransferDstOptimal,
-	                      vk::ImageLayout::eShaderReadOnlyOptimal, vulkanDevice);
-
-	vmaDestroyBuffer(allocator, stagingBuffer, stagingAllocation);
 }
 
 void LoadFileFactory::transitionImageLayout(vk::Image image, vk::ImageLayout oldLayout, vk::ImageLayout newLayout,
@@ -251,4 +312,61 @@ void LoadFileFactory::transitionImageLayout(vk::Image image, vk::ImageLayout old
 	commandBuffer.pipelineBarrier(sourceStage, destinationStage, {}, {}, {}, barrier);
 
 	VulkanUtils::endSingleTimeCommands(commandBuffer, vulkanDevice);
+}
+
+void LoadFileFactory::uploadTextureFromBuffer(const unsigned char* pixels, int texWidth, int texHeight,
+                                              Texture& texture, VmaAllocator& allocator, VulkanDevice& vulkanDevice)
+{
+	if (!pixels)
+	{
+		throw std::runtime_error("pixels data is null!");
+	}
+
+	if (texWidth <= 0 || texHeight <= 0)
+	{
+		throw std::runtime_error("Invalid texture dimensions!");
+	}
+
+	// Всегда используем RGBA формат для Vulkan
+	vk::DeviceSize imageSize = static_cast<vk::DeviceSize>(texWidth) * static_cast<vk::DeviceSize>(texHeight) * 4;
+
+	VkBufferCreateInfo bufferInfo = {VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO};
+	bufferInfo.size = imageSize;
+	bufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+
+	VmaAllocationCreateInfo allocInfo = {};
+	allocInfo.usage = VMA_MEMORY_USAGE_AUTO;
+	allocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
+
+	VkBuffer stagingBuffer;
+	VmaAllocation stagingAllocation;
+	VmaAllocationInfo stagingAllocInfo;
+
+	VkResult result =
+	    vmaCreateBuffer(allocator, &bufferInfo, &allocInfo, &stagingBuffer, &stagingAllocation, &stagingAllocInfo);
+	if (result != VK_SUCCESS)
+	{
+		throw std::runtime_error("Failed to create staging buffer for texture upload! VkResult: " +
+		                         std::to_string(result));
+	}
+
+	if (!stagingAllocInfo.pMappedData)
+	{
+		vmaDestroyBuffer(allocator, stagingBuffer, stagingAllocation);
+		throw std::runtime_error("Failed to map staging buffer memory!");
+	}
+
+
+	memcpy(stagingAllocInfo.pMappedData, pixels, static_cast<size_t>(imageSize));
+
+	transitionImageLayout(texture.textureImage, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal,
+	                      vulkanDevice);
+
+	VulkanUtils::copyBufferToImage(stagingBuffer, texture.textureImage, static_cast<uint32_t>(texWidth),
+	                               static_cast<uint32_t>(texHeight), vulkanDevice);
+
+	transitionImageLayout(texture.textureImage, vk::ImageLayout::eTransferDstOptimal,
+	                      vk::ImageLayout::eShaderReadOnlyOptimal, vulkanDevice);
+
+	vmaDestroyBuffer(allocator, stagingBuffer, stagingAllocation);
 }

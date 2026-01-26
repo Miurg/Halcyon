@@ -8,7 +8,6 @@
 #include "../Components/BufferManagerComponent.hpp"
 #include "../Components/CurrentFrameComponent.hpp"
 #include "../Resources/Components/GlobalDSetComponent.hpp"
-#include "../Resources/Components/ObjectDSetComponent.hpp"
 #include "../Components/CameraComponent.hpp"
 #include "../Components/GlobalTransformComponent.hpp"
 #include "../Components/LightComponent.hpp"

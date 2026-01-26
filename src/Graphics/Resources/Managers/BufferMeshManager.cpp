@@ -2,33 +2,59 @@
 #include <stdexcept>
 #include "../Factories/LoadFileFactory.hpp"
 #include "../../VulkanUtils.hpp"
+#include <cstring>
 
-int BufferManager::createMesh(const char path[MAX_PATH_LEN])
+int BufferManager::createMesh(const char path[MAX_PATH_LEN], BindlessTextureDSetComponent& dSetComponent,
+                              DescriptorManager& dManager)
 {
 	if (isMeshLoaded(path))
 	{
 		return meshPaths[std::string(path)];
 	}
-	for (int i = 0; i < meshBuffers.size(); i++)
+	for (int i = 0; i < vertexIndexBuffers.size(); i++)
 	{
-		if (sizeof(meshBuffers[i].vertices) < MAX_SIZE_OF_VERTEX_INDEX_BUFFER)
+		if (sizeof(vertexIndexBuffers[i].vertices) < MAX_SIZE_OF_VERTEX_INDEX_BUFFER)
 		{
-			PrimitivesInfo info = LoadFileFactory::addMeshFromFile(path, meshBuffers[i]);
-			info.bufferIndex = static_cast<uint32_t>(i);
-			createVertexBuffer(vulkanDevice, meshBuffers[i]);
-			createIndexBuffer(vulkanDevice, meshBuffers[i]);
-			meshes.push_back(info);
-			meshPaths[std::string(path)] = meshes.size()-1;
+			auto infoTuple = LoadFileFactory::addMeshFromFile(path, vertexIndexBuffers.back());
+			PrimitivesInfo info = std::get<0>(infoTuple);
+			std::vector<unsigned char> textureData = std::get<1>(infoTuple);
+			int texWidth = std::get<2>(infoTuple);
+			int texHeight = std::get<3>(infoTuple);
+			if (!textureData.empty())
+			{
+				info.textureIndex =
+				    generateTextureData(path, texWidth, texHeight, textureData.data(), dSetComponent, dManager);
+			}
+			createVertexBuffer(vulkanDevice, vertexIndexBuffers.back());
+			createIndexBuffer(vulkanDevice, vertexIndexBuffers.back());
+			MeshInfo meshInfo;
+			meshInfo.primitives.push_back(info);
+			meshInfo.vertexIndexBufferID = static_cast<uint32_t>(vertexIndexBuffers.size() - 1);
+			strcpy(meshInfo.path, path);
+			meshes.push_back(meshInfo);
+			meshPaths[std::string(path)] = meshes.size() - 1;
 			return meshes.size() - 1;
 		}
 	}
 
-	meshBuffers.push_back(VertexIndexBuffer());
-	PrimitivesInfo info = LoadFileFactory::addMeshFromFile(path, meshBuffers.back());
-	info.bufferIndex = static_cast<uint32_t>(meshBuffers.size() - 1);
-	createVertexBuffer(vulkanDevice, meshBuffers.back());
-	createIndexBuffer(vulkanDevice, meshBuffers.back());
-	meshes.push_back(info);
+	vertexIndexBuffers.push_back(VertexIndexBuffer());
+
+	auto infoTuple = LoadFileFactory::addMeshFromFile(path, vertexIndexBuffers.back());
+	PrimitivesInfo info = std::get<0>(infoTuple);
+	std::vector<unsigned char> textureData = std::get<1>(infoTuple);
+	int texWidth = std::get<2>(infoTuple);
+	int texHeight = std::get<3>(infoTuple);
+	if (!textureData.empty())
+	{
+		info.textureIndex = generateTextureData(path, texWidth, texHeight, textureData.data(), dSetComponent, dManager);
+	}
+	createVertexBuffer(vulkanDevice, vertexIndexBuffers.back());
+	createIndexBuffer(vulkanDevice, vertexIndexBuffers.back());
+	MeshInfo meshInfo;
+	meshInfo.primitives.push_back(info);
+	meshInfo.vertexIndexBufferID = static_cast<uint32_t>(vertexIndexBuffers.size() - 1);
+	strcpy(meshInfo.path, path);
+	meshes.push_back(meshInfo);
 	meshPaths[std::string(path)] = meshes.size() - 1;
 	return meshes.size() - 1;
 }

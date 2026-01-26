@@ -8,7 +8,7 @@
 #include "../Components/CameraComponent.hpp"
 #include "../Components/LightComponent.hpp"
 #include "../Components/DescriptorManagerComponent.hpp"
-#include "../Resources/Components/ObjectDSetComponent.hpp"
+#include "../Resources/Components/ModelDSetComponent.hpp"
 #include "../Resources/Components/GlobalDSetComponent.hpp"
 
 class CommandBufferFactory
@@ -19,7 +19,7 @@ public:
 	                                BufferManager& bufferManager, LightComponent& lightTexture,
 	                                BindlessTextureDSetComponent& bindlessTextureDSetComponent,
 	                                DescriptorManagerComponent& dManager, GlobalDSetComponent* globalDSetComponent,
-	                                ObjectDSetComponent* objectDSetComponent);
+	                                ModelDSetComponent* objectDSetComponent);
 	static void transitionImageLayout(vk::raii::CommandBuffer& commandBuffer, vk::Image image, vk::ImageLayout oldLayout,
 	                                  vk::ImageLayout newLayout, vk::AccessFlags2 srcAccessMask,
 	                                  vk::AccessFlags2 dstAccessMask, vk::PipelineStageFlags2 srcStageMask,
@@ -41,5 +41,5 @@ struct CommandBufferStruct
 	BindlessTextureDSetComponent& materialDSet;
 	DescriptorManagerComponent& dManager;
 	GlobalDSetComponent* globalDSetComponent;
-	ObjectDSetComponent* objectDSetComponent;
+	ModelDSetComponent* objectDSetComponent;
 };

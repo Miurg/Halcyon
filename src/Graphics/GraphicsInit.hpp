@@ -13,7 +13,7 @@
 #include "Components/BufferManagerComponent.hpp"
 #include "Components/DescriptorManagerComponent.hpp"
 #include "Resources/Components/GlobalDSetComponent.hpp"
-#include "Resources/Components/ObjectDSetComponent.hpp"
+#include "Resources/Components/ModelDSetComponent.hpp"
 #include "../Core/Entitys/EntityManager.hpp"
 #include "Factories/PipelineFactory.hpp"
 #include "Components/PipelineHandlerComponent.hpp"
@@ -81,7 +81,7 @@ private:
 		gm.registerContext<MainDSetsContext>(mainDSetsEntity);
 		gm.addComponent<BindlessTextureDSetComponent>(mainDSetsEntity);
 		gm.addComponent<GlobalDSetComponent>(mainDSetsEntity);
-		gm.addComponent<ObjectDSetComponent>(mainDSetsEntity);
+		gm.addComponent<ModelDSetComponent>(mainDSetsEntity);
 
 		// Signature and Pipelines
 		Entity signatureEntity = gm.createEntity();
@@ -167,16 +167,27 @@ private:
 
 		// === Cameras and Lights END ===
 
-		// === Model SSBOs ===
-		ObjectDSetComponent* objectDSetComponent = gm.getContextComponent<MainDSetsContext, ObjectDSetComponent>();
-		objectDSetComponent->storageBuffer =
-		    bManager->createBuffer((vk::MemoryPropertyFlagBits::eHostVisible), 10240 * sizeof(ModelSctructure),
-		                           MAX_FRAMES_IN_FLIGHT, 0, *dManager->modelSetLayout);
-		objectDSetComponent->storageBufferDSet =
+		ModelDSetComponent* objectDSetComponent = gm.getContextComponent<MainDSetsContext, ModelDSetComponent>();
+		objectDSetComponent->modelBufferDSet =
 		    dManager->allocateStorageBufferDSets(MAX_FRAMES_IN_FLIGHT, *dManager->modelSetLayout);
-		dManager->updateStorageBufferDescriptors(*bManager, objectDSetComponent->storageBuffer,
-		                                         objectDSetComponent->storageBufferDSet, 0);
+		// === Model SSBOs ===
+		
+		objectDSetComponent->primitiveBuffer =
+		    bManager->createBuffer((vk::MemoryPropertyFlagBits::eHostVisible), 10240 * sizeof(PrimitiveSctructure),
+		                           MAX_FRAMES_IN_FLIGHT, 0, *dManager->modelSetLayout);
+		dManager->updateStorageBufferDescriptors(*bManager, objectDSetComponent->primitiveBuffer,
+		                                         objectDSetComponent->modelBufferDSet, 0);
 		// === Model SSBOs END ===
+
+		// === Primitives ===
+
+		objectDSetComponent->transformBuffer =
+		    bManager->createBuffer((vk::MemoryPropertyFlagBits::eHostVisible), 10240 * sizeof(TransformStructure),
+		                           MAX_FRAMES_IN_FLIGHT, 1, *dManager->modelSetLayout);
+		dManager->updateStorageBufferDescriptors(*bManager, objectDSetComponent->primitiveBuffer,
+		                                         objectDSetComponent->modelBufferDSet, 1);
+
+		// === Primitives END ===
 
 		// === Placeholder Entities END ===
 #ifdef _DEBUG

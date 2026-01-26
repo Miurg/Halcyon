@@ -8,7 +8,7 @@
 #include "BufferUpdateSystem.hpp"
 
 
-class RenderSystem : public SystemCore<RenderSystem, TextureInfoComponent, GlobalTransformComponent, MeshInfoComponent>
+class RenderSystem : public SystemCore<RenderSystem, GlobalTransformComponent, MeshInfoComponent>
 {
 public:
 	void update(float deltaTime, GeneralManager& gm) override;

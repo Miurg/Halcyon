@@ -48,9 +48,12 @@ DescriptorManager::DescriptorManager(VulkanDevice& vulkanDevice) : vulkanDevice(
 	textureSetLayout = vk::raii::DescriptorSetLayout(vulkanDevice.device, textureInfo);
 
 	//===Model===
-	vk::DescriptorSetLayoutBinding modelBinding(0, vk::DescriptorType::eStorageBuffer, 1,
+	vk::DescriptorSetLayoutBinding primitivesBinding(0, vk::DescriptorType::eStorageBuffer, 1,
 	                                            vk::ShaderStageFlagBits::eVertex, nullptr);
-	vk::DescriptorSetLayoutCreateInfo modelInfo({}, 1, &modelBinding);
+	vk::DescriptorSetLayoutBinding transformBinding(1, vk::DescriptorType::eStorageBuffer, 1,
+	                                            vk::ShaderStageFlagBits::eVertex, nullptr);
+	std::array<vk::DescriptorSetLayoutBinding, 2> modelBindings = {primitivesBinding, transformBinding};
+	vk::DescriptorSetLayoutCreateInfo modelInfo({}, static_cast<uint32_t>(modelBindings.size()), modelBindings.data());
 	modelSetLayout = vk::raii::DescriptorSetLayout(vulkanDevice.device, modelInfo);
 }
 

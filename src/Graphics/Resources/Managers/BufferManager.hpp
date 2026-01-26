@@ -11,6 +11,7 @@
 #include "../Components/BindlessTextureDSetComponent.hpp"
 #include "../../VulkanDevice.hpp"
 #include "PrimitivesInfo.hpp"
+#include "MeshInfo.hpp"
 
 class DescriptorManager;
 
@@ -20,21 +21,23 @@ public:
 	BufferManager(VulkanDevice& vulkanDevice);
 	~BufferManager();
 
-	int createMesh(const char path[MAX_PATH_LEN]);
+	int createMesh(const char path[MAX_PATH_LEN], BindlessTextureDSetComponent& dSetComponent,
+	               DescriptorManager& dManager);
 	bool isMeshLoaded(const char path[MAX_PATH_LEN]);
 
-	int generateTextureData(const char texturePath[MAX_PATH_LEN], vk::Format format, vk::ImageAspectFlags aspectFlags,
-	                        BindlessTextureDSetComponent& dSetComponent, DescriptorManager& dManager);
-	int createShadowMap(uint32_t shadowResolutionX, uint32_t shadowResolutionY);
+	int generateTextureData(const char texturePath[MAX_PATH_LEN], int texWidth, int texHeight,
+	                        const unsigned char* pixels, BindlessTextureDSetComponent& dSetComponent,
+	                        DescriptorManager& dManager);
 	bool isTextureLoaded(const char texturePath[MAX_PATH_LEN]);
 	int createBuffer(vk::MemoryPropertyFlags propertyBits, vk::DeviceSize sizeBuffer, uint_fast16_t numberBuffers,
 	                 uint_fast16_t numberBinding, vk::DescriptorSetLayout layout);
+	int createShadowMap(uint32_t shadowResolutionX, uint32_t shadowResolutionY);
 
 	std::vector<Texture> textures;
 	std::unordered_map<std::string, int> texturePaths;
-	std::vector<VertexIndexBuffer> meshBuffers;
+	std::vector<VertexIndexBuffer> vertexIndexBuffers;
 	std::unordered_map<std::string, int> meshPaths;
-	std::vector<PrimitivesInfo> meshes;
+	std::vector<MeshInfo> meshes;
 	std::vector<Buffer> buffers;
 
 private:
@@ -69,9 +72,14 @@ struct SunStructure
 	glm::vec4 ambient;   // rgb: ambient color, w: intensity of ambient
 };
 
-struct ModelSctructure
+struct PrimitiveSctructure
 {
 	alignas(16) glm::mat4 model; // 64 bytes
 	uint32_t textureIndex; // 4 bytes
 	uint32_t _padding[3]; // 12 bytes (64 + 4 + 12 = 80)
+};
+
+struct TransformStructure
+{
+	alignas(16) glm::mat4 model;
 };

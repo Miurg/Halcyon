@@ -6,7 +6,7 @@
 #include "../../Core/Entitys/EntityManager.hpp"
 
 class BufferUpdateSystem
-    : public SystemCore<BufferUpdateSystem, GlobalTransformComponent, TextureInfoComponent, MeshInfoComponent>
+    : public SystemCore<BufferUpdateSystem, GlobalTransformComponent, MeshInfoComponent>
 {
 public:
 	std::vector<Entity> entities;
