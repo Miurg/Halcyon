@@ -1,8 +1,8 @@
 #include "BufferManager.hpp"
 #include <stdexcept>
-#include "DescriptorManager.hpp"
 
-BufferManager::BufferManager(VulkanDevice& vulkanDevice) : vulkanDevice(vulkanDevice) 
+BufferManager::BufferManager(VulkanDevice& vulkanDevice)
+    : vulkanDevice(vulkanDevice)
 {
 	VmaAllocatorCreateInfo allocatorInfo = {};
 	allocatorInfo.physicalDevice = *vulkanDevice.physicalDevice;
@@ -19,9 +19,10 @@ BufferManager::BufferManager(VulkanDevice& vulkanDevice) : vulkanDevice(vulkanDe
 	{
 		throw std::runtime_error("failed to create VMA allocator!");
 	}
+	
 }
 
-BufferManager::~BufferManager() 
+BufferManager::~BufferManager()
 {
 	for (auto& texture : textures)
 	{
@@ -63,8 +64,7 @@ BufferManager::~BufferManager()
 	}
 }
 
-int BufferManager::createBuffer(vk::MemoryPropertyFlags propertyBits,
-                                vk::DeviceSize sizeBuffer,
+int BufferManager::createBuffer(vk::MemoryPropertyFlags propertyBits, vk::DeviceSize sizeBuffer,
                                 uint_fast16_t numberBuffers, uint_fast16_t numberBinding,
                                 vk::DescriptorSetLayout layout)
 {
@@ -113,4 +113,3 @@ void BufferManager::initGlobalBuffer(vk::MemoryPropertyFlags propertyBits, Buffe
 		}
 	}
 }
-

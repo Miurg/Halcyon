@@ -12,6 +12,8 @@
 #include "../../VulkanDevice.hpp"
 #include "PrimitivesInfo.hpp"
 #include "MeshInfo.hpp"
+#include "DescriptorManager.hpp"
+#include "../Components/BindlessTextureDSetComponent.hpp"
 
 class DescriptorManager;
 
@@ -77,8 +79,8 @@ struct PrimitiveSctructure // (4 + 4 + 8 = 16 bytes)
 {
 	uint32_t transformIndex; // 4 bytes
 	uint32_t textureIndex;   // 4 bytes
-	uint32_t _padding[2];    // 8 bytes 
-}; 
+	uint32_t _padding[2];    // 8 bytes
+};
 
 struct TransformStructure
 {

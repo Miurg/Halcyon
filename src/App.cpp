@@ -12,7 +12,7 @@
 #include "Platform/PlatformContexts.hpp"
 #include "Game/GameInit.hpp"
 #include "Graphics/GraphicsInit.hpp"
-#include <tiny_gltf.h>
+
 namespace
 {
 float deltaTime = 0.0f;

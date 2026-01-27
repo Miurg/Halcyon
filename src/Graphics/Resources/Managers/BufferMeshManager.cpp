@@ -17,19 +17,33 @@ int BufferManager::createMeshInternal(const char path[MAX_PATH_LEN], BindlessTex
 	{
 		PrimitivesInfo info = loadedPrimitive.info;
 
-		int texWidth = loadedPrimitive.texture.get()->width;
-		int texHeight = loadedPrimitive.texture.get()->height;
-		auto texturePtr = loadedPrimitive.texture; // shared_ptr<TextureData>
-		if (texturePtr && !texturePtr->pixels.empty())
+		if (loadedPrimitive.texture)
 		{
-			size_t expectedBytes = static_cast<size_t>(texWidth) * static_cast<size_t>(texHeight) * 4;
-			if (texturePtr->pixels.size() < expectedBytes)
+			int texWidth = loadedPrimitive.texture.get()->width;
+			int texHeight = loadedPrimitive.texture.get()->height;
+			auto texturePtr = loadedPrimitive.texture; // shared_ptr<TextureData>
+			char dSetTextureName[MAX_PATH_LEN];
+			strcpy(dSetTextureName, loadedPrimitive.texture.get()->name.c_str());
+			if (texturePtr && !texturePtr->pixels.empty())
 			{
-				throw std::runtime_error("Texture pixel data size mismatch for " + std::string(path));
+				size_t expectedBytes = static_cast<size_t>(texWidth) * static_cast<size_t>(texHeight) * 4;
+				if (texturePtr->pixels.size() < expectedBytes)
+				{
+					throw std::runtime_error("Texture pixel data size mismatch for " + std::string(path));
+				}
+				info.textureIndex =
+				    generateTextureData(dSetTextureName, texWidth, texHeight, texturePtr->pixels.data(), dSetComponent, dManager);
 			}
-			info.textureIndex =
-			    generateTextureData(path, texWidth, texHeight, texturePtr->pixels.data(), dSetComponent, dManager);
 		}
+		else
+		{
+			int texWidth = 1;
+			int texHeight = 1;
+			char dSetTextureName[MAX_PATH_LEN] = "sys_default_white";
+			std::vector<unsigned char> pixels = {255, 255, 255, 255};
+			info.textureIndex = generateTextureData(path, texWidth, texHeight, pixels.data(), dSetComponent, dManager);// Default white texture
+		}
+		
 		createVertexBuffer(vulkanDevice, vertexIndexBuffers.back());
 		createIndexBuffer(vulkanDevice, vertexIndexBuffers.back());
 		meshInfo.primitives.push_back(info);

@@ -224,3 +224,17 @@ std::vector<LoadedPrimitive> GltfLoader::loadMeshFromFile(const char path[MAX_PA
 
 	return loadedPrimitives;
 }
+
+std::shared_ptr<TextureData> GltfLoader::createDefaultWhiteTexture()
+{
+	auto texture = std::make_shared<TextureData>();
+
+	texture->width = 1;
+	texture->height = 1;
+	texture->name = "sys_default_white";
+
+	// 4 байта: R=255, G=255, B=255, A=255
+	texture->pixels = {255, 255, 255, 255};
+
+	return texture;
+}

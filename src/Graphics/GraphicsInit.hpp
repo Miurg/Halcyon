@@ -1,3 +1,4 @@
+#pragma once
 #include "Core/GeneralManager.hpp"
 #include "Graphics/FrameData.hpp"
 #include "Graphics/PipelineHandler.hpp"
@@ -26,6 +27,7 @@
 #include "Components/CameraComponent.hpp"
 #include "Components/LocalTransformComponent.hpp"
 #include "Components/RelationshipComponent.hpp"
+#include "Resources/Factories/GltfLoader.hpp"
 class GraphicsInit
 {
 public:
@@ -190,6 +192,16 @@ private:
 		// === Primitives END ===
 
 		// === Placeholder Entities END ===
+
+		// === Default White Texture ===
+		auto texturePtr = GltfLoader::createDefaultWhiteTexture();
+		int texWidth = texturePtr.get()->width;
+		int texHeight = texturePtr.get()->height;
+		auto data = texturePtr->pixels.data();
+		auto path = texturePtr.get()->name.c_str();
+		bManager->generateTextureData(path, texWidth, texHeight, data, *bTextureDSetComponent, *dManager);
+		// === Default White Texture END ===
+
 #ifdef _DEBUG
 		std::cout << "GRAPHICSINIT::PLACEHOLDERENTITYS::Succes!" << std::endl;
 #endif //_DEBUG

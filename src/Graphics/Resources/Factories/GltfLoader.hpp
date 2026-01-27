@@ -1,5 +1,4 @@
 #pragma once
-
 #include "../Managers/VertexIndexBuffer.hpp"
 #include "../Managers/Texture.hpp"
 #include "../Components/MeshInfoComponent.hpp"
@@ -26,6 +25,7 @@ class GltfLoader
 {
 public:
 	static std::vector<LoadedPrimitive> loadMeshFromFile(const char path[MAX_PATH_LEN], VertexIndexBuffer& mesh);
+	static std::shared_ptr<TextureData> createDefaultWhiteTexture();
 };
 
 

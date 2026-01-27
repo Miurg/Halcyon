@@ -3,6 +3,7 @@
 #define VK_USE_PLATFORM_WIN32_KHR
 #define GLFW_INCLUDE_NONE
 #define GLFW_EXPOSE_NATIVE_WIN32
+
 #include "Graphics/FrameData.hpp"
 #include "Graphics/PipelineHandler.hpp"
 #include "Platform/Window.hpp"

@@ -113,3 +113,4 @@ void TextureUploader::uploadTextureFromBuffer(const unsigned char* pixels, int t
 
 	vmaDestroyBuffer(allocator, stagingBuffer, stagingAllocation);
 }
+

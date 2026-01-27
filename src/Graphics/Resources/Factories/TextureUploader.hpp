@@ -6,7 +6,6 @@
 #include <vk_mem_alloc.h>
 #include "../../VulkanDevice.hpp"
 #include "../Managers/PrimitivesInfo.hpp"
-#include <tiny_gltf.h>
 
 class TextureUploader
 {
