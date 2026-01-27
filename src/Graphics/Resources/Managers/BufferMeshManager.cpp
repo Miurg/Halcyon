@@ -7,19 +7,34 @@
 int BufferManager::createMeshInternal(const char path[MAX_PATH_LEN], BindlessTextureDSetComponent& dSetComponent,
                                            DescriptorManager& dManager)
 {
-	auto infoTuple = GltfLoader::loadMeshFromFile(path, vertexIndexBuffers.back());
-	PrimitivesInfo info = std::get<0>(infoTuple);
-	std::vector<unsigned char> textureData = std::get<1>(infoTuple);
-	int texWidth = std::get<2>(infoTuple);
-	int texHeight = std::get<3>(infoTuple);
-	if (!textureData.empty())
+	auto infoVector = GltfLoader::loadMeshFromFile(path, vertexIndexBuffers.back());
+	if (infoVector.empty())
 	{
-		info.textureIndex = generateTextureData(path, texWidth, texHeight, textureData.data(), dSetComponent, dManager);
+		throw std::runtime_error("Failed to load mesh from file: " + std::string(path));
 	}
-	createVertexBuffer(vulkanDevice, vertexIndexBuffers.back());
-	createIndexBuffer(vulkanDevice, vertexIndexBuffers.back());
 	MeshInfo meshInfo;
-	meshInfo.primitives.push_back(info);
+	for (const auto& loadedPrimitive : infoVector)
+	{
+		PrimitivesInfo info = loadedPrimitive.info;
+
+		int texWidth = loadedPrimitive.texture.get()->width;
+		int texHeight = loadedPrimitive.texture.get()->height;
+		auto texturePtr = loadedPrimitive.texture; // shared_ptr<TextureData>
+		if (texturePtr && !texturePtr->pixels.empty())
+		{
+			size_t expectedBytes = static_cast<size_t>(texWidth) * static_cast<size_t>(texHeight) * 4;
+			if (texturePtr->pixels.size() < expectedBytes)
+			{
+				throw std::runtime_error("Texture pixel data size mismatch for " + std::string(path));
+			}
+			info.textureIndex =
+			    generateTextureData(path, texWidth, texHeight, texturePtr->pixels.data(), dSetComponent, dManager);
+		}
+		createVertexBuffer(vulkanDevice, vertexIndexBuffers.back());
+		createIndexBuffer(vulkanDevice, vertexIndexBuffers.back());
+		meshInfo.primitives.push_back(info);
+		
+	}
 	meshInfo.vertexIndexBufferID = static_cast<uint32_t>(vertexIndexBuffers.size() - 1);
 	strcpy(meshInfo.path, path);
 	meshes.push_back(meshInfo);

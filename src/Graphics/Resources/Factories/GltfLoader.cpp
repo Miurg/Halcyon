@@ -1,19 +1,15 @@
 #include "GltfLoader.hpp"
 #include "ImageConverter.hpp"
-std::tuple<PrimitivesInfo, std::vector<unsigned char>, int, int>
-GltfLoader::loadMeshFromFile(const char path[MAX_PATH_LEN], VertexIndexBuffer& mesh)
+
+std::vector<LoadedPrimitive> GltfLoader::loadMeshFromFile(const char path[MAX_PATH_LEN], VertexIndexBuffer& mesh)
 {
-	uint32_t firstIndex = static_cast<uint32_t>(mesh.indices.size());
 	int32_t globalVertexOffset = static_cast<int32_t>(mesh.vertices.size()); // To adjust indices
 
 	tinygltf::Model model;
 	tinygltf::TinyGLTF loader;
-	tinygltf::Image img;
 	std::string err, warn;
 	bool ret = false;
-	// loader.SetImageLoader([](tinygltf::Image*, const int, std::string*, std::string*, int, int, const unsigned char*,
-	//                          int, void*) { return true; },
-	//                       nullptr); // Off image loading
+
 	std::string pathStr = path;
 	if (pathStr.size() >= 4 && pathStr.substr(pathStr.size() - 4) == ".glb")
 	{
@@ -33,10 +29,16 @@ GltfLoader::loadMeshFromFile(const char path[MAX_PATH_LEN], VertexIndexBuffer& m
 		throw std::runtime_error("Failed to load glTF model");
 	}
 
+	std::vector<LoadedPrimitive> loadedPrimitives;
+
+	// Cache for loaded textures
+	std::unordered_map<int, std::shared_ptr<TextureData>> textureCache;
+
 	for (const auto& gltfMesh : model.meshes)
 	{
 		for (const auto& primitive : gltfMesh.primitives)
 		{
+			uint32_t firstIndex = static_cast<uint32_t>(mesh.indices.size());
 			// Read positions
 			const tinygltf::Accessor& posAccessor = model.accessors[primitive.attributes.at("POSITION")];
 			const tinygltf::BufferView& posBufferView = model.bufferViews[posAccessor.bufferView];
@@ -87,6 +89,7 @@ GltfLoader::loadMeshFromFile(const char path[MAX_PATH_LEN], VertexIndexBuffer& m
 				normByteStride = normAccessor->ByteStride(*normBufferView) ? normAccessor->ByteStride(*normBufferView)
 				                                                           : sizeof(float) * 3;
 			}
+
 			// Read vertices
 			size_t oldVertexSize = mesh.vertices.size();
 			mesh.vertices.resize(oldVertexSize + posAccessor.count);
@@ -125,12 +128,14 @@ GltfLoader::loadMeshFromFile(const char path[MAX_PATH_LEN], VertexIndexBuffer& m
 			const tinygltf::BufferView& indexBufferView = model.bufferViews[indexAccessor.bufferView];
 			const tinygltf::Buffer& indexBuffer = model.buffers[indexBufferView.buffer];
 			const unsigned char* indexData = &indexBuffer.data[indexBufferView.byteOffset + indexAccessor.byteOffset];
+			
 			size_t oldIndexSize = mesh.indices.size();
 			mesh.indices.resize(oldIndexSize + indexAccessor.count);
 			uint32_t* outputIndices = mesh.indices.data() + oldIndexSize;
 
 			// Support only unsigned types
 			auto pushIndex = [&](uint32_t gltfIndex, size_t i) { outputIndices[i] = currentLocalOffset + gltfIndex; };
+			
 			if (indexAccessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT)
 			{
 				const uint16_t* buf = reinterpret_cast<const uint16_t*>(indexData);
@@ -146,40 +151,76 @@ GltfLoader::loadMeshFromFile(const char path[MAX_PATH_LEN], VertexIndexBuffer& m
 				const uint8_t* buf = reinterpret_cast<const uint8_t*>(indexData);
 				for (size_t i = 0; i < indexAccessor.count; i++) pushIndex(buf[i], i);
 			}
+			std::shared_ptr<TextureData> texturePtr = nullptr;
+
 			if (primitive.material >= 0)
 			{
 				const tinygltf::Material& mat = model.materials[primitive.material];
-
 				auto texIt = mat.values.find("baseColorTexture");
+
 				if (texIt != mat.values.end())
 				{
 					int textureIndex = texIt->second.TextureIndex();
 					if (textureIndex >= 0 && textureIndex < model.textures.size())
 					{
 						const tinygltf::Texture& tex = model.textures[textureIndex];
-						if (tex.source >= 0 && tex.source < model.images.size())
+						int sourceImageIndex = tex.source;
+
+						if (sourceImageIndex >= 0 && sourceImageIndex < model.images.size())
 						{
-							img = model.images[tex.source];
+							if (textureCache.find(sourceImageIndex) != textureCache.end())
+							{
+								texturePtr = textureCache[sourceImageIndex];
+							}
+							else
+							{
+								// Новая текстура
+								tinygltf::Image& img = model.images[sourceImageIndex];
+
+								if (!img.image.empty() && img.width > 0 && img.height > 0)
+								{
+									auto newTex = std::make_shared<TextureData>();
+									// --- Логика определения имени ---
+									if (!img.name.empty())
+									{
+										// Если в GLTF есть имя
+										newTex->name = img.name;
+									}
+									else if (!img.uri.empty() && img.uri.find("data:") != 0)
+									{
+										// Если это внешний файл (и не data URI base64)
+										newTex->name = img.uri;
+									}
+									else
+									{
+										// Генерируем имя: "путь_к_модели_image_индекс"
+										// Это гарантирует уникальность глобально
+										newTex->name = std::string(path) + "_img_" + std::to_string(sourceImageIndex);
+									}
+
+									newTex->pixels = ImageConverter::convertToRGBA(img);
+									newTex->width = img.width;
+									newTex->height = img.height;
+
+									texturePtr = newTex;
+									textureCache[sourceImageIndex] = texturePtr;
+								}
+							}
 						}
 					}
 				}
 			}
+			uint32_t indexCount = static_cast<uint32_t>(mesh.indices.size()) - firstIndex;
+
+			LoadedPrimitive result;
+			result.info.indexCount = indexCount;
+			result.info.indexOffset = firstIndex;
+			result.info.vertexOffset = globalVertexOffset; // Базовый оффсет всего файла в общем буфере
+			result.texture = texturePtr;                   // Копируем только shared_ptr (увеличиваем счетчик ссылок)
+
+			loadedPrimitives.push_back(result);
 		}
 	}
 
-	uint32_t indexCount = static_cast<uint32_t>(mesh.indices.size()) - firstIndex;
-
-	PrimitivesInfo info;
-	info.indexCount = indexCount;
-	info.indexOffset = firstIndex;
-	info.vertexOffset = globalVertexOffset;
-
-	std::vector<unsigned char> rgbaData = ImageConverter::convertToRGBA(img);
-
-	if (img.image.empty() || img.width <= 0 || img.height <= 0)
-	{
-		return {info, {}, 0, 0};
-	}
-
-	return {info, std::move(rgbaData), img.width, img.height};
+	return loadedPrimitives;
 }
