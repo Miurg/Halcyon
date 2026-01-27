@@ -75,11 +75,12 @@ struct SunStructure
 	glm::vec4 ambient;   // rgb: ambient color, w: intensity of ambient
 };
 
-struct PrimitiveSctructure // (4 + 4 + 8 = 16 bytes)
+struct PrimitiveSctructure // (16 + 4 + 4 + padding = 32 bytes)
 {
+	alignas(16) glm::vec4 baseColor; // 16 bytes
 	uint32_t transformIndex; // 4 bytes
 	uint32_t textureIndex;   // 4 bytes
-	uint32_t _padding[2];    // 8 bytes
+	uint32_t _padding[2];
 };
 
 struct TransformStructure

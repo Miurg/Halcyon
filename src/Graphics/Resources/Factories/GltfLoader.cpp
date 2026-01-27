@@ -151,13 +151,23 @@ std::vector<LoadedPrimitive> GltfLoader::loadMeshFromFile(const char path[MAX_PA
 				const uint8_t* buf = reinterpret_cast<const uint8_t*>(indexData);
 				for (size_t i = 0; i < indexAccessor.count; i++) pushIndex(buf[i], i);
 			}
+
 			std::shared_ptr<TextureData> texturePtr = nullptr;
+			glm::vec4 colorFactor = {1.0f, 1.0f, 1.0f, 1.0f}; // Default white
 
 			if (primitive.material >= 0)
 			{
 				const tinygltf::Material& mat = model.materials[primitive.material];
-				auto texIt = mat.values.find("baseColorTexture");
 
+				auto colorIt = mat.values.find("baseColorFactor");
+				if (colorIt != mat.values.end())
+				{
+					const auto& colorVal = colorIt->second.ColorFactor();
+					colorFactor = {static_cast<float>(colorVal[0]), static_cast<float>(colorVal[1]),
+					               static_cast<float>(colorVal[2]), static_cast<float>(colorVal[3])};
+				}
+
+				auto texIt = mat.values.find("baseColorTexture");
 				if (texIt != mat.values.end())
 				{
 					int textureIndex = texIt->second.TextureIndex();
@@ -217,6 +227,7 @@ std::vector<LoadedPrimitive> GltfLoader::loadMeshFromFile(const char path[MAX_PA
 			result.info.indexOffset = firstIndex;
 			result.info.vertexOffset = globalVertexOffset; // Базовый оффсет всего файла в общем буфере
 			result.texture = texturePtr;                   // Копируем только shared_ptr (увеличиваем счетчик ссылок)
+			result.info.baseColorFactor = colorFactor;
 
 			loadedPrimitives.push_back(result);
 		}

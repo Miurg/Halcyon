@@ -1,8 +1,9 @@
 struct ModelData
 {
+    float4 colorFactor;
     uint transformIndex;
     uint textureIndex;
-    uint _padding[2];
+    float2 _padding;
 };
 [[vk::binding(0, 2)]] StructuredBuffer<ModelData> objectBuffer;
 
@@ -44,6 +45,7 @@ struct VSOutput
     float2 fragTexCoord;
     float4 shadowCoord;
     nointerpolation uint textureIndex;
+    nointerpolation float4 colorFactor;
 };
 
 [shader("vertex")]
@@ -63,6 +65,7 @@ VSOutput vertMain(VSInput input, uint instanceID: SV_InstanceID, uint baseInstan
     output.fragTexCoord = input.inTexCoord;
     output.fragNormal = normalize(mul((float3x3)transform.model, input.inNormal));
     output.textureIndex = data.textureIndex;
+    output.colorFactor = data.colorFactor;
     return output;
 }
 [[vk::binding(0, 1)]] Sampler2D textureArray[1024];
@@ -72,7 +75,9 @@ float4 fragMain(VSOutput vertIn) : SV_TARGET
 {
     float2 dx = ddx(vertIn.fragTexCoord);
     float2 dy = ddy(vertIn.fragTexCoord);
-    float4 albedo = textureArray[NonUniformResourceIndex(vertIn.textureIndex)].SampleGrad(vertIn.fragTexCoord, dx, dy);
+    float4 textureColor = textureArray[NonUniformResourceIndex(vertIn.textureIndex)].SampleGrad(vertIn.fragTexCoord, dx, dy);
+    float4 albedo = textureColor * vertIn.colorFactor;
+
     if (albedo.a < 0.1) discard;
 
     float3 norm = normalize(vertIn.fragNormal);

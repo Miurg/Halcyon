@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../VulkanConst.hpp"
+#include <glm/fwd.hpp>
 
 struct PrimitivesInfo
 {
@@ -8,4 +8,5 @@ struct PrimitivesInfo
 	uint32_t indexOffset = -1;
 	uint32_t indexCount = -1;
 	uint32_t textureIndex = -1; 
+	glm::vec4 baseColorFactor;
 };

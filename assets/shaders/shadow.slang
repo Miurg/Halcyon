@@ -1,8 +1,9 @@
 struct ModelData
 {
+    float4 colorFactor;
     uint transformIndex;
     uint textureIndex;
-    uint _padding[2];
+    float2 _padding;
 };
 [[vk::binding(0, 2)]] StructuredBuffer<ModelData> objectBuffer;
 

@@ -81,6 +81,9 @@ void BufferUpdateSystem::update(float deltaTime, GeneralManager& gm)
 
 				primitivePtr[globalPrimitiveIndex].transformIndex = currentEntityTransformIndex;
 
+				primitivePtr[globalPrimitiveIndex].baseColor =
+				    bufferManager.meshes[meshinfo.mesh].primitives[i].baseColorFactor;
+
 				globalPrimitiveIndex++;
 				currentEntityTransformIndex++;
 			}
