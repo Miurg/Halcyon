@@ -58,6 +58,7 @@ void BufferUpdateSystem::update(float deltaTime, GeneralManager& gm)
 
 		for (const auto& entity : entities)
 		{
+			// Link global transform
 			GlobalTransformComponent& transform = *gm.getComponent<GlobalTransformComponent>(entity);
 			transfromMeshPtr[globalTransformIndex].model = transform.getGlobalModelMatrix();
 			globalTransformIndex++;
@@ -65,6 +66,7 @@ void BufferUpdateSystem::update(float deltaTime, GeneralManager& gm)
 
 		if (entities.empty()) continue;
 
+		// Get primitive count from mesh
 		MeshInfoComponent& meshBaseInfo = *gm.getComponent<MeshInfoComponent>(entities[0]);
 		int primitiveCount = bufferManager.meshes[meshBaseInfo.mesh].primitives.size();
 
@@ -76,11 +78,14 @@ void BufferUpdateSystem::update(float deltaTime, GeneralManager& gm)
 			{
 				MeshInfoComponent& meshinfo = *gm.getComponent<MeshInfoComponent>(entity);
 
+				// Link texture index
 				primitivePtr[globalPrimitiveIndex].textureIndex =
 				    bufferManager.meshes[meshinfo.mesh].primitives[i].textureIndex;
 
+				// Link transform index
 				primitivePtr[globalPrimitiveIndex].transformIndex = currentEntityTransformIndex;
 
+				// Base color
 				primitivePtr[globalPrimitiveIndex].baseColor =
 				    bufferManager.meshes[meshinfo.mesh].primitives[i].baseColorFactor;
 

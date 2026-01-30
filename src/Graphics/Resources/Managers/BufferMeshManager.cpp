@@ -5,9 +5,9 @@
 #include "../Factories/GltfLoader.hpp"
 
 int BufferManager::createMeshInternal(const char path[MAX_PATH_LEN], BindlessTextureDSetComponent& dSetComponent,
-                                           DescriptorManager& dManager)
+                                      DescriptorManager& dManager)
 {
-	auto infoVector = GltfLoader::loadMeshFromFile(path, vertexIndexBuffers.back());
+	auto infoVector = GltfLoader::loadModelFromFile(path, vertexIndexBuffers.back(), *this, dSetComponent, dManager);
 	if (infoVector.empty())
 	{
 		throw std::runtime_error("Failed to load mesh from file: " + std::string(path));
@@ -15,40 +15,13 @@ int BufferManager::createMeshInternal(const char path[MAX_PATH_LEN], BindlessTex
 	MeshInfo meshInfo;
 	for (const auto& loadedPrimitive : infoVector)
 	{
-		PrimitivesInfo info = loadedPrimitive.info;
-
-		if (loadedPrimitive.texture)
-		{
-			int texWidth = loadedPrimitive.texture.get()->width;
-			int texHeight = loadedPrimitive.texture.get()->height;
-			auto texturePtr = loadedPrimitive.texture; // shared_ptr<TextureData>
-			char dSetTextureName[MAX_PATH_LEN];
-			strcpy(dSetTextureName, loadedPrimitive.texture.get()->name.c_str());
-			if (texturePtr && !texturePtr->pixels.empty())
-			{
-				size_t expectedBytes = static_cast<size_t>(texWidth) * static_cast<size_t>(texHeight) * 4;
-				if (texturePtr->pixels.size() < expectedBytes)
-				{
-					throw std::runtime_error("Texture pixel data size mismatch for " + std::string(path));
-				}
-				info.textureIndex =
-				    generateTextureData(dSetTextureName, texWidth, texHeight, texturePtr->pixels.data(), dSetComponent, dManager);
-			}
-		}
-		else
-		{
-			int texWidth = 1;
-			int texHeight = 1;
-			char dSetTextureName[MAX_PATH_LEN] = "sys_default_white";
-			std::vector<unsigned char> pixels = {255, 255, 255, 255};
-			info.textureIndex = generateTextureData(path, texWidth, texHeight, pixels.data(), dSetComponent, dManager);// Default white texture
-		}
-		
-		createVertexBuffer(vulkanDevice, vertexIndexBuffers.back());
-		createIndexBuffer(vulkanDevice, vertexIndexBuffers.back());
-		meshInfo.primitives.push_back(info);
-		
+		meshInfo.primitives.push_back(loadedPrimitive);
 	}
+	createVertexBuffer(vulkanDevice, vertexIndexBuffers.back());
+	createIndexBuffer(vulkanDevice, vertexIndexBuffers.back());
+	std::cout << "Loaded mesh: " << path << " with " << meshInfo.primitives.size() << " primitives." << std::endl;
+	std::cout << "Total vertices: " << vertexIndexBuffers.back().vertices.size()
+	          << ", Total indices: " << vertexIndexBuffers.back().indices.size() << std::endl;
 	meshInfo.vertexIndexBufferID = static_cast<uint32_t>(vertexIndexBuffers.size() - 1);
 	strcpy(meshInfo.path, path);
 	meshes.push_back(meshInfo);
@@ -67,7 +40,7 @@ int BufferManager::createMesh(const char path[MAX_PATH_LEN], BindlessTextureDSet
 	{
 		if (sizeof(vertexIndexBuffers[i].vertices) < MAX_SIZE_OF_VERTEX_INDEX_BUFFER)
 		{
-			return createMeshInternal(path, dSetComponent, dManager);	
+			return createMeshInternal(path, dSetComponent, dManager);
 		}
 	}
 

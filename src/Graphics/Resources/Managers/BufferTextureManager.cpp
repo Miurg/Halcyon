@@ -71,6 +71,10 @@ int BufferManager::generateTextureData(const char texturePath[MAX_PATH_LEN], int
 	{
 		throw std::runtime_error("Invalid texture dimensions!");
 	}
+	if (texWidth > 2048 || texHeight > 2048)
+	{
+		return texturePaths["sys_default_white"];
+	}
 	textures.push_back(Texture());
 	Texture& texture = textures.back();
 
