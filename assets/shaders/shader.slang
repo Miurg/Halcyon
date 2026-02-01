@@ -46,6 +46,7 @@ struct VSOutput
     float4 shadowCoord;
     nointerpolation uint textureIndex;
     nointerpolation float4 colorFactor;
+    float viewDepth;
 };
 
 [shader("vertex")]
@@ -58,7 +59,7 @@ VSOutput vertMain(VSInput input, uint instanceID: SV_InstanceID, uint baseInstan
     float4 worldPos = mul(transform.model, float4(input.inPosition, 1.0));
 
     output.pos = mul(camera[0].cameraSpaceMatrix, worldPos);
-
+    output.viewDepth = output.pos.w;
     output.shadowCoord = mul(sun[0].lightSpaceMatrix, worldPos);
 
     output.fragColor = input.inColor;
@@ -105,11 +106,9 @@ float4 fragMain(VSOutput vertIn) : SV_TARGET
 
     float fogStart = 10.0;
     float fogEnd = 150.0;
-    float3 fogColor = float3(0.6, 0.7, 0.8);
+    float3 fogColor = float3(0.0, 0.7, 0.8);
 
-    float3 cameraPos = (inverse(camera[0].cameraSpaceMatrix) * float4(0.0, 0.0, 0.0, 1.0)).xyz;
-    float dist = length(vertIn.pos - cameraPos);
-    float fogFactor = saturate((dist - fogStart) / (fogEnd - fogStart));
+    float fogFactor = saturate((vertIn.viewDepth - fogStart) / (fogEnd - fogStart));
 
     finalColor = lerp(finalColor, fogColor, fogFactor);
 
