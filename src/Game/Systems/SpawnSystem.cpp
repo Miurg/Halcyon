@@ -19,48 +19,48 @@
 void SpawnSystem::update(float deltaTime, GeneralManager& gm) 
 {
 	time += deltaTime;
-	if (time > 0.1)
-	{
-		time = 0;
-		BufferManager* bufferManager =
-		    gm.getContextComponent<BufferManagerContext, BufferManagerComponent>()->bufferManager;
-		BindlessTextureDSetComponent* dSetComponent =
-		    gm.getContextComponent<MainDSetsContext, BindlessTextureDSetComponent>();
-		DescriptorManager* dManager =
-		    gm.getContextComponent<DescriptorManagerContext, DescriptorManagerComponent>()->descriptorManager;
-		Entity gameObjectEntity1 = gm.createEntity();
-		MeshInfoComponent meshInfo;
-		int numberTexture;
-		if (j % 2 == 0)
-		{
-			gm.addComponent<GlobalTransformComponent>(gameObjectEntity1);
-			gm.addComponent<LocalTransformComponent>(gameObjectEntity1, k * -2.0f, 0.0f, j * -2.0f, 0.0f, 0.0f, 0.0f);
-			meshInfo.mesh = bufferManager->createMesh("assets/models/Suzanne.glb", *dSetComponent, *dManager);
-		}
-		else
-		{
-			gm.addComponent<GlobalTransformComponent>(gameObjectEntity1);
-			gm.addComponent<LocalTransformComponent>(gameObjectEntity1, k * -2.0f, 0.0f, j * -2.0f, 0.0f, 0.0f, 0.0f,
-			                                         5.0f, 5.0f, 5.0f );
+	//if (time > 0.1)
+	//{
+	//	time = 0;
+	//	BufferManager* bufferManager =
+	//	    gm.getContextComponent<BufferManagerContext, BufferManagerComponent>()->bufferManager;
+	//	BindlessTextureDSetComponent* dSetComponent =
+	//	    gm.getContextComponent<MainDSetsContext, BindlessTextureDSetComponent>();
+	//	DescriptorManager* dManager =
+	//	    gm.getContextComponent<DescriptorManagerContext, DescriptorManagerComponent>()->descriptorManager;
+	//	Entity gameObjectEntity1 = gm.createEntity();
+	//	MeshInfoComponent meshInfo;
+	//	int numberTexture;
+	//	if (j % 2 == 0)
+	//	{
+	//		gm.addComponent<GlobalTransformComponent>(gameObjectEntity1);
+	//		gm.addComponent<LocalTransformComponent>(gameObjectEntity1, k * -2.0f, 0.0f, j * -2.0f, 0.0f, 0.0f, 0.0f);
+	//		meshInfo.mesh = bufferManager->createMesh("assets/models/Suzanne.glb", *dSetComponent, *dManager);
+	//	}
+	//	else
+	//	{
+	//		gm.addComponent<GlobalTransformComponent>(gameObjectEntity1);
+	//		gm.addComponent<LocalTransformComponent>(gameObjectEntity1, k * -2.0f, 0.0f, j * -2.0f, 0.0f, 0.0f, 0.0f,
+	//		                                         5.0f, 5.0f, 5.0f );
 
-			meshInfo.mesh = bufferManager->createMesh("assets/models/marble_bust_01_4k.glb", *dSetComponent, *dManager);
-		}
+	//		meshInfo.mesh = bufferManager->createMesh("assets/models/marble_bust_01_4k.glb", *dSetComponent, *dManager);
+	//	}
 
-		gm.addComponent<RelationshipComponent>(gameObjectEntity1);
-		gm.addComponent<MeshInfoComponent>(gameObjectEntity1, meshInfo);
+	//	gm.addComponent<RelationshipComponent>(gameObjectEntity1);
+	//	gm.addComponent<MeshInfoComponent>(gameObjectEntity1, meshInfo);
 
-		gm.subscribeEntity<TransformSystem>(gameObjectEntity1);
-		gm.subscribeEntity<RotationSystem>(gameObjectEntity1);
-		gm.subscribeEntity<RenderSystem>(gameObjectEntity1);
-		gm.subscribeEntity<SpawnSystem>(gameObjectEntity1);
-		k++;
-		if ((k + 1) % 10 == 0)
-		{
-			gm.destroyEntity(entities.front());
-			j++;
-			k = 0;
-		}
-	}
+	//	gm.subscribeEntity<TransformSystem>(gameObjectEntity1);
+	//	gm.subscribeEntity<RotationSystem>(gameObjectEntity1);
+	//	gm.subscribeEntity<RenderSystem>(gameObjectEntity1);
+	//	gm.subscribeEntity<SpawnSystem>(gameObjectEntity1);
+	//	k++;
+	//	if ((k + 1) % 10 == 0)
+	//	{
+	//		gm.destroyEntity(entities.front());
+	//		j++;
+	//		k = 0;
+	//	}
+	//}
 }
 
 void SpawnSystem::onRegistered(GeneralManager& gm)

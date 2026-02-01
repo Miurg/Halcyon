@@ -26,15 +26,16 @@ struct LoadedPrimitive
 class GltfLoader
 {
 public:
-	static std::vector<PrimitivesInfo> loadModelFromFile(const char path[MAX_PATH_LEN], VertexIndexBuffer& mesh,
-	                                                      BufferManager& bManager,
-	                                                      BindlessTextureDSetComponent& dSetComponent,
-	                                                      DescriptorManager& dManager);
+	static int loadModelFromFile(const char path[MAX_PATH_LEN], int vertexIndexBInt, BufferManager& bManager,
+	                      BindlessTextureDSetComponent& dSetComponent, DescriptorManager& dManager,
+	                      tinygltf::Model model);
 	static std::unordered_map<uint32_t, uint32_t> materialsParser(tinygltf::Model& model, BufferManager& bManager,
-	                                                       BindlessTextureDSetComponent& dSetComponent,
-	                                                       DescriptorManager& dManager);
+	                                                              BindlessTextureDSetComponent& dSetComponent,
+	                                                              DescriptorManager& dManager);
 	static std::vector<PrimitivesInfo> primitiveParser(tinygltf::Mesh& mesh, VertexIndexBuffer& vertexIndexB,
-	                                            tinygltf::Model& model, int32_t globalVertexOffset);
+	                                                   tinygltf::Model& model, int32_t globalVertexOffset,
+	                                                   int whiteTexture,
+	                                                   std::unordered_map<uint32_t, uint32_t> replacementMapTextures);
 	static std::vector<MeshInfo> modelParser(tinygltf::Model model);
 	static std::shared_ptr<TextureData> createDefaultWhiteTexture();
 };

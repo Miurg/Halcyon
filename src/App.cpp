@@ -24,10 +24,18 @@ App::App() {}
 void App::run()
 {
 	GeneralManager gm;
-
-	CoreInit::Run(gm);
-	GraphicsInit::Run(gm);
-	GameInit::gameInitStart(gm);
+	try
+	{
+		CoreInit::Run(gm);
+		GraphicsInit::Run(gm);
+		GameInit::gameInitStart(gm);
+	}
+	catch (const std::exception& e)
+	{
+		std::cerr << "ERROR::APP::RUN::Exception: " << e.what() << std::endl;
+		return;
+	}
+	
 
 	App::mainLoop(gm);
 	App::cleanup();

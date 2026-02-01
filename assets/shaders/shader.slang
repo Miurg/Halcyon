@@ -68,7 +68,7 @@ VSOutput vertMain(VSInput input, uint instanceID: SV_InstanceID, uint baseInstan
     output.colorFactor = data.colorFactor;
     return output;
 }
-[[vk::binding(0, 1)]] Sampler2D textureArray[1024];
+[[vk::binding(0, 1)]] Sampler2D textureArray[2048];
 
 [shader("fragment")]
 float4 fragMain(VSOutput vertIn) : SV_TARGET
@@ -88,7 +88,7 @@ float4 fragMain(VSOutput vertIn) : SV_TARGET
     projCoords.xy = projCoords.xy * 0.5 + 0.5;
 
     float shadowFactor = 1.0;
-    float bias = 0.001;
+    float bias = 0.00001;
 
     if (saturate(projCoords.x) == projCoords.x && 
         saturate(projCoords.y) == projCoords.y && 
@@ -102,6 +102,16 @@ float4 fragMain(VSOutput vertIn) : SV_TARGET
     float3 sunLight = sun[0].sunColor.rgb * sun[0].sunColor.a * diff * shadowFactor;
     float3 ambientLight = sun[0].sunAmbient.rgb * sun[0].sunAmbient.a;
     float3 finalColor = (sunLight + ambientLight) * albedo.rgb * vertIn.fragColor;
+
+    float fogStart = 10.0;
+    float fogEnd = 150.0;
+    float3 fogColor = float3(0.6, 0.7, 0.8);
+
+    float3 cameraPos = (inverse(camera[0].cameraSpaceMatrix) * float4(0.0, 0.0, 0.0, 1.0)).xyz;
+    float dist = length(vertIn.pos - cameraPos);
+    float fogFactor = saturate((dist - fogStart) / (fogEnd - fogStart));
+
+    finalColor = lerp(finalColor, fogColor, fogFactor);
 
     return float4(finalColor, albedo.a);
 }

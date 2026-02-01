@@ -4,58 +4,13 @@
 #include <cstring>
 #include "../Factories/GltfLoader.hpp"
 
-int BufferManager::createMeshInternal(const char path[MAX_PATH_LEN], BindlessTextureDSetComponent& dSetComponent,
-                                      DescriptorManager& dManager)
-{
-	auto infoVector = GltfLoader::loadModelFromFile(path, vertexIndexBuffers.back(), *this, dSetComponent, dManager);
-	if (infoVector.empty())
-	{
-		throw std::runtime_error("Failed to load mesh from file: " + std::string(path));
-	}
-	MeshInfo meshInfo;
-	for (const auto& loadedPrimitive : infoVector)
-	{
-		meshInfo.primitives.push_back(loadedPrimitive);
-	}
-	createVertexBuffer(vulkanDevice, vertexIndexBuffers.back());
-	createIndexBuffer(vulkanDevice, vertexIndexBuffers.back());
-	std::cout << "Loaded mesh: " << path << " with " << meshInfo.primitives.size() << " primitives." << std::endl;
-	std::cout << "Total vertices: " << vertexIndexBuffers.back().vertices.size()
-	          << ", Total indices: " << vertexIndexBuffers.back().indices.size() << std::endl;
-	meshInfo.vertexIndexBufferID = static_cast<uint32_t>(vertexIndexBuffers.size() - 1);
-	strcpy(meshInfo.path, path);
-	meshes.push_back(meshInfo);
-	meshPaths[std::string(path)] = meshes.size() - 1;
-	return meshes.size() - 1;
-}
-
-int BufferManager::createMesh(const char path[MAX_PATH_LEN], BindlessTextureDSetComponent& dSetComponent,
-                              DescriptorManager& dManager)
-{
-	if (isMeshLoaded(path))
-	{
-		return meshPaths[std::string(path)];
-	}
-	for (int i = 0; i < vertexIndexBuffers.size(); i++)
-	{
-		if (sizeof(vertexIndexBuffers[i].vertices) < MAX_SIZE_OF_VERTEX_INDEX_BUFFER)
-		{
-			return createMeshInternal(path, dSetComponent, dManager);
-		}
-	}
-
-	vertexIndexBuffers.push_back(VertexIndexBuffer());
-
-	return createMeshInternal(path, dSetComponent, dManager);
-}
-
 bool BufferManager::isMeshLoaded(const char path[MAX_PATH_LEN])
 {
 	std::string pathStr(path);
 	return meshPaths.find(pathStr) != meshPaths.end();
 }
 
-void BufferManager::createVertexBuffer(VulkanDevice& vulkanDevice, VertexIndexBuffer& vertexIndexBuffer)
+void BufferManager::createVertexBuffer(VertexIndexBuffer& vertexIndexBuffer)
 {
 	vk::DeviceSize bufferSize = sizeof(vertexIndexBuffer.vertices[0]) * vertexIndexBuffer.vertices.size();
 
@@ -83,7 +38,7 @@ void BufferManager::createVertexBuffer(VulkanDevice& vulkanDevice, VertexIndexBu
 	memcpy(data, vertexIndexBuffer.vertices.data(), static_cast<size_t>(bufferSize));
 }
 
-void BufferManager::createIndexBuffer(VulkanDevice& vulkanDevice, VertexIndexBuffer& vertexIndexBuffer)
+void BufferManager::createIndexBuffer(VertexIndexBuffer& vertexIndexBuffer)
 {
 	vk::DeviceSize bufferSize = sizeof(vertexIndexBuffer.indices[0]) * vertexIndexBuffer.indices.size();
 

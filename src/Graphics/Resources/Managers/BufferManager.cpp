@@ -19,7 +19,7 @@ BufferManager::BufferManager(VulkanDevice& vulkanDevice)
 	{
 		throw std::runtime_error("failed to create VMA allocator!");
 	}
-	
+	vertexIndexBuffers.push_back(VertexIndexBuffer());
 }
 
 BufferManager::~BufferManager()

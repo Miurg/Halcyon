@@ -23,8 +23,6 @@ public:
 	BufferManager(VulkanDevice& vulkanDevice);
 	~BufferManager();
 
-	int createMesh(const char path[MAX_PATH_LEN], BindlessTextureDSetComponent& dSetComponent,
-	               DescriptorManager& dManager);
 	bool isMeshLoaded(const char path[MAX_PATH_LEN]);
 
 	int generateTextureData(const char texturePath[MAX_PATH_LEN], int texWidth, int texHeight,
@@ -34,13 +32,15 @@ public:
 	int createBuffer(vk::MemoryPropertyFlags propertyBits, vk::DeviceSize sizeBuffer, uint_fast16_t numberBuffers,
 	                 uint_fast16_t numberBinding, vk::DescriptorSetLayout layout);
 	int createShadowMap(uint32_t shadowResolutionX, uint32_t shadowResolutionY);
-
+	void createVertexBuffer(VertexIndexBuffer& vertexIndexBuffer);
+	void createIndexBuffer(VertexIndexBuffer& vertexIndexBuffer);
 	std::vector<Texture> textures;
 	std::unordered_map<std::string, int> texturePaths;
 	std::vector<VertexIndexBuffer> vertexIndexBuffers;
 	std::unordered_map<std::string, int> meshPaths;
 	std::vector<MeshInfo> meshes;
 	std::vector<Buffer> buffers;
+	
 
 private:
 	VulkanDevice& vulkanDevice;
@@ -56,10 +56,9 @@ private:
 	                                   vk::FormatFeatureFlags features);
 	void createImage(uint32_t width, uint32_t height, vk::Format format, vk::ImageTiling tiling,
 	                 vk::ImageUsageFlags usage, VmaMemoryUsage memoryUsage, Texture& texture);
-	void createVertexBuffer(VulkanDevice& vulkanDevice, VertexIndexBuffer& vertexIndexBuffer);
-	void createIndexBuffer(VulkanDevice& vulkanDevice, VertexIndexBuffer& vertexIndexBuffer);
-	int createMeshInternal(const char path[MAX_PATH_LEN], BindlessTextureDSetComponent& dSetComponent,
-	                       DescriptorManager& dManager);
+
+	//int createMeshInternal(const char path[MAX_PATH_LEN], BindlessTextureDSetComponent& dSetComponent,
+	//                       DescriptorManager& dManager);
 };
 
 struct CameraStucture

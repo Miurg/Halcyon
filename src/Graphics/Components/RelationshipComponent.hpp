@@ -10,7 +10,7 @@ struct RelationshipComponent
 	Entity nextSibling = NULL_ENTITY;
 	Entity prevSibling = NULL_ENTITY;
 
-	void AddChild(Entity myEntity, Entity childEntity, GeneralManager& gm)
+	void addChild(Entity myEntity, Entity childEntity, GeneralManager& gm)
 	{
 		auto* childRel = gm.getComponent<RelationshipComponent>(childEntity);
 		if (childRel == nullptr)

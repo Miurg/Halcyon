@@ -1,69 +1,40 @@
 #include "GltfLoader.hpp"
 #include "ImageConverter.hpp"
 
-std::vector<PrimitivesInfo> GltfLoader::loadModelFromFile(const char path[MAX_PATH_LEN],
-                                                           VertexIndexBuffer& vertexIndexB, BufferManager& bManager,
-                                                           BindlessTextureDSetComponent& dSetComponent,
-                                                           DescriptorManager& dManager)
+int GltfLoader::loadModelFromFile(const char path[MAX_PATH_LEN], int vertexIndexBInt,
+                                                                     BufferManager& bManager,
+                                                                     BindlessTextureDSetComponent& dSetComponent,
+                                                                     DescriptorManager& dManager, tinygltf::Model model)
 {
-	int32_t globalVertexOffset = static_cast<int32_t>(vertexIndexB.vertices.size()); // To adjust indices
+	VertexIndexBuffer& vertexIndexBuffer = bManager.vertexIndexBuffers[vertexIndexBInt];
+	int32_t globalVertexOffset = static_cast<int32_t>(vertexIndexBuffer.vertices.size()); // To adjust indices
 
-	tinygltf::Model model;
-	tinygltf::TinyGLTF loader;
-	std::string err, warn;
-	bool ret = false;
-
-	std::string pathStr = path;
-	if (pathStr.size() >= 4 && pathStr.substr(pathStr.size() - 4) == ".glb")
-	{
-		ret = loader.LoadBinaryFromFile(&model, &err, &warn, path);
-	}
-	else
-	{
-		ret = loader.LoadASCIIFromFile(&model, &err, &warn, path);
-	}
-
-	if (!err.empty())
-	{
-		throw std::runtime_error("glTF error: " + err);
-	}
-	if (!ret)
-	{
-		throw std::runtime_error("Failed to load glTF model");
-	}
-
-	std::vector<PrimitivesInfo> loadedPrimitives;
-
-	for (const auto& gltfMesh : model.meshes)
-	{
-		auto newPrims =
-		    primitiveParser(const_cast<tinygltf::Mesh&>(gltfMesh), vertexIndexB, model, globalVertexOffset);
-		loadedPrimitives.insert(loadedPrimitives.end(), newPrims.begin(), newPrims.end());
-	}
 	std::unordered_map<uint32_t, uint32_t> replacementMapTextures = materialsParser(
 	    model, bManager, dSetComponent, dManager); // Map from index in glTF to texture index in our system
 
 	int whiteTexture = bManager.isTextureLoaded("sys_default_white")
-						   ? bManager.texturePaths["sys_default_white"]
-						   : bManager.generateTextureData(
-								 "sys_default_white", 1, 1,
+	                       ? bManager.texturePaths["sys_default_white"]
+	                       : bManager.generateTextureData("sys_default_white", 1, 1,
 	                                                      std::vector<unsigned char>{255, 255, 255, 255}.data(),
 	                                                      dSetComponent, dManager);
-	for (int i = 0; i < loadedPrimitives.size(); i++)
+
+	std::vector<MeshInfo> loadedMeshes;
+	loadedMeshes.resize(model.meshes.size());
+	for (int i = 0; i < model.meshes.size(); ++i)
 	{
-		uint32_t materialIndex = loadedPrimitives[i].textureIndex;
-		auto it = replacementMapTextures.find(materialIndex);
-		if (it != replacementMapTextures.end())
-		{
-			loadedPrimitives[i].textureIndex = it->second;
-		}
-		else
-		{
-			loadedPrimitives[i].textureIndex = whiteTexture; // No texture
-		}
+		std::vector<PrimitivesInfo> loadedPrimitives;
+		auto newPrims = primitiveParser(model.meshes[i], vertexIndexBuffer, model, globalVertexOffset, whiteTexture,
+		                                replacementMapTextures);
+		loadedMeshes[i].primitives = newPrims;
+		loadedMeshes[i].vertexIndexBufferID = vertexIndexBInt;
+		model.meshes[i].name.copy(loadedMeshes[i].path, sizeof(loadedMeshes[i].path) - 1); // Copy name
 	}
 
-	return loadedPrimitives;
+	int offsetForInSystemMesh = static_cast<int>(bManager.meshes.size());
+	bManager.meshes.insert(bManager.meshes.end(), loadedMeshes.begin(), loadedMeshes.end());
+
+	
+	return offsetForInSystemMesh;
 }
 
 std::unordered_map<uint32_t, uint32_t> GltfLoader::materialsParser(tinygltf::Model& model, BufferManager& bManager,
@@ -71,7 +42,7 @@ std::unordered_map<uint32_t, uint32_t> GltfLoader::materialsParser(tinygltf::Mod
                                                                    DescriptorManager& dManager)
 {
 	std::unordered_map<uint32_t, uint32_t>
-	    replacementMapTextures; // Map from index in glTF to texture index in our system
+	    replacementMapTextures;                       // Map from index in glTF to texture index in our system
 	glm::vec4 colorFactor = {1.0f, 1.0f, 1.0f, 1.0f}; // Default white
 
 	for (size_t i = 0; i < model.materials.size(); i++)
@@ -108,9 +79,9 @@ std::unordered_map<uint32_t, uint32_t> GltfLoader::materialsParser(tinygltf::Mod
 						{
 							newTex->name = img.uri;
 						}
-						int indexInSystem = bManager.generateTextureData(newTex->name.c_str(), img.width, img.height,
-						                                               ImageConverter::convertToRGBA(img).data(),
-						                                               dSetComponent, dManager);
+						int indexInSystem =
+						    bManager.generateTextureData(newTex->name.c_str(), img.width, img.height,
+						                                 ImageConverter::convertToRGBA(img).data(), dSetComponent, dManager);
 						replacementMapTextures.emplace(i, indexInSystem);
 					}
 				}
@@ -121,7 +92,9 @@ std::unordered_map<uint32_t, uint32_t> GltfLoader::materialsParser(tinygltf::Mod
 }
 
 std::vector<PrimitivesInfo> GltfLoader::primitiveParser(tinygltf::Mesh& mesh, VertexIndexBuffer& vertexIndexB,
-                                                        tinygltf::Model& model, int32_t globalVertexOffset)
+                                                        tinygltf::Model& model, int32_t globalVertexOffset,
+                                                        int whiteTexture,
+                                                        std::unordered_map<uint32_t, uint32_t> replacementMapTextures)
 {
 	std::vector<PrimitivesInfo> loadedPrimitives;
 	for (const auto& primitive : mesh.primitives)
@@ -249,8 +222,17 @@ std::vector<PrimitivesInfo> GltfLoader::primitiveParser(tinygltf::Mesh& mesh, Ve
 		result.indexCount = indexCount;
 		result.indexOffset = firstIndex;
 		result.vertexOffset = globalVertexOffset;
-		result.textureIndex = materialIndex;
 		result.baseColorFactor = colorFactor;
+
+		auto it = replacementMapTextures.find(materialIndex);
+		if (it != replacementMapTextures.end())
+		{
+			result.textureIndex = it->second;
+		}
+		else
+		{
+			result.textureIndex = whiteTexture; // No texture
+		}
 
 		loadedPrimitives.push_back(result);
 	}
