@@ -9,6 +9,7 @@
 #include "../Managers/MeshInfo.hpp"
 #include "../Managers/BufferManager.hpp"
 #include "../Managers/TextureManager.hpp"
+#include "../Managers/ModelManager.hpp"
 
 struct TextureData
 {
@@ -29,7 +30,7 @@ class GltfLoader
 public:
 	static int loadModelFromFile(const char path[MAX_PATH_LEN], int vertexIndexBInt, BufferManager& bManager,
 	                      BindlessTextureDSetComponent& dSetComponent, DescriptorManager& dManager,
-	                             tinygltf::Model model, TextureManager& tManager);
+	                             tinygltf::Model model, TextureManager& tManager, ModelManager& mManager);
 	static std::unordered_map<uint32_t, uint32_t> materialsParser(tinygltf::Model& model, TextureManager& tManager,
 	                                                              BindlessTextureDSetComponent& dSetComponent,
 	                                                              DescriptorManager& dManager);

@@ -4,7 +4,8 @@ void CommandBufferFactory::recordCommandBuffer(
     vk::raii::CommandBuffer& commandBuffer, uint32_t imageIndex, SwapChain& swapChain, PipelineHandler& pipelineHandler,
     uint32_t currentFrame, BufferManager& bufferManager, LightComponent& lightTexture,
     BindlessTextureDSetComponent& bindlessTextureDSetComponent, DescriptorManagerComponent& dManager,
-    GlobalDSetComponent* globalDSetComponent, ModelDSetComponent* objectDSetComponent, TextureManager& tManager)
+    GlobalDSetComponent* globalDSetComponent, ModelDSetComponent* objectDSetComponent, TextureManager& tManager,
+    ModelManager& mManager)
 {
 	commandBuffer.begin({});
 
@@ -41,21 +42,19 @@ void CommandBufferFactory::recordCommandBuffer(
 	commandBuffer.setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), vk::Extent2D(lightTexture.sizeX, lightTexture.sizeY)));
 
 	uint32_t currentInstanceOffset = 0;
-	for (int i = 0; i < bufferManager.meshes.size(); i++)
+	for (int i = 0; i < mManager.meshes.size(); i++)
 	{
 		commandBuffer.bindVertexBuffers(
-		    0, bufferManager.vertexIndexBuffers[bufferManager.meshes[i].vertexIndexBufferID].vertexBuffer,
+		    0, mManager.vertexIndexBuffers[mManager.meshes[i].vertexIndexBufferID].vertexBuffer,
 		    {0});
-		commandBuffer.bindIndexBuffer(
-		    bufferManager.vertexIndexBuffers[bufferManager.meshes[i].vertexIndexBufferID].indexBuffer, 0,
+		commandBuffer.bindIndexBuffer(mManager.vertexIndexBuffers[mManager.meshes[i].vertexIndexBufferID].indexBuffer, 0,
 		    vk::IndexType::eUint32);
-		for (int j = 0; j < bufferManager.meshes[i].primitives.size(); j++)
+		for (int j = 0; j < mManager.meshes[i].primitives.size(); j++)
 		{
-			commandBuffer.drawIndexed(bufferManager.meshes[i].primitives[j].indexCount,
-			                          bufferManager.meshes[i].entitiesSubscribed,
-			                          bufferManager.meshes[i].primitives[j].indexOffset,
-			                          bufferManager.meshes[i].primitives[j].vertexOffset, currentInstanceOffset);
-			currentInstanceOffset += bufferManager.meshes[i].entitiesSubscribed;
+			commandBuffer.drawIndexed(mManager.meshes[i].primitives[j].indexCount, mManager.meshes[i].entitiesSubscribed,
+			                          mManager.meshes[i].primitives[j].indexOffset,
+			                          mManager.meshes[i].primitives[j].vertexOffset, currentInstanceOffset);
+			currentInstanceOffset += mManager.meshes[i].entitiesSubscribed;
 		}
 	}
 	commandBuffer.endRendering();
@@ -119,21 +118,19 @@ void CommandBufferFactory::recordCommandBuffer(
 	    dManager.descriptorManager->descriptorSets[bindlessTextureDSetComponent.bindlessTextureSet][0], nullptr);
 
 	currentInstanceOffset = 0;
-	for (int i = 0; i < bufferManager.meshes.size(); i++)
+	for (int i = 0; i < mManager.meshes.size(); i++)
 	{
 		commandBuffer.bindVertexBuffers(
-		    0, bufferManager.vertexIndexBuffers[bufferManager.meshes[i].vertexIndexBufferID].vertexBuffer,
+		    0, mManager.vertexIndexBuffers[mManager.meshes[i].vertexIndexBufferID].vertexBuffer,
 		    {0});
-		commandBuffer.bindIndexBuffer(
-		    bufferManager.vertexIndexBuffers[bufferManager.meshes[i].vertexIndexBufferID].indexBuffer, 0,
+		commandBuffer.bindIndexBuffer(mManager.vertexIndexBuffers[mManager.meshes[i].vertexIndexBufferID].indexBuffer, 0,
 		    vk::IndexType::eUint32);
-		for (int j = 0; j < bufferManager.meshes[i].primitives.size(); j++)
+		for (int j = 0; j < mManager.meshes[i].primitives.size(); j++)
 		{
-			commandBuffer.drawIndexed(bufferManager.meshes[i].primitives[j].indexCount,
-			                          bufferManager.meshes[i].entitiesSubscribed,
-			                          bufferManager.meshes[i].primitives[j].indexOffset,
-			                          bufferManager.meshes[i].primitives[j].vertexOffset, currentInstanceOffset);
-			currentInstanceOffset += bufferManager.meshes[i].entitiesSubscribed;
+			commandBuffer.drawIndexed(mManager.meshes[i].primitives[j].indexCount, mManager.meshes[i].entitiesSubscribed,
+			                          mManager.meshes[i].primitives[j].indexOffset,
+			                          mManager.meshes[i].primitives[j].vertexOffset, currentInstanceOffset);
+			currentInstanceOffset += mManager.meshes[i].entitiesSubscribed;
 		}
 
 		

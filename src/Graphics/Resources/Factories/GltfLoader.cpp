@@ -1,12 +1,11 @@
 #include "GltfLoader.hpp"
 #include "ImageConverter.hpp"
 
-int GltfLoader::loadModelFromFile(const char path[MAX_PATH_LEN], int vertexIndexBInt,
-                                                                     BufferManager& bManager,
-                                                                     BindlessTextureDSetComponent& dSetComponent,
-                                                                     DescriptorManager& dManager, tinygltf::Model model, TextureManager& tManager)
+int GltfLoader::loadModelFromFile(const char path[MAX_PATH_LEN], int vertexIndexBInt, BufferManager& bManager,
+                                  BindlessTextureDSetComponent& dSetComponent, DescriptorManager& dManager,
+                                  tinygltf::Model model, TextureManager& tManager, ModelManager& mManager)
 {
-	VertexIndexBuffer& vertexIndexBuffer = bManager.vertexIndexBuffers[vertexIndexBInt];
+	VertexIndexBuffer& vertexIndexBuffer = mManager.vertexIndexBuffers[vertexIndexBInt];
 	int32_t globalVertexOffset = static_cast<int32_t>(vertexIndexBuffer.vertices.size()); // To adjust indices
 
 	std::unordered_map<uint32_t, uint32_t> replacementMapTextures = materialsParser(
@@ -30,10 +29,9 @@ int GltfLoader::loadModelFromFile(const char path[MAX_PATH_LEN], int vertexIndex
 		model.meshes[i].name.copy(loadedMeshes[i].path, sizeof(loadedMeshes[i].path) - 1); // Copy name
 	}
 
-	int offsetForInSystemMesh = static_cast<int>(bManager.meshes.size());
-	bManager.meshes.insert(bManager.meshes.end(), loadedMeshes.begin(), loadedMeshes.end());
+	int offsetForInSystemMesh = static_cast<int>(mManager.meshes.size());
+	mManager.meshes.insert(mManager.meshes.end(), loadedMeshes.begin(), loadedMeshes.end());
 
-	
 	return offsetForInSystemMesh;
 }
 

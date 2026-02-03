@@ -10,6 +10,8 @@
 #include "../Resources/Components/ModelDSetComponent.hpp"
 #include "../Resources/Components/MeshInfoComponent.hpp"
 #include <map>
+#include "../Resources/Managers/ModelManager.hpp"
+#include "../Components/ModelManagerComponent.hpp"
 void BufferUpdateSystem::onRegistered(GeneralManager& gm)
 {
 	std::cout << "BufferUpdateSystem registered!" << std::endl;
@@ -27,10 +29,11 @@ void BufferUpdateSystem::update(float deltaTime, GeneralManager& gm)
 	SwapChain& swapChain = *gm.getContextComponent<MainSwapChainContext, SwapChainComponent>()->swapChainInstance;
 	BufferManager& bufferManager =
 	    *gm.getContextComponent<BufferManagerContext, BufferManagerComponent>()->bufferManager;
+	ModelManager& modelManager = *gm.getContextComponent<ModelManagerContext, ModelManagerComponent>()->modelManager;
 	ModelDSetComponent* modelDSetComponent = gm.getContextComponent<MainDSetsContext, ModelDSetComponent>();
 
 	std::vector<std::vector<Entity>> batch;
-	batch.resize(bufferManager.meshes.size());
+	batch.resize(modelManager.meshes.size());
 	std::map<int, int> counts;
 	for (const auto& entity : entities)
 	{
@@ -40,7 +43,7 @@ void BufferUpdateSystem::update(float deltaTime, GeneralManager& gm)
 	}
 	for (const auto& [key, count] : counts)
 	{
-		bufferManager.meshes[key].entitiesSubscribed = count;
+		modelManager.meshes[key].entitiesSubscribed = count;
 	}
 
 	// === Models ===
@@ -68,7 +71,7 @@ void BufferUpdateSystem::update(float deltaTime, GeneralManager& gm)
 
 		// Get primitive count from mesh
 		MeshInfoComponent& meshBaseInfo = *gm.getComponent<MeshInfoComponent>(entities[0]);
-		int primitiveCount = bufferManager.meshes[meshBaseInfo.mesh].primitives.size();
+		int primitiveCount = modelManager.meshes[meshBaseInfo.mesh].primitives.size();
 
 		for (int i = 0; i < primitiveCount; i++)
 		{
@@ -80,14 +83,14 @@ void BufferUpdateSystem::update(float deltaTime, GeneralManager& gm)
 
 				// Link texture index
 				primitivePtr[globalPrimitiveIndex].textureIndex =
-				    bufferManager.meshes[meshinfo.mesh].primitives[i].textureIndex;
+				    modelManager.meshes[meshinfo.mesh].primitives[i].textureIndex;
 
 				// Link transform index
 				primitivePtr[globalPrimitiveIndex].transformIndex = currentEntityTransformIndex;
 
 				// Base color
 				primitivePtr[globalPrimitiveIndex].baseColor =
-				    bufferManager.meshes[meshinfo.mesh].primitives[i].baseColorFactor;
+				    modelManager.meshes[meshinfo.mesh].primitives[i].baseColorFactor;
 
 				globalPrimitiveIndex++;
 				currentEntityTransformIndex++;

@@ -2,24 +2,10 @@
 #include <stdexcept>
 
 BufferManager::BufferManager(VulkanDevice& vulkanDevice, VmaAllocator allocator)
-    : vulkanDevice(vulkanDevice), allocator(allocator)
-{
-	vertexIndexBuffers.push_back(VertexIndexBuffer());
-}
+    : vulkanDevice(vulkanDevice), allocator(allocator) {}
 
 BufferManager::~BufferManager()
 {
-	for (auto& meshBuffer : vertexIndexBuffers)
-	{
-		if (meshBuffer.vertexBuffer)
-		{
-			vmaDestroyBuffer(allocator, meshBuffer.vertexBuffer, meshBuffer.vertexBufferAllocation);
-		}
-		if (meshBuffer.indexBuffer)
-		{
-			vmaDestroyBuffer(allocator, meshBuffer.indexBuffer, meshBuffer.indexBufferAllocation);
-		}
-	}
 	for (auto& buffer : buffers)
 	{
 		for (size_t i = 0; i < buffer.buffer.size(); ++i)

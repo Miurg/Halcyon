@@ -20,5 +20,5 @@ public:
 	                                  BufferManager& bManager, int nodeIndex);
 	static Entity loadModel(const char path[MAX_PATH_LEN], int vertexIndexBInt, BufferManager& bManager,
 	                        BindlessTextureDSetComponent& dSetComponent, DescriptorManager& dManager,
-	                        GeneralManager& gm, TextureManager& tManager);
+	                        GeneralManager& gm, TextureManager& tManager, ModelManager& mManager);
 };

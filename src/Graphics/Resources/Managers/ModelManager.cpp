@@ -1,16 +1,37 @@
-#include "BufferManager.hpp"
+#include "ModelManager.hpp"
 #include <stdexcept>
 #include "../../VulkanUtils.hpp"
 #include <cstring>
 #include "../Factories/GltfLoader.hpp"
 
-bool BufferManager::isMeshLoaded(const char path[MAX_PATH_LEN])
+ModelManager::ModelManager(VulkanDevice& vulkanDevice, VmaAllocator allocator)
+    : vulkanDevice(vulkanDevice), allocator(allocator)
+{
+	vertexIndexBuffers.push_back(VertexIndexBuffer());
+}
+
+ModelManager::~ModelManager() 
+{
+	for (auto& meshBuffer : vertexIndexBuffers)
+	{
+		if (meshBuffer.vertexBuffer)
+		{
+			vmaDestroyBuffer(allocator, meshBuffer.vertexBuffer, meshBuffer.vertexBufferAllocation);
+		}
+		if (meshBuffer.indexBuffer)
+		{
+			vmaDestroyBuffer(allocator, meshBuffer.indexBuffer, meshBuffer.indexBufferAllocation);
+		}
+	}
+}
+
+bool ModelManager::isMeshLoaded(const char path[MAX_PATH_LEN])
 {
 	std::string pathStr(path);
 	return meshPaths.find(pathStr) != meshPaths.end();
 }
 
-void BufferManager::createVertexBuffer(VertexIndexBuffer& vertexIndexBuffer)
+void ModelManager::createVertexBuffer(VertexIndexBuffer& vertexIndexBuffer)
 {
 	vk::DeviceSize bufferSize = sizeof(vertexIndexBuffer.vertices[0]) * vertexIndexBuffer.vertices.size();
 
@@ -38,7 +59,7 @@ void BufferManager::createVertexBuffer(VertexIndexBuffer& vertexIndexBuffer)
 	memcpy(data, vertexIndexBuffer.vertices.data(), static_cast<size_t>(bufferSize));
 }
 
-void BufferManager::createIndexBuffer(VertexIndexBuffer& vertexIndexBuffer)
+void ModelManager::createIndexBuffer(VertexIndexBuffer& vertexIndexBuffer)
 {
 	vk::DeviceSize bufferSize = sizeof(vertexIndexBuffer.indices[0]) * vertexIndexBuffer.indices.size();
 

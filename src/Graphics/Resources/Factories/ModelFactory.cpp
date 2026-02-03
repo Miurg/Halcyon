@@ -82,7 +82,7 @@ Entity ModelFactory::createEntityHierarchy(int parentEntity, tinygltf::Model& mo
 
 Entity ModelFactory::loadModel(const char path[MAX_PATH_LEN], int vertexIndexBInt, BufferManager& bManager,
                                BindlessTextureDSetComponent& dSetComponent, DescriptorManager& dManager,
-                               GeneralManager& gm, TextureManager& tManager)
+                               GeneralManager& gm, TextureManager& tManager, ModelManager& mManager)
 {
 	tinygltf::Model model;
 	tinygltf::TinyGLTF loader;
@@ -108,11 +108,11 @@ Entity ModelFactory::loadModel(const char path[MAX_PATH_LEN], int vertexIndexBIn
 		throw std::runtime_error("Failed to load glTF model");
 	}
 
-	int offset =
-	    GltfLoader::loadModelFromFile(path, vertexIndexBInt, bManager, dSetComponent, dManager, model, tManager);
+	int offset = GltfLoader::loadModelFromFile(path, vertexIndexBInt, bManager, dSetComponent, dManager, model, tManager,
+	                                           mManager);
 
-	bManager.createVertexBuffer(bManager.vertexIndexBuffers[vertexIndexBInt]);
-	bManager.createIndexBuffer(bManager.vertexIndexBuffers[vertexIndexBInt]);
+	mManager.createVertexBuffer(mManager.vertexIndexBuffers[vertexIndexBInt]);
+	mManager.createIndexBuffer(mManager.vertexIndexBuffers[vertexIndexBInt]);
 
 	// Create root entity for the model
 	Entity modelRootEntity = gm.createEntity();

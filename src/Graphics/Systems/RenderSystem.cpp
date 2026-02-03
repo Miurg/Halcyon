@@ -13,6 +13,7 @@
 #include "../Components/FrameImageComponent.hpp"
 #include "../Components/TextureManagerComponent.hpp"
 #include "../Resources/Managers/TextureManager.hpp"
+#include "../Components/ModelManagerComponent.hpp"
 
 void RenderSystem::onRegistered(GeneralManager& gm)
 {
@@ -33,6 +34,7 @@ void RenderSystem::update(float deltaTime, GeneralManager& gm)
 	    *gm.getContextComponent<BufferManagerContext, BufferManagerComponent>()->bufferManager;
 	TextureManager& textureManager =
 	    *gm.getContextComponent<TextureManagerContext, TextureManagerComponent>()->textureManager;
+	ModelManager& modelManager = *gm.getContextComponent<ModelManagerContext, ModelManagerComponent>()->modelManager;
 	std::vector<FrameData>& framesData =
 	    *gm.getContextComponent<MainFrameDataContext, FrameDataComponent>()->frameDataArray;
 	CurrentFrameComponent* currentFrameComp = gm.getContextComponent<CurrentFrameContext, CurrentFrameComponent>();
@@ -49,5 +51,5 @@ void RenderSystem::update(float deltaTime, GeneralManager& gm)
 	CommandBufferFactory::recordCommandBuffer(
 	    framesData[currentFrameComp->currentFrame].commandBuffer, imageIndex, swapChain, pipelineHandler,
 	    currentFrameComp->currentFrame, bufferManager, *lightTexture, *materialDSetComponent, *dManager, globalDSetComponent,
-	                                          objectDSetComponent, textureManager);
+	                                          objectDSetComponent, textureManager, modelManager);
 }

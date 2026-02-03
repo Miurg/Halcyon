@@ -14,3 +14,4 @@ class DescriptorManagerContext{};
 class FrameImageContext{};
 class TextureManagerContext{};
 class VMAllocatorContext{};
+class ModelManagerContext{};

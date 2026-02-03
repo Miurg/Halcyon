@@ -31,6 +31,8 @@
 #include "Resources/Managers/TextureManager.hpp"
 #include "Components/TextureManagerComponent.hpp"
 #include "Components/VMAllocatorComponent.hpp"
+#include "Resources/Managers/ModelManager.hpp"
+#include "Components/ModelManagerComponent.hpp"
 class GraphicsInit
 {
 public:
@@ -101,6 +103,11 @@ private:
 		gm.registerContext<BufferManagerContext>(bufferManagerEntity);
 		BufferManager* bManager = new BufferManager(*vulkanDevice, allocator);
 		gm.addComponent<BufferManagerComponent>(bufferManagerEntity, bManager);
+
+		Entity modelManagerEntity = gm.createEntity();
+		gm.registerContext<ModelManagerContext>(modelManagerEntity);
+		ModelManager* modelManager = new ModelManager(*vulkanDevice, allocator);
+		gm.addComponent<ModelManagerComponent>(modelManagerEntity, modelManager);
 
 		// Descriptor Manager
 		Entity descriptorManagerEntity = gm.createEntity();

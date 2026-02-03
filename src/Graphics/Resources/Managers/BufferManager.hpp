@@ -23,15 +23,9 @@ public:
 	BufferManager(VulkanDevice& vulkanDevice, VmaAllocator allocator);
 	~BufferManager();
 
-	bool isMeshLoaded(const char path[MAX_PATH_LEN]);
 	int createBuffer(vk::MemoryPropertyFlags propertyBits, vk::DeviceSize sizeBuffer, uint_fast16_t numberBuffers,
 	                 uint_fast16_t numberBinding, vk::DescriptorSetLayout layout);
 
-	void createVertexBuffer(VertexIndexBuffer& vertexIndexBuffer);
-	void createIndexBuffer(VertexIndexBuffer& vertexIndexBuffer);
-	std::vector<VertexIndexBuffer> vertexIndexBuffers;
-	std::unordered_map<std::string, int> meshPaths;
-	std::vector<MeshInfo> meshes;
 	std::vector<Buffer> buffers;
 	
 
