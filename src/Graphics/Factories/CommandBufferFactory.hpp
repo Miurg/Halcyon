@@ -10,6 +10,7 @@
 #include "../Components/DescriptorManagerComponent.hpp"
 #include "../Resources/Components/ModelDSetComponent.hpp"
 #include "../Resources/Components/GlobalDSetComponent.hpp"
+#include "../Resources/Managers/TextureManager.hpp"
 
 class CommandBufferFactory
 {
@@ -19,7 +20,7 @@ public:
 	                                BufferManager& bufferManager, LightComponent& lightTexture,
 	                                BindlessTextureDSetComponent& bindlessTextureDSetComponent,
 	                                DescriptorManagerComponent& dManager, GlobalDSetComponent* globalDSetComponent,
-	                                ModelDSetComponent* objectDSetComponent);
+	                                ModelDSetComponent* objectDSetComponent, TextureManager& tManager);
 	static void transitionImageLayout(vk::raii::CommandBuffer& commandBuffer, vk::Image image, vk::ImageLayout oldLayout,
 	                                  vk::ImageLayout newLayout, vk::AccessFlags2 srcAccessMask,
 	                                  vk::AccessFlags2 dstAccessMask, vk::PipelineStageFlags2 srcStageMask,

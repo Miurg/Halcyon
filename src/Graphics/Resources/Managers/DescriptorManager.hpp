@@ -16,8 +16,8 @@ public:
 	vk::raii::DescriptorSetLayout modelSetLayout = nullptr;
 
 	int allocateBindlessTextureDSet();
-	void updateBindlessTextureSet(int textureNumber, BindlessTextureDSetComponent& dSetComponent,
-	                              BufferManager& bManager);
+	void updateBindlessTextureSet(vk::ImageView textureImageView, vk::Sampler textureSampler,
+	                              BindlessTextureDSetComponent& dSetComponent, int textureNumber);
 	void updateShadowDSet(int dIndex, vk::ImageView imageView, vk::Sampler sampler);
 	int allocateStorageBufferDSets(uint32_t count, vk::DescriptorSetLayout layout);
 	void updateStorageBufferDescriptors(BufferManager& bManager, int bNumber, int dSet, uint32_t binding);

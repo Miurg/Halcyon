@@ -12,3 +12,5 @@ class SunContext{};
 class MainDSetsContext{};
 class DescriptorManagerContext{};
 class FrameImageContext{};
+class TextureManagerContext{};
+class VMAllocatorContext{};

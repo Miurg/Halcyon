@@ -49,9 +49,9 @@ DescriptorManager::DescriptorManager(VulkanDevice& vulkanDevice) : vulkanDevice(
 
 	//===Model===
 	vk::DescriptorSetLayoutBinding primitivesBinding(0, vk::DescriptorType::eStorageBuffer, 1,
-	                                            vk::ShaderStageFlagBits::eVertex, nullptr);
+	                                                 vk::ShaderStageFlagBits::eVertex, nullptr);
 	vk::DescriptorSetLayoutBinding transformBinding(1, vk::DescriptorType::eStorageBuffer, 1,
-	                                            vk::ShaderStageFlagBits::eVertex, nullptr);
+	                                                vk::ShaderStageFlagBits::eVertex, nullptr);
 	std::array<vk::DescriptorSetLayoutBinding, 2> modelBindings = {primitivesBinding, transformBinding};
 	vk::DescriptorSetLayoutCreateInfo modelInfo({}, static_cast<uint32_t>(modelBindings.size()), modelBindings.data());
 	modelSetLayout = vk::raii::DescriptorSetLayout(vulkanDevice.device, modelInfo);
@@ -66,12 +66,12 @@ int DescriptorManager::allocateBindlessTextureDSet()
 	return descriptorSets.size() - 1;
 }
 
-void DescriptorManager::updateBindlessTextureSet(int textureNumber, BindlessTextureDSetComponent& dSetComponent,
-                                                 BufferManager& bManager)
+void DescriptorManager::updateBindlessTextureSet(vk::ImageView textureImageView, vk::Sampler textureSampler,
+                                                 BindlessTextureDSetComponent& dSetComponent, int textureNumber)
 {
 	vk::DescriptorImageInfo imageInfo;
-	imageInfo.sampler = bManager.textures[textureNumber].textureSampler;
-	imageInfo.imageView = bManager.textures[textureNumber].textureImageView;
+	imageInfo.sampler = textureSampler;
+	imageInfo.imageView = textureImageView;
 	imageInfo.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
 
 	vk::WriteDescriptorSet descriptorWrite;
@@ -81,7 +81,7 @@ void DescriptorManager::updateBindlessTextureSet(int textureNumber, BindlessText
 	descriptorWrite.descriptorType = vk::DescriptorType::eCombinedImageSampler;
 	descriptorWrite.descriptorCount = 1;
 	descriptorWrite.pImageInfo = &imageInfo;
-	
+
 	dSetComponent.bindlessTextureBuffer = textureNumber;
 
 	vulkanDevice.device.updateDescriptorSets(descriptorWrite, {});
@@ -121,7 +121,7 @@ int DescriptorManager::allocateStorageBufferDSets(uint32_t count, vk::Descriptor
 	return descriptorSets.size() - 1;
 }
 
-void DescriptorManager::updateStorageBufferDescriptors(BufferManager& bManager, int bNumber,int dSet,uint32_t binding)
+void DescriptorManager::updateStorageBufferDescriptors(BufferManager& bManager, int bNumber, int dSet, uint32_t binding)
 {
 	const size_t count = descriptorSets[dSet].size();
 	assert(bManager.buffers[bNumber].buffer.size() >= count);

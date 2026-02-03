@@ -11,6 +11,7 @@
 #include "../Components/BindlessTextureDSetComponent.hpp"
 #include "../../../Core/GeneralManager.hpp"
 #include "GltfLoader.hpp"
+#include "../Managers/TextureManager.hpp"
 
 class ModelFactory
 {
@@ -19,5 +20,5 @@ public:
 	                                  BufferManager& bManager, int nodeIndex);
 	static Entity loadModel(const char path[MAX_PATH_LEN], int vertexIndexBInt, BufferManager& bManager,
 	                        BindlessTextureDSetComponent& dSetComponent, DescriptorManager& dManager,
-	                        GeneralManager& gm);
+	                        GeneralManager& gm, TextureManager& tManager);
 };

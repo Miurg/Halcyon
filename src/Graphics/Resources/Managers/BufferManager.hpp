@@ -20,22 +20,15 @@ class DescriptorManager;
 class BufferManager
 {
 public:
-	BufferManager(VulkanDevice& vulkanDevice);
+	BufferManager(VulkanDevice& vulkanDevice, VmaAllocator allocator);
 	~BufferManager();
 
 	bool isMeshLoaded(const char path[MAX_PATH_LEN]);
-
-	int generateTextureData(const char texturePath[MAX_PATH_LEN], int texWidth, int texHeight,
-	                        const unsigned char* pixels, BindlessTextureDSetComponent& dSetComponent,
-	                        DescriptorManager& dManager);
-	bool isTextureLoaded(const char texturePath[MAX_PATH_LEN]);
 	int createBuffer(vk::MemoryPropertyFlags propertyBits, vk::DeviceSize sizeBuffer, uint_fast16_t numberBuffers,
 	                 uint_fast16_t numberBinding, vk::DescriptorSetLayout layout);
-	int createShadowMap(uint32_t shadowResolutionX, uint32_t shadowResolutionY);
+
 	void createVertexBuffer(VertexIndexBuffer& vertexIndexBuffer);
 	void createIndexBuffer(VertexIndexBuffer& vertexIndexBuffer);
-	std::vector<Texture> textures;
-	std::unordered_map<std::string, int> texturePaths;
 	std::vector<VertexIndexBuffer> vertexIndexBuffers;
 	std::unordered_map<std::string, int> meshPaths;
 	std::vector<MeshInfo> meshes;
@@ -48,15 +41,6 @@ private:
 
 	void initGlobalBuffer(vk::MemoryPropertyFlags propertyBits, Buffer& bufferIn, vk::DeviceSize sizeBuffer,
 	                      uint_fast16_t numberBuffers);
-	void createImageView(Texture& texture, vk::Format format, vk::ImageAspectFlags aspectFlags);
-	void createTextureSampler(Texture& texture);
-	void createShadowSampler(Texture& texture);
-	vk::Format findBestFormat();
-	vk::Format findBestSupportedFormat(const std::vector<vk::Format>& candidates, vk::ImageTiling tiling,
-	                                   vk::FormatFeatureFlags features);
-	void createImage(uint32_t width, uint32_t height, vk::Format format, vk::ImageTiling tiling,
-	                 vk::ImageUsageFlags usage, VmaMemoryUsage memoryUsage, Texture& texture);
-
 	//int createMeshInternal(const char path[MAX_PATH_LEN], BindlessTextureDSetComponent& dSetComponent,
 	//                       DescriptorManager& dManager);
 };

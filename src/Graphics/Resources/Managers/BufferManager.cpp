@@ -1,46 +1,14 @@
 #include "BufferManager.hpp"
 #include <stdexcept>
 
-BufferManager::BufferManager(VulkanDevice& vulkanDevice)
-    : vulkanDevice(vulkanDevice)
+BufferManager::BufferManager(VulkanDevice& vulkanDevice, VmaAllocator allocator)
+    : vulkanDevice(vulkanDevice), allocator(allocator)
 {
-	VmaAllocatorCreateInfo allocatorInfo = {};
-	allocatorInfo.physicalDevice = *vulkanDevice.physicalDevice;
-	allocatorInfo.device = *vulkanDevice.device;
-	allocatorInfo.instance = *vulkanDevice.instance;
-	allocatorInfo.vulkanApiVersion = VK_API_VERSION_1_4;
-	VmaVulkanFunctions vulkanFunctions = {};
-	vulkanFunctions.vkGetInstanceProcAddr = vkGetInstanceProcAddr;
-	vulkanFunctions.vkGetDeviceProcAddr = vkGetDeviceProcAddr;
-
-	allocatorInfo.pVulkanFunctions = &vulkanFunctions;
-	VkResult result = vmaCreateAllocator(&allocatorInfo, &this->allocator);
-	if (result != VK_SUCCESS)
-	{
-		throw std::runtime_error("failed to create VMA allocator!");
-	}
 	vertexIndexBuffers.push_back(VertexIndexBuffer());
 }
 
 BufferManager::~BufferManager()
 {
-	for (auto& texture : textures)
-	{
-		if (texture.textureSampler)
-		{
-			(*vulkanDevice.device).destroySampler(texture.textureSampler);
-		}
-
-		if (texture.textureImageView)
-		{
-			(*vulkanDevice.device).destroyImageView(texture.textureImageView);
-		}
-
-		if (texture.textureImage)
-		{
-			vmaDestroyImage(allocator, texture.textureImage, texture.textureImageAllocation);
-		}
-	}
 	for (auto& meshBuffer : vertexIndexBuffers)
 	{
 		if (meshBuffer.vertexBuffer)

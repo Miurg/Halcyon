@@ -11,6 +11,8 @@
 #include "../Components/CurrentFrameComponent.hpp"
 #include "../Components/DescriptorManagerComponent.hpp"
 #include "../Components/FrameImageComponent.hpp"
+#include "../Components/TextureManagerComponent.hpp"
+#include "../Resources/Managers/TextureManager.hpp"
 
 void RenderSystem::onRegistered(GeneralManager& gm)
 {
@@ -29,6 +31,8 @@ void RenderSystem::update(float deltaTime, GeneralManager& gm)
 	    *gm.getContextComponent<MainSignatureContext, PipelineHandlerComponent>()->pipelineHandler;
 	BufferManager& bufferManager =
 	    *gm.getContextComponent<BufferManagerContext, BufferManagerComponent>()->bufferManager;
+	TextureManager& textureManager =
+	    *gm.getContextComponent<TextureManagerContext, TextureManagerComponent>()->textureManager;
 	std::vector<FrameData>& framesData =
 	    *gm.getContextComponent<MainFrameDataContext, FrameDataComponent>()->frameDataArray;
 	CurrentFrameComponent* currentFrameComp = gm.getContextComponent<CurrentFrameContext, CurrentFrameComponent>();
@@ -44,6 +48,6 @@ void RenderSystem::update(float deltaTime, GeneralManager& gm)
 
 	CommandBufferFactory::recordCommandBuffer(
 	    framesData[currentFrameComp->currentFrame].commandBuffer, imageIndex, swapChain, pipelineHandler,
-	    currentFrameComp->currentFrame, bufferManager, *lightTexture, *materialDSetComponent,
-	    *dManager, globalDSetComponent, objectDSetComponent);
+	    currentFrameComp->currentFrame, bufferManager, *lightTexture, *materialDSetComponent, *dManager, globalDSetComponent,
+	                                          objectDSetComponent, textureManager);
 }

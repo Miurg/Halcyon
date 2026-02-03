@@ -4,17 +4,17 @@
 int GltfLoader::loadModelFromFile(const char path[MAX_PATH_LEN], int vertexIndexBInt,
                                                                      BufferManager& bManager,
                                                                      BindlessTextureDSetComponent& dSetComponent,
-                                                                     DescriptorManager& dManager, tinygltf::Model model)
+                                                                     DescriptorManager& dManager, tinygltf::Model model, TextureManager& tManager)
 {
 	VertexIndexBuffer& vertexIndexBuffer = bManager.vertexIndexBuffers[vertexIndexBInt];
 	int32_t globalVertexOffset = static_cast<int32_t>(vertexIndexBuffer.vertices.size()); // To adjust indices
 
 	std::unordered_map<uint32_t, uint32_t> replacementMapTextures = materialsParser(
-	    model, bManager, dSetComponent, dManager); // Map from index in glTF to texture index in our system
+	    model, tManager, dSetComponent, dManager); // Map from index in glTF to texture index in our system
 
-	int whiteTexture = bManager.isTextureLoaded("sys_default_white")
-	                       ? bManager.texturePaths["sys_default_white"]
-	                       : bManager.generateTextureData("sys_default_white", 1, 1,
+	int whiteTexture = tManager.isTextureLoaded("sys_default_white")
+	                       ? tManager.texturePaths["sys_default_white"]
+	                       : tManager.generateTextureData("sys_default_white", 1, 1,
 	                                                      std::vector<unsigned char>{255, 255, 255, 255}.data(),
 	                                                      dSetComponent, dManager);
 
@@ -37,7 +37,7 @@ int GltfLoader::loadModelFromFile(const char path[MAX_PATH_LEN], int vertexIndex
 	return offsetForInSystemMesh;
 }
 
-std::unordered_map<uint32_t, uint32_t> GltfLoader::materialsParser(tinygltf::Model& model, BufferManager& bManager,
+std::unordered_map<uint32_t, uint32_t> GltfLoader::materialsParser(tinygltf::Model& model, TextureManager& tManager,
                                                                    BindlessTextureDSetComponent& dSetComponent,
                                                                    DescriptorManager& dManager)
 {
@@ -80,7 +80,7 @@ std::unordered_map<uint32_t, uint32_t> GltfLoader::materialsParser(tinygltf::Mod
 							newTex->name = img.uri;
 						}
 						int indexInSystem =
-						    bManager.generateTextureData(newTex->name.c_str(), img.width, img.height,
+						    tManager.generateTextureData(newTex->name.c_str(), img.width, img.height,
 						                                 ImageConverter::convertToRGBA(img).data(), dSetComponent, dManager);
 						replacementMapTextures.emplace(i, indexInSystem);
 					}

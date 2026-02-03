@@ -104,7 +104,7 @@ float4 fragMain(VSOutput vertIn) : SV_TARGET
     float3 ambientLight = sun[0].sunAmbient.rgb * sun[0].sunAmbient.a;
     float3 finalColor = (sunLight + ambientLight) * albedo.rgb * vertIn.fragColor;
 
-    float fogStart = 10.0;
+    float fogStart = 20.0;
     float fogEnd = 150.0;
     float3 fogColor = float3(0.0, 0.7, 0.8);
 

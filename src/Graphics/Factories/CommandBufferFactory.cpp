@@ -4,20 +4,20 @@ void CommandBufferFactory::recordCommandBuffer(
     vk::raii::CommandBuffer& commandBuffer, uint32_t imageIndex, SwapChain& swapChain, PipelineHandler& pipelineHandler,
     uint32_t currentFrame, BufferManager& bufferManager, LightComponent& lightTexture,
     BindlessTextureDSetComponent& bindlessTextureDSetComponent, DescriptorManagerComponent& dManager,
-    GlobalDSetComponent* globalDSetComponent, ModelDSetComponent* objectDSetComponent)
+    GlobalDSetComponent* globalDSetComponent, ModelDSetComponent* objectDSetComponent, TextureManager& tManager)
 {
 	commandBuffer.begin({});
 
 	// Step 1: SHADOW PASS
 
-	transitionImageLayout(commandBuffer, bufferManager.textures[lightTexture.textureShadowImage].textureImage,
+	transitionImageLayout(commandBuffer, tManager.textures[lightTexture.textureShadowImage].textureImage,
 	                      vk::ImageLayout::eUndefined, vk::ImageLayout::eDepthAttachmentOptimal,
 	                      vk::AccessFlagBits2::eNone, vk::AccessFlagBits2::eDepthStencilAttachmentWrite,
 	                      vk::PipelineStageFlagBits2::eTopOfPipe, vk::PipelineStageFlagBits2::eEarlyFragmentTests,
 	                      vk::ImageAspectFlagBits::eDepth);
 
 	vk::RenderingAttachmentInfo shadowDepthInfo;
-	shadowDepthInfo.imageView = bufferManager.textures[lightTexture.textureShadowImage].textureImageView;
+	shadowDepthInfo.imageView = tManager.textures[lightTexture.textureShadowImage].textureImageView;
 	shadowDepthInfo.imageLayout = vk::ImageLayout::eDepthAttachmentOptimal;
 	shadowDepthInfo.loadOp = vk::AttachmentLoadOp::eClear;
 	shadowDepthInfo.storeOp = vk::AttachmentStoreOp::eStore;
@@ -60,7 +60,7 @@ void CommandBufferFactory::recordCommandBuffer(
 	}
 	commandBuffer.endRendering();
 
-	transitionImageLayout(commandBuffer, bufferManager.textures[lightTexture.textureShadowImage].textureImage,
+	transitionImageLayout(commandBuffer, tManager.textures[lightTexture.textureShadowImage].textureImage,
 	                      vk::ImageLayout::eDepthAttachmentOptimal, vk::ImageLayout::eShaderReadOnlyOptimal,
 	                      vk::AccessFlagBits2::eDepthStencilAttachmentWrite, vk::AccessFlagBits2::eShaderRead,
 	                      vk::PipelineStageFlagBits2::eLateFragmentTests, vk::PipelineStageFlagBits2::eFragmentShader,

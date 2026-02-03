@@ -13,10 +13,13 @@
 #include "Systems/RotationSystem.hpp"
 #include "../Graphics/Systems/RenderSystem.hpp"
 #include "../Graphics/Resources/Factories/ModelFactory.hpp"
+#include "../Graphics/Components/TextureManagerComponent.hpp"
 
 void GameInit::gameInitStart(GeneralManager& gm)
 {
 	BufferManager* bufferManager = gm.getContextComponent<BufferManagerContext, BufferManagerComponent>()->bufferManager;
+	TextureManager* textureManager =
+	    gm.getContextComponent<TextureManagerContext, TextureManagerComponent>()->textureManager;
 	BindlessTextureDSetComponent* dSetComponent =
 	    gm.getContextComponent<MainDSetsContext, BindlessTextureDSetComponent>();
 	DescriptorManager* dManager =
@@ -29,8 +32,8 @@ void GameInit::gameInitStart(GeneralManager& gm)
 	gm.addComponent<LocalTransformComponent>(gameObjectEntity1);
 	gm.addComponent<RelationshipComponent>(gameObjectEntity1);
 
-	Entity dautherEntity =
-	    ModelFactory::loadModel("assets/models/Bistro_Godot.glb", 0, *bufferManager, *dSetComponent, *dManager, gm);
+	Entity dautherEntity = ModelFactory::loadModel("assets/models/Bistro_Godot.glb", 0, *bufferManager, *dSetComponent,
+	                                               *dManager, gm, *textureManager);
 
 	gm.subscribeEntity<TransformSystem>(gameObjectEntity1);
 

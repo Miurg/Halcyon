@@ -28,6 +28,9 @@
 #include "Components/LocalTransformComponent.hpp"
 #include "Components/RelationshipComponent.hpp"
 #include "Resources/Factories/GltfLoader.hpp"
+#include "Resources/Managers/TextureManager.hpp"
+#include "Components/TextureManagerComponent.hpp"
+#include "Components/VMAllocatorComponent.hpp"
 class GraphicsInit
 {
 public:
@@ -66,10 +69,37 @@ private:
 		SwapChainFactory::createSwapChain(*swapChain, *vulkanDevice, *window);
 		gm.addComponent<SwapChainComponent>(swapChainEntity, swapChain);
 
+		// VMA Allocator
+		Entity vmaAllocatorEntity = gm.createEntity();
+		gm.registerContext<VMAllocatorContext>(vmaAllocatorEntity);
+		VmaAllocator allocator;
+		VmaAllocatorCreateInfo allocatorInfo = {};
+		allocatorInfo.physicalDevice = *vulkanDevice->physicalDevice;
+		allocatorInfo.device = *vulkanDevice->device;
+		allocatorInfo.instance = *vulkanDevice->instance;
+		allocatorInfo.vulkanApiVersion = VK_API_VERSION_1_4;
+		VmaVulkanFunctions vulkanFunctions = {};
+		vulkanFunctions.vkGetInstanceProcAddr = vkGetInstanceProcAddr;
+		vulkanFunctions.vkGetDeviceProcAddr = vkGetDeviceProcAddr;
+
+		allocatorInfo.pVulkanFunctions = &vulkanFunctions;
+		VkResult result = vmaCreateAllocator(&allocatorInfo, &allocator);
+		if (result != VK_SUCCESS)
+		{
+			throw std::runtime_error("failed to create VMA allocator!");
+		}
+		gm.addComponent<VMAllocatorComponent>(vmaAllocatorEntity, allocator);
+
+		// Texture Manager
+		Entity textureManagerEntity = gm.createEntity();
+		gm.registerContext<TextureManagerContext>(textureManagerEntity);
+		TextureManager* textureManager = new TextureManager(*vulkanDevice, allocator);
+		gm.addComponent<TextureManagerComponent>(textureManagerEntity, textureManager);
+
 		// Buffer Manager
 		Entity bufferManagerEntity = gm.createEntity();
 		gm.registerContext<BufferManagerContext>(bufferManagerEntity);
-		BufferManager* bManager = new BufferManager(*vulkanDevice);
+		BufferManager* bManager = new BufferManager(*vulkanDevice, allocator);
 		gm.addComponent<BufferManagerComponent>(bufferManagerEntity, bManager);
 
 		// Descriptor Manager
@@ -142,6 +172,8 @@ private:
 		DescriptorManager* dManager =
 		    gm.getContextComponent<DescriptorManagerContext, DescriptorManagerComponent>()->descriptorManager;
 		BufferManager* bManager = gm.getContextComponent<BufferManagerContext, BufferManagerComponent>()->bufferManager;
+		TextureManager* tManager =
+		    gm.getContextComponent<TextureManagerContext, TextureManagerComponent>()->textureManager;
 
 		BindlessTextureDSetComponent* bTextureDSetComponent =
 		    gm.getContextComponent<MainDSetsContext, BindlessTextureDSetComponent>();
@@ -162,10 +194,10 @@ private:
 		dManager->updateStorageBufferDescriptors(*bManager, globalDSetComponent->sunCameraBuffers,
 		                                         globalDSetComponent->globalDSets, 2);
 
-		sunLight->textureShadowImage = bManager->createShadowMap(sunLight->sizeX, sunLight->sizeY);
+		sunLight->textureShadowImage = tManager->createShadowMap(sunLight->sizeX, sunLight->sizeY);
 		dManager->updateShadowDSet(globalDSetComponent->globalDSets,
-		                           bManager->textures[sunLight->textureShadowImage].textureImageView,
-		                           bManager->textures[sunLight->textureShadowImage].textureSampler);
+		                           tManager->textures[sunLight->textureShadowImage].textureImageView,
+		                           tManager->textures[sunLight->textureShadowImage].textureSampler);
 
 		// === Cameras and Lights END ===
 
@@ -199,7 +231,7 @@ private:
 		int texHeight = texturePtr.get()->height;
 		auto data = texturePtr->pixels.data();
 		auto path = texturePtr.get()->name.c_str();
-		bManager->generateTextureData(path, texWidth, texHeight, data, *bTextureDSetComponent, *dManager);
+		tManager->generateTextureData(path, texWidth, texHeight, data, *bTextureDSetComponent, *dManager);
 		// === Default White Texture END ===
 
 #ifdef _DEBUG
