@@ -16,13 +16,25 @@
 class CommandBufferFactory
 {
 public:
-	static void recordCommandBuffer(vk::raii::CommandBuffer& commandBuffer, uint32_t imageIndex, SwapChain& swapChain,
-	                                PipelineHandler& pipelineHandler, uint32_t currentFrame,
-	                                BufferManager& bufferManager, LightComponent& lightTexture,
-	                                BindlessTextureDSetComponent& bindlessTextureDSetComponent,
-	                                DescriptorManagerComponent& dManager, GlobalDSetComponent* globalDSetComponent,
-	                                ModelDSetComponent* objectDSetComponent, TextureManager& tManager,
-	                                ModelManager& mManager);
+	//static void recordCommandBuffer(vk::raii::CommandBuffer& commandBuffer, uint32_t imageIndex, SwapChain& swapChain,
+	//                                PipelineHandler& pipelineHandler, uint32_t currentFrame,
+	//                                BufferManager& bufferManager, LightComponent& lightTexture,
+	//                                BindlessTextureDSetComponent& bindlessTextureDSetComponent,
+	//                                DescriptorManagerComponent& dManager, GlobalDSetComponent* globalDSetComponent,
+	//                                ModelDSetComponent* objectDSetComponent, TextureManager& tManager,
+	//                                ModelManager& mManager);
+	static void recordShadowCommandBuffer(vk::raii::CommandBuffer& secondaryCmd, PipelineHandler& pipelineHandler,
+	                                      uint32_t currentFrame, LightComponent& lightTexture,
+	                                      DescriptorManagerComponent& dManager, GlobalDSetComponent* globalDSetComponent,
+	                                      ModelDSetComponent* objectDSetComponent, TextureManager& tManager,
+	                                      ModelManager& mManager);
+	static void recordMainCommandBuffer(vk::raii::CommandBuffer& secondaryCmd, uint32_t imageIndex, SwapChain& swapChain,
+	                                    PipelineHandler& pipelineHandler, uint32_t currentFrame,
+	                                    BindlessTextureDSetComponent& bindlessTextureDSetComponent,
+	                                    DescriptorManagerComponent& dManager, GlobalDSetComponent* globalDSetComponent,
+	                                    ModelDSetComponent* objectDSetComponent, ModelManager& mManager);
+	static void executeSecondaryBuffers(vk::raii::CommandBuffer& primaryCommandBuffer,
+	                                                          const vk::raii::CommandBuffers& secondaryBuffers);
 	static void transitionImageLayout(vk::raii::CommandBuffer& commandBuffer, vk::Image image, vk::ImageLayout oldLayout,
 	                                  vk::ImageLayout newLayout, vk::AccessFlags2 srcAccessMask,
 	                                  vk::AccessFlags2 dstAccessMask, vk::PipelineStageFlags2 srcStageMask,

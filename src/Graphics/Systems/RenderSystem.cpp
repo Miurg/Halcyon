@@ -48,8 +48,14 @@ void RenderSystem::update(float deltaTime, GeneralManager& gm)
 	uint32_t imageIndex = gm.getContextComponent<FrameImageContext, FrameImageComponent>()->imageIndex;
 	if (!currentFrameComp->frameValid) return;
 
-	CommandBufferFactory::recordCommandBuffer(
-	    framesData[currentFrameComp->currentFrame].commandBuffer, imageIndex, swapChain, pipelineHandler,
-	    currentFrameComp->currentFrame, bufferManager, *lightTexture, *materialDSetComponent, *dManager, globalDSetComponent,
-	                                          objectDSetComponent, textureManager, modelManager);
+	CommandBufferFactory::recordShadowCommandBuffer(
+	    framesData[currentFrameComp->currentFrame].secondaryCommandBuffers[0], pipelineHandler,
+	    currentFrameComp->currentFrame, *lightTexture, *dManager, globalDSetComponent, objectDSetComponent,
+	    textureManager, modelManager);
+	CommandBufferFactory::recordMainCommandBuffer(framesData[currentFrameComp->currentFrame].secondaryCommandBuffers[1],
+	                                              imageIndex, swapChain, pipelineHandler, currentFrameComp->currentFrame,
+	                                              *materialDSetComponent, *dManager, globalDSetComponent,
+	                                              objectDSetComponent, modelManager);
+	CommandBufferFactory::executeSecondaryBuffers(framesData[currentFrameComp->currentFrame].commandBuffer,
+	                                              framesData[currentFrameComp->currentFrame].secondaryCommandBuffers);
 }
