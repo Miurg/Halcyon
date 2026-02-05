@@ -9,11 +9,11 @@ void CommandBufferFactory::recordShadowCommandBuffer(vk::raii::CommandBuffer& se
 {
 	vk::CommandBufferInheritanceInfo inheritanceInfo = {};
 	vk::CommandBufferBeginInfo beginInfo;
-	beginInfo.flags = vk::CommandBufferUsageFlagBits::eRenderPassContinue; 
+	beginInfo.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit; 
 	beginInfo.pInheritanceInfo = &inheritanceInfo;
 
 	
-	secondaryCmd.begin({vk::CommandBufferUsageFlagBits::eOneTimeSubmit, nullptr});
+	secondaryCmd.begin(beginInfo);
 
 	// --- Step 1: SHADOW PASS ---
 
@@ -81,7 +81,13 @@ void CommandBufferFactory::recordMainCommandBuffer(vk::raii::CommandBuffer& seco
                                                    GlobalDSetComponent* globalDSetComponent,
                                                    ModelDSetComponent* objectDSetComponent, ModelManager& mManager)
 {
-	secondaryCmd.begin({vk::CommandBufferUsageFlagBits::eOneTimeSubmit, nullptr});
+	vk::CommandBufferInheritanceInfo inheritanceInfo = {};
+
+	vk::CommandBufferBeginInfo beginInfo;
+	beginInfo.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit; 
+	beginInfo.pInheritanceInfo = &inheritanceInfo;
+
+	secondaryCmd.begin(beginInfo);
 
 	// --- Step 2: MAIN PASS ---
 
@@ -171,7 +177,6 @@ void CommandBufferFactory::executeSecondaryBuffers(
 	std::vector<vk::CommandBuffer> handles;
 	handles.reserve(secondaryBuffers.size());
 
-	// Все равно приходится перекладывать
 	for (const auto& cmd : secondaryBuffers)
 	{
 		handles.push_back(*cmd);
