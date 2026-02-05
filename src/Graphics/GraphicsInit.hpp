@@ -33,6 +33,8 @@
 #include "Components/VMAllocatorComponent.hpp"
 #include "Resources/Managers/ModelManager.hpp"
 #include "Components/ModelManagerComponent.hpp"
+#include "Managers/FrameManager.hpp"
+#include "Components/FrameManagerComponent.hpp"
 class GraphicsInit
 {
 public:
@@ -104,16 +106,33 @@ private:
 		BufferManager* bManager = new BufferManager(*vulkanDevice, allocator);
 		gm.addComponent<BufferManagerComponent>(bufferManagerEntity, bManager);
 
+		// Model Manager
 		Entity modelManagerEntity = gm.createEntity();
 		gm.registerContext<ModelManagerContext>(modelManagerEntity);
-		ModelManager* modelManager = new ModelManager(*vulkanDevice, allocator);
-		gm.addComponent<ModelManagerComponent>(modelManagerEntity, modelManager);
+		ModelManager* mManager = new ModelManager(*vulkanDevice, allocator);
+		gm.addComponent<ModelManagerComponent>(modelManagerEntity, mManager);
 
 		// Descriptor Manager
 		Entity descriptorManagerEntity = gm.createEntity();
 		gm.registerContext<DescriptorManagerContext>(descriptorManagerEntity);
 		DescriptorManager* dManager = new DescriptorManager(*vulkanDevice);
 		gm.addComponent<DescriptorManagerComponent>(descriptorManagerEntity, dManager);
+
+		// Frame Manager
+		Entity frameManagerEntity = gm.createEntity();
+		gm.registerContext<FrameManagerContext>(frameManagerEntity);
+		FrameManager* fManager = new FrameManager(*vulkanDevice);
+		gm.addComponent<FrameManagerComponent>(frameManagerEntity, fManager);
+
+		Entity frameDataEntity = gm.createEntity();
+		gm.registerContext<MainFrameDataContext>(frameDataEntity);
+		gm.registerContext<CurrentFrameContext>(frameDataEntity);
+		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+		{
+			fManager->initFrameData();
+		}
+		gm.addComponent<FrameDataComponent>(frameDataEntity, 0);
+		gm.addComponent<CurrentFrameComponent>(frameDataEntity);
 
 		// Main Descriptor Sets
 		Entity mainDSetsEntity = gm.createEntity();
@@ -130,21 +149,10 @@ private:
 		PipelineFactory::createShadowPipeline(*vulkanDevice, *swapChain, *dManager, *pipelineHandler);
 		gm.addComponent<PipelineHandlerComponent>(signatureEntity, pipelineHandler);
 
-		// Frame Data and Images
+		// Frame Images
 		Entity frameImageEntity = gm.createEntity();
 		gm.registerContext<FrameImageContext>(frameImageEntity);
 		gm.addComponent<FrameImageComponent>(frameImageEntity);
-
-		Entity frameDataEntity = gm.createEntity();
-		gm.registerContext<MainFrameDataContext>(frameDataEntity);
-		gm.registerContext<CurrentFrameContext>(frameDataEntity);
-		std::vector<FrameData>* framesData = new std::vector<FrameData>(MAX_FRAMES_IN_FLIGHT);
-		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
-		{
-			FrameData::initFrameData((*framesData)[i], *vulkanDevice);
-		}
-		gm.addComponent<FrameDataComponent>(frameDataEntity, framesData);
-		gm.addComponent<CurrentFrameComponent>(frameDataEntity);
 
 		// === Vulkan needs END ===
 #ifdef _DEBUG

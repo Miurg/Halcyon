@@ -15,3 +15,4 @@ class FrameImageContext{};
 class TextureManagerContext{};
 class VMAllocatorContext{};
 class ModelManagerContext{};
+class FrameManagerContext{};

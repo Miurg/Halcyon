@@ -14,6 +14,8 @@
 #include "../Components/TextureManagerComponent.hpp"
 #include "../Resources/Managers/TextureManager.hpp"
 #include "../Components/ModelManagerComponent.hpp"
+#include "../Managers/FrameManager.hpp"
+#include "../Components/FrameManagerComponent.hpp"
 
 void RenderSystem::onRegistered(GeneralManager& gm)
 {
@@ -35,8 +37,7 @@ void RenderSystem::update(float deltaTime, GeneralManager& gm)
 	TextureManager& textureManager =
 	    *gm.getContextComponent<TextureManagerContext, TextureManagerComponent>()->textureManager;
 	ModelManager& modelManager = *gm.getContextComponent<ModelManagerContext, ModelManagerComponent>()->modelManager;
-	std::vector<FrameData>& framesData =
-	    *gm.getContextComponent<MainFrameDataContext, FrameDataComponent>()->frameDataArray;
+	FrameManager* frameManager = gm.getContextComponent<FrameManagerContext, FrameManagerComponent>()->frameManager;
 	CurrentFrameComponent* currentFrameComp = gm.getContextComponent<CurrentFrameContext, CurrentFrameComponent>();
 	LightComponent* lightTexture = gm.getContextComponent<SunContext, LightComponent>();
 	BindlessTextureDSetComponent* materialDSetComponent =
@@ -49,13 +50,14 @@ void RenderSystem::update(float deltaTime, GeneralManager& gm)
 	if (!currentFrameComp->frameValid) return;
 
 	CommandBufferFactory::recordShadowCommandBuffer(
-	    framesData[currentFrameComp->currentFrame].secondaryCommandBuffers[0], pipelineHandler,
+	    frameManager->frames[currentFrameComp->currentFrame].secondaryCommandBuffers[0], pipelineHandler,
 	    currentFrameComp->currentFrame, *lightTexture, *dManager, globalDSetComponent, objectDSetComponent,
 	    textureManager, modelManager);
-	CommandBufferFactory::recordMainCommandBuffer(framesData[currentFrameComp->currentFrame].secondaryCommandBuffers[1],
+	CommandBufferFactory::recordMainCommandBuffer(
+	    frameManager->frames[currentFrameComp->currentFrame].secondaryCommandBuffers[1],
 	                                              imageIndex, swapChain, pipelineHandler, currentFrameComp->currentFrame,
 	                                              *materialDSetComponent, *dManager, globalDSetComponent,
 	                                              objectDSetComponent, modelManager);
-	CommandBufferFactory::executeSecondaryBuffers(framesData[currentFrameComp->currentFrame].commandBuffer,
-	                                              framesData[currentFrameComp->currentFrame].secondaryCommandBuffers);
+	CommandBufferFactory::executeSecondaryBuffers(frameManager->frames[currentFrameComp->currentFrame].commandBuffer,
+	    frameManager->frames[currentFrameComp->currentFrame].secondaryCommandBuffers);
 }

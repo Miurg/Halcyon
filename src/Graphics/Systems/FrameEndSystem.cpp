@@ -13,6 +13,8 @@
 #include "../Components/FrameDataComponent.hpp"
 #include "../Components/CurrentFrameComponent.hpp"
 #include "../Components/FrameImageComponent.hpp"
+#include "../Managers/FrameManager.hpp"
+#include "../Components/FrameManagerComponent.hpp"
 
 void FrameEndSystem::onRegistered(GeneralManager& gm)
 {
@@ -30,22 +32,23 @@ void FrameEndSystem::update(float deltaTime, GeneralManager& gm)
 	    *gm.getContextComponent<MainVulkanDeviceContext, VulkanDeviceComponent>()->vulkanDeviceInstance;
 	SwapChain& swapChain = *gm.getContextComponent<MainSwapChainContext, SwapChainComponent>()->swapChainInstance;
 	Window& window = *gm.getContextComponent<MainWindowContext, WindowComponent>()->windowInstance;
-	std::vector<FrameData>& framesData =
-	    *gm.getContextComponent<MainFrameDataContext, FrameDataComponent>()->frameDataArray;
+	FrameManager* frameManager = gm.getContextComponent<FrameManagerContext, FrameManagerComponent>()->frameManager;
 	CurrentFrameComponent* currentFrameComp = gm.getContextComponent<CurrentFrameContext, CurrentFrameComponent>();
 	uint32_t imageIndex = gm.getContextComponent<FrameImageContext, FrameImageComponent>()->imageIndex;
 	if (!currentFrameComp->frameValid) return;
 
 	vk::PipelineStageFlags waitDestinationStageMask(vk::PipelineStageFlagBits::eColorAttachmentOutput);
 
-	const vk::SubmitInfo submitInfo(*framesData[currentFrameComp->currentFrame].presentCompleteSemaphore,
-	                                waitDestinationStageMask, *framesData[currentFrameComp->currentFrame].commandBuffer,
-	                                *framesData[currentFrameComp->currentFrame].renderFinishedSemaphore);
+	const vk::SubmitInfo submitInfo(*frameManager->frames[currentFrameComp->currentFrame].presentCompleteSemaphore,
+	                                waitDestinationStageMask,
+	                                *frameManager->frames[currentFrameComp->currentFrame].commandBuffer,
+	                                *frameManager->frames[currentFrameComp->currentFrame].renderFinishedSemaphore);
 
-	vulkanDevice.graphicsQueue.submit(submitInfo, *framesData[currentFrameComp->currentFrame].inFlightFence);
+	vulkanDevice.graphicsQueue.submit(submitInfo, *frameManager->frames[currentFrameComp->currentFrame].inFlightFence);
 
 	// Present the image
-	const vk::PresentInfoKHR presentInfoKHR(*framesData[currentFrameComp->currentFrame].renderFinishedSemaphore,
+	const vk::PresentInfoKHR presentInfoKHR(
+	    *frameManager->frames[currentFrameComp->currentFrame].renderFinishedSemaphore,
 	                                        *swapChain.swapChainHandle, imageIndex);
 	vk::Result presentResult;
 	try
