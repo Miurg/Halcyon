@@ -10,24 +10,4 @@ struct FrameData
 	vk::raii::Fence inFlightFence = nullptr;
 	vk::raii::CommandBuffer commandBuffer = nullptr;
 	vk::raii::CommandBuffers secondaryCommandBuffers = nullptr;
-
-	static void initFrameData(FrameData& frameData, VulkanDevice& vulkanDevice)
-	{
-		vk::CommandBufferAllocateInfo allocInfo;
-		allocInfo.commandPool = vulkanDevice.commandPool;
-		allocInfo.level = vk::CommandBufferLevel::ePrimary;
-		allocInfo.commandBufferCount = 1;
-
-		vk::raii::CommandBuffers buffers(vulkanDevice.device, allocInfo);
-		frameData.commandBuffer = std::move(buffers[0]);
-		frameData.renderFinishedSemaphore = vk::raii::Semaphore(vulkanDevice.device, vk::SemaphoreCreateInfo());
-		frameData.presentCompleteSemaphore = vk::raii::Semaphore(vulkanDevice.device, vk::SemaphoreCreateInfo());
-		frameData.inFlightFence =
-		    vk::raii::Fence(vulkanDevice.device, vk::FenceCreateInfo(vk::FenceCreateFlagBits::eSignaled));
-
-		allocInfo.level = vk::CommandBufferLevel::eSecondary;
-		allocInfo.commandBufferCount = 2;
-		vk::raii::CommandBuffers secondaryBuffers(vulkanDevice.device, allocInfo);
-		frameData.secondaryCommandBuffers = std::move(secondaryBuffers);
-	};
 };

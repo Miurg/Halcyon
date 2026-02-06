@@ -6,4 +6,5 @@ struct GlobalDSetComponent
 	int cameraBuffers = -1;
 	int lightBuffers = -1;
 	int sunCameraBuffers = -1;
+	int fxaaDSets = -1;
 };

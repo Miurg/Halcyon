@@ -167,3 +167,32 @@ vk::Format SwapChainFactory::findSupportedFormat(VulkanDevice& device, const std
 
 	throw std::runtime_error("failed to find supported format!");
 }
+
+void SwapChainFactory::createOffscreenResources(SwapChain& swapChain, VulkanDevice& device, Window& window)
+{
+	VulkanUtils::createImage(
+	    swapChain.swapChainExtent.width, swapChain.swapChainExtent.height, swapChain.swapChainImageFormat,
+	    vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eSampled,
+	    vk::MemoryPropertyFlagBits::eDeviceLocal, swapChain.offscreenImage, swapChain.offscreenImageMemory, device);
+
+	swapChain.offscreenImageView = VulkanUtils::createImageView(swapChain.offscreenImage, swapChain.swapChainImageFormat,
+	                                                            vk::ImageAspectFlagBits::eColor, device);
+	vk::SamplerCreateInfo samplerInfo{};
+	samplerInfo.magFilter = vk::Filter::eLinear;
+	samplerInfo.minFilter = vk::Filter::eLinear;
+	samplerInfo.addressModeU = vk::SamplerAddressMode::eClampToEdge;
+	samplerInfo.addressModeV = vk::SamplerAddressMode::eClampToEdge;
+	samplerInfo.addressModeW = vk::SamplerAddressMode::eClampToEdge;
+	samplerInfo.anisotropyEnable = vk::False;
+	samplerInfo.maxAnisotropy = 1.0f;
+	samplerInfo.borderColor = vk::BorderColor::eFloatOpaqueWhite;
+	samplerInfo.unnormalizedCoordinates = vk::False;
+	samplerInfo.compareEnable = vk::False;
+	samplerInfo.compareOp = vk::CompareOp::eAlways;
+	samplerInfo.mipmapMode = vk::SamplerMipmapMode::eLinear;
+	samplerInfo.mipLodBias = 0.0f;
+	samplerInfo.minLod = 0.0f;
+	samplerInfo.maxLod = 1.0f;
+
+	swapChain.offscreenSampler = vk::raii::Sampler(device.device, samplerInfo);
+}

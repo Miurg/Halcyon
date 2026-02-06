@@ -91,10 +91,11 @@ void CommandBufferFactory::recordMainCommandBuffer(vk::raii::CommandBuffer& seco
 
 	// --- Step 2: MAIN PASS ---
 
-	transitionImageLayout(secondaryCmd, swapChain.swapChainImages[imageIndex], vk::ImageLayout::eUndefined,
+	 transitionImageLayout(secondaryCmd, *swapChain.offscreenImage, vk::ImageLayout::eUndefined,
 	                      vk::ImageLayout::eColorAttachmentOptimal, {}, vk::AccessFlagBits2::eColorAttachmentWrite,
 	                      vk::PipelineStageFlagBits2::eColorAttachmentOutput,
 	                      vk::PipelineStageFlagBits2::eColorAttachmentOutput, vk::ImageAspectFlagBits::eColor);
+
 
 	transitionImageLayout(secondaryCmd, swapChain.depthImage, vk::ImageLayout::eUndefined,
 	                      vk::ImageLayout::eDepthAttachmentOptimal, {},
@@ -103,7 +104,7 @@ void CommandBufferFactory::recordMainCommandBuffer(vk::raii::CommandBuffer& seco
 
 	vk::ClearValue clearColor = vk::ClearColorValue(0.0f, 0.0f, 0.0f, 1.0f);
 	vk::RenderingAttachmentInfo attachmentInfo;
-	attachmentInfo.imageView = swapChain.swapChainImageViews[imageIndex];
+	attachmentInfo.imageView = *swapChain.offscreenImageView;
 	attachmentInfo.imageLayout = vk::ImageLayout::eColorAttachmentOptimal;
 	attachmentInfo.loadOp = vk::AttachmentLoadOp::eClear;
 	attachmentInfo.storeOp = vk::AttachmentStoreOp::eStore;
@@ -157,6 +158,63 @@ void CommandBufferFactory::recordMainCommandBuffer(vk::raii::CommandBuffer& seco
 			currentInstanceOffset += mManager.meshes[i].entitiesSubscribed;
 		}
 	}
+
+	secondaryCmd.endRendering();
+
+	transitionImageLayout(secondaryCmd, *swapChain.offscreenImage, vk::ImageLayout::eColorAttachmentOptimal,
+	                      vk::ImageLayout::eShaderReadOnlyOptimal, vk::AccessFlagBits2::eColorAttachmentWrite,
+	                      vk::AccessFlagBits2::eShaderRead, vk::PipelineStageFlagBits2::eColorAttachmentOutput,
+	                      vk::PipelineStageFlagBits2::eFragmentShader, vk::ImageAspectFlagBits::eColor);
+
+
+	secondaryCmd.end();
+}
+
+void CommandBufferFactory::recordFxaaCommandBuffer(vk::raii::CommandBuffer& secondaryCmd, uint32_t imageIndex,
+                                                   SwapChain& swapChain, PipelineHandler& pipelineHandler,
+                                                   DescriptorManagerComponent& dManager, int fxaaDescriptorSetIndex)
+{
+	vk::CommandBufferInheritanceInfo inheritanceInfo = {};
+	vk::CommandBufferBeginInfo beginInfo;
+	beginInfo.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit;
+	beginInfo.pInheritanceInfo = &inheritanceInfo;
+
+	secondaryCmd.begin(beginInfo);
+
+	// --- Step 3: FXAA PASS ---
+
+	transitionImageLayout(secondaryCmd, swapChain.swapChainImages[imageIndex], vk::ImageLayout::eUndefined,
+	                      vk::ImageLayout::eColorAttachmentOptimal, vk::AccessFlagBits2::eNone,
+	                      vk::AccessFlagBits2::eColorAttachmentWrite, vk::PipelineStageFlagBits2::eTopOfPipe,
+	                      vk::PipelineStageFlagBits2::eColorAttachmentOutput, vk::ImageAspectFlagBits::eColor);
+
+	vk::RenderingAttachmentInfo attachmentInfo;
+	attachmentInfo.imageView = swapChain.swapChainImageViews[imageIndex];
+	attachmentInfo.imageLayout = vk::ImageLayout::eColorAttachmentOptimal;
+	attachmentInfo.loadOp = vk::AttachmentLoadOp::eClear;
+	attachmentInfo.storeOp = vk::AttachmentStoreOp::eStore;
+	attachmentInfo.clearValue = vk::ClearValue(vk::ClearColorValue(0.0f, 0.0f, 0.0f, 1.0f));
+
+	vk::RenderingInfo renderingInfo;
+	renderingInfo.renderArea.offset = 0;
+	renderingInfo.renderArea.extent = swapChain.swapChainExtent;
+	renderingInfo.layerCount = 1;
+	renderingInfo.colorAttachmentCount = 1;
+	renderingInfo.pColorAttachments = &attachmentInfo;
+
+	secondaryCmd.beginRendering(renderingInfo);
+
+	secondaryCmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipelineHandler.fxaaPipeline);
+
+	secondaryCmd.setViewport(0, vk::Viewport(0.0f, 0.0f, static_cast<float>(swapChain.swapChainExtent.width),
+	                                         static_cast<float>(swapChain.swapChainExtent.height), 0.0f, 1.0f));
+	secondaryCmd.setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), swapChain.swapChainExtent));
+
+	secondaryCmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineHandler.fxaaPipelineLayout, 0,
+	                                dManager.descriptorManager->descriptorSets[fxaaDescriptorSetIndex][0], nullptr);
+
+	// Draw full-screen triangle
+	secondaryCmd.draw(3, 1, 0, 0);
 
 	secondaryCmd.endRendering();
 

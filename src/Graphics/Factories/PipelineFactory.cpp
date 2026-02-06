@@ -93,8 +93,6 @@ void PipelineFactory::createGraphicsPipeline(VulkanDevice& vulkanDevice, SwapCha
 
 	pipelineHandler.pipelineLayout = vk::raii::PipelineLayout(vulkanDevice.device, pipelineLayoutInfo);
 
-	pipelineHandler.pipelineLayout = vk::raii::PipelineLayout(vulkanDevice.device, pipelineLayoutInfo);
-
 	vk::PipelineRenderingCreateInfo pipelineRenderingCreateInfo;
 	pipelineRenderingCreateInfo.colorAttachmentCount = 1;
 	pipelineRenderingCreateInfo.pColorAttachmentFormats = &swapChain.swapChainImageFormat;
@@ -222,4 +220,100 @@ void PipelineFactory::createShadowPipeline(VulkanDevice& vulkanDevice, SwapChain
 	createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
 	vk::raii::ShaderModule shaderModule{vulkanDevice.device, createInfo};
 	return shaderModule;
+}
+
+void PipelineFactory::createFxaaPipeline(VulkanDevice& vulkanDevice, SwapChain& swapChain,
+                                         DescriptorManager& descriptorManager, PipelineHandler& pipelineHandler)
+{
+	vk::raii::ShaderModule shaderModule =
+	    PipelineFactory::createShaderModule(VulkanUtils::readFile("shaders/fxaa.spv"), vulkanDevice);
+
+	vk::PipelineShaderStageCreateInfo vertShaderStageInfo{};
+	vertShaderStageInfo.stage = vk::ShaderStageFlagBits::eVertex;
+	vertShaderStageInfo.module = shaderModule;
+	vertShaderStageInfo.pName = "vertMain";
+
+	vk::PipelineShaderStageCreateInfo fragShaderStageInfo{};
+	fragShaderStageInfo.stage = vk::ShaderStageFlagBits::eFragment;
+	fragShaderStageInfo.module = shaderModule;
+	fragShaderStageInfo.pName = "fragMain";
+
+	vk::PipelineShaderStageCreateInfo shaderStages[] = {vertShaderStageInfo, fragShaderStageInfo};
+
+	vk::PipelineVertexInputStateCreateInfo vertexInputInfo{};
+	vertexInputInfo.vertexBindingDescriptionCount = 0;
+	vertexInputInfo.pVertexBindingDescriptions = nullptr;
+	vertexInputInfo.vertexAttributeDescriptionCount = 0;
+	vertexInputInfo.pVertexAttributeDescriptions = nullptr;
+
+	vk::PipelineInputAssemblyStateCreateInfo inputAssembly{};
+	inputAssembly.topology = vk::PrimitiveTopology::eTriangleList;
+	inputAssembly.primitiveRestartEnable = vk::False;
+
+	vk::PipelineViewportStateCreateInfo viewportState{};
+	viewportState.viewportCount = 1;
+	viewportState.scissorCount = 1;
+
+	std::vector<vk::DynamicState> dynamicStates = {vk::DynamicState::eViewport, vk::DynamicState::eScissor};
+	vk::PipelineDynamicStateCreateInfo dynamicState{};
+	dynamicState.dynamicStateCount = static_cast<uint32_t>(dynamicStates.size());
+	dynamicState.pDynamicStates = dynamicStates.data();
+
+	vk::PipelineRasterizationStateCreateInfo rasterizer{};
+	rasterizer.depthClampEnable = vk::False;
+	rasterizer.rasterizerDiscardEnable = vk::False;
+	rasterizer.polygonMode = vk::PolygonMode::eFill;
+	rasterizer.lineWidth = 1.0f;
+	rasterizer.cullMode = vk::CullModeFlagBits::eNone; 
+	rasterizer.frontFace = vk::FrontFace::eCounterClockwise;
+	rasterizer.depthBiasEnable = vk::False;
+
+	vk::PipelineMultisampleStateCreateInfo multisampling{};
+	multisampling.sampleShadingEnable = vk::False;
+	multisampling.rasterizationSamples = vk::SampleCountFlagBits::e1;
+
+	vk::PipelineDepthStencilStateCreateInfo depthStencil{};
+	depthStencil.depthTestEnable = vk::False;
+	depthStencil.depthWriteEnable = vk::False;
+	depthStencil.depthCompareOp = vk::CompareOp::eAlways;
+	depthStencil.depthBoundsTestEnable = vk::False;
+	depthStencil.stencilTestEnable = vk::False;
+
+	vk::PipelineColorBlendAttachmentState colorBlendAttachment{};
+	colorBlendAttachment.colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG |
+	                                      vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA;
+	colorBlendAttachment.blendEnable = vk::False; 
+
+	vk::PipelineColorBlendStateCreateInfo colorBlending{};
+	colorBlending.logicOpEnable = vk::False;
+	colorBlending.logicOp = vk::LogicOp::eCopy;
+	colorBlending.attachmentCount = 1;
+	colorBlending.pAttachments = &colorBlendAttachment;
+
+	vk::PipelineLayoutCreateInfo pipelineLayoutInfo{};
+	pipelineLayoutInfo.setLayoutCount = 1;
+	pipelineLayoutInfo.pSetLayouts = &*descriptorManager.fxaaSetLayout;
+
+	pipelineHandler.fxaaPipelineLayout = vk::raii::PipelineLayout(vulkanDevice.device, pipelineLayoutInfo);
+
+	vk::PipelineRenderingCreateInfo pipelineRenderingCreateInfo{};
+	pipelineRenderingCreateInfo.colorAttachmentCount = 1;
+	pipelineRenderingCreateInfo.pColorAttachmentFormats = &swapChain.swapChainImageFormat;
+
+	vk::GraphicsPipelineCreateInfo pipelineInfo{};
+	pipelineInfo.pNext = &pipelineRenderingCreateInfo;
+	pipelineInfo.stageCount = 2;
+	pipelineInfo.pStages = shaderStages;
+	pipelineInfo.pVertexInputState = &vertexInputInfo;
+	pipelineInfo.pInputAssemblyState = &inputAssembly;
+	pipelineInfo.pViewportState = &viewportState;
+	pipelineInfo.pDepthStencilState = &depthStencil;
+	pipelineInfo.pRasterizationState = &rasterizer;
+	pipelineInfo.pMultisampleState = &multisampling;
+	pipelineInfo.pColorBlendState = &colorBlending;
+	pipelineInfo.pDynamicState = &dynamicState;
+	pipelineInfo.layout = pipelineHandler.fxaaPipelineLayout;
+	pipelineInfo.renderPass = nullptr;
+
+	pipelineHandler.fxaaPipeline = vk::raii::Pipeline(vulkanDevice.device, nullptr, pipelineInfo);
 }

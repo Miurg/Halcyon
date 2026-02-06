@@ -51,7 +51,7 @@ public:
 	};
 
 private:
-	static void vulkanNeedsCreate(GeneralManager& gm) 
+	static void vulkanNeedsCreate(GeneralManager& gm)
 	{
 #ifdef _DEBUG
 		std::cout << "GRAPHICSINIT::VULKANNEEDS::Start create vulkan needs" << std::endl;
@@ -71,6 +71,7 @@ private:
 		gm.registerContext<MainSwapChainContext>(swapChainEntity);
 		SwapChain* swapChain = new SwapChain();
 		SwapChainFactory::createSwapChain(*swapChain, *vulkanDevice, *window);
+		SwapChainFactory::createOffscreenResources(*swapChain, *vulkanDevice, *window);
 		gm.addComponent<SwapChainComponent>(swapChainEntity, swapChain);
 
 		// VMA Allocator
@@ -147,6 +148,7 @@ private:
 		PipelineHandler* pipelineHandler = new PipelineHandler();
 		PipelineFactory::createGraphicsPipeline(*vulkanDevice, *swapChain, *dManager, *pipelineHandler);
 		PipelineFactory::createShadowPipeline(*vulkanDevice, *swapChain, *dManager, *pipelineHandler);
+		PipelineFactory::createFxaaPipeline(*vulkanDevice, *swapChain, *dManager, *pipelineHandler);
 		gm.addComponent<PipelineHandlerComponent>(signatureEntity, pipelineHandler);
 
 		// Frame Images
@@ -197,6 +199,8 @@ private:
 		GlobalDSetComponent* globalDSetComponent = gm.getContextComponent<MainDSetsContext, GlobalDSetComponent>();
 		globalDSetComponent->globalDSets =
 		    dManager->allocateStorageBufferDSets(MAX_FRAMES_IN_FLIGHT, *dManager->globalSetLayout);
+		globalDSetComponent->fxaaDSets = dManager->allocateFxaaDescriptorSet(*dManager->fxaaSetLayout);
+
 		globalDSetComponent->cameraBuffers =
 		    bManager->createBuffer((vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal),
 		                           sizeof(CameraStucture), MAX_FRAMES_IN_FLIGHT, 0, *dManager->globalSetLayout);
@@ -210,9 +214,12 @@ private:
 		                                         globalDSetComponent->globalDSets, 2);
 
 		sunLight->textureShadowImage = tManager->createShadowMap(sunLight->sizeX, sunLight->sizeY);
-		dManager->updateShadowDSet(globalDSetComponent->globalDSets,
-		                           tManager->textures[sunLight->textureShadowImage].textureImageView,
-		                           tManager->textures[sunLight->textureShadowImage].textureSampler);
+		dManager->updateSingleTextureDSet(globalDSetComponent->globalDSets, 1,
+		                                  tManager->textures[sunLight->textureShadowImage].textureImageView,
+		                                  tManager->textures[sunLight->textureShadowImage].textureSampler);
+		SwapChain* swap = gm.getContextComponent<MainSwapChainContext, SwapChainComponent>()->swapChainInstance;
+		dManager->updateSingleTextureDSet(globalDSetComponent->fxaaDSets, 0, swap->offscreenImageView,
+		                                  swap->offscreenSampler);
 
 		// === Cameras and Lights END ===
 
@@ -220,7 +227,7 @@ private:
 		objectDSetComponent->modelBufferDSet =
 		    dManager->allocateStorageBufferDSets(MAX_FRAMES_IN_FLIGHT, *dManager->modelSetLayout);
 		// === Model SSBOs ===
-		
+
 		objectDSetComponent->primitiveBuffer =
 		    bManager->createBuffer((vk::MemoryPropertyFlagBits::eHostVisible), 10240 * sizeof(PrimitiveSctructure),
 		                           MAX_FRAMES_IN_FLIGHT, 0, *dManager->modelSetLayout);

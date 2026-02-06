@@ -58,6 +58,9 @@ void RenderSystem::update(float deltaTime, GeneralManager& gm)
 	                                              imageIndex, swapChain, pipelineHandler, currentFrameComp->currentFrame,
 	                                              *materialDSetComponent, *dManager, globalDSetComponent,
 	                                              objectDSetComponent, modelManager);
+	CommandBufferFactory::recordFxaaCommandBuffer(
+	    frameManager->frames[currentFrameComp->currentFrame].secondaryCommandBuffers[2], imageIndex, swapChain,
+	    pipelineHandler, *dManager, globalDSetComponent->fxaaDSets);
 	CommandBufferFactory::executeSecondaryBuffers(frameManager->frames[currentFrameComp->currentFrame].commandBuffer,
 	    frameManager->frames[currentFrameComp->currentFrame].secondaryCommandBuffers);
 }

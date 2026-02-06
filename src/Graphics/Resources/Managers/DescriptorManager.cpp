@@ -55,6 +55,20 @@ DescriptorManager::DescriptorManager(VulkanDevice& vulkanDevice) : vulkanDevice(
 	std::array<vk::DescriptorSetLayoutBinding, 2> modelBindings = {primitivesBinding, transformBinding};
 	vk::DescriptorSetLayoutCreateInfo modelInfo({}, static_cast<uint32_t>(modelBindings.size()), modelBindings.data());
 	modelSetLayout = vk::raii::DescriptorSetLayout(vulkanDevice.device, modelInfo);
+
+	//===FXAA===
+	vk::DescriptorSetLayoutBinding samplerLayoutBinding{};
+	samplerLayoutBinding.binding = 0;
+	samplerLayoutBinding.descriptorCount = 1;
+	samplerLayoutBinding.descriptorType = vk::DescriptorType::eCombinedImageSampler;
+	samplerLayoutBinding.pImmutableSamplers = nullptr;
+	samplerLayoutBinding.stageFlags = vk::ShaderStageFlagBits::eFragment;
+
+	vk::DescriptorSetLayoutCreateInfo layoutInfo{};
+	layoutInfo.bindingCount = 1;
+	layoutInfo.pBindings = &samplerLayoutBinding;
+
+	fxaaSetLayout = vk::raii::DescriptorSetLayout(vulkanDevice.device, layoutInfo);
 }
 
 int DescriptorManager::allocateBindlessTextureDSet()
@@ -87,7 +101,7 @@ void DescriptorManager::updateBindlessTextureSet(vk::ImageView textureImageView,
 	vulkanDevice.device.updateDescriptorSets(descriptorWrite, {});
 }
 
-void DescriptorManager::updateShadowDSet(int dIndex, vk::ImageView imageView, vk::Sampler sampler)
+void DescriptorManager::updateSingleTextureDSet(int dIndex,int binding, vk::ImageView imageView, vk::Sampler sampler)
 {
 	for (size_t i = 0; i < descriptorSets[dIndex].size(); i++)
 	{
@@ -98,7 +112,7 @@ void DescriptorManager::updateShadowDSet(int dIndex, vk::ImageView imageView, vk
 
 		vk::WriteDescriptorSet descriptorWrite;
 		descriptorWrite.dstSet = descriptorSets[dIndex][i];
-		descriptorWrite.dstBinding = 1;
+		descriptorWrite.dstBinding = binding;
 		descriptorWrite.dstArrayElement = 0;
 		descriptorWrite.descriptorType = vk::DescriptorType::eCombinedImageSampler;
 		descriptorWrite.descriptorCount = 1;
@@ -150,3 +164,15 @@ void DescriptorManager::updateStorageBufferDescriptors(BufferManager& bManager, 
 
 	(*vulkanDevice.device).updateDescriptorSets(writes, {});
 }
+
+int DescriptorManager::allocateFxaaDescriptorSet(vk::DescriptorSetLayout layout)
+{
+	vk::DescriptorSetAllocateInfo allocInfo(*descriptorPool, layout);
+	auto allocatedSets = vulkanDevice.device.allocateDescriptorSets(allocInfo);
+
+	std::vector<vk::DescriptorSet> descriptors = {allocatedSets[0].release()};
+	descriptorSets.push_back(descriptors);
+
+	return static_cast<int>(descriptorSets.size() - 1);
+}
+

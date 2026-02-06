@@ -94,8 +94,15 @@ add_slang_shader_target(
     ENTRY vertShadow
 )
 
+add_slang_shader_target(
+    fxaa
+    SOURCES "assets/shaders/FXAA.slang"
+    ENTRY vertMain fragMain
+)
+
 add_dependencies("${CMAKE_PROJECT_NAME}" shader)
 add_dependencies("${CMAKE_PROJECT_NAME}" shadow)
+add_dependencies("${CMAKE_PROJECT_NAME}" fxaa)
 
 add_custom_command(
     TARGET ${PROJECT_NAME} POST_BUILD
@@ -114,3 +121,5 @@ add_custom_command(
     "$<TARGET_FILE_DIR:${PROJECT_NAME}>/assets/models"
     COMMENT "Copy models..."
 )
+
+
