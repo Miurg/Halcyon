@@ -48,12 +48,17 @@ void CommandBufferFactory::recordShadowCommandBuffer(vk::raii::CommandBuffer& se
 	secondaryCmd.setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), vk::Extent2D(lightTexture.sizeX, lightTexture.sizeY)));
 
 	uint32_t currentInstanceOffset = 0;
+	uint32_t currentBuffer = -1;
 	for (int i = 0; i < mManager.meshes.size(); i++)
 	{
-		secondaryCmd.bindVertexBuffers(
-		    0, mManager.vertexIndexBuffers[mManager.meshes[i].vertexIndexBufferID].vertexBuffer, {0});
-		secondaryCmd.bindIndexBuffer(mManager.vertexIndexBuffers[mManager.meshes[i].vertexIndexBufferID].indexBuffer, 0,
-		                             vk::IndexType::eUint32);
+		if (mManager.meshes[i].vertexIndexBufferID != currentBuffer)
+		{
+			currentBuffer = mManager.meshes[i].vertexIndexBufferID;
+			secondaryCmd.bindVertexBuffers(
+			    0, mManager.vertexIndexBuffers[mManager.meshes[i].vertexIndexBufferID].vertexBuffer, {0});
+			secondaryCmd.bindIndexBuffer(mManager.vertexIndexBuffers[mManager.meshes[i].vertexIndexBufferID].indexBuffer,
+			                             0, vk::IndexType::eUint32);
+		}
 		for (int j = 0; j < mManager.meshes[i].primitives.size(); j++)
 		{
 			secondaryCmd.drawIndexed(mManager.meshes[i].primitives[j].indexCount, mManager.meshes[i].entitiesSubscribed,
@@ -144,12 +149,18 @@ void CommandBufferFactory::recordMainCommandBuffer(vk::raii::CommandBuffer& seco
 	    dManager.descriptorManager->descriptorSets[bindlessTextureDSetComponent.bindlessTextureSet][0], nullptr);
 
 	uint32_t currentInstanceOffset = 0;
+	uint32_t currentBuffer = -1;
 	for (int i = 0; i < mManager.meshes.size(); i++)
 	{
-		secondaryCmd.bindVertexBuffers(
-		    0, mManager.vertexIndexBuffers[mManager.meshes[i].vertexIndexBufferID].vertexBuffer, {0});
-		secondaryCmd.bindIndexBuffer(mManager.vertexIndexBuffers[mManager.meshes[i].vertexIndexBufferID].indexBuffer, 0,
-		                             vk::IndexType::eUint32);
+		if (mManager.meshes[i].vertexIndexBufferID != currentBuffer)
+		{
+			currentBuffer = mManager.meshes[i].vertexIndexBufferID;
+			secondaryCmd.bindVertexBuffers(
+			    0, mManager.vertexIndexBuffers[mManager.meshes[i].vertexIndexBufferID].vertexBuffer, {0});
+			secondaryCmd.bindIndexBuffer(mManager.vertexIndexBuffers[mManager.meshes[i].vertexIndexBufferID].indexBuffer,
+			                             0, vk::IndexType::eUint32);
+		}
+		
 		for (int j = 0; j < mManager.meshes[i].primitives.size(); j++)
 		{
 			secondaryCmd.drawIndexed(mManager.meshes[i].primitives[j].indexCount, mManager.meshes[i].entitiesSubscribed,
