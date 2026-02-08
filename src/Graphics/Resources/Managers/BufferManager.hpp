@@ -24,7 +24,8 @@ public:
 	~BufferManager();
 
 	int createBuffer(vk::MemoryPropertyFlags propertyBits, vk::DeviceSize sizeBuffer, uint_fast16_t numberBuffers,
-	                 uint_fast16_t numberBinding, vk::DescriptorSetLayout layout);
+	                 uint_fast16_t numberBinding, vk::DescriptorSetLayout layout,
+	                 vk::Flags<vk::BufferUsageFlagBits> usageBuffer);
 
 	std::vector<Buffer> buffers;
 	
@@ -34,7 +35,7 @@ private:
 	VmaAllocator allocator = {};
 
 	void initGlobalBuffer(vk::MemoryPropertyFlags propertyBits, Buffer& bufferIn, vk::DeviceSize sizeBuffer,
-	                      uint_fast16_t numberBuffers);
+	                      uint_fast16_t numberBuffers, vk::Flags<vk::BufferUsageFlagBits> usageBuffer);
 	//int createMeshInternal(const char path[MAX_PATH_LEN], BindlessTextureDSetComponent& dSetComponent,
 	//                       DescriptorManager& dManager);
 };

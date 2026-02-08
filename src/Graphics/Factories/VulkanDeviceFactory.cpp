@@ -193,6 +193,7 @@ void VulkanDeviceFactory::createLogicalDevice(VulkanDevice& vulkanDevice)
 	featureChain.get<vk::PhysicalDeviceExtendedDynamicStateFeaturesEXT>().extendedDynamicState = true;
 	featureChain.get<vk::PhysicalDeviceVulkan11Features>().shaderDrawParameters = true;
 	featureChain.get<vk::PhysicalDeviceFeatures2>().features.samplerAnisotropy = true;
+	featureChain.get<vk::PhysicalDeviceFeatures2>().features.multiDrawIndirect = true;
 	featureChain.get<vk::PhysicalDeviceVulkan12Features>().descriptorIndexing = true;
 	featureChain.get<vk::PhysicalDeviceVulkan12Features>().descriptorBindingPartiallyBound = true;
 	featureChain.get<vk::PhysicalDeviceVulkan12Features>().runtimeDescriptorArray = true;

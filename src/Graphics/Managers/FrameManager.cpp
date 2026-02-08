@@ -18,7 +18,7 @@ int FrameManager::initFrameData()
 	    vk::raii::Fence(vulkanDevice.device, vk::FenceCreateInfo(vk::FenceCreateFlagBits::eSignaled));
 
 	allocInfo.level = vk::CommandBufferLevel::eSecondary;
-	allocInfo.commandBufferCount = 3;
+	allocInfo.commandBufferCount = 4;
 	vk::raii::CommandBuffers secondaryBuffers(vulkanDevice.device, allocInfo);
 	frameData.secondaryCommandBuffers = std::move(secondaryBuffers);
 	frames.push_back(std::move(frameData));

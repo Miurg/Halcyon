@@ -20,19 +20,19 @@ BufferManager::~BufferManager()
 
 int BufferManager::createBuffer(vk::MemoryPropertyFlags propertyBits, vk::DeviceSize sizeBuffer,
                                 uint_fast16_t numberBuffers, uint_fast16_t numberBinding,
-                                vk::DescriptorSetLayout layout)
+                                vk::DescriptorSetLayout layout, vk::Flags<vk::BufferUsageFlagBits> usageBuffer)
 {
 	buffers.push_back(Buffer());
-	BufferManager::initGlobalBuffer(propertyBits, buffers.back(), sizeBuffer, numberBuffers);
+	BufferManager::initGlobalBuffer(propertyBits, buffers.back(), sizeBuffer, numberBuffers, usageBuffer);
 	return buffers.size() - 1;
 }
 
 void BufferManager::initGlobalBuffer(vk::MemoryPropertyFlags propertyBits, Buffer& bufferIn, vk::DeviceSize sizeBuffer,
-                                     uint_fast16_t numberBuffers)
+                                     uint_fast16_t numberBuffers, vk::Flags<vk::BufferUsageFlagBits> usageBuffer)
 {
 	vk::BufferCreateInfo bufferInfo;
 	bufferInfo.size = sizeBuffer;
-	bufferInfo.usage = vk::BufferUsageFlagBits::eStorageBuffer;
+	bufferInfo.usage = usageBuffer;
 	bufferInfo.sharingMode = vk::SharingMode::eExclusive;
 
 	VmaAllocationCreateInfo allocInfo = {};

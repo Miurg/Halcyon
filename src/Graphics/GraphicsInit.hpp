@@ -151,6 +151,7 @@ private:
 		PipelineFactory::createGraphicsPipeline(*vulkanDevice, *swapChain, *dManager, *pipelineHandler);
 		PipelineFactory::createShadowPipeline(*vulkanDevice, *swapChain, *dManager, *pipelineHandler);
 		PipelineFactory::createFxaaPipeline(*vulkanDevice, *swapChain, *dManager, *pipelineHandler);
+		PipelineFactory::createCullingPipeline(*vulkanDevice, *dManager, *pipelineHandler);
 		gm.addComponent<PipelineHandlerComponent>(signatureEntity, pipelineHandler);
 
 		// Frame Images
@@ -189,9 +190,9 @@ private:
 		gm.addComponent<ControlComponent>(cameraEntity);
 		gm.registerContext<MainCameraContext>(cameraEntity);
 		CameraComponent* camera = gm.getContextComponent<MainCameraContext, CameraComponent>();
-		globalDSetComponent->cameraBuffers =
-		    bManager->createBuffer((vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal),
-		                           sizeof(CameraStucture), MAX_FRAMES_IN_FLIGHT, 0, *dManager->globalSetLayout);
+		globalDSetComponent->cameraBuffers = bManager->createBuffer(
+		    (vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal), sizeof(CameraStucture),
+		    MAX_FRAMES_IN_FLIGHT, 0, *dManager->globalSetLayout, vk::BufferUsageFlagBits::eStorageBuffer);
 		dManager->updateStorageBufferDescriptors(*bManager, globalDSetComponent->cameraBuffers,
 		                                         globalDSetComponent->globalDSets, 0);
 		// === Camera END ===
@@ -205,9 +206,9 @@ private:
 		gm.registerContext<SunContext>(sunEntity);
 		CameraComponent* sunCamera = gm.getContextComponent<SunContext, CameraComponent>();
 		LightComponent* sunLight = gm.getContextComponent<SunContext, LightComponent>();
-		globalDSetComponent->sunCameraBuffers =
-		    bManager->createBuffer((vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal),
-		                           sizeof(SunStructure), MAX_FRAMES_IN_FLIGHT, 2, *dManager->globalSetLayout);
+		globalDSetComponent->sunCameraBuffers = bManager->createBuffer(
+		    (vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal), sizeof(SunStructure),
+		    MAX_FRAMES_IN_FLIGHT, 2, *dManager->globalSetLayout, vk::BufferUsageFlagBits::eStorageBuffer);
 		dManager->updateStorageBufferDescriptors(*bManager, globalDSetComponent->sunCameraBuffers,
 		                                         globalDSetComponent->globalDSets, 2);
 		sunLight->textureShadowImage = tManager->createShadowMap(sunLight->sizeX, sunLight->sizeY);
@@ -220,14 +221,20 @@ private:
 		FrustrumDSetComponent* frustrumDSetComponent = gm.getContextComponent<MainDSetsContext, FrustrumDSetComponent>();
 		frustrumDSetComponent->frustrumBufferDSet =
 		    dManager->allocateStorageBufferDSets(MAX_FRAMES_IN_FLIGHT, *dManager->frustrumSetLayout);
-		frustrumDSetComponent->indirectDrawBuffer = bManager->createBuffer((vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal),
-														  sizeof(IndirectDrawStructure), MAX_FRAMES_IN_FLIGHT, 0, *dManager->frustrumSetLayout);
+
+		frustrumDSetComponent->indirectDrawBuffer =
+		    bManager->createBuffer((vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal),
+		    sizeof(IndirectDrawStructure) * 10240, MAX_FRAMES_IN_FLIGHT, 0, *dManager->frustrumSetLayout,
+		                           vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eIndirectBuffer |
+		                               vk::BufferUsageFlagBits::eTransferDst);
 		dManager->updateStorageBufferDescriptors(*bManager, frustrumDSetComponent->indirectDrawBuffer,
 		                                         frustrumDSetComponent->frustrumBufferDSet, 0);
-		frustrumDSetComponent->visibleIndicesBuffer = bManager->createBuffer((vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal),
-		                           sizeof(uint32_t) * 10240, MAX_FRAMES_IN_FLIGHT, 1, *dManager->frustrumSetLayout);
-		dManager->updateStorageBufferDescriptors(*bManager, frustrumDSetComponent->visibleIndicesBuffer, 
-												 frustrumDSetComponent->frustrumBufferDSet, 1);
+		frustrumDSetComponent->visibleIndicesBuffer =
+		    bManager->createBuffer((vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal),
+		                           sizeof(uint32_t) * 10240, MAX_FRAMES_IN_FLIGHT, 1, *dManager->frustrumSetLayout,
+		                           vk::BufferUsageFlagBits::eStorageBuffer);
+		dManager->updateStorageBufferDescriptors(*bManager, frustrumDSetComponent->visibleIndicesBuffer,
+		                                         frustrumDSetComponent->frustrumBufferDSet, 1);
 		// === Frustrum END ===
 
 		// === Bindless Texture Set ===
@@ -248,17 +255,17 @@ private:
 		objectDSetComponent->modelBufferDSet =
 		    dManager->allocateStorageBufferDSets(MAX_FRAMES_IN_FLIGHT, *dManager->modelSetLayout);
 		objectDSetComponent->primitiveBuffer =
-		    bManager->createBuffer((vk::MemoryPropertyFlagBits::eHostVisible), 10240 * sizeof(PrimitiveSctructure),
-		                           MAX_FRAMES_IN_FLIGHT, 0, *dManager->modelSetLayout);
+		    bManager->createBuffer((vk::MemoryPropertyFlagBits::eHostVisible), 10240 * sizeof(PrimitiveSctructure), MAX_FRAMES_IN_FLIGHT, 0,
+		    *dManager->modelSetLayout, vk::BufferUsageFlagBits::eStorageBuffer);
 		dManager->updateStorageBufferDescriptors(*bManager, objectDSetComponent->primitiveBuffer,
 		                                         objectDSetComponent->modelBufferDSet, 0);
 		objectDSetComponent->transformBuffer =
-		    bManager->createBuffer((vk::MemoryPropertyFlagBits::eHostVisible), 10240 * sizeof(TransformStructure),
-		                           MAX_FRAMES_IN_FLIGHT, 1, *dManager->modelSetLayout);
+		    bManager->createBuffer((vk::MemoryPropertyFlagBits::eHostVisible), 10240 * sizeof(TransformStructure), MAX_FRAMES_IN_FLIGHT, 1,
+		    *dManager->modelSetLayout, vk::BufferUsageFlagBits::eStorageBuffer);
 		dManager->updateStorageBufferDescriptors(*bManager, objectDSetComponent->transformBuffer,
 		                                         objectDSetComponent->modelBufferDSet, 1);
 		// === ModelEND ===
-		
+
 		// === Placeholder Entities END ===
 
 		// === Default White Texture ===

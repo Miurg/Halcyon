@@ -29,24 +29,22 @@ struct VkDrawIndexedIndirectCommand
     int vertexOffset;
     uint firstInstance;
 };
-[[vk::binding(0, 1)]] RWStructuredBuffer<VkDrawIndexedIndirectCommand> indirectDrawBuffer;
+[[vk::binding(0, 3)]] RWStructuredBuffer<VkDrawIndexedIndirectCommand> indirectDrawBuffer;
 
-[[vk::binding(1, 1)]] RWStructuredBuffer<uint> visibleIndicesBuffer;
+[[vk::binding(1, 3)]] RWStructuredBuffer<uint> visibleIndicesBuffer;
 
 struct PushConstants
 {
     uint objectCount;
     uint drawCommandIndex;
+    uint visibleBufferOffset;
 };
 
 [[vk::push_constant]] PushConstants push;
 
-// --- Хелпер для проверки AABB ---
-
-// Проверка: находится ли AABB полностью вне одной из плоскостей отсечения
+// Helper function to check if an AABB is visible in the view frustum
 bool IsAABBVisible(float4x4 mvp, float3 minPos, float3 maxPos)
 {
-    // 8 углов AABB
     float3 corners[8];
     corners[0] = float3(minPos.x, minPos.y, minPos.z);
     corners[1] = float3(maxPos.x, minPos.y, minPos.z);
@@ -57,10 +55,6 @@ bool IsAABBVisible(float4x4 mvp, float3 minPos, float3 maxPos)
     corners[6] = float3(minPos.x, maxPos.y, maxPos.z);
     corners[7] = float3(maxPos.x, maxPos.y, maxPos.z);
 
-    // Проверяем все 6 плоскостей клип-спейса
-    // В Vulkan клип-спейс: x, y in [-w, w], z in [0, w]
-    
-    // Флаги, полностью ли бокс "за" плоскостью
     bool allLeft = true;
     bool allRight = true;
     bool allBottom = true;
@@ -68,12 +62,11 @@ bool IsAABBVisible(float4x4 mvp, float3 minPos, float3 maxPos)
     bool allNear = true;
     bool allFar = true;
 
+    // Check each corner against the frustum planes
     for (int i = 0; i < 8; i++)
     {
-        // Переводим точку в Clip Space
         float4 clipPos = mul(mvp, float4(corners[i], 1.0));
 
-        // Если хотя бы одна точка ВНУТРИ плоскости, то эту плоскость отбрасываем как разделяющую
         if (clipPos.x >= -clipPos.w) allLeft = false;
         if (clipPos.x <= clipPos.w)  allRight = false;
         if (clipPos.y >= -clipPos.w) allBottom = false;
@@ -82,7 +75,6 @@ bool IsAABBVisible(float4x4 mvp, float3 minPos, float3 maxPos)
         if (clipPos.z <= clipPos.w)  allFar = false;
     }
 
-    // Если все точки находятся за любой из плоскостей - объект невидим
     if (allLeft || allRight || allBottom || allTop || allNear || allFar)
         return false;
 
@@ -91,31 +83,25 @@ bool IsAABBVisible(float4x4 mvp, float3 minPos, float3 maxPos)
 
 // --- Main ---
 
+[shader("compute")]
 [numthreads(64, 1, 1)]
 void computeMain(uint3 id : SV_DispatchThreadID)
 {
     uint index = id.x;
-
-    if (index >= push.objectCount)
+    if (index >= push.objectCount) // Bounds check to avoid out-of-range access
         return;
 
-    // 1. Получаем данные
-    ModelData obj = objectBuffer[index];
+    ModelData obj = objectBuffer[index + push.visibleBufferOffset];
     TransformData trans = transformBuffer[obj.transformIndex];
-    
-    // MVP = Projection * View * Model
+
     float4x4 mvp = mul(camera[0].cameraSpaceMatrix, trans.model);
 
-    // 2. Проверка видимости
-    // Используем xyz из float4 AABB
     if (IsAABBVisible(mvp, obj.AABBMin.xyz, obj.AABBMax.xyz))
     {
-        // 3. Атомарное добавление
+        // Atomically increment the instance count 
         uint slotIndex;
-        // Увеличиваем instanceCount в структуре IndirectCommand
         InterlockedAdd(indirectDrawBuffer[push.drawCommandIndex].instanceCount, 1, slotIndex);
 
-        // 4. Запись индекса
-        visibleIndicesBuffer[slotIndex] = index;
+        visibleIndicesBuffer[slotIndex + push.visibleBufferOffset] = index + push.visibleBufferOffset;
     }
 }

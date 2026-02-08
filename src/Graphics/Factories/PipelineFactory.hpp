@@ -19,6 +19,8 @@ public:
 	                                 PipelineHandler& pipelineHandler);
 	[[nodiscard]] static vk::raii::ShaderModule createShaderModule(const std::vector<char>& code,
 	                                                               VulkanDevice& vulkanDevice);
+	static void createCullingPipeline(VulkanDevice& vulkanDevice, DescriptorManager& descriptorManager,
+	                                  PipelineHandler& pipelineHandler);
 	static void createFxaaPipeline(VulkanDevice& vulkanDevice, SwapChain& swapChain,
 	                               DescriptorManager& descriptorManager, PipelineHandler& pipelineHandler);
 };

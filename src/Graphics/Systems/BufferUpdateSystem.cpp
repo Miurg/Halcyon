@@ -12,6 +12,7 @@
 #include <map>
 #include "../Resources/Managers/ModelManager.hpp"
 #include "../Components/ModelManagerComponent.hpp"
+#include "../Resources/Components/FrustrumDSetComponent.hpp"
 void BufferUpdateSystem::onRegistered(GeneralManager& gm)
 {
 	std::cout << "BufferUpdateSystem registered!" << std::endl;
@@ -31,6 +32,7 @@ void BufferUpdateSystem::update(float deltaTime, GeneralManager& gm)
 	    *gm.getContextComponent<BufferManagerContext, BufferManagerComponent>()->bufferManager;
 	ModelManager& modelManager = *gm.getContextComponent<ModelManagerContext, ModelManagerComponent>()->modelManager;
 	ModelDSetComponent* modelDSetComponent = gm.getContextComponent<MainDSetsContext, ModelDSetComponent>();
+	FrustrumDSetComponent* frustrumDSetComponent = gm.getContextComponent<MainDSetsContext, FrustrumDSetComponent>();
 
 	std::vector<std::vector<Entity>> batch;
 	batch.resize(modelManager.meshes.size());
@@ -51,10 +53,14 @@ void BufferUpdateSystem::update(float deltaTime, GeneralManager& gm)
 	    bufferManager.buffers[modelDSetComponent->primitiveBuffer].bufferMapped[currentFrame]);
 	auto* transfromMeshPtr = static_cast<TransformStructure*>(
 	    bufferManager.buffers[modelDSetComponent->transformBuffer].bufferMapped[currentFrame]);
+	auto* indirectBufferPtr = static_cast<IndirectDrawStructure*>(
+	    bufferManager.buffers[frustrumDSetComponent->indirectDrawBuffer].bufferMapped[currentFrame]);
 
 	int globalTransformIndex = 0;
 	int globalPrimitiveIndex = 0;
-
+	int localPrimitiveIndex = 0;
+	int globalCullIndex = 0;
+	IndirectDrawStructure currentDraw{};
 	for (const auto& entities : batch)
 	{
 		int baseTransformIndexForMesh = globalTransformIndex;
@@ -75,27 +81,35 @@ void BufferUpdateSystem::update(float deltaTime, GeneralManager& gm)
 
 		for (int i = 0; i < primitiveCount; i++)
 		{
-			int currentEntityTransformIndex = baseTransformIndexForMesh;
+			currentDraw.indexCount = modelManager.meshes[meshBaseInfo.mesh].primitives[i].indexCount;
+			currentDraw.firstIndex = modelManager.meshes[meshBaseInfo.mesh].primitives[i].indexOffset;
+			currentDraw.vertexOffset = modelManager.meshes[meshBaseInfo.mesh].primitives[i].vertexOffset;
+			currentDraw.instanceCount = 0;
+			currentDraw.firstInstance = globalCullIndex;
+			indirectBufferPtr[globalPrimitiveIndex] = currentDraw;
 
+			int currentEntityTransformIndex = baseTransformIndexForMesh;
+			globalCullIndex += modelManager.meshes[meshBaseInfo.mesh].entitiesSubscribed;
+			globalPrimitiveIndex++;
 			for (const auto& entity : entities)
 			{
 				MeshInfoComponent& meshinfo = *gm.getComponent<MeshInfoComponent>(entity);
 
 				// Link texture index
-				primitivePtr[globalPrimitiveIndex].textureIndex =
+				primitivePtr[localPrimitiveIndex].textureIndex =
 				    modelManager.meshes[meshinfo.mesh].primitives[i].textureIndex;
 
 				// Link transform index
-				primitivePtr[globalPrimitiveIndex].transformIndex = currentEntityTransformIndex;
+				primitivePtr[localPrimitiveIndex].transformIndex = currentEntityTransformIndex;
 
 				// Base color
-				primitivePtr[globalPrimitiveIndex].baseColor =
+				primitivePtr[localPrimitiveIndex].baseColor =
 				    modelManager.meshes[meshinfo.mesh].primitives[i].baseColorFactor;
 
-				primitivePtr[globalPrimitiveIndex].AABBMax = modelManager.meshes[meshinfo.mesh].primitives[i].AABBMax;
-				primitivePtr[globalPrimitiveIndex].AABBMin = modelManager.meshes[meshinfo.mesh].primitives[i].AABBMin;
+				primitivePtr[localPrimitiveIndex].AABBMax = modelManager.meshes[meshinfo.mesh].primitives[i].AABBMax;
+				primitivePtr[localPrimitiveIndex].AABBMin = modelManager.meshes[meshinfo.mesh].primitives[i].AABBMin;
 
-				globalPrimitiveIndex++;
+				localPrimitiveIndex++;
 				currentEntityTransformIndex++;
 			}
 		}

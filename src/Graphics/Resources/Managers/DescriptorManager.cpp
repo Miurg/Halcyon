@@ -19,7 +19,8 @@ DescriptorManager::DescriptorManager(VulkanDevice& vulkanDevice) : vulkanDevice(
 
 	//===Global===
 	vk::DescriptorSetLayoutBinding cameraBinding(0, vk::DescriptorType::eStorageBuffer, 1,
-	                                             vk::ShaderStageFlagBits::eVertex, nullptr);
+	                                             vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eCompute,
+	                                             nullptr);
 	vk::DescriptorSetLayoutBinding shadowBinding(1, vk::DescriptorType::eCombinedImageSampler, 1,
 	                                             vk::ShaderStageFlagBits::eFragment, nullptr);
 	vk::DescriptorSetLayoutBinding sunBinding(2, vk::DescriptorType::eStorageBuffer, 1,
@@ -49,9 +50,11 @@ DescriptorManager::DescriptorManager(VulkanDevice& vulkanDevice) : vulkanDevice(
 
 	//===Model===
 	vk::DescriptorSetLayoutBinding primitivesBinding(0, vk::DescriptorType::eStorageBuffer, 1,
-	                                                 vk::ShaderStageFlagBits::eVertex, nullptr);
+	                                                 vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eCompute,
+	                                                 nullptr);
 	vk::DescriptorSetLayoutBinding transformBinding(1, vk::DescriptorType::eStorageBuffer, 1,
-	                                                vk::ShaderStageFlagBits::eVertex, nullptr);
+	                                                vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eCompute,
+	                                                nullptr);
 	std::array<vk::DescriptorSetLayoutBinding, 2> modelBindings = {primitivesBinding, transformBinding};
 	vk::DescriptorSetLayoutCreateInfo modelInfo({}, static_cast<uint32_t>(modelBindings.size()), modelBindings.data());
 	modelSetLayout = vk::raii::DescriptorSetLayout(vulkanDevice.device, modelInfo);

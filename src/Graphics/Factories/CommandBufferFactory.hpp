@@ -12,6 +12,7 @@
 #include "../Resources/Components/GlobalDSetComponent.hpp"
 #include "../Resources/Managers/TextureManager.hpp"
 #include "../Resources/Managers/ModelManager.hpp"
+#include "../Resources/Components/FrustrumDSetComponent.hpp"
 
 class CommandBufferFactory
 {
@@ -21,16 +22,23 @@ public:
 	                                      DescriptorManagerComponent& dManager, GlobalDSetComponent* globalDSetComponent,
 	                                      ModelDSetComponent* objectDSetComponent, TextureManager& tManager,
 	                                      ModelManager& mManager);
+	static void recordCullCommandBuffer(vk::raii::CommandBuffer& secondaryCmd, PipelineHandler& pipelineHandler,
+	                                    uint32_t currentFrame, DescriptorManagerComponent& dManager,
+	                                    GlobalDSetComponent* globalDSetComponent,
+	                                    FrustrumDSetComponent* frustrumDSetComponent,
+	                                    ModelDSetComponent* objectDSetComponent, ModelManager& mManager);
+
 	static void recordMainCommandBuffer(vk::raii::CommandBuffer& secondaryCmd, uint32_t imageIndex, SwapChain& swapChain,
 	                                    PipelineHandler& pipelineHandler, uint32_t currentFrame,
 	                                    BindlessTextureDSetComponent& bindlessTextureDSetComponent,
 	                                    DescriptorManagerComponent& dManager, GlobalDSetComponent* globalDSetComponent,
-	                                    ModelDSetComponent* objectDSetComponent, ModelManager& mManager);
+	                                    BufferManager& bManager, ModelDSetComponent* objectDSetComponent,
+	                                    ModelManager& mManager, FrustrumDSetComponent* frustrumDSetComponent);
 	static void recordFxaaCommandBuffer(vk::raii::CommandBuffer& secondaryCmd, uint32_t imageIndex, SwapChain& swapChain,
-	                             PipelineHandler& pipelineHandler, DescriptorManagerComponent& dManager,
-	                             int fxaaDescriptorSetIndex);
+	                                    PipelineHandler& pipelineHandler, DescriptorManagerComponent& dManager,
+	                                    int fxaaDescriptorSetIndex);
 	static void executeSecondaryBuffers(vk::raii::CommandBuffer& primaryCommandBuffer,
-	                                                          const vk::raii::CommandBuffers& secondaryBuffers);
+	                                    const vk::raii::CommandBuffers& secondaryBuffers);
 	static void transitionImageLayout(vk::raii::CommandBuffer& commandBuffer, vk::Image image, vk::ImageLayout oldLayout,
 	                                  vk::ImageLayout newLayout, vk::AccessFlags2 srcAccessMask,
 	                                  vk::AccessFlags2 dstAccessMask, vk::PipelineStageFlags2 srcStageMask,

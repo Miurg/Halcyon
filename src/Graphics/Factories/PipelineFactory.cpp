@@ -81,11 +81,12 @@ void PipelineFactory::createGraphicsPipeline(VulkanDevice& vulkanDevice, SwapCha
 	colorBlending.pAttachments = &colorBlendAttachment;
 
 	vk::PipelineLayoutCreateInfo pipelineLayoutInfo;
-	std::array<vk::DescriptorSetLayout, 3> setLayouts = 
+	std::array<vk::DescriptorSetLayout, 4> setLayouts = 
 	{
 	    *descriptorManager.globalSetLayout,       // Set 0
 	    *descriptorManager.textureSetLayout,   // Set 1
-	    *descriptorManager.modelSetLayout    // Set 2
+	    *descriptorManager.modelSetLayout,    // Set 2
+	    *descriptorManager.frustrumSetLayout // Set 3
 	};
 
 	pipelineLayoutInfo.setLayoutCount = static_cast<uint32_t>(setLayouts.size());
@@ -316,4 +317,43 @@ void PipelineFactory::createFxaaPipeline(VulkanDevice& vulkanDevice, SwapChain& 
 	pipelineInfo.renderPass = nullptr;
 
 	pipelineHandler.fxaaPipeline = vk::raii::Pipeline(vulkanDevice.device, nullptr, pipelineInfo);
+}
+
+void PipelineFactory::createCullingPipeline(VulkanDevice& vulkanDevice, DescriptorManager& descriptorManager,
+                                            PipelineHandler& pipelineHandler)
+{
+	vk::raii::ShaderModule shaderModule =
+	    PipelineFactory::createShaderModule(VulkanUtils::readFile("shaders/frustrum_culling.spv"), vulkanDevice);
+
+	vk::PipelineShaderStageCreateInfo computeShaderStageInfo;
+	computeShaderStageInfo.stage = vk::ShaderStageFlagBits::eCompute;
+	computeShaderStageInfo.module = *shaderModule;
+	computeShaderStageInfo.pName = "computeMain";
+
+	vk::PushConstantRange pushConstantRange;
+	pushConstantRange.stageFlags = vk::ShaderStageFlagBits::eCompute;
+	pushConstantRange.offset = 0;
+	pushConstantRange.size = sizeof(uint32_t) * 3;
+
+
+	vk::DescriptorSetLayout setLayouts[] = {
+	    *descriptorManager.globalSetLayout, 
+		*descriptorManager.globalSetLayout,
+        *descriptorManager.modelSetLayout,
+		*descriptorManager.frustrumSetLayout
+	};
+
+	vk::PipelineLayoutCreateInfo pipelineLayoutInfo;
+	pipelineLayoutInfo.setLayoutCount = 4;
+	pipelineLayoutInfo.pSetLayouts = setLayouts;
+	pipelineLayoutInfo.pushConstantRangeCount = 1;
+	pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;
+
+	pipelineHandler.cullingPipelineLayout = vk::raii::PipelineLayout(vulkanDevice.device, pipelineLayoutInfo);
+
+	vk::ComputePipelineCreateInfo pipelineInfo;
+	pipelineInfo.stage = computeShaderStageInfo;
+	pipelineInfo.layout = *pipelineHandler.cullingPipelineLayout;
+
+	pipelineHandler.cullingPipeline = vk::raii::Pipeline(vulkanDevice.device, nullptr, pipelineInfo);
 }

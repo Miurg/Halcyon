@@ -100,9 +100,17 @@ add_slang_shader_target(
     ENTRY vertMain fragMain
 )
 
+add_slang_shader_target(
+    frustrum
+    SOURCES "assets/shaders/frustrum_culling.slang"
+    ENTRY computeMain
+    OUTPUT_NAME "frustrum_culling"
+)
+
 add_dependencies("${CMAKE_PROJECT_NAME}" shader)
 add_dependencies("${CMAKE_PROJECT_NAME}" shadow)
 add_dependencies("${CMAKE_PROJECT_NAME}" fxaa)
+add_dependencies("${CMAKE_PROJECT_NAME}" frustrum)
 
 add_custom_command(
     TARGET ${PROJECT_NAME} POST_BUILD

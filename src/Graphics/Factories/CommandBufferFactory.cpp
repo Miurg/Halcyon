@@ -9,10 +9,9 @@ void CommandBufferFactory::recordShadowCommandBuffer(vk::raii::CommandBuffer& se
 {
 	vk::CommandBufferInheritanceInfo inheritanceInfo = {};
 	vk::CommandBufferBeginInfo beginInfo;
-	beginInfo.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit; 
+	beginInfo.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit;
 	beginInfo.pInheritanceInfo = &inheritanceInfo;
 
-	
 	secondaryCmd.begin(beginInfo);
 
 	// --- Step 1: SHADOW PASS ---
@@ -78,29 +77,98 @@ void CommandBufferFactory::recordShadowCommandBuffer(vk::raii::CommandBuffer& se
 	secondaryCmd.end();
 }
 
-void CommandBufferFactory::recordMainCommandBuffer(vk::raii::CommandBuffer& secondaryCmd, uint32_t imageIndex,
-                                                   SwapChain& swapChain, PipelineHandler& pipelineHandler,
-                                                   uint32_t currentFrame,
-                                                   BindlessTextureDSetComponent& bindlessTextureDSetComponent,
+void CommandBufferFactory::recordCullCommandBuffer(vk::raii::CommandBuffer& secondaryCmd,
+                                                   PipelineHandler& pipelineHandler, uint32_t currentFrame,
                                                    DescriptorManagerComponent& dManager,
                                                    GlobalDSetComponent* globalDSetComponent,
+                                                   FrustrumDSetComponent* frustrumDSetComponent,
                                                    ModelDSetComponent* objectDSetComponent, ModelManager& mManager)
+{
+	vk::CommandBufferInheritanceInfo inheritanceInfo = {};
+	vk::CommandBufferBeginInfo beginInfo;
+	beginInfo.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit;
+	beginInfo.pInheritanceInfo = &inheritanceInfo;
+
+	secondaryCmd.begin(beginInfo);
+
+	secondaryCmd.bindPipeline(vk::PipelineBindPoint::eCompute, *pipelineHandler.cullingPipeline);
+
+	secondaryCmd.bindDescriptorSets(
+	    vk::PipelineBindPoint::eCompute, *pipelineHandler.cullingPipelineLayout, 0,
+	    dManager.descriptorManager->descriptorSets[globalDSetComponent->globalDSets][currentFrame], nullptr);
+	secondaryCmd.bindDescriptorSets(
+	    vk::PipelineBindPoint::eCompute, *pipelineHandler.cullingPipelineLayout, 2,
+	    dManager.descriptorManager->descriptorSets[objectDSetComponent->modelBufferDSet][currentFrame], nullptr);
+	secondaryCmd.bindDescriptorSets(
+	    vk::PipelineBindPoint::eCompute, *pipelineHandler.cullingPipelineLayout, 3,
+	    dManager.descriptorManager->descriptorSets[frustrumDSetComponent->frustrumBufferDSet][currentFrame], nullptr);
+
+	uint32_t drawCommandIndex = 0;
+
+	uint32_t currentInstanceOffset = 0;
+	for (int i = 0; i < mManager.meshes.size(); i++)
+	{
+		for (int j = 0; j < mManager.meshes[i].primitives.size(); j++)
+		{
+			uint32_t objectCount = mManager.meshes[i].entitiesSubscribed;
+
+			struct PushConsts
+			{
+				uint32_t objectCount;
+				uint32_t drawCommandIndex;
+				uint32_t visibleIndiciesOffset;
+			} push;
+
+			push.objectCount = objectCount;
+			push.drawCommandIndex = drawCommandIndex;
+			push.visibleIndiciesOffset = currentInstanceOffset;
+
+			secondaryCmd.pushConstants<PushConsts>(*pipelineHandler.cullingPipelineLayout,
+			                                       vk::ShaderStageFlagBits::eCompute, 0, push);
+
+			uint32_t groupCountX = (objectCount + 63) / 64;
+			if (groupCountX > 0) secondaryCmd.dispatch(groupCountX, 1, 1);
+
+			drawCommandIndex++;
+			currentInstanceOffset += objectCount;
+		}
+	}
+
+	vk::MemoryBarrier2 barrier;
+	barrier.srcStageMask = vk::PipelineStageFlagBits2::eComputeShader;
+	barrier.srcAccessMask = vk::AccessFlagBits2::eShaderWrite | vk::AccessFlagBits2::eShaderRead;
+	barrier.dstStageMask = vk::PipelineStageFlagBits2::eDrawIndirect | vk::PipelineStageFlagBits2::eVertexShader;
+	barrier.dstAccessMask = vk::AccessFlagBits2::eIndirectCommandRead | vk::AccessFlagBits2::eShaderRead;
+
+	vk::DependencyInfo depInfo;
+	depInfo.memoryBarrierCount = 1;
+	depInfo.pMemoryBarriers = &barrier;
+
+	secondaryCmd.pipelineBarrier2(depInfo);
+
+	secondaryCmd.end();
+}
+
+void CommandBufferFactory::recordMainCommandBuffer(
+    vk::raii::CommandBuffer& secondaryCmd, uint32_t imageIndex, SwapChain& swapChain, PipelineHandler& pipelineHandler,
+    uint32_t currentFrame, BindlessTextureDSetComponent& bindlessTextureDSetComponent,
+    DescriptorManagerComponent& dManager, GlobalDSetComponent* globalDSetComponent, BufferManager& bManager,
+    ModelDSetComponent* objectDSetComponent, ModelManager& mManager, FrustrumDSetComponent* frustrumDSetComponent)
 {
 	vk::CommandBufferInheritanceInfo inheritanceInfo = {};
 
 	vk::CommandBufferBeginInfo beginInfo;
-	beginInfo.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit; 
+	beginInfo.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit;
 	beginInfo.pInheritanceInfo = &inheritanceInfo;
 
 	secondaryCmd.begin(beginInfo);
 
 	// --- Step 2: MAIN PASS ---
 
-	 transitionImageLayout(secondaryCmd, *swapChain.offscreenImage, vk::ImageLayout::eUndefined,
+	transitionImageLayout(secondaryCmd, *swapChain.offscreenImage, vk::ImageLayout::eUndefined,
 	                      vk::ImageLayout::eColorAttachmentOptimal, {}, vk::AccessFlagBits2::eColorAttachmentWrite,
 	                      vk::PipelineStageFlagBits2::eColorAttachmentOutput,
 	                      vk::PipelineStageFlagBits2::eColorAttachmentOutput, vk::ImageAspectFlagBits::eColor);
-
 
 	transitionImageLayout(secondaryCmd, swapChain.depthImage, vk::ImageLayout::eUndefined,
 	                      vk::ImageLayout::eDepthAttachmentOptimal, {},
@@ -142,14 +210,18 @@ void CommandBufferFactory::recordMainCommandBuffer(vk::raii::CommandBuffer& seco
 	    vk::PipelineBindPoint::eGraphics, *pipelineHandler.pipelineLayout, 0,
 	    dManager.descriptorManager->descriptorSets[globalDSetComponent->globalDSets][currentFrame], nullptr);
 	secondaryCmd.bindDescriptorSets(
+	    vk::PipelineBindPoint::eGraphics, *pipelineHandler.pipelineLayout, 1,
+	    dManager.descriptorManager->descriptorSets[bindlessTextureDSetComponent.bindlessTextureSet][0], nullptr);
+	secondaryCmd.bindDescriptorSets(
 	    vk::PipelineBindPoint::eGraphics, *pipelineHandler.pipelineLayout, 2,
 	    dManager.descriptorManager->descriptorSets[objectDSetComponent->modelBufferDSet][currentFrame], nullptr);
 	secondaryCmd.bindDescriptorSets(
-	    vk::PipelineBindPoint::eGraphics, *pipelineHandler.pipelineLayout, 1,
-	    dManager.descriptorManager->descriptorSets[bindlessTextureDSetComponent.bindlessTextureSet][0], nullptr);
+	    vk::PipelineBindPoint::eGraphics, *pipelineHandler.pipelineLayout, 3,
+	    dManager.descriptorManager->descriptorSets[frustrumDSetComponent->frustrumBufferDSet][currentFrame], nullptr);
 
-	uint32_t currentInstanceOffset = 0;
 	uint32_t currentBuffer = -1;
+	uint32_t drawCommandIndex = 0;
+	const uint32_t commandStride = sizeof(VkDrawIndexedIndirectCommand);
 	for (int i = 0; i < mManager.meshes.size(); i++)
 	{
 		if (mManager.meshes[i].vertexIndexBufferID != currentBuffer)
@@ -160,14 +232,15 @@ void CommandBufferFactory::recordMainCommandBuffer(vk::raii::CommandBuffer& seco
 			secondaryCmd.bindIndexBuffer(mManager.vertexIndexBuffers[mManager.meshes[i].vertexIndexBufferID].indexBuffer,
 			                             0, vk::IndexType::eUint32);
 		}
-		
-		for (int j = 0; j < mManager.meshes[i].primitives.size(); j++)
-		{
-			secondaryCmd.drawIndexed(mManager.meshes[i].primitives[j].indexCount, mManager.meshes[i].entitiesSubscribed,
-			                         mManager.meshes[i].primitives[j].indexOffset,
-			                         mManager.meshes[i].primitives[j].vertexOffset, currentInstanceOffset);
-			currentInstanceOffset += mManager.meshes[i].entitiesSubscribed;
-		}
+
+		uint32_t primitiveCount = mManager.meshes[i].primitives.size();
+
+		secondaryCmd.drawIndexedIndirect(bManager.buffers[frustrumDSetComponent->indirectDrawBuffer].buffer[currentFrame],
+		                                 drawCommandIndex * commandStride, 
+		                                 primitiveCount,
+		                                 commandStride);
+
+		drawCommandIndex += primitiveCount;
 	}
 
 	secondaryCmd.endRendering();
@@ -176,7 +249,6 @@ void CommandBufferFactory::recordMainCommandBuffer(vk::raii::CommandBuffer& seco
 	                      vk::ImageLayout::eShaderReadOnlyOptimal, vk::AccessFlagBits2::eColorAttachmentWrite,
 	                      vk::AccessFlagBits2::eShaderRead, vk::PipelineStageFlagBits2::eColorAttachmentOutput,
 	                      vk::PipelineStageFlagBits2::eFragmentShader, vk::ImageAspectFlagBits::eColor);
-
 
 	secondaryCmd.end();
 }
@@ -237,9 +309,8 @@ void CommandBufferFactory::recordFxaaCommandBuffer(vk::raii::CommandBuffer& seco
 	secondaryCmd.end();
 }
 
-void CommandBufferFactory::executeSecondaryBuffers(
-    vk::raii::CommandBuffer& primaryCommandBuffer,
-    const vk::raii::CommandBuffers& secondaryBuffers) 
+void CommandBufferFactory::executeSecondaryBuffers(vk::raii::CommandBuffer& primaryCommandBuffer,
+                                                   const vk::raii::CommandBuffers& secondaryBuffers)
 {
 	primaryCommandBuffer.begin({});
 

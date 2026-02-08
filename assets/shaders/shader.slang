@@ -31,6 +31,17 @@ struct SunData
 };
 [[vk::binding(2, 0)]] StructuredBuffer<SunData> sun;
 
+struct VkDrawIndexedIndirectCommand
+{
+    uint indexCount;
+    uint instanceCount;
+    uint firstIndex;
+    int vertexOffset;
+    uint firstInstance;
+};
+[[vk::binding(0, 3)]] StructuredBuffer<VkDrawIndexedIndirectCommand> indirectDrawBuffer;
+
+[[vk::binding(1, 3)]] StructuredBuffer<uint> visibleIndicesBuffer;
 struct VSInput
 {
     float3 inPosition;
@@ -54,7 +65,10 @@ struct VSOutput
 [shader("vertex")]
 VSOutput vertMain(VSInput input, uint instanceID: SV_InstanceID, uint baseInstance: SV_StartInstanceLocation)
 {
-    ModelData data = objectBuffer[instanceID + baseInstance];
+    uint indexInVisibleArray = baseInstance + instanceID;
+    uint realObjectIndex = visibleIndicesBuffer[indexInVisibleArray];
+    ModelData data = objectBuffer[realObjectIndex];
+
     TransformData transform = transformBuffer[data.transformIndex];
     VSOutput output;
 
@@ -91,8 +105,8 @@ float4 fragMain(VSOutput vertIn) : SV_TARGET
     projCoords.xy = projCoords.xy * 0.5 + 0.5;
 
     float shadowFactor = 0.0;
-    // Calculate bias based on surface slope to prevent shadow acne
-    // maximize bias when surface is parallel to light, minimize when perpendicular
+
+    // Calculate bias based on surface slope
     float bias = max(0.0005 * (1.0 - dot(norm, lightDir)), 0.00005); 
 
     if (saturate(projCoords.x) == projCoords.x && 
@@ -109,7 +123,6 @@ float4 fragMain(VSOutput vertIn) : SV_TARGET
         {
             for (int y = -1; y <= 1; ++y)
             {
-                // Sample shadow map with offset
                 shadowFactor += shadowMap.SampleCmpLevelZero(projCoords.xy + float2(x, y) * texelSize, projCoords.z - bias);
             }
         }
