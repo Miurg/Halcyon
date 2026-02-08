@@ -88,14 +88,35 @@ float4 fragMain(VSOutput vertIn) : SV_TARGET
     float3 projCoords = vertIn.shadowCoord.xyz / vertIn.shadowCoord.w;
     projCoords.xy = projCoords.xy * 0.5 + 0.5;
 
-    float shadowFactor = 1.0;
-    float bias = 0.00001;
+    float shadowFactor = 0.0;
+    // Calculate bias based on surface slope to prevent shadow acne
+    // maximize bias when surface is parallel to light, minimize when perpendicular
+    float bias = max(0.0005 * (1.0 - dot(norm, lightDir)), 0.00005); 
 
     if (saturate(projCoords.x) == projCoords.x && 
         saturate(projCoords.y) == projCoords.y && 
         projCoords.z > 0.0 && projCoords.z < 1.0)
     {
-        shadowFactor = shadowMap.SampleCmpLevelZero(projCoords.xy, projCoords.z - bias);
+        // Get shadow map dimensions to determine texel size
+        uint width, height, numLevels;
+        shadowMap.GetDimensions(0, width, height, numLevels);
+        float2 texelSize = 1.0 / float2(width, height);
+
+        // 3x3 PCF Kernel
+        for (int x = -1; x <= 1; ++x)
+        {
+            for (int y = -1; y <= 1; ++y)
+            {
+                // Sample shadow map with offset
+                shadowFactor += shadowMap.SampleCmpLevelZero(projCoords.xy + float2(x, y) * texelSize, projCoords.z - bias);
+            }
+        }
+        shadowFactor /= 9.0;
+    }
+    else // Outside of shadow map, assume not in shadow
+    {
+       
+        shadowFactor = 1.0;
     }
 
     float diff = max(dot(norm, lightDir), 0.0);
