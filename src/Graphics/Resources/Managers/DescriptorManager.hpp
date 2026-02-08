@@ -15,6 +15,7 @@ public:
 	vk::raii::DescriptorSetLayout textureSetLayout = nullptr;
 	vk::raii::DescriptorSetLayout modelSetLayout = nullptr;
 	vk::raii::DescriptorSetLayout fxaaSetLayout = nullptr;
+	vk::raii::DescriptorSetLayout frustrumSetLayout = nullptr;
 
 	int allocateBindlessTextureDSet();
 	void updateBindlessTextureSet(vk::ImageView textureImageView, vk::Sampler textureSampler,

@@ -153,6 +153,20 @@ std::vector<PrimitivesInfo> GltfLoader::primitiveParser(tinygltf::Mesh& mesh, Ve
 		size_t oldVertexSize = vertexIndexB.vertices.size();
 		vertexIndexB.vertices.resize(oldVertexSize + posAccessor.count);
 		Vertex* outputVertices = vertexIndexB.vertices.data() + oldVertexSize;
+
+		glm::vec3 maxBound = {0.0f, 0.0f, 0.0f};
+		glm::vec3 minBound = {0.0f, 0.0f, 0.0f};
+		if (!posAccessor.minValues.empty() && !posAccessor.maxValues.empty())
+		{
+			minBound = {static_cast<float>(posAccessor.minValues[0]),
+			                      static_cast<float>(posAccessor.minValues[1]),
+			                      static_cast<float>(posAccessor.minValues[2])};
+
+			maxBound = {static_cast<float>(posAccessor.maxValues[0]),
+			                      static_cast<float>(posAccessor.maxValues[1]),
+			                      static_cast<float>(posAccessor.maxValues[2])};
+
+		}
 		for (size_t i = 0; i < posAccessor.count; i++)
 		{
 			Vertex& v = outputVertices[i];
@@ -221,6 +235,8 @@ std::vector<PrimitivesInfo> GltfLoader::primitiveParser(tinygltf::Mesh& mesh, Ve
 		result.indexOffset = firstIndex;
 		result.vertexOffset = globalVertexOffset;
 		result.baseColorFactor = colorFactor;
+		result.AABBMax = maxBound;
+		result.AABBMin = minBound;
 
 		auto it = replacementMapTextures.find(materialIndex);
 		if (it != replacementMapTextures.end())

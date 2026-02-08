@@ -69,6 +69,18 @@ DescriptorManager::DescriptorManager(VulkanDevice& vulkanDevice) : vulkanDevice(
 	layoutInfo.pBindings = &samplerLayoutBinding;
 
 	fxaaSetLayout = vk::raii::DescriptorSetLayout(vulkanDevice.device, layoutInfo);
+
+	//===Frustrum===
+	vk::DescriptorSetLayoutBinding commandBinding(0, vk::DescriptorType::eStorageBuffer, 1,
+	                                              vk::ShaderStageFlagBits::eCompute, nullptr);
+	vk::DescriptorSetLayoutBinding indicesBinding(1, vk::DescriptorType::eStorageBuffer, 1,
+	                                              vk::ShaderStageFlagBits::eCompute | vk::ShaderStageFlagBits::eVertex,
+	                                              nullptr);
+	std::array<vk::DescriptorSetLayoutBinding, 2> indirectBindings = {commandBinding, indicesBinding};
+	vk::DescriptorSetLayoutCreateInfo indirectInfo({}, static_cast<uint32_t>(indirectBindings.size()),
+	                                               indirectBindings.data());
+
+	frustrumSetLayout = vk::raii::DescriptorSetLayout(vulkanDevice.device, indirectInfo);
 }
 
 int DescriptorManager::allocateBindlessTextureDSet()
@@ -101,7 +113,7 @@ void DescriptorManager::updateBindlessTextureSet(vk::ImageView textureImageView,
 	vulkanDevice.device.updateDescriptorSets(descriptorWrite, {});
 }
 
-void DescriptorManager::updateSingleTextureDSet(int dIndex,int binding, vk::ImageView imageView, vk::Sampler sampler)
+void DescriptorManager::updateSingleTextureDSet(int dIndex, int binding, vk::ImageView imageView, vk::Sampler sampler)
 {
 	for (size_t i = 0; i < descriptorSets[dIndex].size(); i++)
 	{
@@ -175,4 +187,3 @@ int DescriptorManager::allocateFxaaDescriptorSet(vk::DescriptorSetLayout layout)
 
 	return static_cast<int>(descriptorSets.size() - 1);
 }
-

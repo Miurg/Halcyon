@@ -52,8 +52,8 @@ void BufferUpdateSystem::update(float deltaTime, GeneralManager& gm)
 	auto* transfromMeshPtr = static_cast<TransformStructure*>(
 	    bufferManager.buffers[modelDSetComponent->transformBuffer].bufferMapped[currentFrame]);
 
-	int globalTransformIndex = 0; 
-	int globalPrimitiveIndex = 0; 
+	int globalTransformIndex = 0;
+	int globalPrimitiveIndex = 0;
 
 	for (const auto& entities : batch)
 	{
@@ -91,6 +91,9 @@ void BufferUpdateSystem::update(float deltaTime, GeneralManager& gm)
 				// Base color
 				primitivePtr[globalPrimitiveIndex].baseColor =
 				    modelManager.meshes[meshinfo.mesh].primitives[i].baseColorFactor;
+
+				primitivePtr[globalPrimitiveIndex].AABBMax = modelManager.meshes[meshinfo.mesh].primitives[i].AABBMax;
+				primitivePtr[globalPrimitiveIndex].AABBMin = modelManager.meshes[meshinfo.mesh].primitives[i].AABBMin;
 
 				globalPrimitiveIndex++;
 				currentEntityTransformIndex++;

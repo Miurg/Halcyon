@@ -52,15 +52,28 @@ struct SunStructure
 	glm::vec4 ambient;   // rgb: ambient color, w: intensity of ambient
 };
 
-struct PrimitiveSctructure // (16 + 4 + 4 + padding = 32 bytes)
+struct PrimitiveSctructure // (16 + 16 + 16 + 4 + 4 + 8 = 64 bytes)
 {
-	alignas(16) glm::vec4 baseColor; // 16 bytes
-	uint32_t transformIndex; // 4 bytes
-	uint32_t textureIndex;   // 4 bytes
-	uint32_t _padding[2];
+	alignas(16) glm::vec4 baseColor; // rgb: base color, w: alpha
+	alignas(16) glm::vec3 AABBMin;   // xyz: min 
+	float padding0;                  // w: padding
+	alignas(16) glm::vec3 AABBMax;   // xyz: max
+	float padding1;                  // w: padding
+	uint32_t transformIndex;         // index to the transform of the primitive
+	uint32_t textureIndex;           // index to the texture of the primitive
+	uint32_t _padding[2];    // 8 bytes (to make the total size a multiple of 16 bytes)
 };
 
 struct TransformStructure
 {
 	alignas(16) glm::mat4 model;
+};
+
+struct IndirectDrawStructure
+{
+	uint32_t indexCount;
+	uint32_t instanceCount;
+	uint32_t firstIndex;
+	int vertexOffset;
+	uint32_t firstInstance;
 };

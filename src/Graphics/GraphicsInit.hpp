@@ -35,6 +35,7 @@
 #include "Components/ModelManagerComponent.hpp"
 #include "Managers/FrameManager.hpp"
 #include "Components/FrameManagerComponent.hpp"
+#include "Resources/Components/FrustrumDSetComponent.hpp"
 class GraphicsInit
 {
 public:
@@ -141,6 +142,7 @@ private:
 		gm.addComponent<BindlessTextureDSetComponent>(mainDSetsEntity);
 		gm.addComponent<GlobalDSetComponent>(mainDSetsEntity);
 		gm.addComponent<ModelDSetComponent>(mainDSetsEntity);
+		gm.addComponent<FrustrumDSetComponent>(mainDSetsEntity);
 
 		// Signature and Pipelines
 		Entity signatureEntity = gm.createEntity();
@@ -167,84 +169,96 @@ private:
 		std::cout << "GRAPHICSINIT::PLACEHOLDERENTITYS::Start creating placeholder entities" << std::endl;
 #endif //_DEBUG
 		// === Placeholder Entities ===
+		DescriptorManager* dManager =
+		    gm.getContextComponent<DescriptorManagerContext, DescriptorManagerComponent>()->descriptorManager;
+		BufferManager* bManager = gm.getContextComponent<BufferManagerContext, BufferManagerComponent>()->bufferManager;
+		TextureManager* tManager =
+		    gm.getContextComponent<TextureManagerContext, TextureManagerComponent>()->textureManager;
+		BindlessTextureDSetComponent* bTextureDSetComponent =
+		    gm.getContextComponent<MainDSetsContext, BindlessTextureDSetComponent>();
+		GlobalDSetComponent* globalDSetComponent = gm.getContextComponent<MainDSetsContext, GlobalDSetComponent>();
+		SwapChain* swap = gm.getContextComponent<MainSwapChainContext, SwapChainComponent>()->swapChainInstance;
 
-		// === Cameras and Lights ===
+		globalDSetComponent->globalDSets =
+		    dManager->allocateStorageBufferDSets(MAX_FRAMES_IN_FLIGHT, *dManager->globalSetLayout);
+
+		// === Camera ===
 		Entity cameraEntity = gm.createEntity();
 		gm.addComponent<CameraComponent>(cameraEntity);
-		gm.addComponent<GlobalTransformComponent>(cameraEntity, glm::vec3(0.0f, 0.0f, 3.0f));
+		gm.addComponent<GlobalTransformComponent>(cameraEntity, glm::vec3(-5.0f, 5.0f, 3.0f));
 		gm.addComponent<ControlComponent>(cameraEntity);
 		gm.registerContext<MainCameraContext>(cameraEntity);
+		CameraComponent* camera = gm.getContextComponent<MainCameraContext, CameraComponent>();
+		globalDSetComponent->cameraBuffers =
+		    bManager->createBuffer((vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal),
+		                           sizeof(CameraStucture), MAX_FRAMES_IN_FLIGHT, 0, *dManager->globalSetLayout);
+		dManager->updateStorageBufferDescriptors(*bManager, globalDSetComponent->cameraBuffers,
+		                                         globalDSetComponent->globalDSets, 0);
+		// === Camera END ===
 
+		// === Sun ===
 		Entity sunEntity = gm.createEntity();
 		gm.addComponent<CameraComponent>(sunEntity);
 		gm.addComponent<GlobalTransformComponent>(sunEntity, glm::vec3(10.0f, 20.0f, 10.0f));
 		gm.addComponent<LightComponent>(sunEntity, 2048, 2048, glm::vec4(1.0f, 1.0f, 1.0f, 3.0f),
 		                                glm::vec4(1.0f, 1.0f, 1.0f, 0.1f));
 		gm.registerContext<SunContext>(sunEntity);
-
-		CameraComponent* camera = gm.getContextComponent<MainCameraContext, CameraComponent>();
 		CameraComponent* sunCamera = gm.getContextComponent<SunContext, CameraComponent>();
 		LightComponent* sunLight = gm.getContextComponent<SunContext, LightComponent>();
-
-		DescriptorManager* dManager =
-		    gm.getContextComponent<DescriptorManagerContext, DescriptorManagerComponent>()->descriptorManager;
-		BufferManager* bManager = gm.getContextComponent<BufferManagerContext, BufferManagerComponent>()->bufferManager;
-		TextureManager* tManager =
-		    gm.getContextComponent<TextureManagerContext, TextureManagerComponent>()->textureManager;
-
-		BindlessTextureDSetComponent* bTextureDSetComponent =
-		    gm.getContextComponent<MainDSetsContext, BindlessTextureDSetComponent>();
-		bTextureDSetComponent->bindlessTextureSet = dManager->allocateBindlessTextureDSet();
-
-		GlobalDSetComponent* globalDSetComponent = gm.getContextComponent<MainDSetsContext, GlobalDSetComponent>();
-		globalDSetComponent->globalDSets =
-		    dManager->allocateStorageBufferDSets(MAX_FRAMES_IN_FLIGHT, *dManager->globalSetLayout);
-		globalDSetComponent->fxaaDSets = dManager->allocateFxaaDescriptorSet(*dManager->fxaaSetLayout);
-
-		globalDSetComponent->cameraBuffers =
-		    bManager->createBuffer((vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal),
-		                           sizeof(CameraStucture), MAX_FRAMES_IN_FLIGHT, 0, *dManager->globalSetLayout);
 		globalDSetComponent->sunCameraBuffers =
 		    bManager->createBuffer((vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal),
 		                           sizeof(SunStructure), MAX_FRAMES_IN_FLIGHT, 2, *dManager->globalSetLayout);
-
-		dManager->updateStorageBufferDescriptors(*bManager, globalDSetComponent->cameraBuffers,
-		                                         globalDSetComponent->globalDSets, 0);
 		dManager->updateStorageBufferDescriptors(*bManager, globalDSetComponent->sunCameraBuffers,
 		                                         globalDSetComponent->globalDSets, 2);
-
 		sunLight->textureShadowImage = tManager->createShadowMap(sunLight->sizeX, sunLight->sizeY);
 		dManager->updateSingleTextureDSet(globalDSetComponent->globalDSets, 1,
 		                                  tManager->textures[sunLight->textureShadowImage].textureImageView,
 		                                  tManager->textures[sunLight->textureShadowImage].textureSampler);
-		SwapChain* swap = gm.getContextComponent<MainSwapChainContext, SwapChainComponent>()->swapChainInstance;
+		// === Sun END ===
+
+		// === Frustrum ===
+		FrustrumDSetComponent* frustrumDSetComponent = gm.getContextComponent<MainDSetsContext, FrustrumDSetComponent>();
+		frustrumDSetComponent->frustrumBufferDSet =
+		    dManager->allocateStorageBufferDSets(MAX_FRAMES_IN_FLIGHT, *dManager->frustrumSetLayout);
+		frustrumDSetComponent->indirectDrawBuffer = bManager->createBuffer((vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal),
+														  sizeof(IndirectDrawStructure), MAX_FRAMES_IN_FLIGHT, 0, *dManager->frustrumSetLayout);
+		dManager->updateStorageBufferDescriptors(*bManager, frustrumDSetComponent->indirectDrawBuffer,
+		                                         frustrumDSetComponent->frustrumBufferDSet, 0);
+		frustrumDSetComponent->visibleIndicesBuffer = bManager->createBuffer((vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal),
+		                           sizeof(uint32_t) * 10240, MAX_FRAMES_IN_FLIGHT, 1, *dManager->frustrumSetLayout);
+		dManager->updateStorageBufferDescriptors(*bManager, frustrumDSetComponent->visibleIndicesBuffer, 
+												 frustrumDSetComponent->frustrumBufferDSet, 1);
+		// === Frustrum END ===
+
+		// === Bindless Texture Set ===
+		bTextureDSetComponent->bindlessTextureSet = dManager->allocateBindlessTextureDSet();
+		// === Bindless Texture Set END ===
+
+		// === FXAA Descriptor Set ===
+		globalDSetComponent->fxaaDSets = dManager->allocateFxaaDescriptorSet(*dManager->fxaaSetLayout);
+		// === FXAA Descriptor Set END ===
+
+		// === Offscreen Descriptor Set ===
 		dManager->updateSingleTextureDSet(globalDSetComponent->fxaaDSets, 0, swap->offscreenImageView,
 		                                  swap->offscreenSampler);
+		// === Offscreen Descriptor Set END ===
 
-		// === Cameras and Lights END ===
-
+		// === Model ===
 		ModelDSetComponent* objectDSetComponent = gm.getContextComponent<MainDSetsContext, ModelDSetComponent>();
 		objectDSetComponent->modelBufferDSet =
 		    dManager->allocateStorageBufferDSets(MAX_FRAMES_IN_FLIGHT, *dManager->modelSetLayout);
-		// === Model SSBOs ===
-
 		objectDSetComponent->primitiveBuffer =
 		    bManager->createBuffer((vk::MemoryPropertyFlagBits::eHostVisible), 10240 * sizeof(PrimitiveSctructure),
 		                           MAX_FRAMES_IN_FLIGHT, 0, *dManager->modelSetLayout);
 		dManager->updateStorageBufferDescriptors(*bManager, objectDSetComponent->primitiveBuffer,
 		                                         objectDSetComponent->modelBufferDSet, 0);
-		// === Model SSBOs END ===
-
-		// === Primitives ===
-
 		objectDSetComponent->transformBuffer =
 		    bManager->createBuffer((vk::MemoryPropertyFlagBits::eHostVisible), 10240 * sizeof(TransformStructure),
 		                           MAX_FRAMES_IN_FLIGHT, 1, *dManager->modelSetLayout);
 		dManager->updateStorageBufferDescriptors(*bManager, objectDSetComponent->transformBuffer,
 		                                         objectDSetComponent->modelBufferDSet, 1);
-
-		// === Primitives END ===
-
+		// === ModelEND ===
+		
 		// === Placeholder Entities END ===
 
 		// === Default White Texture ===

@@ -251,5 +251,5 @@ float4 fragMain(VSOutput input) : SV_Target
     sourceTexture.GetDimensions(width, height);
     float2 rcpFrame = 1.0 / float2(width, height);
 
-    return FxaaPixelShader( input.uv, rcpFrame, sourceTexture, FxaaConfig( 1.00, 0.063, 0.0312));
+    return FxaaPixelShader( input.uv, rcpFrame, sourceTexture);
 }
