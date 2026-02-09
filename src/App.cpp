@@ -34,6 +34,7 @@ void App::run()
 	catch (const std::exception& e)
 	{
 		std::cerr << "ERROR::APP::RUN::Exception: " << e.what() << std::endl;
+		Cleanup::cleanup(gm);
 		return;
 	}
 	
