@@ -15,6 +15,9 @@
 #include "../Graphics/Resources/Factories/ModelFactory.hpp"
 #include "../Graphics/Components/TextureManagerComponent.hpp"
 #include "../Graphics/Components/ModelManagerComponent.hpp"
+#include "../Graphics/Components/CameraComponent.hpp"
+#include "Components/ControlComponent.hpp"
+#include "../Platform/PlatformContexts.hpp"
 
 void GameInit::gameInitStart(GeneralManager& gm)
 {
@@ -26,6 +29,8 @@ void GameInit::gameInitStart(GeneralManager& gm)
 	    gm.getContextComponent<MainDSetsContext, BindlessTextureDSetComponent>();
 	DescriptorManager* dManager =
 	    gm.getContextComponent<DescriptorManagerContext, DescriptorManagerComponent>()->descriptorManager;
+
+	gm.addComponent<ControlComponent>(gm.getContext<MainCameraContext>());
 
 	Entity gameObjectEntity1 = gm.createEntity();
 	MeshInfoComponent meshInfo;
