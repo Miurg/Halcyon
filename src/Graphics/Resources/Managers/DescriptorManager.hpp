@@ -11,6 +11,7 @@ class DescriptorManager
 {
 public:
 	DescriptorManager(VulkanDevice& vulkanDevice);
+	~DescriptorManager();
 	vk::raii::DescriptorSetLayout globalSetLayout = nullptr;
 	vk::raii::DescriptorSetLayout textureSetLayout = nullptr;
 	vk::raii::DescriptorSetLayout modelSetLayout = nullptr;

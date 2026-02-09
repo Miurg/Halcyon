@@ -23,5 +23,4 @@ private:
 	float time = 0;
 
 	void mainLoop(GeneralManager& gm);
-	void cleanup();
 };

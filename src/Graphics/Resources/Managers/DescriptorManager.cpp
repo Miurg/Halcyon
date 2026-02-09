@@ -86,6 +86,16 @@ DescriptorManager::DescriptorManager(VulkanDevice& vulkanDevice) : vulkanDevice(
 	frustrumSetLayout = vk::raii::DescriptorSetLayout(vulkanDevice.device, indirectInfo);
 }
 
+DescriptorManager::~DescriptorManager() 
+{
+	descriptorPool.reset();
+	globalSetLayout.~DescriptorSetLayout();
+	textureSetLayout.~DescriptorSetLayout();
+	modelSetLayout.~DescriptorSetLayout();
+	fxaaSetLayout.~DescriptorSetLayout();
+	frustrumSetLayout.~DescriptorSetLayout();
+}
+
 int DescriptorManager::allocateBindlessTextureDSet()
 {
 	vk::DescriptorSetAllocateInfo allocInfo(*descriptorPool, *textureSetLayout);

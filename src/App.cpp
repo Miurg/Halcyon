@@ -12,6 +12,7 @@
 #include "Platform/PlatformContexts.hpp"
 #include "Game/GameInit.hpp"
 #include "Graphics/GraphicsInit.hpp"
+#include "Cleanup.hpp"
 
 namespace
 {
@@ -38,7 +39,7 @@ void App::run()
 	
 
 	App::mainLoop(gm);
-	App::cleanup();
+	Cleanup::cleanup(gm);
 }
 
 void App::mainLoop(GeneralManager& gm)
@@ -61,13 +62,4 @@ void App::mainLoop(GeneralManager& gm)
 			time = now;
 		}
 	}
-}
-
-void App::cleanup()
-{
-
-	//vulkanDevice->device.waitIdle();
-
-	//SwapChainFactory::cleanupSwapChain(*swapChain);
-	//bManager->~BufferManager();
 }
