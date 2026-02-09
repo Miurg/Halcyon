@@ -73,11 +73,11 @@ void Cleanup::cleanup(GeneralManager& gm)
 		vmaDestroyAllocator(vmaComp->allocator);
 		vmaComp->allocator = nullptr;
 	}
-
-	window->~Window();
 	if (vulkanDevice)
 	{
 		delete vulkanDevice;
 		vulkanDevice = nullptr;
 	}
+
+	window->~Window();
 }
