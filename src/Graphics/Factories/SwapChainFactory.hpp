@@ -4,6 +4,8 @@
 #include "../VulkanDevice.hpp"
 #include "../../Platform/Window.hpp"
 #include "../SwapChain.hpp"
+#include "../Resources/Managers/BufferManager.hpp"
+#include "../Resources/Components/GlobalDSetComponent.hpp"
 
 class SwapChainFactory
 {
@@ -14,7 +16,8 @@ public:
 	                                  vk::SwapchainKHR oldHandle = nullptr);
 	static void createImageViews(SwapChain& swapChain, VulkanDevice& device, Window& window);
 	static void cleanupSwapChain(SwapChain& swapChain);
-	static void recreateSwapChain(SwapChain& swapChain, VulkanDevice& device, Window& window);
+	static void recreateSwapChain(SwapChain& swapChain, VulkanDevice& device, Window& window,
+	                              DescriptorManager& dManager, GlobalDSetComponent& globalDSetComponent);
 	static void createDepthResources(SwapChain& swapChain, VulkanDevice& device, Window& window);
 	static vk::Format findSupportedFormat(VulkanDevice& device, const std::vector<vk::Format>& candidates,
 	                                      vk::ImageTiling tiling, vk::FormatFeatureFlags features);

@@ -15,6 +15,8 @@
 #include "../Components/FrameImageComponent.hpp"
 #include "../Managers/FrameManager.hpp"
 #include "../Components/FrameManagerComponent.hpp"
+#include "../Components/DescriptorManagerComponent.hpp"
+#include "../Resources/Components/GlobalDSetComponent.hpp"
 
 void FrameEndSystem::onRegistered(GeneralManager& gm)
 {
@@ -68,7 +70,10 @@ void FrameEndSystem::update(float deltaTime, GeneralManager& gm)
 	if (presentResult == vk::Result::eErrorOutOfDateKHR || presentResult == vk::Result::eSuboptimalKHR)
 	{
 		window.framebufferResized = false;
-		SwapChainFactory::recreateSwapChain(swapChain, vulkanDevice, window);
+		DescriptorManager* dManager =
+		    gm.getContextComponent<DescriptorManagerContext, DescriptorManagerComponent>()->descriptorManager;
+		GlobalDSetComponent* globalDSetComponent = gm.getContextComponent<MainDSetsContext, GlobalDSetComponent>();
+		SwapChainFactory::recreateSwapChain(swapChain, vulkanDevice, window, *dManager, *globalDSetComponent);
 	}
 	else if (presentResult != vk::Result::eSuccess)
 	{

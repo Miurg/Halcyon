@@ -1,6 +1,8 @@
 #include "SwapChainFactory.hpp"
 #include "../VulkanUtils.hpp"
 #include <iostream>
+#include "../Resources/Managers/DescriptorManager.hpp"
+#include "../Resources/Components/GlobalDSetComponent.hpp"
 
 void SwapChainFactory::createSwapChain(SwapChain& swapChain, VulkanDevice& deviceContext, Window& window,
                                        vk::SwapchainKHR oldHandle)
@@ -8,6 +10,7 @@ void SwapChainFactory::createSwapChain(SwapChain& swapChain, VulkanDevice& devic
 	createSwapChainHandle(swapChain, deviceContext, window, oldHandle);
 	createImageViews(swapChain, deviceContext, window);
 	createDepthResources(swapChain, deviceContext, window);
+	createOffscreenResources(swapChain, deviceContext, window);
 }
 
 void SwapChainFactory::createSwapChainHandle(SwapChain& swapChain, VulkanDevice& deviceContext, Window& window,
@@ -106,7 +109,8 @@ void SwapChainFactory::cleanupSwapChain(SwapChain& swapChain)
 	swapChain.swapChainHandle = nullptr;
 }
 
-void SwapChainFactory::recreateSwapChain(SwapChain& swapChain, VulkanDevice& device, Window& window)
+void SwapChainFactory::recreateSwapChain(SwapChain& swapChain, VulkanDevice& device, Window& window,
+                                         DescriptorManager& dManager, GlobalDSetComponent& globalDSetComponent)
 {
 	int width = 0, height = 0;
 	width = window.width;
@@ -125,6 +129,10 @@ void SwapChainFactory::recreateSwapChain(SwapChain& swapChain, VulkanDevice& dev
 	swapChain.swapChainImageViews.clear();
 
 	createSwapChain(swapChain, device, window, oldHandle);
+	
+	// Update descriptors with new offscreen resources
+	dManager.updateSingleTextureDSet(globalDSetComponent.fxaaDSets, 0, swapChain.offscreenImageView,
+	                                    swapChain.offscreenSampler);
 
 #ifdef _DEBUG
 	std::cout << "Swap chain recreated." << std::endl;

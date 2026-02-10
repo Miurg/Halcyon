@@ -80,7 +80,6 @@ void GraphicsInit::initVulkanCore(GeneralManager& gm)
 	gm.registerContext<MainSwapChainContext>(swapChainEntity);
 	SwapChain* swapChain = new SwapChain();
 	SwapChainFactory::createSwapChain(*swapChain, *vulkanDevice, *window);
-	SwapChainFactory::createOffscreenResources(*swapChain, *vulkanDevice, *window);
 	gm.addComponent<SwapChainComponent>(swapChainEntity, swapChain);
 
 	// VMA Allocator
