@@ -31,16 +31,6 @@ struct SunData
 };
 [[vk::binding(2, 0)]] StructuredBuffer<SunData> sun;
 
-struct VkDrawIndexedIndirectCommand
-{
-    uint indexCount;
-    uint instanceCount;
-    uint firstIndex;
-    int vertexOffset;
-    uint firstInstance;
-};
-[[vk::binding(0, 3)]] StructuredBuffer<VkDrawIndexedIndirectCommand> indirectDrawBuffer;
-
 [[vk::binding(1, 3)]] StructuredBuffer<uint> visibleIndicesBuffer;
 struct VSInput
 {

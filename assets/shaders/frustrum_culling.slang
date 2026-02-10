@@ -45,38 +45,34 @@ struct PushConstants
 // Helper function to check if an AABB is visible in the view frustum
 bool IsAABBVisible(float4x4 mvp, float3 minPos, float3 maxPos)
 {
-    float3 corners[8];
-    corners[0] = float3(minPos.x, minPos.y, minPos.z);
-    corners[1] = float3(maxPos.x, minPos.y, minPos.z);
-    corners[2] = float3(minPos.x, maxPos.y, minPos.z);
-    corners[3] = float3(maxPos.x, maxPos.y, minPos.z);
-    corners[4] = float3(minPos.x, minPos.y, maxPos.z);
-    corners[5] = float3(maxPos.x, minPos.y, maxPos.z);
-    corners[6] = float3(minPos.x, maxPos.y, maxPos.z);
-    corners[7] = float3(maxPos.x, maxPos.y, maxPos.z);
+    float4 planes[6];
+    // Left:   x >= -w  -> x + w >= 0
+    planes[0] = mvp[3] + mvp[0];
+    // Right:  x <= w   -> w - x >= 0
+    planes[1] = mvp[3] - mvp[0];
+    // Bottom: y >= -w  -> y + w >= 0
+    planes[2] = mvp[3] + mvp[1];
+    // Top:    y <= w   -> w - y >= 0
+    planes[3] = mvp[3] - mvp[1];
+    // Near:   z >= 0   -> z >= 0 Vulkan specifies that the near plane is at z=0 in clip space
+    planes[4] = mvp[2];
+    // Far:    z <= w   -> w - z >= 0
+    planes[5] = mvp[3] - mvp[2];
 
-    bool allLeft = true;
-    bool allRight = true;
-    bool allBottom = true;
-    bool allTop = true;
-    bool allNear = true;
-    bool allFar = true;
-
-    // Check each corner against the frustum planes
-    for (int i = 0; i < 8; i++)
+    [unroll]
+    for (int i = 0; i < 6; i++)
     {
-        float4 clipPos = mul(mvp, float4(corners[i], 1.0));
+        float3 p;
+        p.x = (planes[i].x > 0) ? maxPos.x : minPos.x;
+        p.y = (planes[i].y > 0) ? maxPos.y : minPos.y;
+        p.z = (planes[i].z > 0) ? maxPos.z : minPos.z;
 
-        if (clipPos.x >= -clipPos.w) allLeft = false;
-        if (clipPos.x <= clipPos.w)  allRight = false;
-        if (clipPos.y >= -clipPos.w) allBottom = false;
-        if (clipPos.y <= clipPos.w)  allTop = false;
-        if (clipPos.z >= 0.0)        allNear = false;
-        if (clipPos.z <= clipPos.w)  allFar = false;
+        // dot(plane, float4(p, 1.0)) < 0
+        if (dot(planes[i].xyz, p) + planes[i].w < 0)
+        {
+            return false;
+        }
     }
-
-    if (allLeft || allRight || allBottom || allTop || allNear || allFar)
-        return false;
 
     return true;
 }
