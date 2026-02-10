@@ -21,7 +21,7 @@
 #include "Components/PipelineHandlerComponent.hpp"
 #include "Resources/Components/GlobalDSetComponent.hpp"
 #include "Resources/Components/ModelDSetComponent.hpp"
-#include "Resources/Components/FrustrumDSetComponent.hpp"
+#include "Resources/Components/FrustumDSetComponent.hpp"
 #include "Components/CameraComponent.hpp"
 #include "Components/LightComponent.hpp"
 #include "Components/LocalTransformComponent.hpp"
@@ -173,7 +173,7 @@ void GraphicsInit::initPipelines(GeneralManager& gm)
 	gm.addComponent<BindlessTextureDSetComponent>(mainDSetsEntity);
 	gm.addComponent<GlobalDSetComponent>(mainDSetsEntity);
 	gm.addComponent<ModelDSetComponent>(mainDSetsEntity);
-	gm.addComponent<FrustrumDSetComponent>(mainDSetsEntity);
+	gm.addComponent<FrustumDSetComponent>(mainDSetsEntity);
 
 	// Signature and Pipelines
 	Entity signatureEntity = gm.createEntity();
@@ -242,25 +242,25 @@ void GraphicsInit::initScene(GeneralManager& gm)
 										tManager->textures[sunLight->textureShadowImage].textureSampler);
 	// === Sun END ===
 
-	// === Frustrum ===
-	FrustrumDSetComponent* frustrumDSetComponent = gm.getContextComponent<MainDSetsContext, FrustrumDSetComponent>();
-	frustrumDSetComponent->frustrumBufferDSet =
+	// === Frustum ===
+	FrustumDSetComponent* frustumDSetComponent = gm.getContextComponent<MainDSetsContext, FrustumDSetComponent>();
+	frustumDSetComponent->frustumBufferDSet =
 		dManager->allocateStorageBufferDSets(MAX_FRAMES_IN_FLIGHT, *dManager->frustrumSetLayout);
 
-	frustrumDSetComponent->indirectDrawBuffer =
+	frustumDSetComponent->indirectDrawBuffer =
 		bManager->createBuffer((vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal),
 		sizeof(IndirectDrawStructure) * 10240, MAX_FRAMES_IN_FLIGHT, 0, *dManager->frustrumSetLayout,
 								vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eIndirectBuffer |
 									vk::BufferUsageFlagBits::eTransferDst);
-	dManager->updateStorageBufferDescriptors(*bManager, frustrumDSetComponent->indirectDrawBuffer,
-												frustrumDSetComponent->frustrumBufferDSet, 0);
-	frustrumDSetComponent->visibleIndicesBuffer =
+	dManager->updateStorageBufferDescriptors(*bManager, frustumDSetComponent->indirectDrawBuffer,
+												frustumDSetComponent->frustumBufferDSet, 0);
+	frustumDSetComponent->visibleIndicesBuffer =
 		bManager->createBuffer((vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal),
 								sizeof(uint32_t) * 10240, MAX_FRAMES_IN_FLIGHT, 1, *dManager->frustrumSetLayout,
 								vk::BufferUsageFlagBits::eStorageBuffer);
-	dManager->updateStorageBufferDescriptors(*bManager, frustrumDSetComponent->visibleIndicesBuffer,
-												frustrumDSetComponent->frustrumBufferDSet, 1);
-	// === Frustrum END ===
+	dManager->updateStorageBufferDescriptors(*bManager, frustumDSetComponent->visibleIndicesBuffer,
+												frustumDSetComponent->frustumBufferDSet, 1);
+	// === Frustum END ===
 
 	// === Bindless Texture Set ===
 	bTextureDSetComponent->bindlessTextureSet = dManager->allocateBindlessTextureDSet();

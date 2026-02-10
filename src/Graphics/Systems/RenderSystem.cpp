@@ -46,7 +46,7 @@ void RenderSystem::update(float deltaTime, GeneralManager& gm)
 	    gm.getContextComponent<DescriptorManagerContext, DescriptorManagerComponent>();
 	GlobalDSetComponent* globalDSetComponent = gm.getContextComponent<MainDSetsContext, GlobalDSetComponent>();
 	ModelDSetComponent* objectDSetComponent = gm.getContextComponent<MainDSetsContext, ModelDSetComponent>();
-	FrustrumDSetComponent* frustrumDSetComponent = gm.getContextComponent<MainDSetsContext, FrustrumDSetComponent>();
+	FrustumDSetComponent* frustrumDSetComponent = gm.getContextComponent<MainDSetsContext, FrustumDSetComponent>();
 	uint32_t imageIndex = gm.getContextComponent<FrameImageContext, FrameImageComponent>()->imageIndex;
 	if (!currentFrameComp->frameValid) return;
 

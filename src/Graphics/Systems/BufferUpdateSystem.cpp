@@ -12,7 +12,7 @@
 #include <map>
 #include "../Resources/Managers/ModelManager.hpp"
 #include "../Components/ModelManagerComponent.hpp"
-#include "../Resources/Components/FrustrumDSetComponent.hpp"
+#include "../Resources/Components/FrustumDSetComponent.hpp"
 void BufferUpdateSystem::onRegistered(GeneralManager& gm)
 {
 	std::cout << "BufferUpdateSystem registered!" << std::endl;
@@ -32,7 +32,7 @@ void BufferUpdateSystem::update(float deltaTime, GeneralManager& gm)
 	    *gm.getContextComponent<BufferManagerContext, BufferManagerComponent>()->bufferManager;
 	ModelManager& modelManager = *gm.getContextComponent<ModelManagerContext, ModelManagerComponent>()->modelManager;
 	ModelDSetComponent* modelDSetComponent = gm.getContextComponent<MainDSetsContext, ModelDSetComponent>();
-	FrustrumDSetComponent* frustrumDSetComponent = gm.getContextComponent<MainDSetsContext, FrustrumDSetComponent>();
+	FrustumDSetComponent* frustumDSetComponent = gm.getContextComponent<MainDSetsContext, FrustumDSetComponent>();
 
 	std::vector<std::vector<Entity>> batch;
 	batch.resize(modelManager.meshes.size());
@@ -54,7 +54,7 @@ void BufferUpdateSystem::update(float deltaTime, GeneralManager& gm)
 	auto* transfromMeshPtr = static_cast<TransformStructure*>(
 	    bufferManager.buffers[modelDSetComponent->transformBuffer].bufferMapped[currentFrame]);
 	auto* indirectBufferPtr = static_cast<IndirectDrawStructure*>(
-	    bufferManager.buffers[frustrumDSetComponent->indirectDrawBuffer].bufferMapped[currentFrame]);
+	    bufferManager.buffers[frustumDSetComponent->indirectDrawBuffer].bufferMapped[currentFrame]);
 
 	int globalTransformIndex = 0;
 	int globalPrimitiveIndex = 0;

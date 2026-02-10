@@ -81,7 +81,7 @@ void CommandBufferFactory::recordCullCommandBuffer(vk::raii::CommandBuffer& seco
                                                    PipelineHandler& pipelineHandler, uint32_t currentFrame,
                                                    DescriptorManagerComponent& dManager,
                                                    GlobalDSetComponent* globalDSetComponent,
-                                                   FrustrumDSetComponent* frustrumDSetComponent,
+                                                   FrustumDSetComponent* frustumDSetComponent,
                                                    ModelDSetComponent* objectDSetComponent, ModelManager& mManager)
 {
 	vk::CommandBufferInheritanceInfo inheritanceInfo = {};
@@ -101,7 +101,7 @@ void CommandBufferFactory::recordCullCommandBuffer(vk::raii::CommandBuffer& seco
 	    dManager.descriptorManager->descriptorSets[objectDSetComponent->modelBufferDSet][currentFrame], nullptr);
 	secondaryCmd.bindDescriptorSets(
 	    vk::PipelineBindPoint::eCompute, *pipelineHandler.cullingPipelineLayout, 3,
-	    dManager.descriptorManager->descriptorSets[frustrumDSetComponent->frustrumBufferDSet][currentFrame], nullptr);
+	    dManager.descriptorManager->descriptorSets[frustumDSetComponent->frustumBufferDSet][currentFrame], nullptr);
 
 	uint32_t drawCommandIndex = 0;
 
@@ -153,7 +153,7 @@ void CommandBufferFactory::recordMainCommandBuffer(
     vk::raii::CommandBuffer& secondaryCmd, uint32_t imageIndex, SwapChain& swapChain, PipelineHandler& pipelineHandler,
     uint32_t currentFrame, BindlessTextureDSetComponent& bindlessTextureDSetComponent,
     DescriptorManagerComponent& dManager, GlobalDSetComponent* globalDSetComponent, BufferManager& bManager,
-    ModelDSetComponent* objectDSetComponent, ModelManager& mManager, FrustrumDSetComponent* frustrumDSetComponent)
+    ModelDSetComponent* objectDSetComponent, ModelManager& mManager, FrustumDSetComponent* frustumDSetComponent)
 {
 	vk::CommandBufferInheritanceInfo inheritanceInfo = {};
 
@@ -217,7 +217,7 @@ void CommandBufferFactory::recordMainCommandBuffer(
 	    dManager.descriptorManager->descriptorSets[objectDSetComponent->modelBufferDSet][currentFrame], nullptr);
 	secondaryCmd.bindDescriptorSets(
 	    vk::PipelineBindPoint::eGraphics, *pipelineHandler.pipelineLayout, 3,
-	    dManager.descriptorManager->descriptorSets[frustrumDSetComponent->frustrumBufferDSet][currentFrame], nullptr);
+	    dManager.descriptorManager->descriptorSets[frustumDSetComponent->frustumBufferDSet][currentFrame], nullptr);
 
 	uint32_t currentBuffer = -1;
 	uint32_t drawCommandIndex = 0;
@@ -235,7 +235,7 @@ void CommandBufferFactory::recordMainCommandBuffer(
 
 		uint32_t primitiveCount = mManager.meshes[i].primitives.size();
 
-		secondaryCmd.drawIndexedIndirect(bManager.buffers[frustrumDSetComponent->indirectDrawBuffer].buffer[currentFrame],
+		secondaryCmd.drawIndexedIndirect(bManager.buffers[frustumDSetComponent->indirectDrawBuffer].buffer[currentFrame],
 		                                 drawCommandIndex * commandStride, 
 		                                 primitiveCount,
 		                                 commandStride);
