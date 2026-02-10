@@ -26,7 +26,6 @@ void Cleanup::cleanup(GeneralManager& gm)
 	SwapChain* swap = gm.getContextComponent<MainSwapChainContext, SwapChainComponent>()->swapChainInstance;
 	VulkanDevice* vulkanDevice =
 	    gm.getContextComponent<MainVulkanDeviceContext, VulkanDeviceComponent>()->vulkanDeviceInstance;
-	Window* window = gm.getContextComponent<MainWindowContext, WindowComponent>()->windowInstance;
 	PipelineHandler* pipelineHandler =
 	    gm.getContextComponent<MainSignatureContext, PipelineHandlerComponent>()->pipelineHandler;
 	VMAllocatorComponent* vmaComp = gm.getContextComponent<VMAllocatorContext, VMAllocatorComponent>();
@@ -78,6 +77,4 @@ void Cleanup::cleanup(GeneralManager& gm)
 		delete vulkanDevice;
 		vulkanDevice = nullptr;
 	}
-
-	window->~Window();
 }

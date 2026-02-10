@@ -72,5 +72,10 @@ void InputSolverSystem::onRegistered(GeneralManager& gm)
 void InputSolverSystem::onShutdown(GeneralManager& gm) 
 {
 	std::cout << "InputSolverSystem shutdown!" << std::endl;
-	gm.getContextComponent<MainWindowContext, WindowComponent>()->windowInstance->~Window();
+	Window* window = gm.getContextComponent<MainWindowContext, WindowComponent>()->windowInstance;
+	if (window)
+	{
+		delete window;
+		window = nullptr;
+	}
 };
