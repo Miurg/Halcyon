@@ -9,16 +9,18 @@ class BufferUpdateSystem
     : public SystemCore<BufferUpdateSystem, GlobalTransformComponent, MeshInfoComponent>
 {
 public:
-	std::vector<Entity> entities;
+	struct Agent
+	{
+		Entity entity;
+		GlobalTransformComponent* transform;
+		MeshInfoComponent* meshInfo;
+	};
+
+	std::vector<Agent> _agents;
+
 	void update(float deltaTime, GeneralManager& gm) override;
 	void onRegistered(GeneralManager& gm) override;
 	void onShutdown(GeneralManager& gm) override;
-	void onEntitySubscribed(Entity entity, GeneralManager& gm) override
-	{
-		entities.push_back(entity);
-	}
-	void onEntityUnsubscribed(Entity entity, GeneralManager& gm) override
-	{
-		entities.erase(std::remove(entities.begin(), entities.end(), entity), entities.end());
-	}
+	void onEntitySubscribed(Entity entity, GeneralManager& gm) override;
+	void onEntityUnsubscribed(Entity entity, GeneralManager& gm) override;
 };

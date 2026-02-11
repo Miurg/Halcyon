@@ -1,20 +1,17 @@
 #pragma once
 #include <limits>
-#include <vector>
-#include "../Entitys/EntityManager.hpp"
-#include <algorithm>
+#include <deque>
 
 template <typename TComponent>
 class ComponentArray
 {
 private:
-	std::vector<TComponent> _dense;
+	std::deque<TComponent> _dense;
 	std::vector<Entity> _denseToEntity;
+	std::vector<uint32_t> _freeIndices;
 
 	std::vector<uint32_t> _sparse;
 	static constexpr uint32_t INVALID_INDEX = std::numeric_limits<uint32_t>::max();
-
-	bool _needsSorting = false;
 
 public:
 	TComponent* addComponent(Entity entity, TComponent&& component)
@@ -26,58 +23,34 @@ public:
 
 		if (_sparse[entity] != INVALID_INDEX)
 		{
-			_dense[_sparse[entity]] = std::move(component);
-			return &_dense[_sparse[entity]];
+			uint32_t index = _sparse[entity];
+			_dense[index] = std::move(component);
+			return &_dense[index];
 		}
 
-		uint32_t newIndex = static_cast<uint32_t>(_dense.size());
-		_dense.emplace_back(std::move(component));
-		_denseToEntity.push_back(entity);
+		uint32_t newIndex;
+		if (!_freeIndices.empty())
+		{
+			newIndex = _freeIndices.back();
+			_freeIndices.pop_back();
+			_dense[newIndex] = std::move(component);
+			_denseToEntity[newIndex] = entity;
+		}
+		else
+		{
+			newIndex = static_cast<uint32_t>(_dense.size());
+			_dense.emplace_back(std::move(component));
+			_denseToEntity.push_back(entity);
+		}
+
 		_sparse[entity] = newIndex;
-
-		_needsSorting = true;
 		return &_dense[newIndex];
-	}
-
-	void sortByEntityId()
-	{
-		if (!_needsSorting) return;
-
-		std::vector<std::pair<Entity, uint32_t>> entityIndexPairs;
-		for (uint32_t i = 0; i < _denseToEntity.size(); ++i)
-		{
-			entityIndexPairs.emplace_back(_denseToEntity[i], i);
-		}
-		std::sort(entityIndexPairs.begin(), entityIndexPairs.end());
-
-		std::vector<TComponent> newDense;
-		std::vector<Entity> newDenseToEntity;
-		newDense.reserve(_dense.size());
-		newDenseToEntity.reserve(_denseToEntity.size());
-
-		for (uint32_t newIndex = 0; newIndex < entityIndexPairs.size(); ++newIndex)
-		{
-			Entity entity = entityIndexPairs[newIndex].first;
-			uint32_t oldIndex = entityIndexPairs[newIndex].second;
-
-			newDense.emplace_back(std::move(_dense[oldIndex]));
-			newDenseToEntity.push_back(entity);
-			_sparse[entity] = newIndex;
-		}
-
-		_dense = std::move(newDense);
-		_denseToEntity = std::move(newDenseToEntity);
-		_needsSorting = false;
 	}
 
 	TComponent* getComponent(Entity entity)
 	{
-
 		if (entity >= _sparse.size()) [[unlikely]]
 		{
-			std::cerr << "ERROR::COMPONENTS::Entity " << entity
-			          << " tries to access its component, but has an ID higher than the sparse value " << _sparse.size()
-			          << " in the component: " << typeid(TComponent).name() << std::endl;
 			return nullptr;
 		}
 
@@ -85,9 +58,6 @@ public:
 
 		if (index == INVALID_INDEX) [[unlikely]]
 		{
-			std::cerr << "ERROR::COMPONENTS::Entity " << entity
-			          << " tries to access its component, but the dense index is invalid, in the component: "
-			          << typeid(TComponent).name() << std::endl;
 			return nullptr;
 		}
 
@@ -103,18 +73,7 @@ public:
 		if (indexToRemove == INVALID_INDEX) [[unlikely]]
 			return;
 
-		uint32_t lastIndex = static_cast<uint32_t>(_dense.size() - 1);
-
-		if (indexToRemove != lastIndex)
-		{
-			_dense[indexToRemove] = std::move(_dense[lastIndex]);
-			Entity lastEntity = _denseToEntity[lastIndex];
-			_denseToEntity[indexToRemove] = lastEntity;
-			_sparse[lastEntity] = indexToRemove;
-		}
-
-		_dense.pop_back();
-		_denseToEntity.pop_back();
+		_freeIndices.push_back(indexToRemove);
 		_sparse[entity] = INVALID_INDEX;
 	}
 
@@ -135,12 +94,11 @@ public:
 
 	size_t size() const
 	{
-		return _dense.size();
+		return _dense.size() - _freeIndices.size();
 	}
 
 	void reserve(size_t capacity)
 	{
-		_dense.reserve(capacity);
 		_denseToEntity.reserve(capacity);
 	}
 };

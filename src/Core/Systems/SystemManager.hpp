@@ -15,7 +15,7 @@ class SystemManager
 {
 private:
 	std::vector<std::unique_ptr<ISystemCore>> SystemCore;
-	std::unordered_map<std::type_index, std::vector<Entity>> SystemToEntities;
+	std::unordered_map<std::type_index, ActiveEntitySet> SystemToEntities;
 	std::unordered_map<Entity, std::vector<std::type_index>> EntityToSystems;
 
 	void subscribeInternal(Entity entity, std::type_index systemType, GeneralManager& gm)
@@ -58,7 +58,7 @@ private:
 
 		system->onEntitySubscribed(entity, gm);
 
-		SystemToEntities[systemType].push_back(entity);
+		SystemToEntities[systemType].insert(entity);
 		EntityToSystems[entity].push_back(systemType);
 
 		const auto& dependencies = system->getSystemDependencies();
@@ -115,15 +115,11 @@ public:
 		}
 
 		system->onEntityUnsubscribed(entity, gm);
+		
 		auto systemIt = SystemToEntities.find(systemType);
 		if (systemIt != SystemToEntities.end())
 		{
-			auto& entities = systemIt->second;
-			auto entityIt = std::find(entities.begin(), entities.end(), entity);
-			if (entityIt != entities.end())
-			{
-				entities.erase(entityIt);
-			}
+			systemIt->second.erase(entity);
 		}
 
 		auto entityIt = EntityToSystems.find(entity);
@@ -180,13 +176,8 @@ public:
 
 			if (shouldRemove)
 			{
-				auto& entities = SystemToEntities[systemType];
-				entities.erase(std::remove(entities.begin(), entities.end(), entity), entities.end());
-
+				SystemToEntities[systemType].erase(entity);
 				it = entitySystems.erase(it);
-
-				std::cerr << "WARNING::SYSTEM_MANAGER::Entity " << entity << " unsubscribed from system "
-				          << systemType.name() << " because it doesn't have all required components" << std::endl;
 			}
 			else
 			{

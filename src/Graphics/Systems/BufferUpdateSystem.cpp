@@ -23,6 +23,24 @@ void BufferUpdateSystem::onShutdown(GeneralManager& gm)
 	std::cout << "BufferUpdateSystem shutdown!" << std::endl;
 }
 
+void BufferUpdateSystem::onEntitySubscribed(Entity entity, GeneralManager& gm)
+{
+	GlobalTransformComponent* transform = gm.getComponent<GlobalTransformComponent>(entity);
+	MeshInfoComponent* meshInfo = gm.getComponent<MeshInfoComponent>(entity);
+
+	if (transform && meshInfo)
+	{
+		_agents.push_back({entity, transform, meshInfo});
+	}
+}
+
+void BufferUpdateSystem::onEntityUnsubscribed(Entity entity, GeneralManager& gm)
+{
+	auto it = std::remove_if(_agents.begin(), _agents.end(),
+	                         [entity](const Agent& agent) { return agent.entity == entity; });
+	_agents.erase(it, _agents.end());
+}
+
 void BufferUpdateSystem::update(float deltaTime, GeneralManager& gm)
 {
 	CurrentFrameComponent* currentFrameComp = gm.getContextComponent<CurrentFrameContext, CurrentFrameComponent>();
@@ -34,15 +52,16 @@ void BufferUpdateSystem::update(float deltaTime, GeneralManager& gm)
 	ModelDSetComponent* modelDSetComponent = gm.getContextComponent<MainDSetsContext, ModelDSetComponent>();
 	FrustumDSetComponent* frustumDSetComponent = gm.getContextComponent<MainDSetsContext, FrustumDSetComponent>();
 
-	std::vector<std::vector<Entity>> batch;
+	std::vector<std::vector<Agent*>> batch;
 	batch.resize(modelManager.meshes.size());
 	std::map<int, int> counts;
-	for (const auto& entity : entities)
+
+	for (auto& agent : _agents)
 	{
-		MeshInfoComponent& meshinfo = *gm.getComponent<MeshInfoComponent>(entity);
-		batch[meshinfo.mesh].push_back(entity);
-		counts[meshinfo.mesh]++;
+		batch[agent.meshInfo->mesh].push_back(&agent);
+		counts[agent.meshInfo->mesh]++;
 	}
+
 	for (const auto& [key, count] : counts)
 	{
 		modelManager.meshes[key].entitiesSubscribed = count;
@@ -61,22 +80,23 @@ void BufferUpdateSystem::update(float deltaTime, GeneralManager& gm)
 	int localPrimitiveIndex = 0;
 	int globalCullIndex = 0;
 	IndirectDrawStructure currentDraw{};
-	for (const auto& entities : batch)
+	
+	for (const auto& agentsInBatch : batch)
 	{
 		int baseTransformIndexForMesh = globalTransformIndex;
 
-		for (const auto& entity : entities)
+		for (const auto* agent : agentsInBatch)
 		{
 			// Link global transform
-			GlobalTransformComponent& transform = *gm.getComponent<GlobalTransformComponent>(entity);
-			transfromMeshPtr[globalTransformIndex].model = transform.getGlobalModelMatrix();
+			transfromMeshPtr[globalTransformIndex].model = agent->transform->getGlobalModelMatrix();
 			globalTransformIndex++;
 		}
 
-		if (entities.empty()) continue;
+		if (agentsInBatch.empty()) continue;
 
 		// Get primitive count from mesh
-		MeshInfoComponent& meshBaseInfo = *gm.getComponent<MeshInfoComponent>(entities[0]);
+		// Optimized access via first agent in batch
+		MeshInfoComponent& meshBaseInfo = *agentsInBatch[0]->meshInfo;
 		int primitiveCount = modelManager.meshes[meshBaseInfo.mesh].primitives.size();
 
 		for (int i = 0; i < primitiveCount; i++)
@@ -91,9 +111,9 @@ void BufferUpdateSystem::update(float deltaTime, GeneralManager& gm)
 			int currentEntityTransformIndex = baseTransformIndexForMesh;
 			globalCullIndex += modelManager.meshes[meshBaseInfo.mesh].entitiesSubscribed;
 			globalPrimitiveIndex++;
-			for (const auto& entity : entities)
+			for (const auto* agent : agentsInBatch)
 			{
-				MeshInfoComponent& meshinfo = *gm.getComponent<MeshInfoComponent>(entity);
+				MeshInfoComponent& meshinfo = *agent->meshInfo;
 
 				// Link texture index
 				primitivePtr[localPrimitiveIndex].textureIndex =
