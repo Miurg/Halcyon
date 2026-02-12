@@ -101,7 +101,7 @@ add_slang_shader_target(
 )
 
 add_slang_shader_target(
-    frustum
+    frustum_culling
     SOURCES "assets/shaders/frustum_culling.slang"
     ENTRY computeMain
 )
@@ -109,7 +109,7 @@ add_slang_shader_target(
 add_dependencies("${CMAKE_PROJECT_NAME}" shader)
 add_dependencies("${CMAKE_PROJECT_NAME}" shadow)
 add_dependencies("${CMAKE_PROJECT_NAME}" fxaa)
-add_dependencies("${CMAKE_PROJECT_NAME}" frustum)
+add_dependencies("${CMAKE_PROJECT_NAME}" frustum_culling)
 
 add_custom_command(
     TARGET ${PROJECT_NAME} POST_BUILD

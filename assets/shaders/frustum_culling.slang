@@ -5,7 +5,8 @@ struct ModelData
     float4 AABBMax;
     uint transformIndex;
     uint textureIndex;
-    float2 padding;
+    uint drawCommandIndex;
+    float padding;
 };
 [[vk::binding(0, 2)]] StructuredBuffer<ModelData> objectBuffer;
 
@@ -36,8 +37,6 @@ struct VkDrawIndexedIndirectCommand
 struct PushConstants
 {
     uint objectCount;
-    uint drawCommandIndex;
-    uint visibleBufferOffset;
 };
 
 [[vk::push_constant]] PushConstants push;
@@ -87,7 +86,9 @@ void computeMain(uint3 id : SV_DispatchThreadID)
     if (index >= push.objectCount) // Bounds check to avoid out-of-range access
         return;
 
-    ModelData obj = objectBuffer[index + push.visibleBufferOffset];
+    uint drawCommandIndex = objectBuffer[index].drawCommandIndex;
+    uint visibleBufferOffset = indirectDrawBuffer[drawCommandIndex].firstInstance;
+    ModelData obj = objectBuffer[index];
     TransformData trans = transformBuffer[obj.transformIndex];
 
     float4x4 mvp = mul(camera[0].cameraSpaceMatrix, trans.model);
@@ -96,8 +97,8 @@ void computeMain(uint3 id : SV_DispatchThreadID)
     {
         // Atomically increment the instance count 
         uint slotIndex;
-        InterlockedAdd(indirectDrawBuffer[push.drawCommandIndex].instanceCount, 1, slotIndex);
+        InterlockedAdd(indirectDrawBuffer[drawCommandIndex].instanceCount, 1, slotIndex);
 
-        visibleIndicesBuffer[slotIndex + push.visibleBufferOffset] = index + push.visibleBufferOffset;
+        visibleIndicesBuffer[slotIndex + visibleBufferOffset] = index;
     }
 }

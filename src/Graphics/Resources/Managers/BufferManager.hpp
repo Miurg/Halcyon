@@ -62,7 +62,8 @@ struct PrimitiveSctructure // (16 + 16 + 16 + 4 + 4 + 8 = 64 bytes)
 	float padding1;                  // w: padding
 	uint32_t transformIndex;         // index to the transform of the primitive
 	uint32_t textureIndex;           // index to the texture of the primitive
-	uint32_t _padding[2];    // 8 bytes (to make the total size a multiple of 16 bytes)
+	uint32_t drawCommandIndex; // index to the indirect draw command of the primitive
+	uint32_t _padding;    // 4 bytes (to make the total size a multiple of 16 bytes)
 };
 
 struct TransformStructure

@@ -27,7 +27,7 @@ void CommandBufferFactory::recordShadowCommandBuffer(vk::raii::CommandBuffer& se
 	shadowDepthInfo.imageLayout = vk::ImageLayout::eDepthAttachmentOptimal;
 	shadowDepthInfo.loadOp = vk::AttachmentLoadOp::eClear;
 	shadowDepthInfo.storeOp = vk::AttachmentStoreOp::eStore;
-	shadowDepthInfo.clearValue = vk::ClearDepthStencilValue(1.0f, 0);
+	shadowDepthInfo.clearValue = vk::ClearDepthStencilValue(0.0f, 0);
 
 	vk::RenderingInfo shadowRenderingInfo;
 	shadowRenderingInfo.renderArea.extent = vk::Extent2D(lightTexture.sizeX, lightTexture.sizeY);
@@ -84,6 +84,7 @@ void CommandBufferFactory::recordCullCommandBuffer(vk::raii::CommandBuffer& seco
                                                    FrustumDSetComponent* frustumDSetComponent,
                                                    ModelDSetComponent* objectDSetComponent, ModelManager& mManager)
 {
+	// --- Step 1.5: CULLING PASS ---
 	vk::CommandBufferInheritanceInfo inheritanceInfo = {};
 	vk::CommandBufferBeginInfo beginInfo;
 	beginInfo.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit;
@@ -103,36 +104,26 @@ void CommandBufferFactory::recordCullCommandBuffer(vk::raii::CommandBuffer& seco
 	    vk::PipelineBindPoint::eCompute, *pipelineHandler.cullingPipelineLayout, 3,
 	    dManager.descriptorManager->descriptorSets[frustumDSetComponent->frustumBufferDSet][currentFrame], nullptr);
 
-	uint32_t drawCommandIndex = 0;
-
 	uint32_t currentInstanceOffset = 0;
 	for (int i = 0; i < mManager.meshes.size(); i++)
 	{
 		for (int j = 0; j < mManager.meshes[i].primitives.size(); j++)
 		{
-			uint32_t objectCount = mManager.meshes[i].entitiesSubscribed;
-
-			struct PushConsts
-			{
-				uint32_t objectCount;
-				uint32_t drawCommandIndex;
-				uint32_t visibleIndiciesOffset;
-			} push;
-
-			push.objectCount = objectCount;
-			push.drawCommandIndex = drawCommandIndex;
-			push.visibleIndiciesOffset = currentInstanceOffset;
-
-			secondaryCmd.pushConstants<PushConsts>(*pipelineHandler.cullingPipelineLayout,
-			                                       vk::ShaderStageFlagBits::eCompute, 0, push);
-
-			uint32_t groupCountX = (objectCount + 63) / 64;
-			if (groupCountX > 0) secondaryCmd.dispatch(groupCountX, 1, 1);
-
-			drawCommandIndex++;
-			currentInstanceOffset += objectCount;
+			currentInstanceOffset += mManager.meshes[i].entitiesSubscribed;
 		}
 	}
+	struct PushConsts
+	{
+		uint32_t objectCount;
+	} push;
+
+	push.objectCount = currentInstanceOffset;
+
+	secondaryCmd.pushConstants<PushConsts>(*pipelineHandler.cullingPipelineLayout, vk::ShaderStageFlagBits::eCompute, 0,
+	                                       push);
+	uint32_t groupCountX = (currentInstanceOffset + 63) / 64;
+	if (groupCountX > 0) secondaryCmd.dispatch(groupCountX, 1, 1);
+
 
 	vk::MemoryBarrier2 barrier;
 	barrier.srcStageMask = vk::PipelineStageFlagBits2::eComputeShader;
@@ -224,25 +215,33 @@ void CommandBufferFactory::recordMainCommandBuffer(
 	const uint32_t commandStride = sizeof(VkDrawIndexedIndirectCommand);
 	for (int i = 0; i < mManager.meshes.size(); i++)
 	{
-		if (mManager.meshes[i].vertexIndexBufferID != currentBuffer)
-		{
-			currentBuffer = mManager.meshes[i].vertexIndexBufferID;
-			secondaryCmd.bindVertexBuffers(
-			    0, mManager.vertexIndexBuffers[mManager.meshes[i].vertexIndexBufferID].vertexBuffer, {0});
-			secondaryCmd.bindIndexBuffer(mManager.vertexIndexBuffers[mManager.meshes[i].vertexIndexBufferID].indexBuffer,
-			                             0, vk::IndexType::eUint32);
-		}
+		// if (mManager.meshes[i].vertexIndexBufferID != currentBuffer)
+		//{
+		//	currentBuffer = mManager.meshes[i].vertexIndexBufferID;
+		//	secondaryCmd.bindVertexBuffers(
+		//	    0, mManager.vertexIndexBuffers[mManager.meshes[i].vertexIndexBufferID].vertexBuffer, {0});
+		//	secondaryCmd.bindIndexBuffer(mManager.vertexIndexBuffers[mManager.meshes[i].vertexIndexBufferID].indexBuffer,
+		//	                             0, vk::IndexType::eUint32);
+		// }
 
 		uint32_t primitiveCount = mManager.meshes[i].primitives.size();
 
-		secondaryCmd.drawIndexedIndirect(bManager.buffers[frustumDSetComponent->indirectDrawBuffer].buffer[currentFrame],
-		                                 drawCommandIndex * commandStride, 
-		                                 primitiveCount,
-		                                 commandStride);
+		// secondaryCmd.drawIndexedIndirect(bManager.buffers[frustumDSetComponent->indirectDrawBuffer].buffer[currentFrame],
+		//                                  drawCommandIndex * commandStride,
+		//                                  primitiveCount,
+		//                                  commandStride);
 
 		drawCommandIndex += primitiveCount;
 	}
-
+	secondaryCmd.bindVertexBuffers(0, mManager.vertexIndexBuffers[mManager.meshes[0].vertexIndexBufferID].vertexBuffer,
+	                               {0});
+	secondaryCmd.bindIndexBuffer(mManager.vertexIndexBuffers[mManager.meshes[0].vertexIndexBufferID].indexBuffer, 0,
+	                             vk::IndexType::eUint32);
+	// Один вызов для всех примитивов всех мешей, если они в одном Vertex Buffer
+	secondaryCmd.drawIndexedIndirect(bManager.buffers[frustumDSetComponent->indirectDrawBuffer].buffer[currentFrame],
+	                                 0,                // Смещение 0
+	                                 drawCommandIndex, // Общее количество примитивов (сумма всех primitiveCount)
+	                                 commandStride);
 	secondaryCmd.endRendering();
 
 	transitionImageLayout(secondaryCmd, *swapChain.offscreenImage, vk::ImageLayout::eColorAttachmentOptimal,

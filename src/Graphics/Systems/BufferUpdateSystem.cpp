@@ -110,7 +110,6 @@ void BufferUpdateSystem::update(float deltaTime, GeneralManager& gm)
 
 			int currentEntityTransformIndex = baseTransformIndexForMesh;
 			globalCullIndex += modelManager.meshes[meshBaseInfo.mesh].entitiesSubscribed;
-			globalPrimitiveIndex++;
 			for (const auto* agent : agentsInBatch)
 			{
 				MeshInfoComponent& meshinfo = *agent->meshInfo;
@@ -129,9 +128,12 @@ void BufferUpdateSystem::update(float deltaTime, GeneralManager& gm)
 				primitivePtr[localPrimitiveIndex].AABBMax = modelManager.meshes[meshinfo.mesh].primitives[i].AABBMax;
 				primitivePtr[localPrimitiveIndex].AABBMin = modelManager.meshes[meshinfo.mesh].primitives[i].AABBMin;
 
+				primitivePtr[localPrimitiveIndex].drawCommandIndex = globalPrimitiveIndex;
+
 				localPrimitiveIndex++;
 				currentEntityTransformIndex++;
 			}
+			globalPrimitiveIndex++;
 		}
 	}
 }

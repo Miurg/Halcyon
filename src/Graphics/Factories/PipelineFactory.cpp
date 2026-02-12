@@ -323,7 +323,7 @@ void PipelineFactory::createCullingPipeline(VulkanDevice& vulkanDevice, Descript
                                             PipelineHandler& pipelineHandler)
 {
 	vk::raii::ShaderModule shaderModule =
-	    PipelineFactory::createShaderModule(VulkanUtils::readFile("shaders/frustrum_culling.spv"), vulkanDevice);
+	    PipelineFactory::createShaderModule(VulkanUtils::readFile("shaders/frustum_culling.spv"), vulkanDevice);
 
 	vk::PipelineShaderStageCreateInfo computeShaderStageInfo;
 	computeShaderStageInfo.stage = vk::ShaderStageFlagBits::eCompute;
@@ -333,7 +333,7 @@ void PipelineFactory::createCullingPipeline(VulkanDevice& vulkanDevice, Descript
 	vk::PushConstantRange pushConstantRange;
 	pushConstantRange.stageFlags = vk::ShaderStageFlagBits::eCompute;
 	pushConstantRange.offset = 0;
-	pushConstantRange.size = sizeof(uint32_t) * 3;
+	pushConstantRange.size = sizeof(uint32_t) * 1;
 
 
 	vk::DescriptorSetLayout setLayouts[] = {
