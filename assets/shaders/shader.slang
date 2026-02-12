@@ -113,7 +113,7 @@ float4 fragMain(VSOutput vertIn) : SV_TARGET
         {
             for (int y = -1; y <= 1; ++y)
             {
-                shadowFactor += shadowMap.SampleCmpLevelZero(projCoords.xy + float2(x, y) * texelSize, projCoords.z - bias);
+                shadowFactor += shadowMap.SampleCmpLevelZero(projCoords.xy + float2(x, y) * texelSize, projCoords.z + bias);
             }
         }
         shadowFactor /= 9.0;

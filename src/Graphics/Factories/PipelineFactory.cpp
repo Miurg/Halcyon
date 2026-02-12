@@ -192,7 +192,7 @@ void PipelineFactory::createShadowPipeline(VulkanDevice& vulkanDevice, SwapChain
 	vk::PipelineDepthStencilStateCreateInfo depthStencil;
 	depthStencil.depthTestEnable = vk::True;
 	depthStencil.depthWriteEnable = vk::True;
-	depthStencil.depthCompareOp = vk::CompareOp::eLess;
+	depthStencil.depthCompareOp = vk::CompareOp::eGreater;
 	depthStencil.depthBoundsTestEnable = vk::False;
 	depthStencil.stencilTestEnable = vk::False;
 

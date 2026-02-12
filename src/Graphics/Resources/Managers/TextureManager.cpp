@@ -53,10 +53,10 @@ void TextureManager::createShadowSampler(Texture& texture)
 	samplerInfo.addressModeU = vk::SamplerAddressMode::eClampToBorder;
 	samplerInfo.addressModeV = vk::SamplerAddressMode::eClampToBorder;
 	samplerInfo.addressModeW = vk::SamplerAddressMode::eClampToBorder;
-	samplerInfo.borderColor = vk::BorderColor::eFloatOpaqueWhite;
+	samplerInfo.borderColor = vk::BorderColor::eFloatOpaqueBlack;
 
 	samplerInfo.compareEnable = vk::True;
-	samplerInfo.compareOp = vk::CompareOp::eLess;
+	samplerInfo.compareOp = vk::CompareOp::eGreater;
 
 	texture.textureSampler = (*vulkanDevice.device).createSampler(samplerInfo);
 }

@@ -2,6 +2,9 @@
 #include "../Resources/Managers/BufferManager.hpp"
 #include <iostream>
 #include <chrono>
+#include <vector>
+#include <algorithm>
+#include <cmath>
 #include "../../Core/GeneralManager.hpp"
 #include "../GraphicsContexts.hpp"
 #include "../Components/SwapChainComponent.hpp"
@@ -37,32 +40,6 @@ void CameraMatrixSystem::update(float deltaTime, GeneralManager& gm)
 	GlobalDSetComponent* globalDSetComponent = gm.getContextComponent<MainDSetsContext, GlobalDSetComponent>();
 	LightComponent* lightComponent = gm.getContextComponent<SunContext, LightComponent>();
 
-	// === Sun ===
-	glm::vec3 lightPos = glm::vec3(sunCameraTransform->globalPosition.x + mainCameraTransform->globalPosition.x,
-	                               sunCameraTransform->globalPosition.y + mainCameraTransform->globalPosition.y,
-	                               sunCameraTransform->globalPosition.z + mainCameraTransform->globalPosition.z);
-	glm::vec3 lightTarget = glm::vec3(mainCameraTransform->globalPosition.x, mainCameraTransform->globalPosition.y,
-	                                  mainCameraTransform->globalPosition.z);
-	glm::mat4 lightView = glm::lookAt(lightPos, lightTarget, glm::vec3(0.0f, 1.0f, 0.0f));
-
-	glm::mat4 lightProj = glm::orthoRH_ZO(-sunCamera->orthoSize, sunCamera->orthoSize, -sunCamera->orthoSize,
-	                                      sunCamera->orthoSize, sunCamera->zNear, sunCamera->zFar);
-	lightProj[1][1] *= -1; // Y-flip
-
-	glm::mat4 lightSpaceMatrix = lightProj * lightView;
-
-	glm::vec3 lightDirection = normalize(lightTarget - lightPos);
-
-	SunStructure sunUbo
-	{
-		.lightSpaceMatrix = lightSpaceMatrix,
-	    .direction = glm::vec4(-lightDirection, 1.0f),
-	    .color = lightComponent->color,
-	    .ambient = lightComponent->ambient,
-	};
-	memcpy(bufferManager.buffers[globalDSetComponent->sunCameraBuffers].bufferMapped[currentFrame], &sunUbo,
-	       sizeof(sunUbo));
-
 	// === Camera ===
 	glm::mat4 view = mainCameraTransform->getViewMatrix();
 	glm::mat4 proj = glm::perspective(glm::radians(mainCamera->fov),
@@ -76,4 +53,90 @@ void CameraMatrixSystem::update(float deltaTime, GeneralManager& gm)
 	CameraStucture cameraUbo{.cameraSpaceMatrix = cameraSpaceMatrix};
 	memcpy(bufferManager.buffers[globalDSetComponent->cameraBuffers].bufferMapped[currentFrame], &cameraUbo,
 	       sizeof(cameraUbo));
+
+	// === Sun (Shadows) ===
+
+	//Calculate frustum corners in world space 
+	float aspect =
+	    static_cast<float>(swapChain.swapChainExtent.width) / static_cast<float>(swapChain.swapChainExtent.height);
+	float shadowZFar = std::min(mainCamera->zFar, lightComponent->shadowDistance);
+
+	glm::mat4 shadowProj = glm::perspective(glm::radians(mainCamera->fov), aspect, mainCamera->zNear, shadowZFar);
+	shadowProj[1][1] *= -1; // Y-flip
+
+	glm::mat4 shadowCamSpaceMatrix = shadowProj * view;
+	glm::mat4 invCam = glm::inverse(shadowCamSpaceMatrix);
+
+	std::vector<glm::vec4> frustumCorners;
+	for (unsigned int x = 0; x < 2; ++x)
+	{
+		for (unsigned int y = 0; y < 2; ++y)
+		{
+			for (unsigned int z = 0; z < 2; ++z)
+			{
+				glm::vec4 pt = invCam * glm::vec4(2.0f * x - 1.0f, 2.0f * y - 1.0f,
+				                                  static_cast<float>(z), // 0 to 1 for Z (Vulkan)
+				                                  1.0f);
+				frustumCorners.push_back(pt / pt.w);
+			}
+		}
+	}
+
+	//Frustum Center
+	glm::vec3 center = glm::vec3(0, 0, 0);
+	for (const auto& v : frustumCorners)
+	{
+		center += glm::vec3(v);
+	}
+	center /= frustumCorners.size();
+
+	//Bounding sphere radius
+	float radius = 0.0f;
+	for (const auto& v : frustumCorners)
+	{
+		float distance = glm::length(glm::vec3(v) - center);
+		radius = glm::max(radius, distance);
+	}
+
+	constexpr float RADIUS_ROUNDING_STEP = 16.0f;
+	radius = std::ceil(radius * RADIUS_ROUNDING_STEP) / RADIUS_ROUNDING_STEP; // Round radius to stabilize size slightly
+
+	sunCamera->orthoSize = radius;
+
+	//Calculate light view matrix
+	glm::vec3 lightDir = glm::normalize(-glm::vec3(sunCameraTransform->globalPosition));
+	float zOffset = radius + lightComponent->shadowCasterRange;
+	glm::vec3 lightPos = center - lightDir * zOffset;
+	glm::mat4 lightView = glm::lookAt(lightPos, center, glm::vec3(0.0f, 1.0f, 0.0f));
+
+	//Texel snapping
+	float zFarRange = zOffset + radius;
+
+	glm::mat4 lightProj = glm::orthoRH_ZO(-radius, radius, -radius, radius, zFarRange, 0.0f);
+	lightProj[1][1] *= -1; // Y-flip
+
+	glm::mat4 shadowMatrix = lightProj * lightView;
+	float shadowMapWidth = static_cast<float>(lightComponent->sizeX);
+
+	//Transform world origin to shadow space
+	glm::vec4 shadowOrigin = shadowMatrix * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
+	shadowOrigin = shadowOrigin * (shadowMapWidth / 2.0f);
+
+	glm::vec4 roundedOrigin = glm::round(shadowOrigin);
+	glm::vec4 roundOffset = roundedOrigin - shadowOrigin;
+	roundOffset = roundOffset * (2.0f / shadowMapWidth);
+
+	lightProj[3][0] += roundOffset.x;
+	lightProj[3][1] += roundOffset.y;
+
+	glm::mat4 lightSpaceMatrix = lightProj * lightView;
+
+	SunStructure sunUbo{
+	    .lightSpaceMatrix = lightSpaceMatrix,
+	    .direction = glm::vec4(-lightDir, 1.0f),
+	    .color = lightComponent->color,
+	    .ambient = lightComponent->ambient,
+	};
+	memcpy(bufferManager.buffers[globalDSetComponent->sunCameraBuffers].bufferMapped[currentFrame], &sunUbo,
+	       sizeof(sunUbo));
 }
