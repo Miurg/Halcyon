@@ -33,7 +33,16 @@ void App::run()
 		return;
 	}
 	
-	MainLoop::startLoop(gm);
+	try
+	{
+		MainLoop::startLoop(gm);
+	}
+	catch (const std::exception& e)
+	{
+		std::cerr << "ERROR::APP::MAINLOOP::Exception: " << e.what() << std::endl;
+		Cleanup::cleanup(gm);
+		return;
+	}
 	Cleanup::cleanup(gm);
 
 }
