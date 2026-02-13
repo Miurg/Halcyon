@@ -4,23 +4,9 @@
 #define GLFW_INCLUDE_NONE
 #define GLFW_EXPOSE_NATIVE_WIN32
 
-#include "Graphics/FrameData.hpp"
-#include "Graphics/PipelineHandler.hpp"
-#include "Platform/Window.hpp"
-#include "Graphics/SwapChain.hpp"
-#include "Graphics/VulkanDevice.hpp"
-#include "Core/GeneralManager.hpp"
-#include "Graphics/Resources/Managers/BufferManager.hpp"
-
 class App
 {
 public:
 	App();
 	void run();
-
-private:
-	uint32_t frameCount = 0;
-	float time = 0;
-
-	void mainLoop(GeneralManager& gm);
 };
