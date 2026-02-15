@@ -21,7 +21,7 @@
 #include "Components/PipelineHandlerComponent.hpp"
 #include "Resources/Components/GlobalDSetComponent.hpp"
 #include "Resources/Components/ModelDSetComponent.hpp"
-#include "Resources/Components/FrustumDSetComponent.hpp"
+
 #include "Components/CameraComponent.hpp"
 #include "Components/LightComponent.hpp"
 #include "Components/LocalTransformComponent.hpp"
@@ -174,7 +174,6 @@ void GraphicsInit::initPipelines(GeneralManager& gm)
 	gm.addComponent<BindlessTextureDSetComponent>(mainDSetsEntity);
 	gm.addComponent<GlobalDSetComponent>(mainDSetsEntity);
 	gm.addComponent<ModelDSetComponent>(mainDSetsEntity);
-	gm.addComponent<FrustumDSetComponent>(mainDSetsEntity);
 
 	// Signature and Pipelines
 	Entity signatureEntity = gm.createEntity();
@@ -232,39 +231,21 @@ void GraphicsInit::initScene(GeneralManager& gm)
 	LightComponent* sunLight = gm.getContextComponent<SunContext, LightComponent>();
 	globalDSetComponent->sunCameraBuffers = bManager->createBuffer(
 	    (vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal), sizeof(SunStructure),
-	    MAX_FRAMES_IN_FLIGHT, 2, *dManager->globalSetLayout, vk::BufferUsageFlagBits::eStorageBuffer);
+	    MAX_FRAMES_IN_FLIGHT, 1, *dManager->globalSetLayout, vk::BufferUsageFlagBits::eStorageBuffer);
 	dManager->updateStorageBufferDescriptors(*bManager, globalDSetComponent->sunCameraBuffers,
-	                                         globalDSetComponent->globalDSets, 2);
+	                                         globalDSetComponent->globalDSets, 1);
 	sunLight->textureShadowImage = tManager->createShadowMap(sunLight->sizeX, sunLight->sizeY);
-	dManager->updateSingleTextureDSet(globalDSetComponent->globalDSets, 1,
-	                                  tManager->textures[sunLight->textureShadowImage].textureImageView,
-	                                  tManager->textures[sunLight->textureShadowImage].textureSampler);
 	// === Sun END ===
-
-	// === Frustum ===
-	FrustumDSetComponent* frustumDSetComponent = gm.getContextComponent<MainDSetsContext, FrustumDSetComponent>();
-	frustumDSetComponent->frustumBufferDSet =
-	    dManager->allocateStorageBufferDSets(MAX_FRAMES_IN_FLIGHT, *dManager->frustrumSetLayout);
-
-	frustumDSetComponent->indirectDrawBuffer = bManager->createBuffer(
-	    (vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal),
-	    sizeof(IndirectDrawStructure) * 10240, MAX_FRAMES_IN_FLIGHT, 0, *dManager->frustrumSetLayout,
-	    vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eIndirectBuffer |
-	        vk::BufferUsageFlagBits::eTransferDst);
-	dManager->updateStorageBufferDescriptors(*bManager, frustumDSetComponent->indirectDrawBuffer,
-	                                         frustumDSetComponent->frustumBufferDSet, 0);
-
-	frustumDSetComponent->visibleIndicesBuffer = bManager->createBuffer(
-	    (vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal), sizeof(uint32_t) * 10240,
-	    MAX_FRAMES_IN_FLIGHT, 1, *dManager->frustrumSetLayout, vk::BufferUsageFlagBits::eStorageBuffer);
-	dManager->updateStorageBufferDescriptors(*bManager, frustumDSetComponent->visibleIndicesBuffer,
-	                                         frustumDSetComponent->frustumBufferDSet, 1);
-
-	// === Frustum END ===
 
 	// === Bindless Texture Set ===
 	bTextureDSetComponent->bindlessTextureSet = dManager->allocateBindlessTextureDSet();
 	// === Bindless Texture Set END ===
+
+	// === Shadow Map в Texture Set (binding 1) ===
+	dManager->updateSingleTextureDSet(bTextureDSetComponent->bindlessTextureSet, 1,
+	                                  tManager->textures[sunLight->textureShadowImage].textureImageView,
+	                                  tManager->textures[sunLight->textureShadowImage].textureSampler);
+	// === Shadow Map END ===
 
 	// === FXAA Descriptor Set ===
 	globalDSetComponent->fxaaDSets = dManager->allocateFxaaDescriptorSet(*dManager->fxaaSetLayout);
@@ -275,7 +256,7 @@ void GraphicsInit::initScene(GeneralManager& gm)
 	                                  swap->offscreenSampler);
 	// === Offscreen Descriptor Set END ===
 
-	// === Model ===
+	// === Model + Frustum (merged into Set 1) ===
 	ModelDSetComponent* objectDSetComponent = gm.getContextComponent<MainDSetsContext, ModelDSetComponent>();
 	objectDSetComponent->modelBufferDSet =
 	    dManager->allocateStorageBufferDSets(MAX_FRAMES_IN_FLIGHT, *dManager->modelSetLayout);
@@ -289,7 +270,19 @@ void GraphicsInit::initScene(GeneralManager& gm)
 	    *dManager->modelSetLayout, vk::BufferUsageFlagBits::eStorageBuffer);
 	dManager->updateStorageBufferDescriptors(*bManager, objectDSetComponent->transformBuffer,
 	                                         objectDSetComponent->modelBufferDSet, 1);
-	// === ModelEND ===
+	objectDSetComponent->indirectDrawBuffer =
+	    bManager->createBuffer((vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal),
+	                           sizeof(IndirectDrawStructure) * 10240, MAX_FRAMES_IN_FLIGHT, 2, *dManager->modelSetLayout,
+	                           vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eIndirectBuffer |
+	                               vk::BufferUsageFlagBits::eTransferDst);
+	dManager->updateStorageBufferDescriptors(*bManager, objectDSetComponent->indirectDrawBuffer,
+	                                         objectDSetComponent->modelBufferDSet, 2);
+	objectDSetComponent->visibleIndicesBuffer = bManager->createBuffer(
+	    (vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal), sizeof(uint32_t) * 10240,
+	    MAX_FRAMES_IN_FLIGHT, 3, *dManager->modelSetLayout, vk::BufferUsageFlagBits::eStorageBuffer);
+	dManager->updateStorageBufferDescriptors(*bManager, objectDSetComponent->visibleIndicesBuffer,
+	                                         objectDSetComponent->modelBufferDSet, 3);
+	// === Model + Frustum END ===
 
 	// === Placeholder Entities END ===
 

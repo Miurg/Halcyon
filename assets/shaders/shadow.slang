@@ -7,13 +7,13 @@ struct ModelData
     uint textureIndex;
     float2 padding;
 };
-[[vk::binding(0, 2)]] StructuredBuffer<ModelData> objectBuffer;
+[[vk::binding(0, 1)]] StructuredBuffer<ModelData> objectBuffer;
 
 struct TransformData
 {
     float4x4 model;
 };
-[[vk::binding(1, 2)]] StructuredBuffer<TransformData> transformBuffer;
+[[vk::binding(1, 1)]] StructuredBuffer<TransformData> transformBuffer;
 
 struct SunUBO
 {
@@ -22,7 +22,7 @@ struct SunUBO
     float4 sunColor;
     float4 sunAmbient;
 };
-[[vk::binding(2, 0)]] StructuredBuffer<SunUBO> sun;
+[[vk::binding(1, 0)]] StructuredBuffer<SunUBO> sun;
 
 struct VSInput
 {

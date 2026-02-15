@@ -3,7 +3,6 @@
 #include "../Resources/Managers/VertexIndexBuffer.hpp"
 #include "../Resources/Managers/Vertex.hpp"
 
-
 void PipelineFactory::createGraphicsPipeline(VulkanDevice& vulkanDevice, SwapChain& swapChain,
                                              DescriptorManager& descriptorManager, PipelineHandler& pipelineHandler)
 {
@@ -81,12 +80,10 @@ void PipelineFactory::createGraphicsPipeline(VulkanDevice& vulkanDevice, SwapCha
 	colorBlending.pAttachments = &colorBlendAttachment;
 
 	vk::PipelineLayoutCreateInfo pipelineLayoutInfo;
-	std::array<vk::DescriptorSetLayout, 4> setLayouts = 
-	{
-	    *descriptorManager.globalSetLayout,       // Set 0
-	    *descriptorManager.textureSetLayout,   // Set 1
-	    *descriptorManager.modelSetLayout,    // Set 2
-	    *descriptorManager.frustrumSetLayout // Set 3
+	std::array<vk::DescriptorSetLayout, 3> setLayouts = {
+	    *descriptorManager.globalSetLayout, // Set 0
+	    *descriptorManager.modelSetLayout,  // Set 1
+	    *descriptorManager.textureSetLayout // Set 2
 	};
 
 	pipelineLayoutInfo.setLayoutCount = static_cast<uint32_t>(setLayouts.size());
@@ -125,8 +122,7 @@ void PipelineFactory::createGraphicsPipeline(VulkanDevice& vulkanDevice, SwapCha
 }
 
 void PipelineFactory::createShadowPipeline(VulkanDevice& vulkanDevice, SwapChain& swapChain,
-                                           DescriptorManager& descriptorManager,
-                                           PipelineHandler& pipelineHandler)
+                                           DescriptorManager& descriptorManager, PipelineHandler& pipelineHandler)
 {
 	vk::raii::ShaderModule shaderModule =
 	    PipelineFactory::createShaderModule(VulkanUtils::readFile("shaders/shadow.spv"), vulkanDevice);
@@ -179,11 +175,11 @@ void PipelineFactory::createShadowPipeline(VulkanDevice& vulkanDevice, SwapChain
 	vk::PipelineColorBlendStateCreateInfo colorBlending;
 	colorBlending.logicOpEnable = false;
 	colorBlending.logicOp = vk::LogicOp::eCopy;
-	colorBlending.attachmentCount = 0; 
+	colorBlending.attachmentCount = 0;
 	colorBlending.pAttachments = nullptr;
 
 	vk::PipelineRenderingCreateInfo pipelineRenderingCreateInfo;
-	pipelineRenderingCreateInfo.colorAttachmentCount = 0; 
+	pipelineRenderingCreateInfo.colorAttachmentCount = 0;
 	pipelineRenderingCreateInfo.pColorAttachmentFormats = nullptr;
 	pipelineRenderingCreateInfo.depthAttachmentFormat = swapChain.depthFormat;
 
@@ -212,7 +208,8 @@ void PipelineFactory::createShadowPipeline(VulkanDevice& vulkanDevice, SwapChain
 	pipelineHandler.shadowPipeline = vk::raii::Pipeline(vulkanDevice.device, nullptr, pipelineInfo);
 }
 
-[[nodiscard]] vk::raii::ShaderModule PipelineFactory::createShaderModule(const std::vector<char>& code, VulkanDevice& vulkanDevice)
+[[nodiscard]] vk::raii::ShaderModule PipelineFactory::createShaderModule(const std::vector<char>& code,
+                                                                         VulkanDevice& vulkanDevice)
 {
 	vk::ShaderModuleCreateInfo createInfo;
 	createInfo.codeSize = code.size() * sizeof(char);
@@ -263,7 +260,7 @@ void PipelineFactory::createFxaaPipeline(VulkanDevice& vulkanDevice, SwapChain& 
 	rasterizer.rasterizerDiscardEnable = vk::False;
 	rasterizer.polygonMode = vk::PolygonMode::eFill;
 	rasterizer.lineWidth = 1.0f;
-	rasterizer.cullMode = vk::CullModeFlagBits::eNone; 
+	rasterizer.cullMode = vk::CullModeFlagBits::eNone;
 	rasterizer.frontFace = vk::FrontFace::eCounterClockwise;
 	rasterizer.depthBiasEnable = vk::False;
 
@@ -281,7 +278,7 @@ void PipelineFactory::createFxaaPipeline(VulkanDevice& vulkanDevice, SwapChain& 
 	vk::PipelineColorBlendAttachmentState colorBlendAttachment{};
 	colorBlendAttachment.colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG |
 	                                      vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA;
-	colorBlendAttachment.blendEnable = vk::False; 
+	colorBlendAttachment.blendEnable = vk::False;
 
 	vk::PipelineColorBlendStateCreateInfo colorBlending{};
 	colorBlending.logicOpEnable = vk::False;
@@ -333,16 +330,13 @@ void PipelineFactory::createCullingPipeline(VulkanDevice& vulkanDevice, Descript
 	pushConstantRange.offset = 0;
 	pushConstantRange.size = sizeof(uint32_t) * 1;
 
-
 	vk::DescriptorSetLayout setLayouts[] = {
-	    *descriptorManager.globalSetLayout, 
-		*descriptorManager.globalSetLayout,
-        *descriptorManager.modelSetLayout,
-		*descriptorManager.frustrumSetLayout
+	    *descriptorManager.globalSetLayout, // Set 0
+	    *descriptorManager.modelSetLayout   // Set 1
 	};
 
 	vk::PipelineLayoutCreateInfo pipelineLayoutInfo;
-	pipelineLayoutInfo.setLayoutCount = 4;
+	pipelineLayoutInfo.setLayoutCount = 2;
 	pipelineLayoutInfo.pSetLayouts = setLayouts;
 	pipelineLayoutInfo.pushConstantRangeCount = 1;
 	pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;

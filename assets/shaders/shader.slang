@@ -7,20 +7,19 @@ struct ModelData
     uint textureIndex;
     float2 padding;
 };
-[[vk::binding(0, 2)]] StructuredBuffer<ModelData> objectBuffer;
+[[vk::binding(0, 1)]] StructuredBuffer<ModelData> objectBuffer;
 
 struct TransformData
 {
     float4x4 model;
 };
-[[vk::binding(1, 2)]] StructuredBuffer<TransformData> transformBuffer;
+[[vk::binding(1, 1)]] StructuredBuffer<TransformData> transformBuffer;
 
 struct CameraData
 {
     float4x4 cameraSpaceMatrix;
 };
 [[vk::binding(0, 0)]] StructuredBuffer<CameraData> camera;
-[[vk::binding(1, 0)]] Sampler2DShadow shadowMap;
 
 struct SunData
 {
@@ -29,9 +28,11 @@ struct SunData
     float4 sunColor;
     float4 sunAmbient;
 };
-[[vk::binding(2, 0)]] StructuredBuffer<SunData> sun;
+[[vk::binding(1, 0)]] StructuredBuffer<SunData> sun;
 
-[[vk::binding(1, 3)]] StructuredBuffer<uint> visibleIndicesBuffer;
+[[vk::binding(1, 2)]] Sampler2DShadow shadowMap;
+
+[[vk::binding(3, 1)]] StructuredBuffer<uint> visibleIndicesBuffer;
 struct VSInput
 {
     float3 inPosition;
@@ -75,7 +76,7 @@ VSOutput vertMain(VSInput input, uint instanceID: SV_InstanceID, uint baseInstan
     output.colorFactor = data.colorFactor;
     return output;
 }
-[[vk::binding(0, 1)]] Sampler2D textureArray[2048];
+[[vk::binding(0, 2)]] Sampler2D textureArray[2048];
 
 [shader("fragment")]
 float4 fragMain(VSOutput vertIn) : SV_TARGET

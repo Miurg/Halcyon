@@ -12,7 +12,7 @@
 #include <map>
 #include "../Resources/Managers/ModelManager.hpp"
 #include "../Components/ModelManagerComponent.hpp"
-#include "../Resources/Components/FrustumDSetComponent.hpp"
+
 void BufferUpdateSystem::onRegistered(GeneralManager& gm)
 {
 	std::cout << "BufferUpdateSystem registered!" << std::endl;
@@ -49,8 +49,7 @@ void BufferUpdateSystem::update(float deltaTime, GeneralManager& gm)
 	BufferManager& bufferManager =
 	    *gm.getContextComponent<BufferManagerContext, BufferManagerComponent>()->bufferManager;
 	ModelManager& modelManager = *gm.getContextComponent<ModelManagerContext, ModelManagerComponent>()->modelManager;
-	ModelDSetComponent* modelDSetComponent = gm.getContextComponent<MainDSetsContext, ModelDSetComponent>();
-	FrustumDSetComponent* frustumDSetComponent = gm.getContextComponent<MainDSetsContext, FrustumDSetComponent>();
+	ModelDSetComponent* objectDSetComponent = gm.getContextComponent<MainDSetsContext, ModelDSetComponent>();
 
 	std::vector<std::vector<Agent>> batch;
 	batch.resize(modelManager.meshes.size());
@@ -70,11 +69,11 @@ void BufferUpdateSystem::update(float deltaTime, GeneralManager& gm)
 
 	// === Models ===
 	auto* primitivePtr = static_cast<PrimitiveSctructure*>(
-	    bufferManager.buffers[modelDSetComponent->primitiveBuffer].bufferMapped[currentFrame]);
+	    bufferManager.buffers[objectDSetComponent->primitiveBuffer].bufferMapped[currentFrame]);
 	auto* transfromMeshPtr = static_cast<TransformStructure*>(
-	    bufferManager.buffers[modelDSetComponent->transformBuffer].bufferMapped[currentFrame]);
+	    bufferManager.buffers[objectDSetComponent->transformBuffer].bufferMapped[currentFrame]);
 	auto* indirectBufferPtr = static_cast<IndirectDrawStructure*>(
-	    bufferManager.buffers[frustumDSetComponent->indirectDrawBuffer].bufferMapped[currentFrame]);
+	    bufferManager.buffers[objectDSetComponent->indirectDrawBuffer].bufferMapped[currentFrame]);
 
 	int globalTransformIndex = 0;
 	int globalPrimitiveIndex = 0;

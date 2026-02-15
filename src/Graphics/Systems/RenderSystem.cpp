@@ -46,7 +46,6 @@ void RenderSystem::update(float deltaTime, GeneralManager& gm)
 	    gm.getContextComponent<DescriptorManagerContext, DescriptorManagerComponent>();
 	GlobalDSetComponent* globalDSetComponent = gm.getContextComponent<MainDSetsContext, GlobalDSetComponent>();
 	ModelDSetComponent* objectDSetComponent = gm.getContextComponent<MainDSetsContext, ModelDSetComponent>();
-	FrustumDSetComponent* frustrumDSetComponent = gm.getContextComponent<MainDSetsContext, FrustumDSetComponent>();
 	uint32_t imageIndex = gm.getContextComponent<FrameImageContext, FrameImageComponent>()->imageIndex;
 	if (!currentFrameComp->frameValid) return;
 
@@ -56,12 +55,11 @@ void RenderSystem::update(float deltaTime, GeneralManager& gm)
 	    textureManager, modelManager);
 	CommandBufferFactory::recordCullCommandBuffer(
 	    frameManager->frames[currentFrameComp->currentFrame].secondaryCommandBuffers[1], pipelineHandler,
-	    currentFrameComp->currentFrame, *dManager, globalDSetComponent, frustrumDSetComponent, objectDSetComponent,
-	    modelManager);
+	    currentFrameComp->currentFrame, *dManager, globalDSetComponent, objectDSetComponent, modelManager);
 	CommandBufferFactory::recordMainCommandBuffer(
 	    frameManager->frames[currentFrameComp->currentFrame].secondaryCommandBuffers[2], imageIndex, swapChain,
 	    pipelineHandler, currentFrameComp->currentFrame, *materialDSetComponent, *dManager, globalDSetComponent,
-	    bufferManager, objectDSetComponent, modelManager, frustrumDSetComponent);
+	    bufferManager, objectDSetComponent, modelManager);
 	CommandBufferFactory::recordFxaaCommandBuffer(
 	    frameManager->frames[currentFrameComp->currentFrame].secondaryCommandBuffers[3], imageIndex, swapChain,
 	    pipelineHandler, *dManager, globalDSetComponent->fxaaDSets);

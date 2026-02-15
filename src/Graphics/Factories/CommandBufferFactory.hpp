@@ -12,7 +12,6 @@
 #include "../Resources/Components/GlobalDSetComponent.hpp"
 #include "../Resources/Managers/TextureManager.hpp"
 #include "../Resources/Managers/ModelManager.hpp"
-#include "../Resources/Components/FrustumDSetComponent.hpp"
 
 class CommandBufferFactory
 {
@@ -25,7 +24,6 @@ public:
 	static void recordCullCommandBuffer(vk::raii::CommandBuffer& secondaryCmd, PipelineHandler& pipelineHandler,
 	                                    uint32_t currentFrame, DescriptorManagerComponent& dManager,
 	                                    GlobalDSetComponent* globalDSetComponent,
-	                                    FrustumDSetComponent* frustrumDSetComponent,
 	                                    ModelDSetComponent* objectDSetComponent, ModelManager& mManager);
 
 	static void recordMainCommandBuffer(vk::raii::CommandBuffer& secondaryCmd, uint32_t imageIndex, SwapChain& swapChain,
@@ -33,7 +31,7 @@ public:
 	                                    BindlessTextureDSetComponent& bindlessTextureDSetComponent,
 	                                    DescriptorManagerComponent& dManager, GlobalDSetComponent* globalDSetComponent,
 	                                    BufferManager& bManager, ModelDSetComponent* objectDSetComponent,
-	                                    ModelManager& mManager, FrustumDSetComponent* frustrumDSetComponent);
+	                                    ModelManager& mManager);
 	static void recordFxaaCommandBuffer(vk::raii::CommandBuffer& secondaryCmd, uint32_t imageIndex, SwapChain& swapChain,
 	                                    PipelineHandler& pipelineHandler, DescriptorManagerComponent& dManager,
 	                                    int fxaaDescriptorSetIndex);

@@ -8,13 +8,13 @@ struct ModelData
     uint drawCommandIndex;
     float padding;
 };
-[[vk::binding(0, 2)]] StructuredBuffer<ModelData> objectBuffer;
+[[vk::binding(0, 1)]] StructuredBuffer<ModelData> objectBuffer;
 
 struct TransformData
 {
     float4x4 model;
 };
-[[vk::binding(1, 2)]] StructuredBuffer<TransformData> transformBuffer;
+[[vk::binding(1, 1)]] StructuredBuffer<TransformData> transformBuffer;
 
 struct CameraData
 {
@@ -30,9 +30,9 @@ struct VkDrawIndexedIndirectCommand
     int vertexOffset;
     uint firstInstance;
 };
-[[vk::binding(0, 3)]] RWStructuredBuffer<VkDrawIndexedIndirectCommand> indirectDrawBuffer;
+[[vk::binding(2, 1)]] RWStructuredBuffer<VkDrawIndexedIndirectCommand> indirectDrawBuffer;
 
-[[vk::binding(1, 3)]] RWStructuredBuffer<uint> visibleIndicesBuffer;
+[[vk::binding(3, 1)]] RWStructuredBuffer<uint> visibleIndicesBuffer;
 
 struct PushConstants
 {

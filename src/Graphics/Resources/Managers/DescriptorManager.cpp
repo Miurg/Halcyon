@@ -17,45 +17,55 @@ DescriptorManager::DescriptorManager(VulkanDevice& vulkanDevice) : vulkanDevice(
 
 	descriptorPool = vk::raii::DescriptorPool(vulkanDevice.device, poolInfo);
 
-	//===Global===
+	//===Global (Set 0): camera + sun===
 	vk::DescriptorSetLayoutBinding cameraBinding(0, vk::DescriptorType::eStorageBuffer, 1,
 	                                             vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eCompute,
 	                                             nullptr);
-	vk::DescriptorSetLayoutBinding shadowBinding(1, vk::DescriptorType::eCombinedImageSampler, 1,
-	                                             vk::ShaderStageFlagBits::eFragment, nullptr);
-	vk::DescriptorSetLayoutBinding sunBinding(2, vk::DescriptorType::eStorageBuffer, 1,
+	vk::DescriptorSetLayoutBinding sunBinding(1, vk::DescriptorType::eStorageBuffer, 1,
 	                                          vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment,
 	                                          nullptr);
-	std::array<vk::DescriptorSetLayoutBinding, 3> globalBindings = {cameraBinding, shadowBinding, sunBinding};
+	std::array<vk::DescriptorSetLayoutBinding, 2> globalBindings = {cameraBinding, sunBinding};
 
 	vk::DescriptorSetLayoutCreateInfo globalInfo({}, static_cast<uint32_t>(globalBindings.size()),
 	                                             globalBindings.data());
 	globalSetLayout = vk::raii::DescriptorSetLayout(vulkanDevice.device, globalInfo);
 
-	//===Textures===
-	vk::DescriptorBindingFlags bindingFlags =
-	    vk::DescriptorBindingFlagBits::ePartiallyBound | vk::DescriptorBindingFlagBits::eUpdateAfterBind;
-	vk::DescriptorSetLayoutBindingFlagsCreateInfo bindingFlagsInfo;
-	bindingFlagsInfo.bindingCount = 1;
-	bindingFlagsInfo.pBindingFlags = &bindingFlags;
+	//===Textures (Set 2): textureArray (bindless) + shadowMap===
 	vk::DescriptorSetLayoutBinding textureBinding(0, vk::DescriptorType::eCombinedImageSampler, MAX_BINDLESS_TEXTURES,
 	                                              vk::ShaderStageFlagBits::eFragment, nullptr);
+	vk::DescriptorSetLayoutBinding shadowBinding(1, vk::DescriptorType::eCombinedImageSampler, 1,
+	                                             vk::ShaderStageFlagBits::eFragment, nullptr);
+	std::array<vk::DescriptorSetLayoutBinding, 2> textureBindings = {textureBinding, shadowBinding};
+
+	std::array<vk::DescriptorBindingFlags, 2> textureBindingFlags = {
+	    vk::DescriptorBindingFlagBits::ePartiallyBound | vk::DescriptorBindingFlagBits::eUpdateAfterBind,
+	    vk::DescriptorBindingFlags{} // shadowMap: no special flags
+	};
+	vk::DescriptorSetLayoutBindingFlagsCreateInfo bindingFlagsInfo;
+	bindingFlagsInfo.bindingCount = static_cast<uint32_t>(textureBindingFlags.size());
+	bindingFlagsInfo.pBindingFlags = textureBindingFlags.data();
 
 	vk::DescriptorSetLayoutCreateInfo textureInfo;
 	textureInfo.flags = vk::DescriptorSetLayoutCreateFlagBits::eUpdateAfterBindPool;
-	textureInfo.bindingCount = 1;
-	textureInfo.pBindings = &textureBinding;
+	textureInfo.bindingCount = static_cast<uint32_t>(textureBindings.size());
+	textureInfo.pBindings = textureBindings.data();
 	textureInfo.pNext = &bindingFlagsInfo;
 	textureSetLayout = vk::raii::DescriptorSetLayout(vulkanDevice.device, textureInfo);
 
-	//===Model===
-	vk::DescriptorSetLayoutBinding primitivesBinding(0, vk::DescriptorType::eStorageBuffer, 1,
-	                                                 vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eCompute,
-	                                                 nullptr);
+	//===Model (Set 1): primitives + transform + indirectDraw + visibleIndices===
+	vk::DescriptorSetLayoutBinding primitivesBinding(
+	    0, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eCompute,
+	    nullptr);
 	vk::DescriptorSetLayoutBinding transformBinding(1, vk::DescriptorType::eStorageBuffer, 1,
 	                                                vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eCompute,
 	                                                nullptr);
-	std::array<vk::DescriptorSetLayoutBinding, 2> modelBindings = {primitivesBinding, transformBinding};
+	vk::DescriptorSetLayoutBinding commandBinding(2, vk::DescriptorType::eStorageBuffer, 1,
+	                                              vk::ShaderStageFlagBits::eCompute, nullptr);
+	vk::DescriptorSetLayoutBinding indicesBinding(3, vk::DescriptorType::eStorageBuffer, 1,
+	                                              vk::ShaderStageFlagBits::eCompute | vk::ShaderStageFlagBits::eVertex,
+	                                              nullptr);
+	std::array<vk::DescriptorSetLayoutBinding, 4> modelBindings = {primitivesBinding, transformBinding, commandBinding,
+	                                                               indicesBinding};
 	vk::DescriptorSetLayoutCreateInfo modelInfo({}, static_cast<uint32_t>(modelBindings.size()), modelBindings.data());
 	modelSetLayout = vk::raii::DescriptorSetLayout(vulkanDevice.device, modelInfo);
 
@@ -72,28 +82,15 @@ DescriptorManager::DescriptorManager(VulkanDevice& vulkanDevice) : vulkanDevice(
 	layoutInfo.pBindings = &samplerLayoutBinding;
 
 	fxaaSetLayout = vk::raii::DescriptorSetLayout(vulkanDevice.device, layoutInfo);
-
-	//===Frustrum===
-	vk::DescriptorSetLayoutBinding commandBinding(0, vk::DescriptorType::eStorageBuffer, 1,
-	                                              vk::ShaderStageFlagBits::eCompute, nullptr);
-	vk::DescriptorSetLayoutBinding indicesBinding(1, vk::DescriptorType::eStorageBuffer, 1,
-	                                              vk::ShaderStageFlagBits::eCompute | vk::ShaderStageFlagBits::eVertex,
-	                                              nullptr);
-	std::array<vk::DescriptorSetLayoutBinding, 2> indirectBindings = {commandBinding, indicesBinding};
-	vk::DescriptorSetLayoutCreateInfo indirectInfo({}, static_cast<uint32_t>(indirectBindings.size()),
-	                                               indirectBindings.data());
-
-	frustrumSetLayout = vk::raii::DescriptorSetLayout(vulkanDevice.device, indirectInfo);
 }
 
-DescriptorManager::~DescriptorManager() 
+DescriptorManager::~DescriptorManager()
 {
 	descriptorPool.reset();
 	globalSetLayout.~DescriptorSetLayout();
 	textureSetLayout.~DescriptorSetLayout();
 	modelSetLayout.~DescriptorSetLayout();
 	fxaaSetLayout.~DescriptorSetLayout();
-	frustrumSetLayout.~DescriptorSetLayout();
 }
 
 int DescriptorManager::allocateBindlessTextureDSet()
