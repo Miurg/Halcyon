@@ -17,9 +17,12 @@ int FrameManager::initFrameData()
 	frameData.inFlightFence =
 	    vk::raii::Fence(vulkanDevice.device, vk::FenceCreateInfo(vk::FenceCreateFlagBits::eSignaled));
 
-	allocInfo.level = vk::CommandBufferLevel::eSecondary;
-	allocInfo.commandBufferCount = 4;
-	vk::raii::CommandBuffers secondaryBuffers(vulkanDevice.device, allocInfo);
+	vk::CommandBufferAllocateInfo allocInfoSecondary;
+	allocInfoSecondary.commandPool = vulkanDevice.commandPool;
+	allocInfoSecondary.level = vk::CommandBufferLevel::eSecondary;
+	allocInfoSecondary.commandBufferCount = 4;
+
+	vk::raii::CommandBuffers secondaryBuffers(vulkanDevice.device, allocInfoSecondary);
 	frameData.secondaryCommandBuffers = std::move(secondaryBuffers);
 	frames.push_back(std::move(frameData));
 	return static_cast<int>(frames.size() - 1);

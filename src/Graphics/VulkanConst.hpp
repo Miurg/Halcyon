@@ -6,7 +6,7 @@
 constexpr int MAX_FRAMES_IN_FLIGHT = 3;
 constexpr int MAX_OBJECTS = 3;
 constexpr int MAX_PATH_LEN = 260;
-constexpr int MAX_SIZE_OF_VERTEX_INDEX_BUFFER = 6710886400; // 64 MB
+constexpr uint_fast32_t MAX_SIZE_OF_VERTEX_INDEX_BUFFER = 6710886400; // 64 MB
 constexpr int MAX_BINDLESS_TEXTURES = 2048;
 
 struct UniformBufferObject

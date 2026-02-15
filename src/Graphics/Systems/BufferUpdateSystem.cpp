@@ -36,8 +36,8 @@ void BufferUpdateSystem::onEntitySubscribed(Entity entity, GeneralManager& gm)
 
 void BufferUpdateSystem::onEntityUnsubscribed(Entity entity, GeneralManager& gm)
 {
-	auto it = std::remove_if(_agents.begin(), _agents.end(),
-	                         [entity](const Agent& agent) { return agent.entity == entity; });
+	auto it =
+	    std::remove_if(_agents.begin(), _agents.end(), [entity](const Agent& agent) { return agent.entity == entity; });
 	_agents.erase(it, _agents.end());
 }
 
@@ -52,19 +52,20 @@ void BufferUpdateSystem::update(float deltaTime, GeneralManager& gm)
 	ModelDSetComponent* modelDSetComponent = gm.getContextComponent<MainDSetsContext, ModelDSetComponent>();
 	FrustumDSetComponent* frustumDSetComponent = gm.getContextComponent<MainDSetsContext, FrustumDSetComponent>();
 
-	std::vector<std::vector<Agent*>> batch;
+	std::vector<std::vector<Agent>> batch;
 	batch.resize(modelManager.meshes.size());
-	std::map<int, int> counts;
 
 	for (auto& agent : _agents)
 	{
-		batch[agent.meshInfo->mesh].push_back(&agent);
-		counts[agent.meshInfo->mesh]++;
+		batch[agent.meshInfo->mesh].push_back(agent);
 	}
 
-	for (const auto& [key, count] : counts)
+	for (size_t i = 0; i < batch.size(); ++i)
 	{
-		modelManager.meshes[key].entitiesSubscribed = count;
+		if (!batch[i].empty())
+		{
+			modelManager.meshes[i].entitiesSubscribed = batch[i].size();
+		}
 	}
 
 	// === Models ===
@@ -80,15 +81,15 @@ void BufferUpdateSystem::update(float deltaTime, GeneralManager& gm)
 	int localPrimitiveIndex = 0;
 	int globalCullIndex = 0;
 	IndirectDrawStructure currentDraw{};
-	
+
 	for (const auto& agentsInBatch : batch)
 	{
 		int baseTransformIndexForMesh = globalTransformIndex;
 
-		for (const auto* agent : agentsInBatch)
+		for (const auto& agent : agentsInBatch)
 		{
 			// Link global transform
-			transfromMeshPtr[globalTransformIndex].model = agent->transform->getGlobalModelMatrix();
+			transfromMeshPtr[globalTransformIndex].model = agent.transform->getGlobalModelMatrix();
 			globalTransformIndex++;
 		}
 
@@ -96,7 +97,7 @@ void BufferUpdateSystem::update(float deltaTime, GeneralManager& gm)
 
 		// Get primitive count from mesh
 		// Optimized access via first agent in batch
-		MeshInfoComponent& meshBaseInfo = *agentsInBatch[0]->meshInfo;
+		MeshInfoComponent& meshBaseInfo = *agentsInBatch[0].meshInfo;
 		int primitiveCount = modelManager.meshes[meshBaseInfo.mesh].primitives.size();
 
 		for (int i = 0; i < primitiveCount; i++)
@@ -110,23 +111,21 @@ void BufferUpdateSystem::update(float deltaTime, GeneralManager& gm)
 
 			int currentEntityTransformIndex = baseTransformIndexForMesh;
 			globalCullIndex += modelManager.meshes[meshBaseInfo.mesh].entitiesSubscribed;
-			for (const auto* agent : agentsInBatch)
+			for (const auto agent : agentsInBatch)
 			{
-				MeshInfoComponent& meshinfo = *agent->meshInfo;
+				int meshIndex = agent.meshInfo->mesh;
 
 				// Link texture index
-				primitivePtr[localPrimitiveIndex].textureIndex =
-				    modelManager.meshes[meshinfo.mesh].primitives[i].textureIndex;
+				primitivePtr[localPrimitiveIndex].textureIndex = modelManager.meshes[meshIndex].primitives[i].textureIndex;
 
 				// Link transform index
 				primitivePtr[localPrimitiveIndex].transformIndex = currentEntityTransformIndex;
 
 				// Base color
-				primitivePtr[localPrimitiveIndex].baseColor =
-				    modelManager.meshes[meshinfo.mesh].primitives[i].baseColorFactor;
+				primitivePtr[localPrimitiveIndex].baseColor = modelManager.meshes[meshIndex].primitives[i].baseColorFactor;
 
-				primitivePtr[localPrimitiveIndex].AABBMax = modelManager.meshes[meshinfo.mesh].primitives[i].AABBMax;
-				primitivePtr[localPrimitiveIndex].AABBMin = modelManager.meshes[meshinfo.mesh].primitives[i].AABBMin;
+				primitivePtr[localPrimitiveIndex].AABBMax = modelManager.meshes[meshIndex].primitives[i].AABBMax;
+				primitivePtr[localPrimitiveIndex].AABBMin = modelManager.meshes[meshIndex].primitives[i].AABBMin;
 
 				primitivePtr[localPrimitiveIndex].drawCommandIndex = globalPrimitiveIndex;
 

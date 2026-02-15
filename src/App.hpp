@@ -8,5 +8,5 @@ class App
 {
 public:
 	App();
-	void run();
+	int run();
 };

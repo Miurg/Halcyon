@@ -17,7 +17,7 @@
 #include "Core/GeneralManager.hpp"
 App::App() {}
 
-void App::run()
+int App::run()
 {
 	GeneralManager gm;
 	try
@@ -30,7 +30,7 @@ void App::run()
 	{
 		std::cerr << "ERROR::APP::INIT::Exception: " << e.what() << std::endl;
 		Cleanup::cleanup(gm);
-		return;
+		return EXIT_FAILURE;
 	}
 	
 	try
@@ -41,8 +41,8 @@ void App::run()
 	{
 		std::cerr << "ERROR::APP::MAINLOOP::Exception: " << e.what() << std::endl;
 		Cleanup::cleanup(gm);
-		return;
+		return EXIT_FAILURE;
 	}
 	Cleanup::cleanup(gm);
-
+	return EXIT_SUCCESS;
 }
