@@ -1,14 +1,12 @@
 #pragma once
+#include "StablePool.hpp"
 #include <limits>
-#include <deque>
-
-template <typename TComponent>
+#include <vector>
+template <typename TComponent, uint32_t PoolBlockSize = 4096>
 class ComponentArray
 {
 private:
-	std::deque<TComponent> _dense;
-	std::vector<Entity> _denseToEntity;
-	std::vector<uint32_t> _freeIndices;
+	StablePool<TComponent, PoolBlockSize> _pool;
 
 	std::vector<uint32_t> _sparse;
 	static constexpr uint32_t INVALID_INDEX = std::numeric_limits<uint32_t>::max();
@@ -18,33 +16,20 @@ public:
 	{
 		if (entity >= _sparse.size())
 		{
-			_sparse.resize(entity + 1, INVALID_INDEX);
+			_sparse.resize(entity * 2 + 1, INVALID_INDEX);
 		}
 
 		if (_sparse[entity] != INVALID_INDEX)
 		{
 			uint32_t index = _sparse[entity];
-			_dense[index] = std::move(component);
-			return &_dense[index];
+			_pool[index] = std::move(component);
+			return _pool.at(index);
 		}
 
-		uint32_t newIndex;
-		if (!_freeIndices.empty())
-		{
-			newIndex = _freeIndices.back();
-			_freeIndices.pop_back();
-			_dense[newIndex] = std::move(component);
-			_denseToEntity[newIndex] = entity;
-		}
-		else
-		{
-			newIndex = static_cast<uint32_t>(_dense.size());
-			_dense.emplace_back(std::move(component));
-			_denseToEntity.push_back(entity);
-		}
+		auto [newIndex, ptr] = _pool.allocate(std::move(component));
 
 		_sparse[entity] = newIndex;
-		return &_dense[newIndex];
+		return ptr;
 	}
 
 	TComponent* getComponent(Entity entity)
@@ -53,7 +38,6 @@ public:
 		{
 			return nullptr;
 		}
-
 		uint32_t index = _sparse[entity];
 
 		if (index == INVALID_INDEX) [[unlikely]]
@@ -61,44 +45,32 @@ public:
 			return nullptr;
 		}
 
-		return &_dense[index];
+		return _pool.at(index);
 	}
 
 	void removeComponent(Entity entity)
 	{
 		if (entity >= _sparse.size()) [[unlikely]]
 			return;
-
+		
 		uint32_t indexToRemove = _sparse[entity];
+
 		if (indexToRemove == INVALID_INDEX) [[unlikely]]
 			return;
 
-		_freeIndices.push_back(indexToRemove);
+		_pool.deallocate(indexToRemove);
+
 		_sparse[entity] = INVALID_INDEX;
-	}
-
-	auto begin()
-	{
-		return _dense.begin();
-	}
-
-	auto end()
-	{
-		return _dense.end();
-	}
-
-	const std::vector<Entity>& getEntities() const
-	{
-		return _denseToEntity;
 	}
 
 	size_t size() const
 	{
-		return _dense.size() - _freeIndices.size();
+		return _pool.liveCount();
 	}
 
 	void reserve(size_t capacity)
 	{
-		_denseToEntity.reserve(capacity);
+		uint32_t numBlocks = static_cast<uint32_t>((capacity + PoolBlockSize - 1) / PoolBlockSize);
+		_pool.reserveBlocks(numBlocks);
 	}
 };
