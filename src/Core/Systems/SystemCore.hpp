@@ -5,6 +5,7 @@
 #include "../GeneralManager.hpp"
 #include <iostream>
 
+// CRTP base for systems. RequiredComponents are auto-checked in shouldProcessEntity().
 template <typename Derived, typename... RequiredComponents>
 class SystemCore : public ISystemCore
 {

@@ -4,6 +4,7 @@
 #include "VulkanDevice.hpp"
 #include <vector>
 
+// Stateless Vulkan helpers — buffer/image creation, memory queries, one-shot command buffers.
 class VulkanUtils
 {
 public:

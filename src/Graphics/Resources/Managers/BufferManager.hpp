@@ -18,6 +18,7 @@
 
 class DescriptorManager;
 
+// Manages GPU buffers — creates and tracks allocations via VMA.
 class BufferManager
 {
 public:
@@ -50,6 +51,7 @@ struct SunStructure
 	glm::vec4 ambient;   // rgb: ambient color, w: intensity of ambient
 };
 
+// GPU-side per-primitive data (64 bytes, 16-byte aligned). Matches shader SSBO layout.
 struct PrimitiveSctructure // (16 + 16 + 16 + 4 + 4 + 8 = 64 bytes)
 {
 	alignas(16) glm::vec4 baseColor; // rgb: base color, w: alpha
@@ -68,6 +70,7 @@ struct TransformStructure
 	alignas(16) glm::mat4 model;
 };
 
+// Mirrors VkDrawIndexedIndirectCommand for GPU-driven indirect draws.
 struct IndirectDrawStructure
 {
 	uint32_t indexCount;

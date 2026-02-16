@@ -8,6 +8,8 @@
 #include "../Entitys/EntityManager.hpp"
 #include "ComponentArray.hpp"
 
+// Type-erased component storage. Each component type gets a static ComponentArray.
+// removeEntity() uses registered callbacks to erase from all arrays without knowing concrete types.
 class ComponentManager
 {
 private:
@@ -61,5 +63,4 @@ public:
 			callback(entity);
 		}
 	}
-
 };

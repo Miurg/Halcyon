@@ -13,6 +13,7 @@
 #include "DescriptorManager.hpp"
 #include "ResourceHandles.hpp"
 
+// Creates and caches textures (VMA-allocated). Deduplicates by file path.
 class TextureManager
 {
 public:

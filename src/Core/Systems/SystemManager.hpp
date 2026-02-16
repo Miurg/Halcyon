@@ -11,6 +11,8 @@
 
 class GeneralManager;
 
+// Owns all systems and tracks bidirectional entity↔system subscriptions.
+// subscribe() recursively resolves system dependencies.
 class SystemManager
 {
 private:
@@ -115,7 +117,7 @@ public:
 		}
 
 		system->onEntityUnsubscribed(entity, gm);
-		
+
 		auto systemIt = SystemToEntities.find(systemType);
 		if (systemIt != SystemToEntities.end())
 		{

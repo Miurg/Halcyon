@@ -25,11 +25,12 @@ struct LoadedPrimitive
 	std::shared_ptr<TextureData> texture;
 };
 
+// Parses glTF files — extracts materials, primitives, and mesh hierarchy into engine resources.
 class GltfLoader
 {
 public:
 	static int loadModelFromFile(const char path[MAX_PATH_LEN], int vertexIndexBInt, BufferManager& bManager,
-	                      BindlessTextureDSetComponent& dSetComponent, DescriptorManager& dManager,
+	                             BindlessTextureDSetComponent& dSetComponent, DescriptorManager& dManager,
 	                             tinygltf::Model model, TextureManager& tManager, ModelManager& mManager);
 	static std::unordered_map<uint32_t, uint32_t> materialsParser(tinygltf::Model& model, TextureManager& tManager,
 	                                                              BindlessTextureDSetComponent& dSetComponent,

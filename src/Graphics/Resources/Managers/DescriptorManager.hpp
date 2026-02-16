@@ -8,6 +8,7 @@
 
 class BufferManager;
 
+// Allocates and updates descriptor sets from a single pool (bindless textures, storage buffers, FXAA).
 class DescriptorManager
 {
 public:

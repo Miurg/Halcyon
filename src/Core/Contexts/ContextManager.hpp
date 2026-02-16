@@ -5,6 +5,7 @@
 #include <typeinfo>
 #include "../Entitys/EntityManager.hpp"
 
+// Maps a context type (via typeid hash) → Entity for singleton-like global resource access.
 class ContextManager
 {
 private:

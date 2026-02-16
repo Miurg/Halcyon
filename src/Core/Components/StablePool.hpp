@@ -5,15 +5,8 @@
 #include <utility>
 #include <vector>
 
-/// <summary>
-/// A pool allocator with pointer-stable storage.
-/// Allocates elements in fixed-size blocks. Pointers to elements remain valid
-/// for the lifetime of the pool (blocks are never freed or moved).
-/// Freed slots are recycled via an internal free list.
-/// </summary>
-/// <typeparam name="T">Element type.</typeparam>
-/// <typeparam name="BlockSize">Number of elements per block. Must be a power of
-/// two.</typeparam>
+// Pointer-stable pool allocator. Blocks are never freed or moved, so pointers remain valid.
+// Freed slots are recycled via an internal free list. BlockSize must be a power of two.
 template <typename T, uint32_t BlockSize = 4096>
 class StablePool
 {
@@ -74,10 +67,8 @@ public:
 		// For non-trivial types ComponentArray is responsible for clearing before destruction.
 	}
 
-	/// <summary>
-	/// Allocates a slot, placement-moves the value into it.
-	/// Returns (global index, pointer to the element).
-	/// </summary>
+	// Allocates a slot and returns {index, pointer}.
+	// Reuses freed slots via move-assign; new slots use placement new.
 	std::pair<uint32_t, T*> allocate(T&& value)
 	{
 		uint32_t index;
@@ -102,10 +93,7 @@ public:
 		return {index, &(*this)[index]};
 	}
 
-	/// <summary>
-	/// Marks a slot as free. The slot can be reused by a future allocate() call.
-	/// Does NOT call the destructor.
-	/// </summary>
+	// Marks a slot as free for reuse. Does NOT call the destructor.
 	void deallocate(uint32_t index)
 	{
 		_freeIndices.push_back(index);
@@ -127,41 +115,26 @@ public:
 		return _blocks[index >> BLOCK_SHIFT]->ptr(index & BLOCK_MASK);
 	}
 
-	/// <summary>
-	/// Pre-allocates the specified number of blocks ahead of time.
-	/// </summary>
 	void reserveBlocks(uint32_t numBlocks)
 	{
 		_blocks.reserve(numBlocks);
 	}
 
-	/// <summary>
-	/// Returns the total number of live (non-free) elements.
-	/// </summary>
 	uint32_t liveCount() const noexcept
 	{
 		return _liveCount;
 	}
 
-	/// <summary>
-	/// Returns the total number of slots ever allocated (high watermark).
-	/// </summary>
 	uint32_t capacity() const noexcept
 	{
 		return _capacity;
 	}
 
-	/// <summary>
-	/// Returns the number of free recycled slots.
-	/// </summary>
 	uint32_t freeCount() const noexcept
 	{
 		return static_cast<uint32_t>(_freeIndices.size());
 	}
 
-	/// <summary>
-	/// Returns the number of allocated blocks.
-	/// </summary>
 	uint32_t blockCount() const noexcept
 	{
 		return static_cast<uint32_t>(_blocks.size());

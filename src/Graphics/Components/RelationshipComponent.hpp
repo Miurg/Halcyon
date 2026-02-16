@@ -3,6 +3,7 @@
 #include "../../Core/GeneralManager.hpp"
 
 const Entity NULL_ENTITY = 0;
+// Intrusive linked-list scene hierarchy. addChild() prepends to sibling list.
 struct RelationshipComponent
 {
 	Entity parent = NULL_ENTITY;

@@ -13,6 +13,7 @@
 #include "../Resources/Managers/TextureManager.hpp"
 #include "../Resources/Managers/ModelManager.hpp"
 
+// Records secondary command buffers for each render pass (shadow, cull, main, FXAA).
 class CommandBufferFactory
 {
 public:
@@ -43,6 +44,7 @@ public:
 	                                  vk::PipelineStageFlags2 dstStageMask, vk::ImageAspectFlags imageAspectFlags);
 };
 
+// Aggregate of references passed into primary command buffer recording.
 struct CommandBufferStruct
 {
 	vk::raii::CommandBuffer& commandBuffer;

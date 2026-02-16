@@ -2,6 +2,8 @@
 #include "StablePool.hpp"
 #include <limits>
 #include <vector>
+// Sparse array mapping Entity → slot in a StablePool.
+// Adding a component to an entity that already has one overwrites it in-place.
 template <typename TComponent, uint32_t PoolBlockSize = 4096>
 class ComponentArray
 {
@@ -52,7 +54,7 @@ public:
 	{
 		if (entity >= _sparse.size()) [[unlikely]]
 			return;
-		
+
 		uint32_t indexToRemove = _sparse[entity];
 
 		if (indexToRemove == INVALID_INDEX) [[unlikely]]

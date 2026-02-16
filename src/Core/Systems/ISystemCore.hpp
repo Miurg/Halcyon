@@ -3,6 +3,7 @@
 #include <vector>
 #include <typeindex>
 class GeneralManager;
+// System interface. Lifecycle: onRegistered → (onEntitySubscribed/update/onEntityUnsubscribed)* → onShutdown.
 class ISystemCore
 {
 public:

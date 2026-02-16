@@ -6,6 +6,7 @@
 
 using Entity = uint32_t;
 
+// Sparse/dense set — O(1) insert, erase (swap-with-last), and contains.
 class ActiveEntitySet
 {
 public:
