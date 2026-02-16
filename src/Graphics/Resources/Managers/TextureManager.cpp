@@ -8,7 +8,7 @@ TextureManager::TextureManager(VulkanDevice& vulkanDevice, VmaAllocator allocato
 {
 }
 
-TextureManager::~TextureManager() 
+TextureManager::~TextureManager()
 {
 	for (auto& texture : textures)
 	{
@@ -29,18 +29,18 @@ TextureManager::~TextureManager()
 	}
 }
 
-int TextureManager::createShadowMap(uint32_t shadowResolutionX, uint32_t shadowResolutionY)
+TextureHandle TextureManager::createShadowMap(uint32_t shadowResolutionX, uint32_t shadowResolutionY)
 {
 	textures.push_back(Texture());
 	Texture& texture = textures.back();
 	vk::Format shadowFormat = findBestFormat();
 
 	TextureManager::createImage(shadowResolutionX, shadowResolutionY, shadowFormat, vk::ImageTiling::eOptimal,
-	                           vk::ImageUsageFlagBits::eDepthStencilAttachment | vk::ImageUsageFlagBits::eSampled,
-	                           VMA_MEMORY_USAGE_AUTO, texture);
+	                            vk::ImageUsageFlagBits::eDepthStencilAttachment | vk::ImageUsageFlagBits::eSampled,
+	                            VMA_MEMORY_USAGE_AUTO, texture);
 	TextureManager::createImageView(texture, shadowFormat, vk::ImageAspectFlagBits::eDepth);
 	TextureManager::createShadowSampler(texture);
-	return textures.size() - 1;
+	return TextureHandle{static_cast<int>(textures.size() - 1)};
 }
 
 void TextureManager::createShadowSampler(Texture& texture)
@@ -68,7 +68,7 @@ vk::Format TextureManager::findBestFormat()
 }
 
 vk::Format TextureManager::findBestSupportedFormat(const std::vector<vk::Format>& candidates, vk::ImageTiling tiling,
-                                                  vk::FormatFeatureFlags features)
+                                                   vk::FormatFeatureFlags features)
 {
 	for (const auto format : candidates)
 	{
@@ -86,9 +86,10 @@ vk::Format TextureManager::findBestSupportedFormat(const std::vector<vk::Format>
 	throw std::runtime_error("failed to find supported format!");
 }
 
-int TextureManager::generateTextureData(const char texturePath[MAX_PATH_LEN], int texWidth, int texHeight,
-                                       const unsigned char* pixels,
-                                       BindlessTextureDSetComponent& dSetComponent, DescriptorManager& dManager)
+TextureHandle TextureManager::generateTextureData(const char texturePath[MAX_PATH_LEN], int texWidth, int texHeight,
+                                                  const unsigned char* pixels,
+                                                  BindlessTextureDSetComponent& dSetComponent,
+                                                  DescriptorManager& dManager)
 {
 	if (!pixels)
 	{
@@ -98,24 +99,24 @@ int TextureManager::generateTextureData(const char texturePath[MAX_PATH_LEN], in
 	{
 		throw std::runtime_error("Invalid texture dimensions!");
 	}
-	//if (texWidth > 2048 || texHeight > 2048)
+	// if (texWidth > 2048 || texHeight > 2048)
 	//{
 	//	return texturePaths["sys_default_white"];
-	//}
+	// }
 	textures.push_back(Texture());
 	Texture& texture = textures.back();
 
 	TextureManager::createImage(texWidth, texHeight, vk::Format::eR8G8B8A8Srgb, vk::ImageTiling::eOptimal,
-	    vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled, VMA_MEMORY_USAGE_AUTO, texture);
+	                            vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled,
+	                            VMA_MEMORY_USAGE_AUTO, texture);
 	TextureUploader::uploadTextureFromBuffer(pixels, texWidth, texHeight, texture, allocator, vulkanDevice);
 	TextureManager::createImageView(texture, vk::Format::eR8G8B8A8Srgb, vk::ImageAspectFlagBits::eColor);
 	TextureManager::createTextureSampler(texture);
 
-	int numberTexture;
-	numberTexture = textures.size() - 1;
-	texturePaths[std::string(texturePath)] = numberTexture;
-	dManager.updateBindlessTextureSet(texture.textureImageView, texture.textureSampler, dSetComponent, numberTexture);
-	return numberTexture;
+	TextureHandle handle{static_cast<int>(textures.size() - 1)};
+	texturePaths[std::string(texturePath)] = handle;
+	dManager.updateBindlessTextureSet(texture.textureImageView, texture.textureSampler, dSetComponent, handle.id);
+	return handle;
 }
 
 bool TextureManager::isTextureLoaded(const char texturePath[MAX_PATH_LEN])
@@ -124,7 +125,7 @@ bool TextureManager::isTextureLoaded(const char texturePath[MAX_PATH_LEN])
 }
 
 void TextureManager::createImage(uint32_t width, uint32_t height, vk::Format format, vk::ImageTiling tiling,
-                                vk::ImageUsageFlags usage, VmaMemoryUsage memoryUsage, Texture& texture)
+                                 vk::ImageUsageFlags usage, VmaMemoryUsage memoryUsage, Texture& texture)
 {
 	if (width == 0 || height == 0)
 	{

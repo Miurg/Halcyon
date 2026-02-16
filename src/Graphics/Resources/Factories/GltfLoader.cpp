@@ -11,11 +11,13 @@ int GltfLoader::loadModelFromFile(const char path[MAX_PATH_LEN], int vertexIndex
 	std::unordered_map<uint32_t, uint32_t> replacementMapTextures = materialsParser(
 	    model, tManager, dSetComponent, dManager); // Map from index in glTF to texture index in our system
 
-	int whiteTexture = tManager.isTextureLoaded("sys_default_white")
-	                       ? tManager.texturePaths["sys_default_white"]
-	                       : tManager.generateTextureData("sys_default_white", 1, 1,
-	                                                      std::vector<unsigned char>{255, 255, 255, 255}.data(),
-	                                                      dSetComponent, dManager);
+	int whiteTexture =
+	    tManager.isTextureLoaded("sys_default_white")
+	        ? tManager.texturePaths["sys_default_white"].id
+	        : tManager
+	              .generateTextureData("sys_default_white", 1, 1, std::vector<unsigned char>{255, 255, 255, 255}.data(),
+	                                   dSetComponent, dManager)
+	              .id;
 
 	std::vector<MeshInfo> loadedMeshes;
 	loadedMeshes.resize(model.meshes.size());
@@ -78,8 +80,10 @@ std::unordered_map<uint32_t, uint32_t> GltfLoader::materialsParser(tinygltf::Mod
 							newTex->name = img.uri;
 						}
 						int indexInSystem =
-						    tManager.generateTextureData(newTex->name.c_str(), img.width, img.height,
-						                                 ImageConverter::convertToRGBA(img).data(), dSetComponent, dManager);
+						    tManager
+						        .generateTextureData(newTex->name.c_str(), img.width, img.height,
+						                             ImageConverter::convertToRGBA(img).data(), dSetComponent, dManager)
+						        .id;
 						replacementMapTextures.emplace(i, indexInSystem);
 					}
 				}
@@ -158,14 +162,11 @@ std::vector<PrimitivesInfo> GltfLoader::primitiveParser(tinygltf::Mesh& mesh, Ve
 		glm::vec3 minBound = {0.0f, 0.0f, 0.0f};
 		if (!posAccessor.minValues.empty() && !posAccessor.maxValues.empty())
 		{
-			minBound = {static_cast<float>(posAccessor.minValues[0]),
-			                      static_cast<float>(posAccessor.minValues[1]),
-			                      static_cast<float>(posAccessor.minValues[2])};
+			minBound = {static_cast<float>(posAccessor.minValues[0]), static_cast<float>(posAccessor.minValues[1]),
+			            static_cast<float>(posAccessor.minValues[2])};
 
-			maxBound = {static_cast<float>(posAccessor.maxValues[0]),
-			                      static_cast<float>(posAccessor.maxValues[1]),
-			                      static_cast<float>(posAccessor.maxValues[2])};
-
+			maxBound = {static_cast<float>(posAccessor.maxValues[0]), static_cast<float>(posAccessor.maxValues[1]),
+			            static_cast<float>(posAccessor.maxValues[2])};
 		}
 		for (size_t i = 0; i < posAccessor.count; i++)
 		{

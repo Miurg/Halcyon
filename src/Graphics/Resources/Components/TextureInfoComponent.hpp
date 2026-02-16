@@ -1,6 +1,7 @@
 #pragma once
+#include "../Managers/ResourceHandles.hpp"
 
 struct TextureInfoComponent
 {
-	int textureIndex;
+	TextureHandle textureIndex;
 };

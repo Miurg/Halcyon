@@ -16,14 +16,14 @@ void CommandBufferFactory::recordShadowCommandBuffer(vk::raii::CommandBuffer& se
 
 	// --- Step 1: SHADOW PASS ---
 
-	transitionImageLayout(secondaryCmd, tManager.textures[lightTexture.textureShadowImage].textureImage,
+	transitionImageLayout(secondaryCmd, tManager.textures[lightTexture.textureShadowImage.id].textureImage,
 	                      vk::ImageLayout::eUndefined, vk::ImageLayout::eDepthAttachmentOptimal,
 	                      vk::AccessFlagBits2::eNone, vk::AccessFlagBits2::eDepthStencilAttachmentWrite,
 	                      vk::PipelineStageFlagBits2::eTopOfPipe, vk::PipelineStageFlagBits2::eEarlyFragmentTests,
 	                      vk::ImageAspectFlagBits::eDepth);
 
 	vk::RenderingAttachmentInfo shadowDepthInfo;
-	shadowDepthInfo.imageView = tManager.textures[lightTexture.textureShadowImage].textureImageView;
+	shadowDepthInfo.imageView = tManager.textures[lightTexture.textureShadowImage.id].textureImageView;
 	shadowDepthInfo.imageLayout = vk::ImageLayout::eDepthAttachmentOptimal;
 	shadowDepthInfo.loadOp = vk::AttachmentLoadOp::eClear;
 	shadowDepthInfo.storeOp = vk::AttachmentStoreOp::eStore;
@@ -39,10 +39,10 @@ void CommandBufferFactory::recordShadowCommandBuffer(vk::raii::CommandBuffer& se
 	secondaryCmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipelineHandler.shadowPipeline);
 	secondaryCmd.bindDescriptorSets(
 	    vk::PipelineBindPoint::eGraphics, *pipelineHandler.pipelineLayout, 0,
-	    dManager.descriptorManager->descriptorSets[globalDSetComponent->globalDSets][currentFrame], nullptr);
+	    dManager.descriptorManager->descriptorSets[globalDSetComponent->globalDSets.id][currentFrame], nullptr);
 	secondaryCmd.bindDescriptorSets(
 	    vk::PipelineBindPoint::eGraphics, *pipelineHandler.pipelineLayout, 1,
-	    dManager.descriptorManager->descriptorSets[objectDSetComponent->modelBufferDSet][currentFrame], nullptr);
+	    dManager.descriptorManager->descriptorSets[objectDSetComponent->modelBufferDSet.id][currentFrame], nullptr);
 	secondaryCmd.setViewport(0, vk::Viewport(0.0f, 0.0f, lightTexture.sizeX, lightTexture.sizeY, 0.0f, 1.0f));
 	secondaryCmd.setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), vk::Extent2D(lightTexture.sizeX, lightTexture.sizeY)));
 
@@ -68,7 +68,7 @@ void CommandBufferFactory::recordShadowCommandBuffer(vk::raii::CommandBuffer& se
 	}
 	secondaryCmd.endRendering();
 
-	transitionImageLayout(secondaryCmd, tManager.textures[lightTexture.textureShadowImage].textureImage,
+	transitionImageLayout(secondaryCmd, tManager.textures[lightTexture.textureShadowImage.id].textureImage,
 	                      vk::ImageLayout::eDepthAttachmentOptimal, vk::ImageLayout::eShaderReadOnlyOptimal,
 	                      vk::AccessFlagBits2::eDepthStencilAttachmentWrite, vk::AccessFlagBits2::eShaderRead,
 	                      vk::PipelineStageFlagBits2::eLateFragmentTests, vk::PipelineStageFlagBits2::eFragmentShader,
@@ -95,10 +95,10 @@ void CommandBufferFactory::recordCullCommandBuffer(vk::raii::CommandBuffer& seco
 
 	secondaryCmd.bindDescriptorSets(
 	    vk::PipelineBindPoint::eCompute, *pipelineHandler.cullingPipelineLayout, 0,
-	    dManager.descriptorManager->descriptorSets[globalDSetComponent->globalDSets][currentFrame], nullptr);
+	    dManager.descriptorManager->descriptorSets[globalDSetComponent->globalDSets.id][currentFrame], nullptr);
 	secondaryCmd.bindDescriptorSets(
 	    vk::PipelineBindPoint::eCompute, *pipelineHandler.cullingPipelineLayout, 1,
-	    dManager.descriptorManager->descriptorSets[objectDSetComponent->modelBufferDSet][currentFrame], nullptr);
+	    dManager.descriptorManager->descriptorSets[objectDSetComponent->modelBufferDSet.id][currentFrame], nullptr);
 
 	uint32_t currentInstanceOffset = 0;
 	for (int i = 0; i < mManager.meshes.size(); i++)
@@ -196,13 +196,13 @@ void CommandBufferFactory::recordMainCommandBuffer(vk::raii::CommandBuffer& seco
 
 	secondaryCmd.bindDescriptorSets(
 	    vk::PipelineBindPoint::eGraphics, *pipelineHandler.pipelineLayout, 0,
-	    dManager.descriptorManager->descriptorSets[globalDSetComponent->globalDSets][currentFrame], nullptr);
+	    dManager.descriptorManager->descriptorSets[globalDSetComponent->globalDSets.id][currentFrame], nullptr);
 	secondaryCmd.bindDescriptorSets(
 	    vk::PipelineBindPoint::eGraphics, *pipelineHandler.pipelineLayout, 1,
-	    dManager.descriptorManager->descriptorSets[objectDSetComponent->modelBufferDSet][currentFrame], nullptr);
+	    dManager.descriptorManager->descriptorSets[objectDSetComponent->modelBufferDSet.id][currentFrame], nullptr);
 	secondaryCmd.bindDescriptorSets(
 	    vk::PipelineBindPoint::eGraphics, *pipelineHandler.pipelineLayout, 2,
-	    dManager.descriptorManager->descriptorSets[bindlessTextureDSetComponent.bindlessTextureSet][0], nullptr);
+	    dManager.descriptorManager->descriptorSets[bindlessTextureDSetComponent.bindlessTextureSet.id][0], nullptr);
 
 	uint32_t currentBuffer = -1;
 	uint32_t drawCommandIndex = 0;
@@ -217,11 +217,9 @@ void CommandBufferFactory::recordMainCommandBuffer(vk::raii::CommandBuffer& seco
 	                               {0});
 	secondaryCmd.bindIndexBuffer(mManager.vertexIndexBuffers[mManager.meshes[0].vertexIndexBufferID].indexBuffer, 0,
 	                             vk::IndexType::eUint32);
-	
-	secondaryCmd.drawIndexedIndirect(bManager.buffers[objectDSetComponent->indirectDrawBuffer].buffer[currentFrame],
-	                                 0,                
-	                                 drawCommandIndex, 
-	                                 commandStride);
+
+	secondaryCmd.drawIndexedIndirect(bManager.buffers[objectDSetComponent->indirectDrawBuffer.id].buffer[currentFrame],
+	                                 0, drawCommandIndex, commandStride);
 	secondaryCmd.endRendering();
 
 	transitionImageLayout(secondaryCmd, *swapChain.offscreenImage, vk::ImageLayout::eColorAttachmentOptimal,
@@ -234,7 +232,8 @@ void CommandBufferFactory::recordMainCommandBuffer(vk::raii::CommandBuffer& seco
 
 void CommandBufferFactory::recordFxaaCommandBuffer(vk::raii::CommandBuffer& secondaryCmd, uint32_t imageIndex,
                                                    SwapChain& swapChain, PipelineHandler& pipelineHandler,
-                                                   DescriptorManagerComponent& dManager, int fxaaDescriptorSetIndex)
+                                                   DescriptorManagerComponent& dManager,
+                                                   DSetHandle fxaaDescriptorSetIndex)
 {
 	vk::CommandBufferInheritanceInfo inheritanceInfo = {};
 	vk::CommandBufferBeginInfo beginInfo;
@@ -273,7 +272,7 @@ void CommandBufferFactory::recordFxaaCommandBuffer(vk::raii::CommandBuffer& seco
 	secondaryCmd.setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), swapChain.swapChainExtent));
 
 	secondaryCmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineHandler.fxaaPipelineLayout, 0,
-	                                dManager.descriptorManager->descriptorSets[fxaaDescriptorSetIndex][0], nullptr);
+	                                dManager.descriptorManager->descriptorSets[fxaaDescriptorSetIndex.id][0], nullptr);
 
 	// Draw full-screen triangle
 	secondaryCmd.draw(3, 1, 0, 0);

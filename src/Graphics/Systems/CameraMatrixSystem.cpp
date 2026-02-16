@@ -51,12 +51,12 @@ void CameraMatrixSystem::update(float deltaTime, GeneralManager& gm)
 	glm::mat4 cameraSpaceMatrix = proj * view;
 
 	CameraStucture cameraUbo{.cameraSpaceMatrix = cameraSpaceMatrix};
-	memcpy(bufferManager.buffers[globalDSetComponent->cameraBuffers].bufferMapped[currentFrame], &cameraUbo,
+	memcpy(bufferManager.buffers[globalDSetComponent->cameraBuffers.id].bufferMapped[currentFrame], &cameraUbo,
 	       sizeof(cameraUbo));
 
 	// === Sun (Shadows) ===
 
-	//Calculate frustum corners in world space 
+	// Calculate frustum corners in world space
 	float aspect =
 	    static_cast<float>(swapChain.swapChainExtent.width) / static_cast<float>(swapChain.swapChainExtent.height);
 	float shadowZFar = std::min(mainCamera->zFar, lightComponent->shadowDistance);
@@ -82,7 +82,7 @@ void CameraMatrixSystem::update(float deltaTime, GeneralManager& gm)
 		}
 	}
 
-	//Frustum Center
+	// Frustum Center
 	glm::vec3 center = glm::vec3(0, 0, 0);
 	for (const auto& v : frustumCorners)
 	{
@@ -90,7 +90,7 @@ void CameraMatrixSystem::update(float deltaTime, GeneralManager& gm)
 	}
 	center /= frustumCorners.size();
 
-	//Bounding sphere radius
+	// Bounding sphere radius
 	float radius = 0.0f;
 	for (const auto& v : frustumCorners)
 	{
@@ -103,13 +103,13 @@ void CameraMatrixSystem::update(float deltaTime, GeneralManager& gm)
 
 	sunCamera->orthoSize = radius;
 
-	//Calculate light view matrix
+	// Calculate light view matrix
 	glm::vec3 lightDir = glm::normalize(-glm::vec3(sunCameraTransform->globalPosition));
 	float zOffset = radius + lightComponent->shadowCasterRange;
 	glm::vec3 lightPos = center - lightDir * zOffset;
 	glm::mat4 lightView = glm::lookAt(lightPos, center, glm::vec3(0.0f, 1.0f, 0.0f));
 
-	//Texel snapping
+	// Texel snapping
 	float zFarRange = zOffset + radius;
 
 	glm::mat4 lightProj = glm::orthoRH_ZO(-radius, radius, -radius, radius, zFarRange, 0.0f);
@@ -118,7 +118,7 @@ void CameraMatrixSystem::update(float deltaTime, GeneralManager& gm)
 	glm::mat4 shadowMatrix = lightProj * lightView;
 	float shadowMapWidth = static_cast<float>(lightComponent->sizeX);
 
-	//Transform world origin to shadow space
+	// Transform world origin to shadow space
 	glm::vec4 shadowOrigin = shadowMatrix * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
 	shadowOrigin = shadowOrigin * (shadowMapWidth / 2.0f);
 
@@ -137,6 +137,6 @@ void CameraMatrixSystem::update(float deltaTime, GeneralManager& gm)
 	    .color = lightComponent->color,
 	    .ambient = lightComponent->ambient,
 	};
-	memcpy(bufferManager.buffers[globalDSetComponent->sunCameraBuffers].bufferMapped[currentFrame], &sunUbo,
+	memcpy(bufferManager.buffers[globalDSetComponent->sunCameraBuffers.id].bufferMapped[currentFrame], &sunUbo,
 	       sizeof(sunUbo));
 }

@@ -34,7 +34,7 @@ public:
 	                                    ModelManager& mManager);
 	static void recordFxaaCommandBuffer(vk::raii::CommandBuffer& secondaryCmd, uint32_t imageIndex, SwapChain& swapChain,
 	                                    PipelineHandler& pipelineHandler, DescriptorManagerComponent& dManager,
-	                                    int fxaaDescriptorSetIndex);
+	                                    DSetHandle fxaaDescriptorSetIndex);
 	static void executeSecondaryBuffers(vk::raii::CommandBuffer& primaryCommandBuffer,
 	                                    const vk::raii::CommandBuffers& secondaryBuffers);
 	static void transitionImageLayout(vk::raii::CommandBuffer& commandBuffer, vk::Image image, vk::ImageLayout oldLayout,

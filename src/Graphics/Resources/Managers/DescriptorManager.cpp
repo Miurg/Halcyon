@@ -93,13 +93,13 @@ DescriptorManager::~DescriptorManager()
 	fxaaSetLayout.~DescriptorSetLayout();
 }
 
-int DescriptorManager::allocateBindlessTextureDSet()
+DSetHandle DescriptorManager::allocateBindlessTextureDSet()
 {
 	vk::DescriptorSetAllocateInfo allocInfo(*descriptorPool, *textureSetLayout);
 	auto allocatedSets = vulkanDevice.device.allocateDescriptorSets(allocInfo);
 	std::vector descriptors = {allocatedSets[0].release()};
 	descriptorSets.push_back(descriptors);
-	return descriptorSets.size() - 1;
+	return DSetHandle{static_cast<int>(descriptorSets.size() - 1)};
 }
 
 void DescriptorManager::updateBindlessTextureSet(vk::ImageView textureImageView, vk::Sampler textureSampler,
@@ -111,21 +111,22 @@ void DescriptorManager::updateBindlessTextureSet(vk::ImageView textureImageView,
 	imageInfo.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
 
 	vk::WriteDescriptorSet descriptorWrite;
-	descriptorWrite.dstSet = descriptorSets[dSetComponent.bindlessTextureSet][0];
+	descriptorWrite.dstSet = descriptorSets[dSetComponent.bindlessTextureSet.id][0];
 	descriptorWrite.dstBinding = 0;
 	descriptorWrite.dstArrayElement = textureNumber;
 	descriptorWrite.descriptorType = vk::DescriptorType::eCombinedImageSampler;
 	descriptorWrite.descriptorCount = 1;
 	descriptorWrite.pImageInfo = &imageInfo;
 
-	dSetComponent.bindlessTextureBuffer = textureNumber;
+	dSetComponent.bindlessTextureBuffer = TextureHandle{textureNumber};
 
 	vulkanDevice.device.updateDescriptorSets(descriptorWrite, {});
 }
 
-void DescriptorManager::updateSingleTextureDSet(int dIndex, int binding, vk::ImageView imageView, vk::Sampler sampler)
+void DescriptorManager::updateSingleTextureDSet(DSetHandle dIndex, int binding, vk::ImageView imageView,
+                                                vk::Sampler sampler)
 {
-	for (size_t i = 0; i < descriptorSets[dIndex].size(); i++)
+	for (size_t i = 0; i < descriptorSets[dIndex.id].size(); i++)
 	{
 		vk::DescriptorImageInfo imageInfo;
 		imageInfo.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
@@ -133,7 +134,7 @@ void DescriptorManager::updateSingleTextureDSet(int dIndex, int binding, vk::Ima
 		imageInfo.sampler = sampler;
 
 		vk::WriteDescriptorSet descriptorWrite;
-		descriptorWrite.dstSet = descriptorSets[dIndex][i];
+		descriptorWrite.dstSet = descriptorSets[dIndex.id][i];
 		descriptorWrite.dstBinding = binding;
 		descriptorWrite.dstArrayElement = 0;
 		descriptorWrite.descriptorType = vk::DescriptorType::eCombinedImageSampler;
@@ -144,7 +145,7 @@ void DescriptorManager::updateSingleTextureDSet(int dIndex, int binding, vk::Ima
 	}
 }
 
-int DescriptorManager::allocateStorageBufferDSets(uint32_t count, vk::DescriptorSetLayout layout)
+DSetHandle DescriptorManager::allocateStorageBufferDSets(uint32_t count, vk::DescriptorSetLayout layout)
 {
 	std::vector<vk::DescriptorSetLayout> layouts(count, layout);
 	vk::DescriptorSetAllocateInfo allocInfo{};
@@ -154,13 +155,14 @@ int DescriptorManager::allocateStorageBufferDSets(uint32_t count, vk::Descriptor
 
 	auto allocatedSets = (*vulkanDevice.device).allocateDescriptorSets(allocInfo);
 	descriptorSets.push_back(allocatedSets);
-	return descriptorSets.size() - 1;
+	return DSetHandle{static_cast<int>(descriptorSets.size() - 1)};
 }
 
-void DescriptorManager::updateStorageBufferDescriptors(BufferManager& bManager, int bNumber, int dSet, uint32_t binding)
+void DescriptorManager::updateStorageBufferDescriptors(BufferManager& bManager, BufferHandle bNumber, DSetHandle dSet,
+                                                       uint32_t binding)
 {
-	const size_t count = descriptorSets[dSet].size();
-	assert(bManager.buffers[bNumber].buffer.size() >= count);
+	const size_t count = descriptorSets[dSet.id].size();
+	assert(bManager.buffers[bNumber.id].buffer.size() >= count);
 
 	std::vector<vk::WriteDescriptorSet> writes;
 	writes.reserve(count);
@@ -169,12 +171,12 @@ void DescriptorManager::updateStorageBufferDescriptors(BufferManager& bManager, 
 
 	for (size_t i = 0; i < count; ++i)
 	{
-		bufferInfos[i].buffer = bManager.buffers[bNumber].buffer[i];
+		bufferInfos[i].buffer = bManager.buffers[bNumber.id].buffer[i];
 		bufferInfos[i].offset = 0;
 		bufferInfos[i].range = VK_WHOLE_SIZE;
 
 		vk::WriteDescriptorSet write{};
-		write.dstSet = descriptorSets[dSet][i];
+		write.dstSet = descriptorSets[dSet.id][i];
 		write.dstBinding = binding;
 		write.dstArrayElement = 0;
 		write.descriptorType = vk::DescriptorType::eStorageBuffer;
@@ -187,7 +189,7 @@ void DescriptorManager::updateStorageBufferDescriptors(BufferManager& bManager, 
 	(*vulkanDevice.device).updateDescriptorSets(writes, {});
 }
 
-int DescriptorManager::allocateFxaaDescriptorSet(vk::DescriptorSetLayout layout)
+DSetHandle DescriptorManager::allocateFxaaDescriptorSet(vk::DescriptorSetLayout layout)
 {
 	vk::DescriptorSetAllocateInfo allocInfo(*descriptorPool, layout);
 	auto allocatedSets = vulkanDevice.device.allocateDescriptorSets(allocInfo);
@@ -195,5 +197,5 @@ int DescriptorManager::allocateFxaaDescriptorSet(vk::DescriptorSetLayout layout)
 	std::vector<vk::DescriptorSet> descriptors = {allocatedSets[0].release()};
 	descriptorSets.push_back(descriptors);
 
-	return static_cast<int>(descriptorSets.size() - 1);
+	return DSetHandle{static_cast<int>(descriptorSets.size() - 1)};
 }

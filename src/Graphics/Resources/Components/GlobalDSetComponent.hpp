@@ -1,9 +1,10 @@
 #pragma once
+#include "../Managers/ResourceHandles.hpp"
 
 struct GlobalDSetComponent
 {
-	int globalDSets = -1;
-	int cameraBuffers = -1;
-	int sunCameraBuffers = -1;
-	int fxaaDSets = -1;
+	DSetHandle globalDSets;
+	BufferHandle cameraBuffers;
+	BufferHandle sunCameraBuffers;
+	DSetHandle fxaaDSets;
 };

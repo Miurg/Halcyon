@@ -69,11 +69,11 @@ void BufferUpdateSystem::update(float deltaTime, GeneralManager& gm)
 
 	// === Models ===
 	auto* primitivePtr = static_cast<PrimitiveSctructure*>(
-	    bufferManager.buffers[objectDSetComponent->primitiveBuffer].bufferMapped[currentFrame]);
+	    bufferManager.buffers[objectDSetComponent->primitiveBuffer.id].bufferMapped[currentFrame]);
 	auto* transfromMeshPtr = static_cast<TransformStructure*>(
-	    bufferManager.buffers[objectDSetComponent->transformBuffer].bufferMapped[currentFrame]);
+	    bufferManager.buffers[objectDSetComponent->transformBuffer.id].bufferMapped[currentFrame]);
 	auto* indirectBufferPtr = static_cast<IndirectDrawStructure*>(
-	    bufferManager.buffers[objectDSetComponent->indirectDrawBuffer].bufferMapped[currentFrame]);
+	    bufferManager.buffers[objectDSetComponent->indirectDrawBuffer.id].bufferMapped[currentFrame]);
 
 	int globalTransformIndex = 0;
 	int globalPrimitiveIndex = 0;

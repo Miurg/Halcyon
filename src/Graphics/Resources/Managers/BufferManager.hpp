@@ -13,6 +13,7 @@
 #include "PrimitivesInfo.hpp"
 #include "MeshInfo.hpp"
 #include "DescriptorManager.hpp"
+#include "ResourceHandles.hpp"
 #include "../Components/BindlessTextureDSetComponent.hpp"
 
 class DescriptorManager;
@@ -23,8 +24,8 @@ public:
 	BufferManager(VulkanDevice& vulkanDevice, VmaAllocator allocator);
 	~BufferManager();
 
-	int createBuffer(vk::MemoryPropertyFlags propertyBits, vk::DeviceSize sizeBuffer, uint_fast16_t numberBuffers,
-	                 vk::Flags<vk::BufferUsageFlagBits> usageBuffer);
+	BufferHandle createBuffer(vk::MemoryPropertyFlags propertyBits, vk::DeviceSize sizeBuffer,
+	                          uint_fast16_t numberBuffers, vk::Flags<vk::BufferUsageFlagBits> usageBuffer);
 
 	std::vector<Buffer> buffers;
 
@@ -34,8 +35,6 @@ private:
 
 	void initGlobalBuffer(vk::MemoryPropertyFlags propertyBits, Buffer& bufferIn, vk::DeviceSize sizeBuffer,
 	                      uint_fast16_t numberBuffers, vk::Flags<vk::BufferUsageFlagBits> usageBuffer);
-	// int createMeshInternal(const char path[MAX_PATH_LEN], BindlessTextureDSetComponent& dSetComponent,
-	//                        DescriptorManager& dManager);
 };
 
 struct CameraStucture

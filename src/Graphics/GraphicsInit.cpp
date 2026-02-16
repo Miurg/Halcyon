@@ -243,8 +243,8 @@ void GraphicsInit::initScene(GeneralManager& gm)
 
 	// === Shadow Map в Texture Set (binding 1) ===
 	dManager->updateSingleTextureDSet(bTextureDSetComponent->bindlessTextureSet, 1,
-	                                  tManager->textures[sunLight->textureShadowImage].textureImageView,
-	                                  tManager->textures[sunLight->textureShadowImage].textureSampler);
+	                                  tManager->textures[sunLight->textureShadowImage.id].textureImageView,
+	                                  tManager->textures[sunLight->textureShadowImage.id].textureSampler);
 	// === Shadow Map END ===
 
 	// === FXAA Descriptor Set ===
