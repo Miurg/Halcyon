@@ -24,11 +24,9 @@ public:
 	~BufferManager();
 
 	int createBuffer(vk::MemoryPropertyFlags propertyBits, vk::DeviceSize sizeBuffer, uint_fast16_t numberBuffers,
-	                 uint_fast16_t numberBinding, vk::DescriptorSetLayout layout,
 	                 vk::Flags<vk::BufferUsageFlagBits> usageBuffer);
 
 	std::vector<Buffer> buffers;
-	
 
 private:
 	VulkanDevice& vulkanDevice;
@@ -36,8 +34,8 @@ private:
 
 	void initGlobalBuffer(vk::MemoryPropertyFlags propertyBits, Buffer& bufferIn, vk::DeviceSize sizeBuffer,
 	                      uint_fast16_t numberBuffers, vk::Flags<vk::BufferUsageFlagBits> usageBuffer);
-	//int createMeshInternal(const char path[MAX_PATH_LEN], BindlessTextureDSetComponent& dSetComponent,
-	//                       DescriptorManager& dManager);
+	// int createMeshInternal(const char path[MAX_PATH_LEN], BindlessTextureDSetComponent& dSetComponent,
+	//                        DescriptorManager& dManager);
 };
 
 struct CameraStucture
@@ -56,14 +54,14 @@ struct SunStructure
 struct PrimitiveSctructure // (16 + 16 + 16 + 4 + 4 + 8 = 64 bytes)
 {
 	alignas(16) glm::vec4 baseColor; // rgb: base color, w: alpha
-	alignas(16) glm::vec3 AABBMin;   // xyz: min 
+	alignas(16) glm::vec3 AABBMin;   // xyz: min
 	float padding0;                  // w: padding
 	alignas(16) glm::vec3 AABBMax;   // xyz: max
 	float padding1;                  // w: padding
 	uint32_t transformIndex;         // index to the transform of the primitive
 	uint32_t textureIndex;           // index to the texture of the primitive
-	uint32_t drawCommandIndex; // index to the indirect draw command of the primitive
-	uint32_t _padding;    // 4 bytes (to make the total size a multiple of 16 bytes)
+	uint32_t drawCommandIndex;       // index to the indirect draw command of the primitive
+	uint32_t _padding;               // 4 bytes (to make the total size a multiple of 16 bytes)
 };
 
 struct TransformStructure

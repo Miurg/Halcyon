@@ -2,7 +2,9 @@
 #include <stdexcept>
 
 BufferManager::BufferManager(VulkanDevice& vulkanDevice, VmaAllocator allocator)
-    : vulkanDevice(vulkanDevice), allocator(allocator) {}
+    : vulkanDevice(vulkanDevice), allocator(allocator)
+{
+}
 
 BufferManager::~BufferManager()
 {
@@ -19,8 +21,7 @@ BufferManager::~BufferManager()
 }
 
 int BufferManager::createBuffer(vk::MemoryPropertyFlags propertyBits, vk::DeviceSize sizeBuffer,
-                                uint_fast16_t numberBuffers, uint_fast16_t numberBinding,
-                                vk::DescriptorSetLayout layout, vk::Flags<vk::BufferUsageFlagBits> usageBuffer)
+                                uint_fast16_t numberBuffers, vk::Flags<vk::BufferUsageFlagBits> usageBuffer)
 {
 	buffers.push_back(Buffer());
 	BufferManager::initGlobalBuffer(propertyBits, buffers.back(), sizeBuffer, numberBuffers, usageBuffer);
