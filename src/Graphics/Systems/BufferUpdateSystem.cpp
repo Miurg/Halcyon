@@ -117,6 +117,10 @@ void BufferUpdateSystem::update(float deltaTime, GeneralManager& gm)
 				// Link texture index
 				primitivePtr[localPrimitiveIndex].textureIndex = modelManager.meshes[meshIndex].primitives[i].textureIndex;
 
+				// Link normal map index
+				primitivePtr[localPrimitiveIndex].normalMapIndex =
+				    modelManager.meshes[meshIndex].primitives[i].normalMapIndex;
+
 				// Link transform index
 				primitivePtr[localPrimitiveIndex].transformIndex = currentEntityTransformIndex;
 

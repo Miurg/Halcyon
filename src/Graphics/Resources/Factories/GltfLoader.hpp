@@ -25,6 +25,13 @@ struct LoadedPrimitive
 	std::shared_ptr<TextureData> texture;
 };
 
+// Parsed material texture maps: base color and normal map indices per glTF material.
+struct MaterialMaps
+{
+	std::unordered_map<uint32_t, uint32_t> baseColor;
+	std::unordered_map<uint32_t, uint32_t> normalMap;
+};
+
 // Parses glTF files — extracts materials, primitives, and mesh hierarchy into engine resources.
 class GltfLoader
 {
@@ -32,13 +39,12 @@ public:
 	static int loadModelFromFile(const char path[MAX_PATH_LEN], int vertexIndexBInt, BufferManager& bManager,
 	                             BindlessTextureDSetComponent& dSetComponent, DescriptorManager& dManager,
 	                             tinygltf::Model model, TextureManager& tManager, ModelManager& mManager);
-	static std::unordered_map<uint32_t, uint32_t> materialsParser(tinygltf::Model& model, TextureManager& tManager,
-	                                                              BindlessTextureDSetComponent& dSetComponent,
-	                                                              DescriptorManager& dManager);
+	static MaterialMaps materialsParser(tinygltf::Model& model, TextureManager& tManager,
+	                                    BindlessTextureDSetComponent& dSetComponent, DescriptorManager& dManager);
 	static std::vector<PrimitivesInfo> primitiveParser(tinygltf::Mesh& mesh, VertexIndexBuffer& vertexIndexB,
 	                                                   tinygltf::Model& model, int32_t globalVertexOffset,
-	                                                   int whiteTexture,
-	                                                   std::unordered_map<uint32_t, uint32_t> replacementMapTextures);
+	                                                   int whiteTexture, int defaultNormalTexture,
+	                                                   const MaterialMaps& materialMaps);
 	static std::vector<MeshInfo> modelParser(tinygltf::Model model);
 	static std::shared_ptr<TextureData> createDefaultWhiteTexture();
 };

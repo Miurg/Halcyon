@@ -5,8 +5,8 @@ struct ModelData
     float4 AABBMax;
     uint transformIndex;
     uint textureIndex;
+    uint normalMapIndex;
     uint drawCommandIndex;
-    float padding;
 };
 [[vk::binding(0, 1)]] StructuredBuffer<ModelData> objectBuffer;
 

@@ -21,7 +21,7 @@ public:
 	~TextureManager();
 	TextureHandle generateTextureData(const char texturePath[MAX_PATH_LEN], int texWidth, int texHeight,
 	                                  const unsigned char* pixels, BindlessTextureDSetComponent& dSetComponent,
-	                                  DescriptorManager& dManager);
+	                                  DescriptorManager& dManager, vk::Format format = vk::Format::eR8G8B8A8Srgb);
 	bool isTextureLoaded(const char texturePath[MAX_PATH_LEN]);
 	TextureHandle createShadowMap(uint32_t shadowResolutionX, uint32_t shadowResolutionY);
 	void createImageView(Texture& texture, vk::Format format, vk::ImageAspectFlags aspectFlags);

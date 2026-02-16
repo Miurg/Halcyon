@@ -10,6 +10,7 @@ struct Vertex
 	glm::vec3 color;
 	glm::vec3 normal;
 	glm::vec2 texCoord;
+	glm::vec4 tangent;
 
 	static vk::VertexInputBindingDescription getBindingDescription()
 	{
@@ -18,18 +19,17 @@ struct Vertex
 
 	bool operator==(const Vertex& other) const
 	{
-		return pos == other.pos && color == other.color && normal == other.normal && texCoord == other.texCoord;
+		return pos == other.pos && color == other.color && normal == other.normal && texCoord == other.texCoord &&
+		       tangent == other.tangent;
 	}
 
-	static std::array<vk::VertexInputAttributeDescription, 4> getAttributeDescriptions()
+	static std::array<vk::VertexInputAttributeDescription, 5> getAttributeDescriptions()
 	{
-		return 
-		{
-			vk::VertexInputAttributeDescription(0, 0, vk::Format::eR32G32B32Sfloat, offsetof(Vertex, pos)),
-		    vk::VertexInputAttributeDescription(1, 0, vk::Format::eR32G32B32Sfloat, offsetof(Vertex, color)),
-		    vk::VertexInputAttributeDescription(2, 0, vk::Format::eR32G32B32Sfloat, offsetof(Vertex, normal)),
-		    vk::VertexInputAttributeDescription(3, 0, vk::Format::eR32G32Sfloat, offsetof(Vertex, texCoord))
-		};
+		return {vk::VertexInputAttributeDescription(0, 0, vk::Format::eR32G32B32Sfloat, offsetof(Vertex, pos)),
+		        vk::VertexInputAttributeDescription(1, 0, vk::Format::eR32G32B32Sfloat, offsetof(Vertex, color)),
+		        vk::VertexInputAttributeDescription(2, 0, vk::Format::eR32G32B32Sfloat, offsetof(Vertex, normal)),
+		        vk::VertexInputAttributeDescription(3, 0, vk::Format::eR32G32Sfloat, offsetof(Vertex, texCoord)),
+		        vk::VertexInputAttributeDescription(4, 0, vk::Format::eR32G32B32A32Sfloat, offsetof(Vertex, tangent))};
 	}
 };
 
@@ -53,6 +53,11 @@ struct hash<Vertex>
 
 		h ^= hashFloat(vertex.texCoord.x) + 0x9e3779b97f4a7c15ULL + (h << 6) + (h >> 2);
 		h ^= hashFloat(vertex.texCoord.y) + 0x9e3779b97f4a7c15ULL + (h << 6) + (h >> 2);
+
+		h ^= hashFloat(vertex.tangent.x) + 0x9e3779b97f4a7c15ULL + (h << 6) + (h >> 2);
+		h ^= hashFloat(vertex.tangent.y) + 0x9e3779b97f4a7c15ULL + (h << 6) + (h >> 2);
+		h ^= hashFloat(vertex.tangent.z) + 0x9e3779b97f4a7c15ULL + (h << 6) + (h >> 2);
+		h ^= hashFloat(vertex.tangent.w) + 0x9e3779b97f4a7c15ULL + (h << 6) + (h >> 2);
 
 		return h;
 	}

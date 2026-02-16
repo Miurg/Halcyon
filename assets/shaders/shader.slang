@@ -5,7 +5,8 @@ struct ModelData
     float4 AABBMax;
     uint transformIndex;
     uint textureIndex;
-    float2 padding;
+    uint normalMapIndex;
+    uint drawCommandIndex; // unused
 };
 [[vk::binding(0, 1)]] StructuredBuffer<ModelData> objectBuffer;
 
@@ -39,6 +40,7 @@ struct VSInput
     float3 inColor;
     float3 inNormal;
     float2 inTexCoord;
+    float4 inTangent;
 };
 
 struct VSOutput
@@ -46,9 +48,12 @@ struct VSOutput
     float4 pos : SV_Position;
     float3 fragColor;
     float3 fragNormal;
+    float3 fragTangent;
+    float3 fragBitangent;
     float2 fragTexCoord;
     float4 shadowCoord;
     nointerpolation uint textureIndex;
+    nointerpolation uint normalMapIndex;
     nointerpolation float4 colorFactor;
     float viewDepth;
 };
@@ -71,8 +76,18 @@ VSOutput vertMain(VSInput input, uint instanceID: SV_InstanceID, uint baseInstan
 
     output.fragColor = input.inColor;
     output.fragTexCoord = input.inTexCoord;
-    output.fragNormal = normalize(mul((float3x3)transform.model, input.inNormal));
+    
+    // Normal / Tangent / Bitangent in World Space
+    float3x3 normalMatrix = (float3x3)transform.model;
+    output.fragNormal = normalize(mul(normalMatrix, input.inNormal));
+    output.fragTangent = normalize(mul(normalMatrix, input.inTangent.xyz));
+    // Re-orthogonalize tangent to normal (Gram-Schmidt) to fix interpolation errors
+    output.fragTangent = normalize(output.fragTangent - dot(output.fragTangent, output.fragNormal) * output.fragNormal);
+    // Calculate Bitangent (B = N x T * w)
+    output.fragBitangent = cross(output.fragNormal, output.fragTangent) * input.inTangent.w;
+
     output.textureIndex = data.textureIndex;
+    output.normalMapIndex = data.normalMapIndex;
     output.colorFactor = data.colorFactor;
     return output;
 }
@@ -88,28 +103,36 @@ float4 fragMain(VSOutput vertIn) : SV_TARGET
 
     if (albedo.a < 0.1) discard;
 
-    float3 norm = normalize(vertIn.fragNormal);
+    // Normal Mapping
+    float3 N = normalize(vertIn.fragNormal);
+    float3 T = normalize(vertIn.fragTangent);
+    float3 B = normalize(vertIn.fragBitangent);
+    
+    // Sample normal map (linear format)
+    float3 mapNormal = textureArray[NonUniformResourceIndex(vertIn.normalMapIndex)].SampleGrad(vertIn.fragTexCoord, dx, dy).rgb;
+    // Remap [0,1] -> [-1,1]
+    mapNormal = mapNormal * 2.0 - 1.0;
+    
+    // Transform from Tangent Space to World Space
+    float3 finalNormal = normalize(mapNormal.x * T + mapNormal.y * B + mapNormal.z * N);
 
     float3 lightDir = normalize(sun[0].sunDirection.xyz);
-
     float3 projCoords = vertIn.shadowCoord.xyz / vertIn.shadowCoord.w;
     projCoords.xy = projCoords.xy * 0.5 + 0.5;
 
     float shadowFactor = 0.0;
 
     // Calculate bias based on surface slope
-    float bias = max(0.0005 * (1.0 - dot(norm, lightDir)), 0.00005); 
+    float bias = max(0.0005 * (1.0 - dot(finalNormal, lightDir)), 0.00005); 
 
     if (saturate(projCoords.x) == projCoords.x && 
         saturate(projCoords.y) == projCoords.y && 
         projCoords.z > 0.0 && projCoords.z < 1.0)
     {
-        // Get shadow map dimensions to determine texel size
         uint width, height, numLevels;
         shadowMap.GetDimensions(0, width, height, numLevels);
         float2 texelSize = 1.0 / float2(width, height);
 
-        // 3x3 PCF Kernel
         for (int x = -1; x <= 1; ++x)
         {
             for (int y = -1; y <= 1; ++y)
@@ -119,13 +142,12 @@ float4 fragMain(VSOutput vertIn) : SV_TARGET
         }
         shadowFactor /= 9.0;
     }
-    else // Outside of shadow map, assume not in shadow
+    else 
     {
-       
         shadowFactor = 1.0;
     }
 
-    float diff = max(dot(norm, lightDir), 0.0);
+    float diff = max(dot(finalNormal, lightDir), 0.0);
 
     float3 sunLight = sun[0].sunColor.rgb * sun[0].sunColor.a * diff * shadowFactor;
     float3 ambientLight = sun[0].sunAmbient.rgb * sun[0].sunAmbient.a;
@@ -136,7 +158,6 @@ float4 fragMain(VSOutput vertIn) : SV_TARGET
     float3 fogColor = float3(0.0, 0.7, 0.8);
 
     float fogFactor = saturate((vertIn.viewDepth - fogStart) / (fogEnd - fogStart));
-
     finalColor = lerp(finalColor, fogColor, fogFactor);
 
     return float4(finalColor, albedo.a);

@@ -8,8 +8,7 @@ int GltfLoader::loadModelFromFile(const char path[MAX_PATH_LEN], int vertexIndex
 	VertexIndexBuffer& vertexIndexBuffer = mManager.vertexIndexBuffers[vertexIndexBInt];
 	int32_t globalVertexOffset = static_cast<int32_t>(vertexIndexBuffer.vertices.size()); // To adjust indices
 
-	std::unordered_map<uint32_t, uint32_t> replacementMapTextures = materialsParser(
-	    model, tManager, dSetComponent, dManager); // Map from index in glTF to texture index in our system
+	MaterialMaps materialMaps = materialsParser(model, tManager, dSetComponent, dManager);
 
 	int whiteTexture =
 	    tManager.isTextureLoaded("sys_default_white")
@@ -19,13 +18,22 @@ int GltfLoader::loadModelFromFile(const char path[MAX_PATH_LEN], int vertexIndex
 	                                   dSetComponent, dManager)
 	              .id;
 
+	// Default flat normal map: (128,128,255,255) = tangent-space up (0,0,1), loaded as linear
+	int defaultNormalTexture =
+	    tManager.isTextureLoaded("sys_default_normal")
+	        ? tManager.texturePaths["sys_default_normal"].id
+	        : tManager
+	              .generateTextureData("sys_default_normal", 1, 1, std::vector<unsigned char>{128, 128, 255, 255}.data(),
+	                                   dSetComponent, dManager, vk::Format::eR8G8B8A8Unorm)
+	              .id;
+
 	std::vector<MeshInfo> loadedMeshes;
 	loadedMeshes.resize(model.meshes.size());
 	for (int i = 0; i < model.meshes.size(); ++i)
 	{
 		std::vector<PrimitivesInfo> loadedPrimitives;
 		auto newPrims = primitiveParser(model.meshes[i], vertexIndexBuffer, model, globalVertexOffset, whiteTexture,
-		                                replacementMapTextures);
+		                                defaultNormalTexture, materialMaps);
 		loadedMeshes[i].primitives = newPrims;
 		loadedMeshes[i].vertexIndexBufferID = vertexIndexBInt;
 		model.meshes[i].name.copy(loadedMeshes[i].path, sizeof(loadedMeshes[i].path) - 1); // Copy name
@@ -37,12 +45,10 @@ int GltfLoader::loadModelFromFile(const char path[MAX_PATH_LEN], int vertexIndex
 	return offsetForInSystemMesh;
 }
 
-std::unordered_map<uint32_t, uint32_t> GltfLoader::materialsParser(tinygltf::Model& model, TextureManager& tManager,
-                                                                   BindlessTextureDSetComponent& dSetComponent,
-                                                                   DescriptorManager& dManager)
+MaterialMaps GltfLoader::materialsParser(tinygltf::Model& model, TextureManager& tManager,
+                                         BindlessTextureDSetComponent& dSetComponent, DescriptorManager& dManager)
 {
-	std::unordered_map<uint32_t, uint32_t>
-	    replacementMapTextures;                       // Map from index in glTF to texture index in our system
+	MaterialMaps maps;
 	glm::vec4 colorFactor = {1.0f, 1.0f, 1.0f, 1.0f}; // Default white
 
 	for (size_t i = 0; i < model.materials.size(); i++)
@@ -55,6 +61,8 @@ std::unordered_map<uint32_t, uint32_t> GltfLoader::materialsParser(tinygltf::Mod
 			colorFactor = {static_cast<float>(colorVal[0]), static_cast<float>(colorVal[1]),
 			               static_cast<float>(colorVal[2]), static_cast<float>(colorVal[3])};
 		}
+
+		// Base color texture
 		auto texIt = model.materials[i].values.find("baseColorTexture");
 		if (texIt != model.materials[i].values.end())
 		{
@@ -65,38 +73,66 @@ std::unordered_map<uint32_t, uint32_t> GltfLoader::materialsParser(tinygltf::Mod
 				int sourceImageIndex = tex.source;
 				if (sourceImageIndex >= 0 && sourceImageIndex < model.images.size())
 				{
-					// Load image
 					tinygltf::Image& img = model.images[sourceImageIndex];
 					if (!img.image.empty() && img.width > 0 && img.height > 0)
 					{
 						auto newTex = std::make_shared<TextureData>();
-						// Determine texture name
 						if (!img.name.empty())
-						{
 							newTex->name = img.name;
-						}
 						else if (!img.uri.empty() && img.uri.find("data:") != 0)
-						{
 							newTex->name = img.uri;
-						}
 						int indexInSystem =
 						    tManager
 						        .generateTextureData(newTex->name.c_str(), img.width, img.height,
 						                             ImageConverter::convertToRGBA(img).data(), dSetComponent, dManager)
 						        .id;
-						replacementMapTextures.emplace(i, indexInSystem);
+						maps.baseColor.emplace(i, indexInSystem);
+					}
+				}
+			}
+		}
+
+		// Normal map texture
+		auto normTexIt = model.materials[i].additionalValues.find("normalTexture");
+		if (normTexIt != model.materials[i].additionalValues.end())
+		{
+			int textureIndex = normTexIt->second.TextureIndex();
+			if (textureIndex >= 0 && textureIndex < model.textures.size())
+			{
+				const tinygltf::Texture& tex = model.textures[textureIndex];
+				int sourceImageIndex = tex.source;
+				if (sourceImageIndex >= 0 && sourceImageIndex < model.images.size())
+				{
+					tinygltf::Image& img = model.images[sourceImageIndex];
+					if (!img.image.empty() && img.width > 0 && img.height > 0)
+					{
+						std::string normalName;
+						if (!img.name.empty())
+							normalName = "normal_" + img.name;
+						else if (!img.uri.empty() && img.uri.find("data:") != 0)
+							normalName = "normal_" + img.uri;
+						else
+							normalName = "normal_mat" + std::to_string(i);
+
+						int indexInSystem =
+						    tManager
+						        .generateTextureData(normalName.c_str(), img.width, img.height,
+						                             ImageConverter::convertToRGBA(img).data(), dSetComponent, dManager,
+						                             vk::Format::eR8G8B8A8Unorm) // Linear format for normal maps
+						        .id;
+						maps.normalMap.emplace(i, indexInSystem);
 					}
 				}
 			}
 		}
 	}
-	return replacementMapTextures;
+	return maps;
 }
 
 std::vector<PrimitivesInfo> GltfLoader::primitiveParser(tinygltf::Mesh& mesh, VertexIndexBuffer& vertexIndexB,
                                                         tinygltf::Model& model, int32_t globalVertexOffset,
-                                                        int whiteTexture,
-                                                        std::unordered_map<uint32_t, uint32_t> replacementMapTextures)
+                                                        int whiteTexture, int defaultNormalTexture,
+                                                        const MaterialMaps& materialMaps)
 {
 	std::vector<PrimitivesInfo> loadedPrimitives;
 	for (const auto& primitive : mesh.primitives)
@@ -129,6 +165,17 @@ std::vector<PrimitivesInfo> GltfLoader::primitiveParser(tinygltf::Mesh& mesh, Ve
 			normBuffer = &model.buffers[normBufferView->buffer];
 		}
 
+		// Read tangents if present
+		const tinygltf::Accessor* tangAccessor = nullptr;
+		const tinygltf::BufferView* tangBufferView = nullptr;
+		const tinygltf::Buffer* tangBuffer = nullptr;
+		if (primitive.attributes.find("TANGENT") != primitive.attributes.end())
+		{
+			tangAccessor = &model.accessors[primitive.attributes.at("TANGENT")];
+			tangBufferView = &model.bufferViews[tangAccessor->bufferView];
+			tangBuffer = &model.buffers[tangBufferView->buffer];
+		}
+
 		uint32_t currentLocalOffset = static_cast<uint32_t>(vertexIndexB.vertices.size()) - globalVertexOffset;
 
 		const unsigned char* posDataStart = &posBuffer.data[posBufferView.byteOffset + posAccessor.byteOffset];
@@ -151,6 +198,15 @@ std::vector<PrimitivesInfo> GltfLoader::primitiveParser(tinygltf::Mesh& mesh, Ve
 			normDataStart = &normBuffer->data[normBufferView->byteOffset + normAccessor->byteOffset];
 			normByteStride =
 			    normAccessor->ByteStride(*normBufferView) ? normAccessor->ByteStride(*normBufferView) : sizeof(float) * 3;
+		}
+
+		const unsigned char* tangDataStart = nullptr;
+		int tangByteStride = 0;
+		if (tangAccessor)
+		{
+			tangDataStart = &tangBuffer->data[tangBufferView->byteOffset + tangAccessor->byteOffset];
+			tangByteStride =
+			    tangAccessor->ByteStride(*tangBufferView) ? tangAccessor->ByteStride(*tangBufferView) : sizeof(float) * 4;
 		}
 
 		// Read vertices
@@ -194,6 +250,17 @@ std::vector<PrimitivesInfo> GltfLoader::primitiveParser(tinygltf::Mesh& mesh, Ve
 			{
 				v.texCoord = {0.0f, 0.0f};
 			}
+
+			if (tangAccessor)
+			{
+				const float* tang = reinterpret_cast<const float*>(tangDataStart + (i * tangByteStride));
+				v.tangent = {tang[0], tang[1], tang[2], tang[3]};
+			}
+			else
+			{
+				v.tangent = {1.0f, 0.0f, 0.0f, 1.0f}; // Default tangent
+			}
+
 			v.color = {1.0f, 1.0f, 1.0f};
 		}
 
@@ -239,15 +306,13 @@ std::vector<PrimitivesInfo> GltfLoader::primitiveParser(tinygltf::Mesh& mesh, Ve
 		result.AABBMax = maxBound;
 		result.AABBMin = minBound;
 
-		auto it = replacementMapTextures.find(materialIndex);
-		if (it != replacementMapTextures.end())
-		{
-			result.textureIndex = it->second;
-		}
-		else
-		{
-			result.textureIndex = whiteTexture; // No texture
-		}
+		// Assign Base Color Texture
+		auto itBase = materialMaps.baseColor.find(materialIndex);
+		result.textureIndex = (itBase != materialMaps.baseColor.end()) ? itBase->second : whiteTexture;
+
+		// Assign Normal Map Texture
+		auto itNorm = materialMaps.normalMap.find(materialIndex);
+		result.normalMapIndex = (itNorm != materialMaps.normalMap.end()) ? itNorm->second : defaultNormalTexture;
 
 		loadedPrimitives.push_back(result);
 	}

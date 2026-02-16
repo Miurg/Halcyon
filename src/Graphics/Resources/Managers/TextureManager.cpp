@@ -89,7 +89,7 @@ vk::Format TextureManager::findBestSupportedFormat(const std::vector<vk::Format>
 TextureHandle TextureManager::generateTextureData(const char texturePath[MAX_PATH_LEN], int texWidth, int texHeight,
                                                   const unsigned char* pixels,
                                                   BindlessTextureDSetComponent& dSetComponent,
-                                                  DescriptorManager& dManager)
+                                                  DescriptorManager& dManager, vk::Format format)
 {
 	if (!pixels)
 	{
@@ -106,11 +106,11 @@ TextureHandle TextureManager::generateTextureData(const char texturePath[MAX_PAT
 	textures.push_back(Texture());
 	Texture& texture = textures.back();
 
-	TextureManager::createImage(texWidth, texHeight, vk::Format::eR8G8B8A8Srgb, vk::ImageTiling::eOptimal,
+	TextureManager::createImage(texWidth, texHeight, format, vk::ImageTiling::eOptimal,
 	                            vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled,
 	                            VMA_MEMORY_USAGE_AUTO, texture);
 	TextureUploader::uploadTextureFromBuffer(pixels, texWidth, texHeight, texture, allocator, vulkanDevice);
-	TextureManager::createImageView(texture, vk::Format::eR8G8B8A8Srgb, vk::ImageAspectFlagBits::eColor);
+	TextureManager::createImageView(texture, format, vk::ImageAspectFlagBits::eColor);
 	TextureManager::createTextureSampler(texture);
 
 	TextureHandle handle{static_cast<int>(textures.size() - 1)};
