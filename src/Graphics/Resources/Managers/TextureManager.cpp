@@ -91,6 +91,10 @@ TextureHandle TextureManager::generateTextureData(const char texturePath[MAX_PAT
                                                   BindlessTextureDSetComponent& dSetComponent,
                                                   DescriptorManager& dManager, vk::Format format)
 {
+	if (isTextureLoaded(texturePath))
+	{
+		return texturePaths.find(texturePath)->second;
+	}
 	if (!pixels)
 	{
 		throw std::runtime_error("pixels data is null!");
@@ -99,10 +103,6 @@ TextureHandle TextureManager::generateTextureData(const char texturePath[MAX_PAT
 	{
 		throw std::runtime_error("Invalid texture dimensions!");
 	}
-	// if (texWidth > 2048 || texHeight > 2048)
-	//{
-	//	return texturePaths["sys_default_white"];
-	// }
 	textures.push_back(Texture());
 	Texture& texture = textures.back();
 
