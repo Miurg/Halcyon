@@ -13,9 +13,6 @@ class TransformSystem
     : public SystemCore<TransformSystem, GlobalTransformComponent, LocalTransformComponent, RelationshipComponent>
 {
 private:
-	void updateTransformRecursive(Entity entity, GeneralManager& gm, glm::vec3 parentPosition, glm::quat parentRotation,
-	                              glm::vec3 parentScale);
-
 public:
 	struct Agent
 	{
