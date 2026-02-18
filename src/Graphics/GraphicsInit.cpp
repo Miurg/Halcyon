@@ -41,6 +41,7 @@
 #include "Managers/FrameManager.hpp"
 // Contexts
 #include "GraphicsContexts.hpp"
+#include "Resources/ResourceStructures.hpp"
 
 void GraphicsInit::Run(GeneralManager& gm)
 {
@@ -216,7 +217,7 @@ void GraphicsInit::initScene(GeneralManager& gm)
 	CameraComponent* camera = gm.getContextComponent<MainCameraContext, CameraComponent>();
 	globalDSetComponent->cameraBuffers =
 	    bManager->createBuffer((vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal),
-	                           sizeof(CameraStucture), MAX_FRAMES_IN_FLIGHT, vk::BufferUsageFlagBits::eStorageBuffer);
+	                           sizeof(CameraStructure), MAX_FRAMES_IN_FLIGHT, vk::BufferUsageFlagBits::eStorageBuffer);
 	dManager->updateStorageBufferDescriptors(*bManager, globalDSetComponent->cameraBuffers,
 	                                         globalDSetComponent->globalDSets, 0);
 	// === Camera END ===
@@ -239,9 +240,14 @@ void GraphicsInit::initScene(GeneralManager& gm)
 
 	// === Bindless Texture Set ===
 	bTextureDSetComponent->bindlessTextureSet = dManager->allocateBindlessTextureDSet();
+	bTextureDSetComponent->materialBuffer =
+	    bManager->createBuffer((vk::MemoryPropertyFlagBits::eHostVisible), 10240 * sizeof(MaterialStructure),
+	                           1, vk::BufferUsageFlagBits::eStorageBuffer);
+	dManager->updateStorageBufferDescriptors(*bManager, bTextureDSetComponent->materialBuffer,
+	                                         bTextureDSetComponent->bindlessTextureSet, 2);
 	// === Bindless Texture Set END ===
 
-	// === Shadow Map в Texture Set (binding 1) ===
+	// === Shadow Map Texture Set (binding 1) ===
 	dManager->updateSingleTextureDSet(bTextureDSetComponent->bindlessTextureSet, 1,
 	                                  tManager->textures[sunLight->textureShadowImage.id].textureImageView,
 	                                  tManager->textures[sunLight->textureShadowImage.id].textureSampler);

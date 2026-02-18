@@ -7,9 +7,7 @@ struct PrimitivesInfo
 	uint32_t vertexOffset = -1;
 	uint32_t indexOffset = -1;
 	uint32_t indexCount = -1;
-	uint32_t textureIndex = -1;
-	uint32_t normalMapIndex = -1;
-	glm::vec4 baseColorFactor;
+	uint32_t materialIndex = -1;
 	glm::vec3 AABBMin;
 	glm::vec3 AABBMax;
 };

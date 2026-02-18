@@ -35,11 +35,15 @@ DescriptorManager::DescriptorManager(VulkanDevice& vulkanDevice) : vulkanDevice(
 	                                              vk::ShaderStageFlagBits::eFragment, nullptr);
 	vk::DescriptorSetLayoutBinding shadowBinding(1, vk::DescriptorType::eCombinedImageSampler, 1,
 	                                             vk::ShaderStageFlagBits::eFragment, nullptr);
-	std::array<vk::DescriptorSetLayoutBinding, 2> textureBindings = {textureBinding, shadowBinding};
+	vk::DescriptorSetLayoutBinding materialBinding(2, vk::DescriptorType::eStorageBuffer, 1,
+	                                               vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment,
+	                                               nullptr);
+	std::array<vk::DescriptorSetLayoutBinding, 3> textureBindings = {textureBinding, shadowBinding, materialBinding};
 
-	std::array<vk::DescriptorBindingFlags, 2> textureBindingFlags = {
+	std::array<vk::DescriptorBindingFlags, 3> textureBindingFlags = {
 	    vk::DescriptorBindingFlagBits::ePartiallyBound | vk::DescriptorBindingFlagBits::eUpdateAfterBind,
-	    vk::DescriptorBindingFlags{} // shadowMap: no special flags
+	    vk::DescriptorBindingFlags{}, // shadowMap: no special flags
+	    vk::DescriptorBindingFlags{}
 	};
 	vk::DescriptorSetLayoutBindingFlagsCreateInfo bindingFlagsInfo;
 	bindingFlagsInfo.bindingCount = static_cast<uint32_t>(textureBindingFlags.size());

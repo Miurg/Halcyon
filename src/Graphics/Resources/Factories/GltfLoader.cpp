@@ -8,7 +8,7 @@ int GltfLoader::loadModelFromFile(const char path[MAX_PATH_LEN], int vertexIndex
 	VertexIndexBuffer& vertexIndexBuffer = mManager.vertexIndexBuffers[vertexIndexBInt];
 	int32_t globalVertexOffset = static_cast<int32_t>(vertexIndexBuffer.vertices.size()); // To adjust indices
 
-	MaterialMaps materialMaps = materialsParser(model, tManager, dSetComponent, dManager);
+	MaterialMaps materialMaps = materialsParser(model, tManager, dSetComponent, dManager, bManager);
 
 	int whiteTexture =
 	    tManager.isTextureLoaded("sys_default_white")
@@ -26,6 +26,7 @@ int GltfLoader::loadModelFromFile(const char path[MAX_PATH_LEN], int vertexIndex
 	              .generateTextureData("sys_default_normal", 1, 1, std::vector<unsigned char>{128, 128, 255, 255}.data(),
 	                                   dSetComponent, dManager, vk::Format::eR8G8B8A8Unorm)
 	              .id;
+
 
 	std::vector<MeshInfo> loadedMeshes;
 	loadedMeshes.resize(model.meshes.size());
@@ -46,13 +47,15 @@ int GltfLoader::loadModelFromFile(const char path[MAX_PATH_LEN], int vertexIndex
 }
 
 MaterialMaps GltfLoader::materialsParser(tinygltf::Model& model, TextureManager& tManager,
-                                         BindlessTextureDSetComponent& dSetComponent, DescriptorManager& dManager)
+                                         BindlessTextureDSetComponent& dSetComponent, DescriptorManager& dManager,
+                                         BufferManager& bManager)
 {
 	MaterialMaps maps;
 	glm::vec4 colorFactor = {1.0f, 1.0f, 1.0f, 1.0f}; // Default white
 
 	for (size_t i = 0; i < model.materials.size(); i++)
 	{
+		MaterialStructure material;
 		// Base color factor
 		auto colorIt = model.materials[i].values.find("baseColorFactor");
 		if (colorIt != model.materials[i].values.end())
@@ -86,7 +89,7 @@ MaterialMaps GltfLoader::materialsParser(tinygltf::Model& model, TextureManager&
 						        .generateTextureData(newTex->name.c_str(), img.width, img.height,
 						                             ImageConverter::convertToRGBA(img).data(), dSetComponent, dManager)
 						        .id;
-						maps.baseColor.emplace(i, indexInSystem);
+						material.textureIndex = indexInSystem;
 					}
 				}
 			}
@@ -120,11 +123,12 @@ MaterialMaps GltfLoader::materialsParser(tinygltf::Model& model, TextureManager&
 						                             ImageConverter::convertToRGBA(img).data(), dSetComponent, dManager,
 						                             vk::Format::eR8G8B8A8Unorm) // Linear format for normal maps
 						        .id;
-						maps.normalMap.emplace(i, indexInSystem);
+						material.normalMapIndex = indexInSystem;
 					}
 				}
 			}
 		}
+		maps.materials.emplace(i, tManager.emplaceMaterials(dSetComponent, material, bManager));
 	}
 	return maps;
 }
@@ -292,8 +296,6 @@ std::vector<PrimitivesInfo> GltfLoader::primitiveParser(tinygltf::Mesh& mesh, Ve
 			const uint8_t* buf = reinterpret_cast<const uint8_t*>(indexData);
 			for (size_t i = 0; i < indexAccessor.count; i++) pushIndex(buf[i], i);
 		}
-
-		glm::vec4 colorFactor = {1.0f, 1.0f, 1.0f, 1.0f}; // Default white
 		uint32_t materialIndex = primitive.material;
 
 		uint32_t indexCount = static_cast<uint32_t>(vertexIndexB.indices.size()) - firstIndex;
@@ -302,17 +304,12 @@ std::vector<PrimitivesInfo> GltfLoader::primitiveParser(tinygltf::Mesh& mesh, Ve
 		result.indexCount = indexCount;
 		result.indexOffset = firstIndex;
 		result.vertexOffset = globalVertexOffset;
-		result.baseColorFactor = colorFactor;
 		result.AABBMax = maxBound;
 		result.AABBMin = minBound;
 
-		// Assign Base Color Texture
-		auto itBase = materialMaps.baseColor.find(materialIndex);
-		result.textureIndex = (itBase != materialMaps.baseColor.end()) ? itBase->second : whiteTexture;
-
-		// Assign Normal Map Texture
-		auto itNorm = materialMaps.normalMap.find(materialIndex);
-		result.normalMapIndex = (itNorm != materialMaps.normalMap.end()) ? itNorm->second : defaultNormalTexture;
+		// Assign material
+		auto itBase = materialMaps.materials.find(materialIndex);
+		result.materialIndex = (itBase != materialMaps.materials.end()) ? itBase->second : whiteTexture;
 
 		loadedPrimitives.push_back(result);
 	}

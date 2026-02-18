@@ -14,6 +14,7 @@
 #include "../Components/CameraComponent.hpp"
 #include "../Components/GlobalTransformComponent.hpp"
 #include "../Components/LightComponent.hpp"
+#include "../Resources/ResourceStructures.hpp"
 
 void CameraMatrixSystem::onRegistered(GeneralManager& gm)
 {
@@ -50,7 +51,7 @@ void CameraMatrixSystem::update(float deltaTime, GeneralManager& gm)
 
 	glm::mat4 cameraSpaceMatrix = proj * view;
 
-	CameraStucture cameraUbo{.cameraSpaceMatrix = cameraSpaceMatrix};
+	CameraStructure cameraUbo{.cameraSpaceMatrix = cameraSpaceMatrix};
 	memcpy(bufferManager.buffers[globalDSetComponent->cameraBuffers.id].bufferMapped[currentFrame], &cameraUbo,
 	       sizeof(cameraUbo));
 

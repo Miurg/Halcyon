@@ -25,11 +25,9 @@ struct LoadedPrimitive
 	std::shared_ptr<TextureData> texture;
 };
 
-// Parsed material texture maps: base color and normal map indices per glTF material.
 struct MaterialMaps
 {
-	std::unordered_map<uint32_t, uint32_t> baseColor;
-	std::unordered_map<uint32_t, uint32_t> normalMap;
+	std::unordered_map<uint32_t, uint32_t> materials;
 };
 
 // Parses glTF files — extracts materials, primitives, and mesh hierarchy into engine resources.
@@ -40,7 +38,8 @@ public:
 	                             BindlessTextureDSetComponent& dSetComponent, DescriptorManager& dManager,
 	                             tinygltf::Model model, TextureManager& tManager, ModelManager& mManager);
 	static MaterialMaps materialsParser(tinygltf::Model& model, TextureManager& tManager,
-	                                    BindlessTextureDSetComponent& dSetComponent, DescriptorManager& dManager);
+	                                    BindlessTextureDSetComponent& dSetComponent, DescriptorManager& dManager,
+	                                    BufferManager& bManager);
 	static std::vector<PrimitivesInfo> primitiveParser(tinygltf::Mesh& mesh, VertexIndexBuffer& vertexIndexB,
 	                                                   tinygltf::Model& model, int32_t globalVertexOffset,
 	                                                   int whiteTexture, int defaultNormalTexture,

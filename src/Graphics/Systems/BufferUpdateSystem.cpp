@@ -12,6 +12,7 @@
 #include <map>
 #include "../Resources/Managers/ModelManager.hpp"
 #include "../Components/ModelManagerComponent.hpp"
+#include "../Resources/ResourceStructures.hpp"
 
 void BufferUpdateSystem::onRegistered(GeneralManager& gm)
 {
@@ -110,22 +111,15 @@ void BufferUpdateSystem::update(float deltaTime, GeneralManager& gm)
 
 			int currentEntityTransformIndex = baseTransformIndexForMesh;
 			globalCullIndex += modelManager.meshes[meshBaseInfo.mesh].entitiesSubscribed;
-			for (const auto agent : agentsInBatch)
+			for (const auto& agent : agentsInBatch)
 			{
 				int meshIndex = agent.meshInfo->mesh;
 
 				// Link texture index
-				primitivePtr[localPrimitiveIndex].textureIndex = modelManager.meshes[meshIndex].primitives[i].textureIndex;
-
-				// Link normal map index
-				primitivePtr[localPrimitiveIndex].normalMapIndex =
-				    modelManager.meshes[meshIndex].primitives[i].normalMapIndex;
+				primitivePtr[localPrimitiveIndex].materialIndex = modelManager.meshes[meshIndex].primitives[i].materialIndex;
 
 				// Link transform index
 				primitivePtr[localPrimitiveIndex].transformIndex = currentEntityTransformIndex;
-
-				// Base color
-				primitivePtr[localPrimitiveIndex].baseColor = modelManager.meshes[meshIndex].primitives[i].baseColorFactor;
 
 				primitivePtr[localPrimitiveIndex].AABBMax = modelManager.meshes[meshIndex].primitives[i].AABBMax;
 				primitivePtr[localPrimitiveIndex].AABBMin = modelManager.meshes[meshIndex].primitives[i].AABBMin;

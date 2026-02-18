@@ -10,8 +10,11 @@
 #include "Buffer.hpp"
 #include "../Components/BindlessTextureDSetComponent.hpp"
 #include "../../VulkanDevice.hpp"
-#include "DescriptorManager.hpp"
 #include "ResourceHandles.hpp"
+#include "../ResourceStructures.hpp"
+
+class BufferManager;
+class DescriptorManager;
 
 // Creates and caches textures (VMA-allocated). Deduplicates by file path.
 class TextureManager
@@ -34,6 +37,10 @@ public:
 	                 vk::ImageUsageFlags usage, VmaMemoryUsage memoryUsage, Texture& texture);
 	std::vector<Texture> textures;
 	std::unordered_map<std::string, TextureHandle> texturePaths;
+
+	int emplaceMaterials(BindlessTextureDSetComponent& dSetComponent, MaterialStructure materialMaps,
+	                     BufferManager& bManager);
+	std::vector<MaterialStructure> materials;
 
 private:
 	VulkanDevice& vulkanDevice;

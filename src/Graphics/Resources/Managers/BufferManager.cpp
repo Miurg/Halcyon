@@ -68,3 +68,4 @@ void BufferManager::initGlobalBuffer(vk::MemoryPropertyFlags propertyBits, Buffe
 		}
 	}
 }
+

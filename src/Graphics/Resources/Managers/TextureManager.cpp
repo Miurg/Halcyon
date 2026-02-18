@@ -1,6 +1,6 @@
 #include "TextureManager.hpp"
-#include "TextureManager.hpp"
 #include "DescriptorManager.hpp"
+#include "BufferManager.hpp"
 #include "../Factories/TextureUploader.hpp"
 
 TextureManager::TextureManager(VulkanDevice& vulkanDevice, VmaAllocator allocator)
@@ -156,6 +156,13 @@ void TextureManager::createImage(uint32_t width, uint32_t height, vk::Format for
 		throw std::runtime_error("failed to create VMA image!");
 	}
 	texture.textureImage = vk::Image(textureImageRaw);
+}
+
+int TextureManager::emplaceMaterials(BindlessTextureDSetComponent& dSetComponent, MaterialStructure materialStr, BufferManager& bManager)
+{
+	materials.push_back(materialStr);
+	bManager.writeToBuffer(dSetComponent.materialBuffer, 0, materials.size() - 1, materialStr);
+	return materials.size()-1;
 }
 
 void TextureManager::createImageView(Texture& texture, vk::Format format, vk::ImageAspectFlags aspectFlags)

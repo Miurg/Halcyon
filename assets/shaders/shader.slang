@@ -1,11 +1,9 @@
 struct ModelData
 {
-    float4 colorFactor;
     float4 AABBMin;
     float4 AABBMax;
     uint transformIndex;
-    uint textureIndex;
-    uint normalMapIndex;
+    uint materialIndex;
     uint drawCommandIndex; // unused
 };
 [[vk::binding(0, 1)]] StructuredBuffer<ModelData> objectBuffer;
@@ -32,6 +30,12 @@ struct SunData
 [[vk::binding(1, 0)]] StructuredBuffer<SunData> sun;
 
 [[vk::binding(1, 2)]] Sampler2DShadow shadowMap;
+struct MaterialData
+{
+    uint textureIndex;
+    uint normalMapIndex;
+}
+[[vk::binding(2, 2)]] StructuredBuffer<MaterialData> materialData;
 
 [[vk::binding(3, 1)]] StructuredBuffer<uint> visibleIndicesBuffer;
 struct VSInput
@@ -54,7 +58,6 @@ struct VSOutput
     float4 shadowCoord;
     nointerpolation uint textureIndex;
     nointerpolation uint normalMapIndex;
-    nointerpolation float4 colorFactor;
     float viewDepth;
 };
 
@@ -86,9 +89,8 @@ VSOutput vertMain(VSInput input, uint instanceID: SV_InstanceID, uint baseInstan
     // Calculate Bitangent (B = N x T * w)
     output.fragBitangent = cross(output.fragNormal, output.fragTangent) * input.inTangent.w;
 
-    output.textureIndex = data.textureIndex;
-    output.normalMapIndex = data.normalMapIndex;
-    output.colorFactor = data.colorFactor;
+    output.textureIndex = materialData[data.materialIndex].textureIndex;
+    output.normalMapIndex = materialData[data.materialIndex].normalMapIndex;
     return output;
 }
 [[vk::binding(0, 2)]] Sampler2D textureArray[2048];
@@ -99,7 +101,7 @@ float4 fragMain(VSOutput vertIn) : SV_TARGET
     float2 dx = ddx(vertIn.fragTexCoord);
     float2 dy = ddy(vertIn.fragTexCoord);
     float4 textureColor = textureArray[NonUniformResourceIndex(vertIn.textureIndex)].SampleGrad(vertIn.fragTexCoord, dx, dy);
-    float4 albedo = textureColor * vertIn.colorFactor;
+    float4 albedo = textureColor;
 
     if (albedo.a < 0.1) discard;
 
