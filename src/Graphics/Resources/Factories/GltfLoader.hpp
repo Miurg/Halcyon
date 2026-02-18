@@ -42,7 +42,6 @@ public:
 	                                    BufferManager& bManager);
 	static std::vector<PrimitivesInfo> primitiveParser(tinygltf::Mesh& mesh, VertexIndexBuffer& vertexIndexB,
 	                                                   tinygltf::Model& model, int32_t globalVertexOffset,
-	                                                   int whiteTexture, int defaultNormalTexture,
 	                                                   const MaterialMaps& materialMaps);
 	static std::vector<MeshInfo> modelParser(tinygltf::Model model);
 	static std::shared_ptr<TextureData> createDefaultWhiteTexture();

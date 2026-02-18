@@ -51,7 +51,7 @@ void CameraMatrixSystem::update(float deltaTime, GeneralManager& gm)
 
 	glm::mat4 cameraSpaceMatrix = proj * view;
 
-	CameraStructure cameraUbo{.cameraSpaceMatrix = cameraSpaceMatrix};
+	CameraStructure cameraUbo{.cameraSpaceMatrix = cameraSpaceMatrix, .cameraPosition = mainCameraTransform->globalPosition};
 	memcpy(bufferManager.buffers[globalDSetComponent->cameraBuffers.id].bufferMapped[currentFrame], &cameraUbo,
 	       sizeof(cameraUbo));
 

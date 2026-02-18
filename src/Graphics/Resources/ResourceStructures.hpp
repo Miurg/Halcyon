@@ -3,6 +3,7 @@
 struct CameraStructure
 {
 	alignas(16) glm::mat4 cameraSpaceMatrix;
+	alignas(16) glm::vec3 cameraPosition;
 };
 
 struct SunStructure
@@ -42,6 +43,7 @@ struct IndirectDrawStructure
 
 struct MaterialStructure
 {
-	uint32_t textureIndex;
-	uint32_t normalMapIndex;
+	uint32_t textureIndex = -1;
+	uint32_t normalMapIndex = -1;
+	uint32_t metallicRoughnessIndex = -1;
 };

@@ -10,31 +10,12 @@ int GltfLoader::loadModelFromFile(const char path[MAX_PATH_LEN], int vertexIndex
 
 	MaterialMaps materialMaps = materialsParser(model, tManager, dSetComponent, dManager, bManager);
 
-	int whiteTexture =
-	    tManager.isTextureLoaded("sys_default_white")
-	        ? tManager.texturePaths["sys_default_white"].id
-	        : tManager
-	              .generateTextureData("sys_default_white", 1, 1, std::vector<unsigned char>{255, 255, 255, 255}.data(),
-	                                   dSetComponent, dManager)
-	              .id;
-
-	// Default flat normal map: (128,128,255,255) = tangent-space up (0,0,1), loaded as linear
-	int defaultNormalTexture =
-	    tManager.isTextureLoaded("sys_default_normal")
-	        ? tManager.texturePaths["sys_default_normal"].id
-	        : tManager
-	              .generateTextureData("sys_default_normal", 1, 1, std::vector<unsigned char>{128, 128, 255, 255}.data(),
-	                                   dSetComponent, dManager, vk::Format::eR8G8B8A8Unorm)
-	              .id;
-
-
 	std::vector<MeshInfo> loadedMeshes;
 	loadedMeshes.resize(model.meshes.size());
 	for (int i = 0; i < model.meshes.size(); ++i)
 	{
 		std::vector<PrimitivesInfo> loadedPrimitives;
-		auto newPrims = primitiveParser(model.meshes[i], vertexIndexBuffer, model, globalVertexOffset, whiteTexture,
-		                                defaultNormalTexture, materialMaps);
+		auto newPrims = primitiveParser(model.meshes[i], vertexIndexBuffer, model, globalVertexOffset, materialMaps);
 		loadedMeshes[i].primitives = newPrims;
 		loadedMeshes[i].vertexIndexBufferID = vertexIndexBInt;
 		model.meshes[i].name.copy(loadedMeshes[i].path, sizeof(loadedMeshes[i].path) - 1); // Copy name
@@ -52,10 +33,32 @@ MaterialMaps GltfLoader::materialsParser(tinygltf::Model& model, TextureManager&
 {
 	MaterialMaps maps;
 	glm::vec4 colorFactor = {1.0f, 1.0f, 1.0f, 1.0f}; // Default white
+	int whiteTexture =
+	    tManager.isTextureLoaded("sys_default_white")
+	        ? tManager.texturePaths["sys_default_white"].id
+	        : tManager
+	              .generateTextureData("sys_default_white", 1, 1, std::vector<unsigned char>{255, 255, 255, 255}.data(),
+	                                   dSetComponent, dManager)
+	              .id;
 
+	// Default flat normal map: (128,128,255,255) = tangent-space up (0,0,1), loaded as linear
+	int defaultNormalTexture =
+	    tManager.isTextureLoaded("sys_default_normal")
+	        ? tManager.texturePaths["sys_default_normal"].id
+	        : tManager
+	              .generateTextureData("sys_default_normal", 1, 1, std::vector<unsigned char>{128, 128, 255, 255}.data(),
+	                                   dSetComponent, dManager, vk::Format::eR8G8B8A8Unorm)
+	              .id;
+	int defaultMRTexture =
+	    tManager.isTextureLoaded("sys_default_mr")
+	        ? tManager.texturePaths["sys_default_mr"].id
+	        : tManager
+	              .generateTextureData("sys_default_mr", 1, 1, std::vector<unsigned char>{255, 128, 0, 255}.data(),
+	                                   dSetComponent, dManager, vk::Format::eR8G8B8A8Unorm)
+	              .id;
 	for (size_t i = 0; i < model.materials.size(); i++)
 	{
-		MaterialStructure material;
+		MaterialStructure material{};
 		// Base color factor
 		auto colorIt = model.materials[i].values.find("baseColorFactor");
 		if (colorIt != model.materials[i].values.end())
@@ -94,6 +97,10 @@ MaterialMaps GltfLoader::materialsParser(tinygltf::Model& model, TextureManager&
 				}
 			}
 		}
+		else
+		{
+			material.textureIndex = whiteTexture;
+		}
 
 		// Normal map texture
 		auto normTexIt = model.materials[i].additionalValues.find("normalTexture");
@@ -128,6 +135,47 @@ MaterialMaps GltfLoader::materialsParser(tinygltf::Model& model, TextureManager&
 				}
 			}
 		}
+		else
+		{
+			material.normalMapIndex = defaultNormalTexture;
+		}
+		// Metallic-Roughness texture (packed: G=Roughness, B=Metallic)
+		auto mrTexIt = model.materials[i].values.find("metallicRoughnessTexture");
+		if (mrTexIt != model.materials[i].values.end())
+		{
+			int textureIndex = mrTexIt->second.TextureIndex();
+			if (textureIndex >= 0 && textureIndex < (int)model.textures.size())
+			{
+				const tinygltf::Texture& tex = model.textures[textureIndex];
+				int sourceImageIndex = tex.source;
+				if (sourceImageIndex >= 0 && sourceImageIndex < (int)model.images.size())
+				{
+					tinygltf::Image& img = model.images[sourceImageIndex];
+					if (!img.image.empty() && img.width > 0 && img.height > 0)
+					{
+						std::string mrName;
+						if (!img.name.empty())
+							mrName = "mr_" + img.name;
+						else if (!img.uri.empty() && img.uri.find("data:") != 0)
+							mrName = "mr_" + img.uri;
+						else
+							mrName = "mr_mat" + std::to_string(i);
+
+						int indexInSystem =
+						    tManager
+						        .generateTextureData(mrName.c_str(), img.width, img.height,
+						                             ImageConverter::convertToRGBA(img).data(), dSetComponent, dManager,
+						                             vk::Format::eR8G8B8A8Unorm) // Linear, не sRGB
+						        .id;
+						material.metallicRoughnessIndex = indexInSystem;
+					}
+				}
+			}
+		}
+		else
+		{
+			material.metallicRoughnessIndex = defaultMRTexture;
+		}
 		maps.materials.emplace(i, tManager.emplaceMaterials(dSetComponent, material, bManager));
 	}
 	return maps;
@@ -135,7 +183,6 @@ MaterialMaps GltfLoader::materialsParser(tinygltf::Model& model, TextureManager&
 
 std::vector<PrimitivesInfo> GltfLoader::primitiveParser(tinygltf::Mesh& mesh, VertexIndexBuffer& vertexIndexB,
                                                         tinygltf::Model& model, int32_t globalVertexOffset,
-                                                        int whiteTexture, int defaultNormalTexture,
                                                         const MaterialMaps& materialMaps)
 {
 	std::vector<PrimitivesInfo> loadedPrimitives;
@@ -309,7 +356,7 @@ std::vector<PrimitivesInfo> GltfLoader::primitiveParser(tinygltf::Mesh& mesh, Ve
 
 		// Assign material
 		auto itBase = materialMaps.materials.find(materialIndex);
-		result.materialIndex = (itBase != materialMaps.materials.end()) ? itBase->second : whiteTexture;
+		result.materialIndex = (itBase != materialMaps.materials.end()) ? itBase->second : 0;
 
 		loadedPrimitives.push_back(result);
 	}

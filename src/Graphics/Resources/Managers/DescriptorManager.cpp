@@ -19,7 +19,8 @@ DescriptorManager::DescriptorManager(VulkanDevice& vulkanDevice) : vulkanDevice(
 
 	//===Global (Set 0): camera + sun===
 	vk::DescriptorSetLayoutBinding cameraBinding(0, vk::DescriptorType::eStorageBuffer, 1,
-	                                             vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eCompute,
+	                                             vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eCompute |
+	                                                 vk::ShaderStageFlagBits::eFragment,
 	                                             nullptr);
 	vk::DescriptorSetLayoutBinding sunBinding(1, vk::DescriptorType::eStorageBuffer, 1,
 	                                          vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment,

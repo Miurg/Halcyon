@@ -3,6 +3,7 @@
 struct CameraData
 {
     float4x4 cameraSpaceMatrix; // View * Projection
+    float3 cameraPosition;
 };
 [[vk::binding(0, 0)]] StructuredBuffer<CameraData> camera;
 
