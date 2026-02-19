@@ -56,6 +56,13 @@ MaterialMaps GltfLoader::materialsParser(tinygltf::Model& model, TextureManager&
 	              .generateTextureData("sys_default_mr", 1, 1, std::vector<unsigned char>{255, 128, 0, 255}.data(),
 	                                   dSetComponent, dManager, vk::Format::eR8G8B8A8Unorm)
 	              .id;
+	int defaultEmissiveTexture =
+	    tManager.isTextureLoaded("sys_default_emissive")
+	        ? tManager.texturePaths["sys_default_emissive"].id
+	        : tManager
+	              .generateTextureData("sys_default_emissive", 1, 1, std::vector<unsigned char>{0, 0, 0, 255}.data(),
+	                                   dSetComponent, dManager)
+	              .id;
 	for (size_t i = 0; i < model.materials.size(); i++)
 	{
 		MaterialStructure material{};
@@ -165,7 +172,7 @@ MaterialMaps GltfLoader::materialsParser(tinygltf::Model& model, TextureManager&
 						    tManager
 						        .generateTextureData(mrName.c_str(), img.width, img.height,
 						                             ImageConverter::convertToRGBA(img).data(), dSetComponent, dManager,
-						                             vk::Format::eR8G8B8A8Unorm) // Linear, не sRGB
+						                             vk::Format::eR8G8B8A8Unorm) // Linear
 						        .id;
 						material.metallicRoughnessIndex = indexInSystem;
 					}
@@ -175,6 +182,42 @@ MaterialMaps GltfLoader::materialsParser(tinygltf::Model& model, TextureManager&
 		else
 		{
 			material.metallicRoughnessIndex = defaultMRTexture;
+		}
+		// Emissive texture
+		auto emissiveTexIt = model.materials[i].additionalValues.find("emissiveTexture");
+		if (emissiveTexIt != model.materials[i].additionalValues.end())
+		{
+			int textureIndex = emissiveTexIt->second.TextureIndex();
+			if (textureIndex >= 0 && textureIndex < (int)model.textures.size())
+			{
+				const tinygltf::Texture& tex = model.textures[textureIndex];
+				int sourceImageIndex = tex.source;
+				if (sourceImageIndex >= 0 && sourceImageIndex < (int)model.images.size())
+				{
+					tinygltf::Image& img = model.images[sourceImageIndex];
+					if (!img.image.empty() && img.width > 0 && img.height > 0)
+					{
+						std::string emissiveName;
+						if (!img.name.empty())
+							emissiveName = "emissive_" + img.name;
+						else if (!img.uri.empty() && img.uri.find("data:") != 0)
+							emissiveName = "emissive_" + img.uri;
+						else
+							emissiveName = "emissive_mat" + std::to_string(i);
+
+						int indexInSystem =
+						    tManager
+						        .generateTextureData(emissiveName.c_str(), img.width, img.height,
+						                             ImageConverter::convertToRGBA(img).data(), dSetComponent, dManager) //sRBG
+						        .id;
+						material.emissiveIndex = indexInSystem;
+					}
+				}
+			}
+		}
+		else
+		{
+			material.emissiveIndex = defaultEmissiveTexture;
 		}
 		maps.materials.emplace(i, tManager.emplaceMaterials(dSetComponent, material, bManager));
 	}

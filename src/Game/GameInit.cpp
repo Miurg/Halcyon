@@ -33,8 +33,6 @@ void GameInit::gameInitStart(GeneralManager& gm)
 	gm.addComponent<ControlComponent>(gm.getContext<MainCameraContext>());
 
 	Entity gameObjectEntity1 = gm.createEntity();
-	MeshInfoComponent meshInfo;
-	int numberTexture;
 	gm.addComponent<GlobalTransformComponent>(gameObjectEntity1);
 	gm.addComponent<LocalTransformComponent>(gameObjectEntity1);
 	gm.addComponent<RelationshipComponent>(gameObjectEntity1);
@@ -46,4 +44,18 @@ void GameInit::gameInitStart(GeneralManager& gm)
 
 	RelationshipComponent* real = gm.getComponent<RelationshipComponent>(gameObjectEntity1);
 	real->addChild(gameObjectEntity1, dautherEntity, gm);
+
+	
+	Entity gameObjectEntity2 = gm.createEntity();
+	gm.addComponent<GlobalTransformComponent>(gameObjectEntity2);
+	gm.addComponent<LocalTransformComponent>(gameObjectEntity2, -5.0f, 5.0f, 5.0f);
+	gm.addComponent<RelationshipComponent>(gameObjectEntity2);
+
+	Entity dautherEntity2 = ModelFactory::loadModel("assets/models/DamagedHelmet.glb", 0, *bufferManager, *dSetComponent,
+	                                               *dManager, gm, *textureManager, *modelManager);
+
+	gm.subscribeEntity<TransformSystem>(gameObjectEntity2);
+	gm.subscribeEntity<RotationSystem>(gameObjectEntity2);
+	RelationshipComponent* real2 = gm.getComponent<RelationshipComponent>(gameObjectEntity2);
+	real2->addChild(gameObjectEntity2, dautherEntity2, gm);
 }

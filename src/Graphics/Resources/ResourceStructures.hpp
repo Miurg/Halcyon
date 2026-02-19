@@ -46,4 +46,5 @@ struct MaterialStructure
 	uint32_t textureIndex = -1;
 	uint32_t normalMapIndex = -1;
 	uint32_t metallicRoughnessIndex = -1;
+	uint32_t emissiveIndex;
 };

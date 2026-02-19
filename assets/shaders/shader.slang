@@ -46,6 +46,7 @@ struct MaterialData
     uint textureIndex;
     uint normalMapIndex;
     uint metallicRoughnessIndex;
+    uint emissiveIndex;
 };
 [[vk::binding(2, 2)]] StructuredBuffer<MaterialData> materialBuffer;
 
@@ -74,6 +75,7 @@ struct VSOutput
     nointerpolation uint textureIndex;
     nointerpolation uint normalMapIndex;
     nointerpolation uint metallicRoughnessIndex;
+    nointerpolation uint emissiveIndex;
 };
 
 [shader("vertex")]
@@ -107,6 +109,7 @@ VSOutput vertMain(VSInput input, uint instanceID : SV_InstanceID, uint baseInsta
     output.textureIndex           = mat.textureIndex;
     output.normalMapIndex         = mat.normalMapIndex;
     output.metallicRoughnessIndex = mat.metallicRoughnessIndex;
+    output.emissiveIndex          = mat.emissiveIndex;
     return output;
 }
 
@@ -144,8 +147,8 @@ float ComputeShadow(float3 projCoords, float3 surfaceNormal, float3 lightDir)
 
 float3 ApplyFog(float3 color, float viewDepth)
 {
-    const float  fogStart = 20.0;
-    const float  fogEnd   = 150.0;
+    const float  fogStart = 2000.0;
+    const float  fogEnd   = 15000.0;
     const float3 fogColor = float3(0.0, 0.7, 0.8);
 
     float factor = saturate((viewDepth - fogStart) / (fogEnd - fogStart));
@@ -179,6 +182,7 @@ float3 F_Schlick(float cosTheta, float3 F0)
     return F0 + (1.0 - F0) * pow(saturate(1.0 - cosTheta), 5.0);
 }
 
+
 [shader("fragment")]
 float4 fragMain(VSOutput vertIn) : SV_TARGET
 {
@@ -189,6 +193,7 @@ float4 fragMain(VSOutput vertIn) : SV_TARGET
     if (albedo.a < 0.1)
         discard;
 
+    float3 emissive = textureArray[NonUniformResourceIndex(vertIn.emissiveIndex)].SampleGrad(vertIn.fragTexCoord, dx, dy).rgb;
     // Metallic-roughness: G=roughness, B=metallic (glTF packed)
     float4 mrSample  = textureArray[NonUniformResourceIndex(vertIn.metallicRoughnessIndex)].SampleGrad(vertIn.fragTexCoord, dx, dy);
     float  roughness = mrSample.g;
@@ -231,7 +236,7 @@ float4 fragMain(VSOutput vertIn) : SV_TARGET
     float3 sunRadiance = sun[0].sunColor.rgb * sun[0].sunColor.a;
     float3 ambient     = sun[0].sunAmbient.rgb * sun[0].sunAmbient.a * albedo.rgb;
 
-    float3 litColor = (diffuse + specular) * sunRadiance * NdotL * shadow + ambient;
+    float3 litColor = (diffuse + specular) * sunRadiance * NdotL * shadow + ambient + emissive;
     litColor *= vertIn.fragColor;
 
     return float4(ApplyFog(litColor, vertIn.viewDepth), albedo.a);

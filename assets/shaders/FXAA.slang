@@ -235,6 +235,8 @@ struct VSOutput
     float2 uv : TEXCOORD0;
 };
 
+[[vk::binding(1, 0)]] StructuredBuffer<float> exposureBuffer;
+
 [shader("vertex")]
 VSOutput vertMain(uint vertexID: SV_VertexID)
 {
