@@ -10,7 +10,7 @@ ModelManager::ModelManager(VulkanDevice& vulkanDevice, VmaAllocator allocator)
 	vertexIndexBuffers.push_back(VertexIndexBuffer());
 }
 
-ModelManager::~ModelManager() 
+ModelManager::~ModelManager()
 {
 	for (auto& meshBuffer : vertexIndexBuffers)
 	{
@@ -33,6 +33,13 @@ bool ModelManager::isMeshLoaded(const char path[MAX_PATH_LEN])
 
 void ModelManager::createVertexBuffer(VertexIndexBuffer& vertexIndexBuffer)
 {
+	if (vertexIndexBuffer.vertexBuffer)
+	{
+		vmaDestroyBuffer(allocator, vertexIndexBuffer.vertexBuffer, vertexIndexBuffer.vertexBufferAllocation);
+		vertexIndexBuffer.vertexBuffer = nullptr;
+		vertexIndexBuffer.vertexBufferAllocation = nullptr;
+	}
+
 	vk::DeviceSize bufferSize = sizeof(vertexIndexBuffer.vertices[0]) * vertexIndexBuffer.vertices.size();
 
 	vk::BufferCreateInfo bufferInfo;
@@ -61,6 +68,13 @@ void ModelManager::createVertexBuffer(VertexIndexBuffer& vertexIndexBuffer)
 
 void ModelManager::createIndexBuffer(VertexIndexBuffer& vertexIndexBuffer)
 {
+	if (vertexIndexBuffer.indexBuffer)
+	{
+		vmaDestroyBuffer(allocator, vertexIndexBuffer.indexBuffer, vertexIndexBuffer.indexBufferAllocation);
+		vertexIndexBuffer.indexBuffer = nullptr;
+		vertexIndexBuffer.indexBufferAllocation = nullptr;
+	}
+
 	vk::DeviceSize bufferSize = sizeof(vertexIndexBuffer.indices[0]) * vertexIndexBuffer.indices.size();
 
 	vk::BufferCreateInfo bufferInfo;
