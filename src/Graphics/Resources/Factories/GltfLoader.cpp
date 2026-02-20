@@ -205,11 +205,11 @@ MaterialMaps GltfLoader::materialsParser(tinygltf::Model& model, TextureManager&
 						else
 							emissiveName = "emissive_mat" + std::to_string(i);
 
-						int indexInSystem =
-						    tManager
-						        .generateTextureData(emissiveName.c_str(), img.width, img.height,
-						                             ImageConverter::convertToRGBA(img).data(), dSetComponent, dManager) //sRBG
-						        .id;
+						int indexInSystem = tManager
+						                        .generateTextureData(emissiveName.c_str(), img.width, img.height,
+						                                             ImageConverter::convertToRGBA(img).data(), dSetComponent,
+						                                             dManager) // sRBG
+						                        .id;
 						material.emissiveIndex = indexInSystem;
 					}
 				}
@@ -219,6 +219,26 @@ MaterialMaps GltfLoader::materialsParser(tinygltf::Model& model, TextureManager&
 		{
 			material.emissiveIndex = defaultEmissiveTexture;
 		}
+
+		// Alpha Mode
+		auto alphaModeIt = model.materials[i].additionalValues.find("alphaMode");
+		if (alphaModeIt != model.materials[i].additionalValues.end())
+		{
+			if (alphaModeIt->second.string_value == "MASK")
+				material.alphaMode = 1;
+			else if (alphaModeIt->second.string_value == "BLEND")
+				material.alphaMode = 2;
+			else
+				material.alphaMode = 0; // OPAQUE
+		}
+
+		// Alpha Cutoff
+		auto alphaCutoffIt = model.materials[i].additionalValues.find("alphaCutoff");
+		if (alphaCutoffIt != model.materials[i].additionalValues.end())
+		{
+			material.alphaCutoff = static_cast<float>(alphaCutoffIt->second.number_value);
+		}
+
 		maps.materials.emplace(i, tManager.emplaceMaterials(dSetComponent, material, bManager));
 	}
 	return maps;

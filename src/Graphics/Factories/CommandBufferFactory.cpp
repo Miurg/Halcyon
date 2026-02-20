@@ -163,7 +163,7 @@ void CommandBufferFactory::recordMainCommandBuffer(vk::raii::CommandBuffer& seco
 	                      vk::AccessFlagBits2::eDepthStencilAttachmentWrite, vk::PipelineStageFlagBits2::eTopOfPipe,
 	                      vk::PipelineStageFlagBits2::eEarlyFragmentTests, vk::ImageAspectFlagBits::eDepth);
 
-	vk::ClearValue clearColor = vk::ClearColorValue(0.0f, 0.0f, 0.0f, 1.0f);
+	vk::ClearValue clearColor = vk::ClearColorValue(0.5f, 0.5f, 0.0f, 1.0f);
 	vk::RenderingAttachmentInfo attachmentInfo;
 	attachmentInfo.imageView = *swapChain.offscreenImageView;
 	attachmentInfo.imageLayout = vk::ImageLayout::eColorAttachmentOptimal;

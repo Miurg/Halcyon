@@ -47,6 +47,9 @@ struct MaterialData
     uint normalMapIndex;
     uint metallicRoughnessIndex;
     uint emissiveIndex;
+    float alphaCutoff;
+    uint alphaMode;
+    float2 padding;
 };
 [[vk::binding(2, 2)]] StructuredBuffer<MaterialData> materialBuffer;
 
@@ -75,7 +78,8 @@ struct VSOutput
     nointerpolation uint textureIndex;
     nointerpolation uint normalMapIndex;
     nointerpolation uint metallicRoughnessIndex;
-    nointerpolation uint emissiveIndex;
+    uint emissiveIndex;
+    nointerpolation uint materialIndex;
 };
 
 [shader("vertex")]
@@ -110,6 +114,7 @@ VSOutput vertMain(VSInput input, uint instanceID : SV_InstanceID, uint baseInsta
     output.normalMapIndex         = mat.normalMapIndex;
     output.metallicRoughnessIndex = mat.metallicRoughnessIndex;
     output.emissiveIndex          = mat.emissiveIndex;
+    output.materialIndex          = model.materialIndex;
     return output;
 }
 
@@ -190,8 +195,13 @@ float4 fragMain(VSOutput vertIn) : SV_TARGET
     float2 dy = ddy(vertIn.fragTexCoord);
 
     float4 albedo = textureArray[NonUniformResourceIndex(vertIn.textureIndex)].SampleGrad(vertIn.fragTexCoord, dx, dy);
-    if (albedo.a < 0.1)
-        discard;
+    
+    MaterialData mat = materialBuffer[vertIn.materialIndex];
+    if (mat.alphaMode == 1) // MASK
+    {
+        if (albedo.a < mat.alphaCutoff)
+            discard;
+    }
 
     float3 emissive = textureArray[NonUniformResourceIndex(vertIn.emissiveIndex)].SampleGrad(vertIn.fragTexCoord, dx, dy).rgb;
     // Metallic-roughness: G=roughness, B=metallic (glTF packed)
@@ -239,5 +249,7 @@ float4 fragMain(VSOutput vertIn) : SV_TARGET
     float3 litColor = (diffuse + specular) * sunRadiance * NdotL * shadow + ambient + emissive;
     litColor *= vertIn.fragColor;
 
-    return float4(ApplyFog(litColor, vertIn.viewDepth), albedo.a);
+    float outAlpha = (mat.alphaMode == 2) ? albedo.a : 1.0;
+
+    return float4(ApplyFog(litColor, vertIn.viewDepth), outAlpha);
 }
