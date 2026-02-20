@@ -1,4 +1,5 @@
 
+#pragma region Includes
 #include "GraphicsInit.hpp"
 #include <iostream>
 #include <stdexcept>
@@ -42,7 +43,9 @@
 // Contexts
 #include "GraphicsContexts.hpp"
 #include "Resources/ResourceStructures.hpp"
+#pragma endregion
 
+#pragma region Run
 void GraphicsInit::Run(GeneralManager& gm)
 {
 #ifdef _DEBUG
@@ -59,7 +62,9 @@ void GraphicsInit::Run(GeneralManager& gm)
 	std::cout << "GRAPHICSINIT::RUN::Succes!" << std::endl;
 #endif //_DEBUG
 }
+#pragma endregion
 
+#pragma region initVulkanCore
 void GraphicsInit::initVulkanCore(GeneralManager& gm)
 {
 #ifdef _DEBUG
@@ -103,7 +108,9 @@ void GraphicsInit::initVulkanCore(GeneralManager& gm)
 	}
 	gm.addComponent<VMAllocatorComponent>(vmaAllocatorEntity, allocator);
 }
+#pragma endregion
 
+#pragma region initManagers
 void GraphicsInit::initManagers(GeneralManager& gm)
 {
 	VulkanDevice* vulkanDevice =
@@ -140,7 +147,9 @@ void GraphicsInit::initManagers(GeneralManager& gm)
 	FrameManager* fManager = new FrameManager(*vulkanDevice);
 	gm.addComponent<FrameManagerComponent>(frameManagerEntity, fManager);
 }
+#pragma endregion
 
+#pragma region initFrameData
 void GraphicsInit::initFrameData(GeneralManager& gm)
 {
 	FrameManager* fManager = gm.getContextComponent<FrameManagerContext, FrameManagerComponent>()->frameManager;
@@ -160,7 +169,9 @@ void GraphicsInit::initFrameData(GeneralManager& gm)
 	gm.registerContext<FrameImageContext>(frameImageEntity);
 	gm.addComponent<FrameImageComponent>(frameImageEntity);
 }
+#pragma endregion
 
+#pragma region initPipelines
 void GraphicsInit::initPipelines(GeneralManager& gm)
 {
 	VulkanDevice* vulkanDevice =
@@ -190,13 +201,15 @@ void GraphicsInit::initPipelines(GeneralManager& gm)
 	std::cout << "GRAPHICSINIT::VULKANNEEDS::Succes!" << std::endl;
 #endif //_DEBUG
 }
+#pragma endregion
 
+#pragma region initScene
 void GraphicsInit::initScene(GeneralManager& gm)
 {
 #ifdef _DEBUG
 	std::cout << "GRAPHICSINIT::PLACEHOLDERENTITYS::Start creating placeholder entities" << std::endl;
 #endif //_DEBUG
-	// === Placeholder Entities ===
+#pragma region Fetch Contexts
 	DescriptorManager* dManager =
 	    gm.getContextComponent<DescriptorManagerContext, DescriptorManagerComponent>()->descriptorManager;
 	BufferManager* bManager = gm.getContextComponent<BufferManagerContext, BufferManagerComponent>()->bufferManager;
@@ -205,22 +218,15 @@ void GraphicsInit::initScene(GeneralManager& gm)
 	    gm.getContextComponent<MainDSetsContext, BindlessTextureDSetComponent>();
 	GlobalDSetComponent* globalDSetComponent = gm.getContextComponent<MainDSetsContext, GlobalDSetComponent>();
 	SwapChain* swap = gm.getContextComponent<MainSwapChainContext, SwapChainComponent>()->swapChainInstance;
+#pragma endregion
 
-	globalDSetComponent->globalDSets =
-	    dManager->allocateStorageBufferDSets(MAX_FRAMES_IN_FLIGHT, *dManager->globalSetLayout);
-
+#pragma region Scene Entities (Camera & Sun)
 	// === Camera ===
 	Entity cameraEntity = gm.createEntity();
 	gm.addComponent<CameraComponent>(cameraEntity);
 	gm.addComponent<GlobalTransformComponent>(cameraEntity, glm::vec3(-5.0f, 5.0f, 3.0f));
 	gm.registerContext<MainCameraContext>(cameraEntity);
 	CameraComponent* camera = gm.getContextComponent<MainCameraContext, CameraComponent>();
-	globalDSetComponent->cameraBuffers =
-	    bManager->createBuffer((vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal),
-	                           sizeof(CameraStructure), MAX_FRAMES_IN_FLIGHT, vk::BufferUsageFlagBits::eStorageBuffer);
-	dManager->updateStorageBufferDescriptors(*bManager, globalDSetComponent->cameraBuffers,
-	                                         globalDSetComponent->globalDSets, 0);
-	// === Camera END ===
 
 	// === Sun ===
 	Entity sunEntity = gm.createEntity();
@@ -230,52 +236,69 @@ void GraphicsInit::initScene(GeneralManager& gm)
 	gm.registerContext<SunContext>(sunEntity);
 	CameraComponent* sunCamera = gm.getContextComponent<SunContext, CameraComponent>();
 	LightComponent* sunLight = gm.getContextComponent<SunContext, LightComponent>();
+	sunLight->textureShadowImage = tManager->createShadowMap(sunLight->sizeX, sunLight->sizeY);
+#pragma endregion
+
+#pragma region Global Descriptor Set (Set 0)
+	globalDSetComponent->globalDSets =
+	    dManager->allocateStorageBufferDSets(MAX_FRAMES_IN_FLIGHT, *dManager->globalSetLayout);
+
+	// Camera buffer
+	globalDSetComponent->cameraBuffers =
+	    bManager->createBuffer((vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal),
+	                           sizeof(CameraStructure), MAX_FRAMES_IN_FLIGHT, vk::BufferUsageFlagBits::eStorageBuffer);
+	dManager->updateStorageBufferDescriptors(*bManager, globalDSetComponent->cameraBuffers,
+	                                         globalDSetComponent->globalDSets, 0);
+
+	// Sun buffer
 	globalDSetComponent->sunCameraBuffers =
 	    bManager->createBuffer((vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal),
 	                           sizeof(SunStructure), MAX_FRAMES_IN_FLIGHT, vk::BufferUsageFlagBits::eStorageBuffer);
 	dManager->updateStorageBufferDescriptors(*bManager, globalDSetComponent->sunCameraBuffers,
 	                                         globalDSetComponent->globalDSets, 1);
-	sunLight->textureShadowImage = tManager->createShadowMap(sunLight->sizeX, sunLight->sizeY);
-	// === Sun END ===
+#pragma endregion
 
-	// === Bindless Texture Set ===
+#pragma region Material & Texture System (Set 2)
 	bTextureDSetComponent->bindlessTextureSet = dManager->allocateBindlessTextureDSet();
+
+	// Material Buffer
 	bTextureDSetComponent->materialBuffer =
-	    bManager->createBuffer((vk::MemoryPropertyFlagBits::eHostVisible), 10240 * sizeof(MaterialStructure),
-	                           1, vk::BufferUsageFlagBits::eStorageBuffer);
+	    bManager->createBuffer((vk::MemoryPropertyFlagBits::eHostVisible), 10240 * sizeof(MaterialStructure), 1,
+	                           vk::BufferUsageFlagBits::eStorageBuffer);
 	dManager->updateStorageBufferDescriptors(*bManager, bTextureDSetComponent->materialBuffer,
 	                                         bTextureDSetComponent->bindlessTextureSet, 2);
-	// === Bindless Texture Set END ===
 
-	// === Shadow Map Texture Set (binding 1) ===
+	// Shadow Map Texture Set (binding 1)
 	dManager->updateSingleTextureDSet(bTextureDSetComponent->bindlessTextureSet, 1,
 	                                  tManager->textures[sunLight->textureShadowImage.id].textureImageView,
 	                                  tManager->textures[sunLight->textureShadowImage.id].textureSampler);
-	// === Shadow Map END ===
 
-	// === FXAA Descriptor Set ===
-	globalDSetComponent->fxaaDSets = dManager->allocateFxaaDescriptorSet(*dManager->fxaaSetLayout);
-	// === FXAA Descriptor Set END ===
+	// Default White Texture
+	auto texturePtr = GltfLoader::createDefaultWhiteTexture();
+	int texWidth = texturePtr.get()->width;
+	int texHeight = texturePtr.get()->height;
+	auto data = texturePtr->pixels.data();
+	auto path = texturePtr.get()->name.c_str();
+	tManager->generateTextureData(path, texWidth, texHeight, data, *bTextureDSetComponent, *dManager);
+#pragma endregion
 
-	// === Offscreen Descriptor Set ===
-	dManager->updateSingleTextureDSet(globalDSetComponent->fxaaDSets, 0, swap->offscreenImageView,
-	                                  swap->offscreenSampler);
-	// === Offscreen Descriptor Set END ===
-
-	// === Model + Frustum (merged into Set 1) ===
+#pragma region Model & Frustum Culling Buffers (Set 1)
 	ModelDSetComponent* objectDSetComponent = gm.getContextComponent<MainDSetsContext, ModelDSetComponent>();
 	objectDSetComponent->modelBufferDSet =
 	    dManager->allocateStorageBufferDSets(MAX_FRAMES_IN_FLIGHT, *dManager->modelSetLayout);
+
 	objectDSetComponent->primitiveBuffer =
 	    bManager->createBuffer((vk::MemoryPropertyFlagBits::eHostVisible), 10240 * sizeof(PrimitiveSctructure),
 	                           MAX_FRAMES_IN_FLIGHT, vk::BufferUsageFlagBits::eStorageBuffer);
 	dManager->updateStorageBufferDescriptors(*bManager, objectDSetComponent->primitiveBuffer,
 	                                         objectDSetComponent->modelBufferDSet, 0);
+
 	objectDSetComponent->transformBuffer =
 	    bManager->createBuffer((vk::MemoryPropertyFlagBits::eHostVisible), 10240 * sizeof(TransformStructure),
 	                           MAX_FRAMES_IN_FLIGHT, vk::BufferUsageFlagBits::eStorageBuffer);
 	dManager->updateStorageBufferDescriptors(*bManager, objectDSetComponent->transformBuffer,
 	                                         objectDSetComponent->modelBufferDSet, 1);
+
 	objectDSetComponent->indirectDrawBuffer =
 	    bManager->createBuffer((vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal),
 	                           sizeof(IndirectDrawStructure) * 10240, MAX_FRAMES_IN_FLIGHT,
@@ -283,25 +306,22 @@ void GraphicsInit::initScene(GeneralManager& gm)
 	                               vk::BufferUsageFlagBits::eTransferDst);
 	dManager->updateStorageBufferDescriptors(*bManager, objectDSetComponent->indirectDrawBuffer,
 	                                         objectDSetComponent->modelBufferDSet, 2);
+
 	objectDSetComponent->visibleIndicesBuffer =
 	    bManager->createBuffer((vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal),
 	                           sizeof(uint32_t) * 10240, MAX_FRAMES_IN_FLIGHT, vk::BufferUsageFlagBits::eStorageBuffer);
 	dManager->updateStorageBufferDescriptors(*bManager, objectDSetComponent->visibleIndicesBuffer,
 	                                         objectDSetComponent->modelBufferDSet, 3);
-	// === Model + Frustum END ===
+#pragma endregion
 
-	// === Placeholder Entities END ===
-
-	// === Default White Texture ===
-	auto texturePtr = GltfLoader::createDefaultWhiteTexture();
-	int texWidth = texturePtr.get()->width;
-	int texHeight = texturePtr.get()->height;
-	auto data = texturePtr->pixels.data();
-	auto path = texturePtr.get()->name.c_str();
-	tManager->generateTextureData(path, texWidth, texHeight, data, *bTextureDSetComponent, *dManager);
-	// === Default White Texture END ===
+#pragma region Post-Processing (FXAA)
+	globalDSetComponent->fxaaDSets = dManager->allocateFxaaDescriptorSet(*dManager->fxaaSetLayout);
+	dManager->updateSingleTextureDSet(globalDSetComponent->fxaaDSets, 0, swap->offscreenImageView,
+	                                  swap->offscreenSampler);
+#pragma endregion
 
 #ifdef _DEBUG
 	std::cout << "GRAPHICSINIT::PLACEHOLDERENTITYS::Succes!" << std::endl;
 #endif //_DEBUG
 }
+#pragma endregion // initScene
