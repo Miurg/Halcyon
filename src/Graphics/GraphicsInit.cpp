@@ -231,7 +231,10 @@ void GraphicsInit::initScene(GeneralManager& gm)
 	// === Sun ===
 	Entity sunEntity = gm.createEntity();
 	gm.addComponent<CameraComponent>(sunEntity);
-	gm.addComponent<GlobalTransformComponent>(sunEntity, glm::vec3(10.0f, 20.0f, 10.0f));
+	glm::vec3 sunPos = glm::vec3(10.0f, 20.0f, 10.0f);
+	glm::vec3 sunDir = glm::normalize(-sunPos);
+	glm::quat sunRot = glm::quatLookAt(sunDir, glm::vec3(0.0f, 1.0f, 0.0f));
+	gm.addComponent<GlobalTransformComponent>(sunEntity, sunPos, sunRot);
 	gm.addComponent<LightComponent>(sunEntity);
 	gm.registerContext<SunContext>(sunEntity);
 	CameraComponent* sunCamera = gm.getContextComponent<SunContext, CameraComponent>();

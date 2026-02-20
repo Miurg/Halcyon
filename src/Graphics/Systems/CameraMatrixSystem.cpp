@@ -43,15 +43,16 @@ void CameraMatrixSystem::update(float deltaTime, GeneralManager& gm)
 
 	// === Camera ===
 	glm::mat4 view = mainCameraTransform->getViewMatrix();
-	glm::mat4 proj = glm::perspective(glm::radians(mainCamera->fov),
-	                                  static_cast<float>(swapChain.swapChainExtent.width) /
-	                                      static_cast<float>(swapChain.swapChainExtent.height),
-	                                  mainCamera->zNear, mainCamera->zFar);
+	glm::mat4 proj = glm::perspectiveRH_ZO(glm::radians(mainCamera->fov),
+	                                       static_cast<float>(swapChain.swapChainExtent.width) /
+	                                           static_cast<float>(swapChain.swapChainExtent.height),
+	                                       mainCamera->zNear, mainCamera->zFar);
 	proj[1][1] *= -1; // Y-flip
 
 	glm::mat4 cameraSpaceMatrix = proj * view;
 
-	CameraStructure cameraUbo{.cameraSpaceMatrix = cameraSpaceMatrix, .cameraPosition = mainCameraTransform->globalPosition};
+	CameraStructure cameraUbo{.cameraSpaceMatrix = cameraSpaceMatrix,
+	                          .cameraPosition = mainCameraTransform->globalPosition};
 	memcpy(bufferManager.buffers[globalDSetComponent->cameraBuffers.id].bufferMapped[currentFrame], &cameraUbo,
 	       sizeof(cameraUbo));
 
@@ -62,7 +63,7 @@ void CameraMatrixSystem::update(float deltaTime, GeneralManager& gm)
 	    static_cast<float>(swapChain.swapChainExtent.width) / static_cast<float>(swapChain.swapChainExtent.height);
 	float shadowZFar = std::min(mainCamera->zFar, lightComponent->shadowDistance);
 
-	glm::mat4 shadowProj = glm::perspective(glm::radians(mainCamera->fov), aspect, mainCamera->zNear, shadowZFar);
+	glm::mat4 shadowProj = glm::perspectiveRH_ZO(glm::radians(mainCamera->fov), aspect, mainCamera->zNear, shadowZFar);
 	shadowProj[1][1] *= -1; // Y-flip
 
 	glm::mat4 shadowCamSpaceMatrix = shadowProj * view;
@@ -105,7 +106,7 @@ void CameraMatrixSystem::update(float deltaTime, GeneralManager& gm)
 	sunCamera->orthoSize = radius;
 
 	// Calculate light view matrix
-	glm::vec3 lightDir = glm::normalize(-glm::vec3(sunCameraTransform->globalPosition));
+	glm::vec3 lightDir = glm::normalize(sunCameraTransform->front);
 	float zOffset = radius + lightComponent->shadowCasterRange;
 	glm::vec3 lightPos = center - lightDir * zOffset;
 	glm::mat4 lightView = glm::lookAt(lightPos, center, glm::vec3(0.0f, 1.0f, 0.0f));
