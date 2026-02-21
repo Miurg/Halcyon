@@ -5,8 +5,8 @@ struct LightComponent
 {
 	float sizeX = 4096;
 	float sizeY = 4096;
-	glm::vec4 color = glm::vec4(1.0f, 1.0f, 1.0f, 5.0f);   // rgb: color, w: intensity of light
-	glm::vec4 ambient = glm::vec4(1.0f, 1.0f, 1.0f, 0.02f); // rgb: ambient color, w: intensity of ambient
+	glm::vec4 color = glm::vec4(1.0f, 0.98f, 0.95f, 5.0f);   // rgb: color, w: intensity of light
+	glm::vec4 ambient = glm::vec4(0.45f, 0.55f, 0.70f, 0.02f); // rgb: ambient color, w: intensity of ambient
 	TextureHandle textureShadowImage;
 	float shadowDistance = 30.0f;      // Distance at which shadows start to fade out
 	float shadowCasterRange = 1000.0f; // Distance at which sun can cast shadows

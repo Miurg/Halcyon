@@ -11,11 +11,13 @@
 #include "Graphics/Components/PipelineHandlerComponent.hpp"
 #include "Graphics/Components/FrameManagerComponent.hpp"
 #include "Graphics/Components/VMAllocatorComponent.hpp"
-#include "Platform/Components/WindowComponent.hpp"
 #include "Platform/PlatformContexts.hpp"
 
+#include <imgui.h>
+#include <imgui_impl_glfw.h>
+#include <imgui_impl_vulkan.h>
 
-void Cleanup::cleanup(GeneralManager& gm) 
+void Cleanup::cleanup(GeneralManager& gm)
 {
 	DescriptorManager* dManager =
 	    gm.getContextComponent<DescriptorManagerContext, DescriptorManagerComponent>()->descriptorManager;
@@ -31,6 +33,11 @@ void Cleanup::cleanup(GeneralManager& gm)
 	VMAllocatorComponent* vmaComp = gm.getContextComponent<VMAllocatorContext, VMAllocatorComponent>();
 
 	vulkanDevice->device.waitIdle();
+
+	ImGui_ImplVulkan_Shutdown();
+	ImGui_ImplGlfw_Shutdown();
+	ImGui::DestroyContext();
+
 	if (bManager)
 	{
 		delete bManager;

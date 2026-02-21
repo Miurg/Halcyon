@@ -17,6 +17,26 @@ DescriptorManager::DescriptorManager(VulkanDevice& vulkanDevice) : vulkanDevice(
 
 	descriptorPool = vk::raii::DescriptorPool(vulkanDevice.device, poolInfo);
 
+	std::array imguiPoolSize{vk::DescriptorPoolSize(vk::DescriptorType::eSampler, 1000),
+	                         vk::DescriptorPoolSize(vk::DescriptorType::eCombinedImageSampler, 1000),
+	                         vk::DescriptorPoolSize(vk::DescriptorType::eSampledImage, 1000),
+	                         vk::DescriptorPoolSize(vk::DescriptorType::eStorageImage, 1000),
+	                         vk::DescriptorPoolSize(vk::DescriptorType::eUniformTexelBuffer, 1000),
+	                         vk::DescriptorPoolSize(vk::DescriptorType::eStorageTexelBuffer, 1000),
+	                         vk::DescriptorPoolSize(vk::DescriptorType::eUniformBuffer, 1000),
+	                         vk::DescriptorPoolSize(vk::DescriptorType::eStorageBuffer, 1000),
+	                         vk::DescriptorPoolSize(vk::DescriptorType::eUniformBufferDynamic, 1000),
+	                         vk::DescriptorPoolSize(vk::DescriptorType::eStorageBufferDynamic, 1000),
+	                         vk::DescriptorPoolSize(vk::DescriptorType::eInputAttachment, 1000)};
+
+	vk::DescriptorPoolCreateInfo imguiPoolInfo;
+	imguiPoolInfo.flags = vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet;
+	imguiPoolInfo.maxSets = 1000 * static_cast<uint32_t>(imguiPoolSize.size());
+	imguiPoolInfo.poolSizeCount = static_cast<uint32_t>(imguiPoolSize.size());
+	imguiPoolInfo.pPoolSizes = imguiPoolSize.data();
+
+	imguiPool = vk::raii::DescriptorPool(vulkanDevice.device, imguiPoolInfo);
+
 	//===Global (Set 0): camera + sun===
 	vk::DescriptorSetLayoutBinding cameraBinding(0, vk::DescriptorType::eStorageBuffer, 1,
 	                                             vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eCompute |
@@ -44,8 +64,7 @@ DescriptorManager::DescriptorManager(VulkanDevice& vulkanDevice) : vulkanDevice(
 	std::array<vk::DescriptorBindingFlags, 3> textureBindingFlags = {
 	    vk::DescriptorBindingFlagBits::ePartiallyBound | vk::DescriptorBindingFlagBits::eUpdateAfterBind,
 	    vk::DescriptorBindingFlags{}, // shadowMap: no special flags
-	    vk::DescriptorBindingFlags{}
-	};
+	    vk::DescriptorBindingFlags{}};
 	vk::DescriptorSetLayoutBindingFlagsCreateInfo bindingFlagsInfo;
 	bindingFlagsInfo.bindingCount = static_cast<uint32_t>(textureBindingFlags.size());
 	bindingFlagsInfo.pBindingFlags = textureBindingFlags.data();
@@ -96,6 +115,7 @@ DescriptorManager::~DescriptorManager()
 	textureSetLayout.~DescriptorSetLayout();
 	modelSetLayout.~DescriptorSetLayout();
 	fxaaSetLayout.~DescriptorSetLayout();
+	imguiPool.reset();
 }
 
 DSetHandle DescriptorManager::allocateBindlessTextureDSet()

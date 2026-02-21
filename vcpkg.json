@@ -5,6 +5,13 @@
     "tinyobjloader",
     "stb",
     "vulkan-memory-allocator",
-    "tinygltf"
+    "tinygltf",
+    {
+      "name": "imgui",
+      "features": [
+        "vulkan-binding",
+        "glfw-binding"
+      ]
+    }
   ]
 }

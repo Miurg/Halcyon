@@ -13,4 +13,5 @@ private:
 	static void initFrameData(GeneralManager& gm);
 	static void initPipelines(GeneralManager& gm);
 	static void initScene(GeneralManager& gm);
+	static void initImGui(GeneralManager& gm);
 };

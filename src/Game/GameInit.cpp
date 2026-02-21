@@ -51,7 +51,7 @@ void GameInit::gameInitStart(GeneralManager& gm)
 	gm.addComponent<LocalTransformComponent>(gameObjectEntity2, -5.0f, 5.0f, 5.0f);
 	gm.addComponent<RelationshipComponent>(gameObjectEntity2);
 
-	Entity dautherEntity2 = ModelFactory::loadModel("assets/models/DamagedHelmet.glb", 0, *bufferManager, *dSetComponent,
+	Entity dautherEntity2 = ModelFactory::loadModel("assets/models/CompareEmissiveStrength.glb", 0, *bufferManager, *dSetComponent,
 	                                               *dManager, gm, *textureManager, *modelManager);
 
 	gm.subscribeEntity<TransformSystem>(gameObjectEntity2);

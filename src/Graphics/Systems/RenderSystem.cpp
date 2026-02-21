@@ -1,7 +1,7 @@
 #include "RenderSystem.hpp"
 #include <iostream>
-#include "../../Core/GeneralManager.hpp"
 #include "../GraphicsContexts.hpp"
+#include <imgui.h>
 #include "../Factories/CommandBufferFactory.hpp"
 #include "../Components/PipelineHandlerComponent.hpp"
 #include "../Components/SwapChainComponent.hpp"
@@ -48,6 +48,8 @@ void RenderSystem::update(float deltaTime, GeneralManager& gm)
 	ModelDSetComponent* objectDSetComponent = gm.getContextComponent<MainDSetsContext, ModelDSetComponent>();
 	uint32_t imageIndex = gm.getContextComponent<FrameImageContext, FrameImageComponent>()->imageIndex;
 	if (!currentFrameComp->frameValid) return;
+
+	ImGui::Render();
 
 	CommandBufferFactory::recordShadowCommandBuffer(
 	    frameManager->frames[currentFrameComp->currentFrame].secondaryCommandBuffers[0], pipelineHandler,

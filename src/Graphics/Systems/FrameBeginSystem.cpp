@@ -8,6 +8,9 @@
 #include "../Components/SwapChainComponent.hpp"
 #include "../../Platform/PlatformContexts.hpp"
 #include "../../Platform/Components/WindowComponent.hpp"
+#include <imgui.h>
+#include <imgui_impl_glfw.h>
+#include <imgui_impl_vulkan.h>
 #include "../FrameData.hpp"
 #include "../Components/FrameDataComponent.hpp"
 #include "../Components/CurrentFrameComponent.hpp"
@@ -28,13 +31,13 @@ void FrameBeginSystem::onShutdown(GeneralManager& gm)
 	std::cout << "FrameBeginSystem shutdown!" << std::endl;
 }
 
-void FrameBeginSystem::update(float deltaTime, GeneralManager& gm) 
+void FrameBeginSystem::update(float deltaTime, GeneralManager& gm)
 {
 	VulkanDevice& vulkanDevice =
 	    *gm.getContextComponent<MainVulkanDeviceContext, VulkanDeviceComponent>()->vulkanDeviceInstance;
 	SwapChain& swapChain = *gm.getContextComponent<MainSwapChainContext, SwapChainComponent>()->swapChainInstance;
 	Window& window = *gm.getContextComponent<MainWindowContext, WindowComponent>()->windowInstance;
-	FrameManager *frameManager = gm.getContextComponent<FrameManagerContext, FrameManagerComponent>()->frameManager;
+	FrameManager* frameManager = gm.getContextComponent<FrameManagerContext, FrameManagerComponent>()->frameManager;
 	CurrentFrameComponent* currentFrameComp = gm.getContextComponent<CurrentFrameContext, CurrentFrameComponent>();
 	FrameImageComponent* frameImageComponent = gm.getContextComponent<FrameImageContext, FrameImageComponent>();
 	currentFrameComp->frameValid = false;
@@ -79,4 +82,10 @@ void FrameBeginSystem::update(float deltaTime, GeneralManager& gm)
 
 	frameImageComponent->imageIndex = imageIndex;
 	currentFrameComp->frameValid = true;
+
+	ImGui_ImplVulkan_NewFrame();
+	ImGui_ImplGlfw_NewFrame();
+	ImGui::NewFrame();
+
+	ImGui::ShowDemoWindow();
 }

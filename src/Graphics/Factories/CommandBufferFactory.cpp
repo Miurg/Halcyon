@@ -1,4 +1,6 @@
 #include "CommandBufferFactory.hpp"
+#include <imgui.h>
+#include <imgui_impl_vulkan.h>
 
 void CommandBufferFactory::recordShadowCommandBuffer(vk::raii::CommandBuffer& secondaryCmd,
                                                      PipelineHandler& pipelineHandler, uint32_t currentFrame,
@@ -163,7 +165,7 @@ void CommandBufferFactory::recordMainCommandBuffer(vk::raii::CommandBuffer& seco
 	                      vk::AccessFlagBits2::eDepthStencilAttachmentWrite, vk::PipelineStageFlagBits2::eTopOfPipe,
 	                      vk::PipelineStageFlagBits2::eEarlyFragmentTests, vk::ImageAspectFlagBits::eDepth);
 
-	vk::ClearValue clearColor = vk::ClearColorValue(0.5f, 0.5f, 0.0f, 1.0f);
+	vk::ClearValue clearColor = vk::ClearColorValue(0.0f, 0.637f, 1.0f, 1.0f);
 	vk::RenderingAttachmentInfo attachmentInfo;
 	attachmentInfo.imageView = *swapChain.offscreenImageView;
 	attachmentInfo.imageLayout = vk::ImageLayout::eColorAttachmentOptimal;
@@ -276,6 +278,13 @@ void CommandBufferFactory::recordFxaaCommandBuffer(vk::raii::CommandBuffer& seco
 
 	// Draw full-screen triangle
 	secondaryCmd.draw(3, 1, 0, 0);
+
+	// --- Render ImGui ---
+	ImDrawData* draw_data = ImGui::GetDrawData();
+	if (draw_data)
+	{
+		ImGui_ImplVulkan_RenderDrawData(draw_data, *secondaryCmd);
+	}
 
 	secondaryCmd.endRendering();
 

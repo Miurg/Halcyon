@@ -43,6 +43,11 @@
 // Contexts
 #include "GraphicsContexts.hpp"
 #include "Resources/ResourceStructures.hpp"
+
+// ImGui
+#include <imgui.h>
+#include <imgui_impl_glfw.h>
+#include <imgui_impl_vulkan.h>
 #pragma endregion
 
 #pragma region Run
@@ -57,6 +62,7 @@ void GraphicsInit::Run(GeneralManager& gm)
 	initFrameData(gm);
 	initPipelines(gm);
 	initScene(gm);
+	initImGui(gm);
 
 #ifdef _DEBUG
 	std::cout << "GRAPHICSINIT::RUN::Succes!" << std::endl;
@@ -328,3 +334,63 @@ void GraphicsInit::initScene(GeneralManager& gm)
 #endif //_DEBUG
 }
 #pragma endregion // initScene
+
+#pragma region initImGui
+void GraphicsInit::initImGui(GeneralManager& gm)
+{
+#ifdef _DEBUG
+	std::cout << "GRAPHICSINIT::IMGUI::Start init ImGui" << std::endl;
+#endif //_DEBUG
+
+	VulkanDevice* vulkanDevice =
+	    gm.getContextComponent<MainVulkanDeviceContext, VulkanDeviceComponent>()->vulkanDeviceInstance;
+	Window* window = gm.getContextComponent<MainWindowContext, WindowComponent>()->windowInstance;
+	SwapChain* swapChain = gm.getContextComponent<MainSwapChainContext, SwapChainComponent>()->swapChainInstance;
+	DescriptorManager* dManager =
+	    gm.getContextComponent<DescriptorManagerContext, DescriptorManagerComponent>()->descriptorManager;
+
+	IMGUI_CHECKVERSION();
+	ImGui::CreateContext();
+	ImGuiIO& io = ImGui::GetIO();
+	(void)io;
+	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+
+	ImGui::StyleColorsDark();
+
+	ImGui_ImplGlfw_InitForVulkan(window->getHandle(), true);
+
+	ImGui_ImplVulkan_InitInfo initInfo = {};
+	initInfo.Instance = *vulkanDevice->instance;
+	initInfo.PhysicalDevice = *vulkanDevice->physicalDevice;
+	initInfo.Device = *vulkanDevice->device;
+	initInfo.QueueFamily = vulkanDevice->graphicsIndex;
+	initInfo.Queue = *vulkanDevice->graphicsQueue;
+	initInfo.PipelineCache = nullptr;
+	initInfo.DescriptorPool = *dManager->imguiPool;
+	initInfo.RenderPass = nullptr; // For dynamic rendering
+	initInfo.Subpass = 0;
+	initInfo.MinImageCount = 2; // Usually 2 or 3
+	initInfo.ImageCount = MAX_FRAMES_IN_FLIGHT;
+	initInfo.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
+	initInfo.Allocator = nullptr;
+	initInfo.CheckVkResultFn = nullptr;
+
+	// Dynamic rendering specific setup
+	VkPipelineRenderingCreateInfoKHR pipelineInfo = {};
+	pipelineInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO_KHR;
+	VkFormat colorAttachmentFormat = (VkFormat)swapChain->swapChainImageFormat;
+	pipelineInfo.colorAttachmentCount = 1;
+	pipelineInfo.pColorAttachmentFormats = &colorAttachmentFormat;
+
+	initInfo.UseDynamicRendering = true;
+	initInfo.PipelineRenderingCreateInfo = pipelineInfo;
+
+	ImGui_ImplVulkan_Init(&initInfo);
+
+	ImGui_ImplVulkan_CreateFontsTexture();
+
+#ifdef _DEBUG
+	std::cout << "GRAPHICSINIT::IMGUI::Succes!" << std::endl;
+#endif //_DEBUG
+}
+#pragma endregion

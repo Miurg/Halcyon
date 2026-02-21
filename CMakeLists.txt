@@ -21,6 +21,7 @@ find_package(tinyobjloader CONFIG REQUIRED)
 find_path(TINYGLTF_INCLUDE_DIRS "tiny_gltf.h")
 find_path(STB_INCLUDE_DIRS "stb_image.h") 
 find_package(VulkanMemoryAllocator CONFIG REQUIRED)
+find_package(imgui CONFIG REQUIRED)
 
 add_executable("${CMAKE_PROJECT_NAME}" ${MY_SOURCES})
 target_precompile_headers("${CMAKE_PROJECT_NAME}" PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src/pch.h")
@@ -32,6 +33,7 @@ target_include_directories("${CMAKE_PROJECT_NAME}" PRIVATE ${TINYGLTF_INCLUDE_DI
 target_link_libraries("${CMAKE_PROJECT_NAME}" PRIVATE tinyobjloader::tinyobjloader)
 target_include_directories("${CMAKE_PROJECT_NAME}" PRIVATE ${STB_INCLUDE_DIRS})
 target_link_libraries("${CMAKE_PROJECT_NAME}" PRIVATE GPUOpen::VulkanMemoryAllocator)
+target_link_libraries("${CMAKE_PROJECT_NAME}" PRIVATE imgui::imgui)
 
 if(MSVC)
     target_compile_options("${CMAKE_PROJECT_NAME}" PRIVATE "/Zc:__cplusplus" "/permissive-")

@@ -29,6 +29,8 @@ public:
 	DSetHandle allocateFxaaDescriptorSet(vk::DescriptorSetLayout layout);
 	std::vector<std::vector<vk::DescriptorSet>> descriptorSets;
 
+	vk::raii::DescriptorPool imguiPool = nullptr;
+
 private:
 	VulkanDevice& vulkanDevice;
 	vk::raii::DescriptorPool descriptorPool = nullptr;
