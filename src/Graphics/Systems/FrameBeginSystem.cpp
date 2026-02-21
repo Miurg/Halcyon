@@ -8,9 +8,6 @@
 #include "../Components/SwapChainComponent.hpp"
 #include "../../Platform/PlatformContexts.hpp"
 #include "../../Platform/Components/WindowComponent.hpp"
-#include <imgui.h>
-#include <imgui_impl_glfw.h>
-#include <imgui_impl_vulkan.h>
 #include "../FrameData.hpp"
 #include "../Components/FrameDataComponent.hpp"
 #include "../Components/CurrentFrameComponent.hpp"
@@ -82,10 +79,4 @@ void FrameBeginSystem::update(float deltaTime, GeneralManager& gm)
 
 	frameImageComponent->imageIndex = imageIndex;
 	currentFrameComp->frameValid = true;
-
-	ImGui_ImplVulkan_NewFrame();
-	ImGui_ImplGlfw_NewFrame();
-	ImGui::NewFrame();
-
-	ImGui::ShowDemoWindow();
 }

@@ -10,6 +10,7 @@
 #include "Game/Systems/RotationSystem.hpp"
 #include "Graphics/Systems/TransformSystem.hpp"
 #include "Game/Systems/SpawnSystem.hpp"
+#include "Graphics/Systems/ImGuiSystem.hpp"
 
 
 class CoreInit
@@ -25,12 +26,12 @@ public:
 		gm.registerSystem<ControlSystem>();
 		gm.registerSystem<RotationSystem>();
 		gm.registerSystem<SpawnSystem>();
-
 		gm.registerSystem<TransformSystem>();
+
 		gm.registerSystem<FrameBeginSystem>();
+		gm.registerSystem<ImGuiSystem>();
 		gm.registerSystem<CameraMatrixSystem>();
 		gm.registerSystem<BufferUpdateSystem>();
-		
 		gm.registerSystem<RenderSystem>();
 		gm.registerSystem<FrameEndSystem>();
 
