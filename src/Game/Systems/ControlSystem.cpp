@@ -23,6 +23,9 @@ void ControlSystem::cursorDisableToggle(Window* window)
 	else
 	{
 		glfwSetInputMode(windowHandle, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+		int width, height;
+		glfwGetWindowSize(windowHandle, &width, &height);
+		glfwSetCursorPos(windowHandle, width / 2.0, height / 2.0);
 		cursorDisable = !cursorDisable;
 	}
 }
@@ -59,12 +62,30 @@ void ControlSystem::update(float deltaTime, GeneralManager& gm)
 		constexpr float sensitivity = 0.1f;
 		float xoffset = static_cast<float>((cursorPositionState->mousePositionX - lastMousePositionX) * sensitivity);
 		float yoffset = static_cast<float>((cursorPositionState->mousePositionY - lastMousePositionY) * sensitivity);
-		lastMousePositionX = cursorPositionState->mousePositionX;
-		lastMousePositionY = cursorPositionState->mousePositionY;
+
+		// Prevent huge jumps the first frame or when toggling
+		if (xoffset > 50.0f || xoffset < -50.0f || yoffset > 50.0f || yoffset < -50.0f)
+		{
+			xoffset = 0.0f;
+			yoffset = 0.0f;
+		}
+
 		xoffset *= mainCameraControl->mouseSensitivity;
 		yoffset *= mainCameraControl->mouseSensitivity;
 		mainCameraTransform->rotateGlobal(glm::radians(-xoffset), glm::vec3(0.0f, 1.0f, 0.0f));
 		mainCameraTransform->rotateLocal(glm::radians(-yoffset), glm::vec3(1.0f, 0.0f, 0.0f));
+
+		int width, height;
+		glfwGetWindowSize(windowInstance->windowInstance->getHandle(), &width, &height);
+		double centerX = width / 2.0;
+		double centerY = height / 2.0;
+
+		glfwSetCursorPos(windowInstance->windowInstance->getHandle(), centerX, centerY);
+		lastMousePositionX = centerX;
+		lastMousePositionY = centerY;
+		cursorPositionState->mousePositionX = centerX;
+		cursorPositionState->mousePositionY = centerY;
+
 		//=== Keyboard ===
 		float velocity = mainCameraControl->movementSpeed * deltaTime;
 		if (keyboardState->keys[GLFW_KEY_W]) mainCameraTransform->globalPosition += mainCameraTransform->front * velocity;
