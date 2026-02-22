@@ -9,9 +9,11 @@
 #include "../Components/CameraComponent.hpp"
 #include "../Components/LightComponent.hpp"
 #include "../Components/LocalTransformComponent.hpp"
+#include "../Components/RelationshipComponent.hpp"
 #include "../../Game/Components/ControlComponent.hpp"
 #include "../Components/NameComponent.hpp"
 #include <glm/gtc/type_ptr.hpp>
+#include <functional>
 
 void ImGuiSystem::onRegistered(GeneralManager& gm)
 {
@@ -21,6 +23,61 @@ void ImGuiSystem::onRegistered(GeneralManager& gm)
 void ImGuiSystem::onShutdown(GeneralManager& gm)
 {
 	std::cout << "ImGuiSystem shutdown!" << std::endl;
+}
+
+void ImGuiSystem::drawEntityNode(Entity entity, GeneralManager& gm)
+{
+	std::string entityName = "Entity " + std::to_string(entity);
+	auto* nameComp = gm.getComponent<NameComponent>(entity);
+	if (nameComp)
+	{
+		entityName = nameComp->name;
+	}
+
+	auto* relComp = gm.getComponent<RelationshipComponent>(entity);
+	bool isLeaf = (relComp == nullptr || relComp->firstChild == NULL_ENTITY);
+
+	ImGuiTreeNodeFlags flags =
+	    ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_SpanAvailWidth;
+	if (isLeaf)
+	{
+		flags |= ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
+	}
+	if (selectedEntity == entity)
+	{
+		flags |= ImGuiTreeNodeFlags_Selected;
+	}
+
+	bool nodeOpen = ImGui::TreeNodeEx((void*)(intptr_t)entity, flags, "%s", entityName.c_str());
+	if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen())
+	{
+		selectedEntity = entity;
+	}
+
+	if (nodeOpen)
+	{
+		if (!isLeaf)
+		{
+			Entity child = relComp->firstChild;
+			while (child != NULL_ENTITY)
+			{
+				if (gm.isActive(child))
+				{
+					drawEntityNode(child, gm);
+				}
+				auto* childRel = gm.getComponent<RelationshipComponent>(child);
+				if (childRel)
+				{
+					child = childRel->nextSibling;
+				}
+				else
+				{
+					child = NULL_ENTITY;
+				}
+			}
+			ImGui::TreePop();
+		}
+	}
 }
 
 void ImGuiSystem::update(float deltaTime, GeneralManager& gm)
@@ -77,23 +134,18 @@ void ImGuiSystem::update(float deltaTime, GeneralManager& gm)
 	ImGui::Begin("Entity Inspector");
 
 	// Left Pane: Entity List
-	ImGui::BeginChild("EntityList", ImVec2(500, 0), true);
+	ImGui::BeginChild("EntityList", ImVec2(350, 0), true);
 	ImGui::Text("Active Entities");
 	ImGui::Separator();
 
 	const auto& activeEntities = gm.getActiveEntities();
 	for (Entity entity : activeEntities)
 	{
-		std::string entityName = "Entity " + std::to_string(entity);
-		auto* nameComp = gm.getComponent<NameComponent>(entity);
-		if (nameComp)
+		auto* relComp = gm.getComponent<RelationshipComponent>(entity);
+		// Top-level entities are those with no parent or no relationship component
+		if (relComp == nullptr || relComp->parent == NULL_ENTITY)
 		{
-			entityName = nameComp->name;
-		}
-
-		if (ImGui::Selectable(entityName.c_str(), selectedEntity == entity))
-		{
-			selectedEntity = entity;
+			drawEntityNode(entity, gm);
 		}
 	}
 	ImGui::EndChild();
