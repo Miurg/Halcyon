@@ -166,25 +166,25 @@ float ComputeShadow(float3 projCoords, float2 texelSize, float3 surfaceNormal, f
 }
 
 // Cook-Torrance BRDF
-float D_GGX(float NdotH, float roughness)
+float D_GGX(float NdotH, float a)
 {
-    float a2 = roughness * roughness * roughness * roughness;   // roughness4
+    float a2 = a * a;
     float d  = NdotH * NdotH * (a2 - 1.0) + 1.0;
     return a2 / (PI * d * d);
 }
 
-float G_SmithGGX(float NdotV, float NdotL, float roughness)
+// Correlated Smith GGX Visibility Term (combines G and the denominator)
+float V_SmithGGXCorrelated(float NdotV, float NdotL, float a)
 {
-    float r = roughness + 1.0;
-    float k = (r * r) / 8.0;
-    float gV = NdotV / (NdotV * (1.0 - k) + k);
-    float gL = NdotL / (NdotL * (1.0 - k) + k);
-    return gV * gL;
+    float ggxV = NdotL * (NdotV * (1.0 - a) + a);
+    float ggxL = NdotV * (NdotL * (1.0 - a) + a);
+    return 0.5 / (ggxV + ggxL + 1e-5);
 }
 
 float3 F_Schlick(float cosTheta, float3 F0)
 {
-    return F0 + (1.0 - F0) * pow(saturate(1.0 - cosTheta), 5.0);
+    // Fast Spherical Gaussian approximation
+    return F0 + (1.0 - F0) * exp2((-5.55473 * cosTheta - 6.98316) * cosTheta);
 }
 
 float3 ApplyFog(float3 color, float viewDepth)
@@ -248,10 +248,11 @@ float4 fragMain(VSOutput input) : SV_TARGET
     // === PBR (Cook-Torrance) ===
     float3 F0 = lerp(float3(0.04, 0.04, 0.04), albedo.rgb, metallic);
 
-    float  D        = D_GGX(NdotH, roughness);
-    float  G        = G_SmithGGX(NdotV, NdotL, roughness);
+    float  a        = roughness * roughness;
+    float  D        = D_GGX(NdotH, a);
+    float  Vis      = V_SmithGGXCorrelated(NdotV, NdotL, a);
     float3 F        = F_Schlick(HdotV, F0);
-    float3 specular = (D * G * F) / max(4.0 * NdotV * NdotL, 1e-4);
+    float3 specular = D * Vis * F;
 
     float3 kD      = (1.0 - F) * (1.0 - metallic);
     float3 diffuse = kD * albedo.rgb / PI;
