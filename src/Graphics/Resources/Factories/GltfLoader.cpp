@@ -220,6 +220,28 @@ MaterialMaps GltfLoader::materialsParser(tinygltf::Model& model, TextureManager&
 			material.emissiveIndex = defaultEmissiveTexture;
 		}
 
+		// Emissive Factor
+		auto emissiveFactorIt = model.materials[i].additionalValues.find("emissiveFactor");
+		if (emissiveFactorIt != model.materials[i].additionalValues.end())
+		{
+			const auto& factorVal = emissiveFactorIt->second.ColorFactor();
+			if (factorVal.size() >= 3)
+			{
+				material.emissiveFactor = {static_cast<float>(factorVal[0]), static_cast<float>(factorVal[1]),
+				                           static_cast<float>(factorVal[2])};
+			}
+		}
+
+		// Emissive Strength (KHR_materials_emissive_strength)
+		auto extIt = model.materials[i].extensions.find("KHR_materials_emissive_strength");
+		if (extIt != model.materials[i].extensions.end())
+		{
+			if (extIt->second.Has("emissiveStrength"))
+			{
+				material.emissiveStrength = static_cast<float>(extIt->second.Get("emissiveStrength").GetNumberAsDouble());
+			}
+		}
+
 		// Alpha Mode
 		auto alphaModeIt = model.materials[i].additionalValues.find("alphaMode");
 		if (alphaModeIt != model.materials[i].additionalValues.end())

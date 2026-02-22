@@ -46,7 +46,11 @@ struct MaterialData
     uint  emissiveIndex;
     float alphaCutoff;
     uint  alphaMode;
-    float2 padding;
+    float emissiveStrength;
+    float padding0;
+    
+    float3 emissiveFactor;
+    float  padding1;
 };
 [[vk::binding(2, 2)]] StructuredBuffer<MaterialData> materialBuffer;
 
@@ -82,6 +86,8 @@ struct VSOutput
     nointerpolation uint emissiveIndex;
     nointerpolation float alphaCutoff;
     nointerpolation uint  alphaMode;
+    nointerpolation float emissiveStrength;
+    nointerpolation float3 emissiveFactor;
 };
 
 [shader("vertex")]
@@ -120,6 +126,8 @@ VSOutput vertMain(VSInput input, uint instanceID : SV_InstanceID, uint baseInsta
     output.emissiveIndex          = mat.emissiveIndex;
     output.alphaCutoff            = mat.alphaCutoff;
     output.alphaMode              = mat.alphaMode;
+    output.emissiveStrength       = mat.emissiveStrength;
+    output.emissiveFactor         = mat.emissiveFactor;
 
     return output;
 }
@@ -204,6 +212,7 @@ float4 fragMain(VSOutput input) : SV_TARGET
     }
 
     float3 emissive = textureArray[NonUniformResourceIndex(input.emissiveIndex)].SampleGrad(input.fragTexCoord, dx, dy).rgb;
+    emissive *= input.emissiveFactor * input.emissiveStrength;
 
     float4 mrSample  = textureArray[NonUniformResourceIndex(input.metallicRoughnessIndex)].SampleGrad(input.fragTexCoord, dx, dy);
     float  roughness = max(mrSample.g, MIN_ROUGHNESS);
