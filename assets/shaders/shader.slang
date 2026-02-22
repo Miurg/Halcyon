@@ -13,6 +13,7 @@ struct SunData
     float4   sunDirection;
     float4   sunColor;
     float4   sunAmbient;
+    float4   shadowMapSize; // x: width, y: height, z: 1.0/width, w: 1.0/height
 };
 [[vk::binding(1, 0)]] StructuredBuffer<SunData> sun;
 
@@ -238,9 +239,7 @@ float4 fragMain(VSOutput input) : SV_TARGET
     float HdotV = max(dot(H, V), 0.0);
 
     // === SHADOW (PCF 3x3) ===
-    uint shadowWidth, shadowHeight, shadowLevels;
-    shadowMap.GetDimensions(0, shadowWidth, shadowHeight, shadowLevels);
-    float2 shadowTexelSize = 1.0 / float2(shadowWidth, shadowHeight);
+    float2 shadowTexelSize = sun[0].shadowMapSize.zw;
 
     float3 projCoords = input.shadowCoord.xyz / input.shadowCoord.w;
     projCoords.xy     = projCoords.xy * 0.5 + 0.5;

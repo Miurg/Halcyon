@@ -286,9 +286,16 @@ void PipelineFactory::createFxaaPipeline(VulkanDevice& vulkanDevice, SwapChain& 
 	colorBlending.attachmentCount = 1;
 	colorBlending.pAttachments = &colorBlendAttachment;
 
+	vk::PushConstantRange pushConstantRange{};
+	pushConstantRange.stageFlags = vk::ShaderStageFlagBits::eFragment;
+	pushConstantRange.offset = 0;
+	pushConstantRange.size = sizeof(float) * 2; // float2 rcpFrame
+
 	vk::PipelineLayoutCreateInfo pipelineLayoutInfo{};
 	pipelineLayoutInfo.setLayoutCount = 1;
 	pipelineLayoutInfo.pSetLayouts = &*descriptorManager.fxaaSetLayout;
+	pipelineLayoutInfo.pushConstantRangeCount = 1;
+	pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;
 
 	pipelineHandler.fxaaPipelineLayout = vk::raii::PipelineLayout(vulkanDevice.device, pipelineLayoutInfo);
 

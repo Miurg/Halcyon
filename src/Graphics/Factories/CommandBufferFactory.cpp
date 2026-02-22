@@ -276,6 +276,16 @@ void CommandBufferFactory::recordFxaaCommandBuffer(vk::raii::CommandBuffer& seco
 	secondaryCmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineHandler.fxaaPipelineLayout, 0,
 	                                dManager.descriptorManager->descriptorSets[fxaaDescriptorSetIndex.id][0], nullptr);
 
+	struct PushConstants
+	{
+		float rcpFrame[2];
+	} push;
+	push.rcpFrame[0] = 1.0f / static_cast<float>(swapChain.swapChainExtent.width);
+	push.rcpFrame[1] = 1.0f / static_cast<float>(swapChain.swapChainExtent.height);
+
+	secondaryCmd.pushConstants<PushConstants>(*pipelineHandler.fxaaPipelineLayout, vk::ShaderStageFlagBits::eFragment, 0,
+	                                          push);
+
 	// Draw full-screen triangle
 	secondaryCmd.draw(3, 1, 0, 0);
 

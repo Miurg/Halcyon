@@ -151,12 +151,12 @@ void CameraMatrixSystem::update(float deltaTime, GeneralManager& gm)
 
 	glm::mat4 lightSpaceMatrix = lightProj * lightView;
 
-	SunStructure sunUbo{
-	    .lightSpaceMatrix = lightSpaceMatrix,
-	    .direction = glm::vec4(-lightDir, 1.0f),
-	    .color = lightComponent->color,
-	    .ambient = lightComponent->ambient,
-	};
+	SunStructure sunUbo{.lightSpaceMatrix = lightSpaceMatrix,
+	                    .direction = glm::vec4(-lightDir, 1.0f),
+	                    .color = lightComponent->color,
+	                    .ambient = lightComponent->ambient,
+	                    .shadowMapSize =
+	                        glm::vec4(shadowMapWidth, shadowMapWidth, 1.0f / shadowMapWidth, 1.0f / shadowMapWidth)};
 	memcpy(bufferManager.buffers[globalDSetComponent->sunCameraBuffers.id].bufferMapped[currentFrame], &sunUbo,
 	       sizeof(sunUbo));
 }

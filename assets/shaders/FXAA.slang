@@ -245,13 +245,14 @@ VSOutput vertMain(uint vertexID: SV_VertexID)
     output.pos = float4(output.uv * 2.0 - 1.0, 0.0, 1.0);
     return output;
 }
+struct PushConstants {
+    float2 rcpFrame;
+};
+
+[[vk::push_constant]] ConstantBuffer<PushConstants> pushConsts;
 
 [shader("fragment")]
 float4 fragMain(VSOutput input) : SV_Target
 {
-    uint width, height;
-    sourceTexture.GetDimensions(width, height);
-    float2 rcpFrame = 1.0 / float2(width, height);
-
-    return FxaaPixelShader( input.uv, rcpFrame, sourceTexture);
+    return FxaaPixelShader(input.uv, pushConsts.rcpFrame, sourceTexture);
 }
