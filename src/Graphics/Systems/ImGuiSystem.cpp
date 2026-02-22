@@ -7,6 +7,10 @@
 #include "../GraphicsContexts.hpp"
 #include "../Components/GlobalTransformComponent.hpp"
 #include "../Components/CameraComponent.hpp"
+#include "../Components/LightComponent.hpp"
+#include "../Components/LocalTransformComponent.hpp"
+#include "../../Game/Components/ControlComponent.hpp"
+#include "../Components/NameComponent.hpp"
 #include <glm/gtc/type_ptr.hpp>
 
 void ImGuiSystem::onRegistered(GeneralManager& gm)
@@ -68,5 +72,161 @@ void ImGuiSystem::update(float deltaTime, GeneralManager& gm)
 	}
 
 	ImGui::End();
-	//ImGui::ShowDemoWindow();
+
+	// Entity Inspector Window
+	ImGui::Begin("Entity Inspector");
+
+	// Left Pane: Entity List
+	ImGui::BeginChild("EntityList", ImVec2(500, 0), true);
+	ImGui::Text("Active Entities");
+	ImGui::Separator();
+
+	const auto& activeEntities = gm.getActiveEntities();
+	for (Entity entity : activeEntities)
+	{
+		std::string entityName = "Entity " + std::to_string(entity);
+		auto* nameComp = gm.getComponent<NameComponent>(entity);
+		if (nameComp)
+		{
+			entityName = nameComp->name;
+		}
+
+		if (ImGui::Selectable(entityName.c_str(), selectedEntity == entity))
+		{
+			selectedEntity = entity;
+		}
+	}
+	ImGui::EndChild();
+
+	ImGui::SameLine();
+
+	// Right Pane: Component Details
+	ImGui::BeginChild("ComponentDetails", ImVec2(0, 0), true);
+	if (selectedEntity != static_cast<Entity>(-1) && gm.isActive(selectedEntity))
+	{
+		ImGui::Text("Inspecting Entity %u", selectedEntity);
+		auto* nameComp = gm.getComponent<NameComponent>(selectedEntity);
+		if (nameComp)
+		{
+			ImGui::SameLine();
+			ImGui::InputText("##NameEdit", nameComp->name, sizeof(nameComp->name));
+		}
+
+		ImGui::Separator();
+
+		// Global Transform Component
+		if (auto* transform = gm.getComponent<GlobalTransformComponent>(selectedEntity))
+		{
+			if (ImGui::CollapsingHeader("Global Transform", ImGuiTreeNodeFlags_DefaultOpen))
+			{
+				bool transformChanged = false;
+
+				if (ImGui::DragFloat3("G Position", glm::value_ptr(transform->globalPosition), 0.1f))
+				{
+					transformChanged = true;
+				}
+
+				glm::vec3 euler = glm::degrees(glm::eulerAngles(transform->globalRotation));
+				if (ImGui::DragFloat3("G Rotation", glm::value_ptr(euler), 0.5f))
+				{
+					transform->globalRotation = glm::quat(glm::radians(euler));
+					transformChanged = true;
+				}
+
+				if (ImGui::DragFloat3("G Scale", glm::value_ptr(transform->globalScale), 0.1f))
+				{
+					transformChanged = true;
+				}
+
+				if (transformChanged)
+				{
+					transform->updateDirectionVectors();
+					transform->isModelDirty = true;
+					transform->isViewDirty = true;
+				}
+			}
+		}
+
+		// Local Transform Component
+		if (auto* localTransform = gm.getComponent<LocalTransformComponent>(selectedEntity))
+		{
+			if (ImGui::CollapsingHeader("Local Transform", ImGuiTreeNodeFlags_DefaultOpen))
+			{
+				bool localTransformChanged = false;
+
+				if (ImGui::DragFloat3("L Position", glm::value_ptr(localTransform->localPosition), 0.1f))
+				{
+					localTransformChanged = true;
+				}
+
+				glm::vec3 localEuler = glm::degrees(glm::eulerAngles(localTransform->localRotation));
+				if (ImGui::DragFloat3("L Rotation", glm::value_ptr(localEuler), 0.5f))
+				{
+					localTransform->localRotation = glm::quat(glm::radians(localEuler));
+					localTransformChanged = true;
+				}
+
+				if (ImGui::DragFloat3("L Scale", glm::value_ptr(localTransform->localScale), 0.1f))
+				{
+					localTransformChanged = true;
+				}
+
+				if (localTransformChanged)
+				{
+					localTransform->updateDirectionVectors();
+					localTransform->isModelDirty = true;
+					localTransform->isViewDirty = true;
+				}
+			}
+		}
+
+		// Light Component
+		if (auto* light = gm.getComponent<LightComponent>(selectedEntity))
+		{
+			if (ImGui::CollapsingHeader("Light Component", ImGuiTreeNodeFlags_DefaultOpen))
+			{
+				ImGui::SeparatorText("Sun Lighting");
+				ImGui::ColorEdit3("Color", glm::value_ptr(light->color));
+				ImGui::DragFloat("Intensity", &light->color.w, 0.01f, 0.0f, 1000.0f);
+
+				ImGui::SeparatorText("Ambient Lighting");
+				ImGui::ColorEdit3("Ambient Color", glm::value_ptr(light->ambient));
+				ImGui::DragFloat("Ambient Intensity", &light->ambient.w, 0.001f, 0.0f, 10.0f);
+
+				ImGui::SeparatorText("Shadow Settings");
+				ImGui::DragFloat("Shadow Distance", &light->shadowDistance, 1.0f);
+				ImGui::DragFloat("Shadow Caster Range", &light->shadowCasterRange, 10.0f);
+			}
+		}
+
+		// Camera Component
+		if (auto* camera = gm.getComponent<CameraComponent>(selectedEntity))
+		{
+			if (ImGui::CollapsingHeader("Camera Component", ImGuiTreeNodeFlags_DefaultOpen))
+			{
+				ImGui::DragFloat("FOV", &camera->fov, 0.1f, 1.0f, 179.0f);
+				ImGui::DragFloat("Near Plane", &camera->zNear, 0.01f, 0.001f, 10.0f);
+				ImGui::DragFloat("Far Plane", &camera->zFar, 1.0f, 10.0f, 10000.0f);
+			}
+		}
+
+		// Control Component
+		if (auto* control = gm.getComponent<ControlComponent>(selectedEntity))
+		{
+			if (ImGui::CollapsingHeader("Control Component", ImGuiTreeNodeFlags_DefaultOpen))
+			{
+				ImGui::DragFloat("Movement Speed", &control->movementSpeed, 0.1f, 0.0f, 100.0f);
+				ImGui::DragFloat("Mouse Sensitivity", &control->mouseSensitivity, 0.01f, 0.0f, 5.0f);
+			}
+		}
+	}
+	else
+	{
+		ImGui::Text("Select an entity to inspect.");
+	}
+	ImGui::EndChild();
+
+	ImGui::End();
+
+	// ImGui::ShowDemoWindow();
 }

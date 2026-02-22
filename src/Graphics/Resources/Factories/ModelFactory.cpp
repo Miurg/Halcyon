@@ -8,6 +8,8 @@
 #include "../../Components/RelationshipComponent.hpp"
 #include "../../Systems/TransformSystem.hpp"
 #include "../../Systems/RenderSystem.hpp"
+#include "../../Components/NameComponent.hpp"
+#include <string>
 
 glm::mat4 convertGLTFMatrix(const std::vector<double>& matrix)
 {
@@ -20,7 +22,7 @@ glm::mat4 convertGLTFMatrix(const std::vector<double>& matrix)
 	return glm::make_mat4(m);
 }
 Entity ModelFactory::createEntityHierarchy(int parentEntity, tinygltf::Model& model, GeneralManager& gm, int offset,
-                           BufferManager& bManager, int nodeIndex)
+                                           BufferManager& bManager, int nodeIndex)
 {
 	tinygltf::Node& node = model.nodes[nodeIndex];
 
@@ -54,8 +56,10 @@ Entity ModelFactory::createEntityHierarchy(int parentEntity, tinygltf::Model& mo
 			                       static_cast<float>(node.scale[2]));
 		}
 	}
-	
+
 	Entity entity = gm.createEntity();
+	std::string nodeName = node.name.empty() ? "Node " + std::to_string(nodeIndex) : node.name;
+	gm.addComponent<NameComponent>(entity, nodeName);
 	gm.addComponent<GlobalTransformComponent>(entity);
 	gm.addComponent<LocalTransformComponent>(entity, localPosition, localRotation, localScale);
 	gm.addComponent<RelationshipComponent>(entity);
@@ -65,7 +69,7 @@ Entity ModelFactory::createEntityHierarchy(int parentEntity, tinygltf::Model& mo
 		gm.subscribeEntity<RenderSystem>(entity);
 	}
 	gm.subscribeEntity<TransformSystem>(entity);
-	
+
 	// Establish parent-child relationship
 	if (parentEntity != -1)
 	{
@@ -116,6 +120,10 @@ Entity ModelFactory::loadModel(const char path[MAX_PATH_LEN], int vertexIndexBIn
 
 	// Create root entity for the model
 	Entity modelRootEntity = gm.createEntity();
+	std::string pathString = path;
+	size_t lastSlash = pathString.find_last_of("/\\");
+	std::string filename = (lastSlash == std::string::npos) ? pathString : pathString.substr(lastSlash + 1);
+	gm.addComponent<NameComponent>(modelRootEntity, filename);
 	gm.addComponent<GlobalTransformComponent>(modelRootEntity);
 	gm.addComponent<LocalTransformComponent>(modelRootEntity);
 	gm.addComponent<RelationshipComponent>(modelRootEntity);
@@ -123,7 +131,7 @@ Entity ModelFactory::loadModel(const char path[MAX_PATH_LEN], int vertexIndexBIn
 
 	const int sceneIndex = model.defaultScene > -1 ? model.defaultScene : 0;
 	const tinygltf::Scene& scene = model.scenes[sceneIndex];
-	
+
 	for (int rootNodeIndex : scene.nodes)
 	{
 		createEntityHierarchy(modelRootEntity, model, gm, offset, bManager, rootNodeIndex);

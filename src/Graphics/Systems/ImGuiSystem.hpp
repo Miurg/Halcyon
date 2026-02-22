@@ -11,4 +11,5 @@ public:
 	uint32_t frameCount = 0;
 	float time = 0;
 	uint32_t fps = 0;
+	Entity selectedEntity = static_cast<Entity>(-1);
 };

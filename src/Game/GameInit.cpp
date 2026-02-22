@@ -17,6 +17,7 @@
 #include "../Graphics/Components/ModelManagerComponent.hpp"
 #include "../Graphics/Components/CameraComponent.hpp"
 #include "Components/ControlComponent.hpp"
+#include "../Graphics/Components/NameComponent.hpp"
 #include "../Platform/PlatformContexts.hpp"
 
 void GameInit::gameInitStart(GeneralManager& gm)
@@ -33,6 +34,7 @@ void GameInit::gameInitStart(GeneralManager& gm)
 	gm.addComponent<ControlComponent>(gm.getContext<MainCameraContext>());
 
 	Entity gameObjectEntity1 = gm.createEntity();
+	gm.addComponent<NameComponent>(gameObjectEntity1, "Bistro Model");
 	gm.addComponent<GlobalTransformComponent>(gameObjectEntity1);
 	gm.addComponent<LocalTransformComponent>(gameObjectEntity1);
 	gm.addComponent<RelationshipComponent>(gameObjectEntity1);
@@ -45,14 +47,14 @@ void GameInit::gameInitStart(GeneralManager& gm)
 	RelationshipComponent* real = gm.getComponent<RelationshipComponent>(gameObjectEntity1);
 	real->addChild(gameObjectEntity1, dautherEntity, gm);
 
-	
 	Entity gameObjectEntity2 = gm.createEntity();
+	gm.addComponent<NameComponent>(gameObjectEntity2, "Emissive Model");
 	gm.addComponent<GlobalTransformComponent>(gameObjectEntity2);
 	gm.addComponent<LocalTransformComponent>(gameObjectEntity2, -5.0f, 5.0f, 5.0f);
 	gm.addComponent<RelationshipComponent>(gameObjectEntity2);
 
-	Entity dautherEntity2 = ModelFactory::loadModel("assets/models/CompareEmissiveStrength.glb", 0, *bufferManager, *dSetComponent,
-	                                               *dManager, gm, *textureManager, *modelManager);
+	Entity dautherEntity2 = ModelFactory::loadModel("assets/models/CompareEmissiveStrength.glb", 0, *bufferManager,
+	                                                *dSetComponent, *dManager, gm, *textureManager, *modelManager);
 
 	gm.subscribeEntity<TransformSystem>(gameObjectEntity2);
 	gm.subscribeEntity<RotationSystem>(gameObjectEntity2);

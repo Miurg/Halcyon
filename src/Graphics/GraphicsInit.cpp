@@ -23,6 +23,7 @@
 #include "Resources/Components/GlobalDSetComponent.hpp"
 #include "Resources/Components/ModelDSetComponent.hpp"
 
+#include "Components/NameComponent.hpp"
 #include "Components/CameraComponent.hpp"
 #include "Components/LightComponent.hpp"
 #include "Components/LocalTransformComponent.hpp"
@@ -229,6 +230,7 @@ void GraphicsInit::initScene(GeneralManager& gm)
 #pragma region Scene Entities (Camera & Sun)
 	// === Camera ===
 	Entity cameraEntity = gm.createEntity();
+	gm.addComponent<NameComponent>(cameraEntity, "Main Camera");
 	gm.addComponent<CameraComponent>(cameraEntity);
 	gm.addComponent<GlobalTransformComponent>(cameraEntity, glm::vec3(-5.0f, 5.0f, 3.0f));
 	gm.registerContext<MainCameraContext>(cameraEntity);
@@ -236,6 +238,7 @@ void GraphicsInit::initScene(GeneralManager& gm)
 
 	// === Sun ===
 	Entity sunEntity = gm.createEntity();
+	gm.addComponent<NameComponent>(sunEntity, "Directional Light (Sun)");
 	gm.addComponent<CameraComponent>(sunEntity);
 	glm::vec3 sunPos = glm::vec3(10.0f, 20.0f, 10.0f);
 	glm::vec3 sunDir = glm::normalize(-sunPos);
