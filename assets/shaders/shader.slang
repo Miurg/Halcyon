@@ -2,7 +2,8 @@
 struct CameraData
 {
     float4x4 cameraSpaceMatrix;
-    float3   cameraPosition;
+    float4   cameraPositionAndPadding;
+    float4   frustumPlanes[6];
 };
 [[vk::binding(0, 0)]] StructuredBuffer<CameraData> camera;
 
@@ -228,7 +229,7 @@ float4 fragMain(VSOutput input) : SV_TARGET
 
     // === LIGHTING SETUP ===
     float3 L = normalize(sun[0].sunDirection.xyz);
-    float3 V = normalize(camera[0].cameraPosition - input.fragWorldPos);
+    float3 V = normalize(camera[0].cameraPositionAndPadding.xyz - input.fragWorldPos);
     float3 H = normalize(L + V);
 
     float NdotL = max(dot(finalNormal, L), 0.0);

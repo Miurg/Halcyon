@@ -51,8 +51,26 @@ void CameraMatrixSystem::update(float deltaTime, GeneralManager& gm)
 
 	glm::mat4 cameraSpaceMatrix = proj * view;
 
-	CameraStructure cameraUbo{.cameraSpaceMatrix = cameraSpaceMatrix,
-	                          .cameraPosition = mainCameraTransform->globalPosition};
+	glm::mat4 transCamera = glm::transpose(cameraSpaceMatrix);
+	glm::vec4 frustumPlanes[6];
+	frustumPlanes[0] = transCamera[3] + transCamera[0]; // Left
+	frustumPlanes[1] = transCamera[3] - transCamera[0]; // Right
+	frustumPlanes[2] = transCamera[3] + transCamera[1]; // Bottom
+	frustumPlanes[3] = transCamera[3] - transCamera[1]; // Top
+	frustumPlanes[4] = transCamera[2];                  // Near
+	frustumPlanes[5] = transCamera[3] - transCamera[2]; // Far
+
+	for (int i = 0; i < 6; ++i)
+	{
+		float length = glm::length(glm::vec3(frustumPlanes[i]));
+		frustumPlanes[i] /= length;
+	}
+
+	CameraStructure cameraUbo;
+	cameraUbo.cameraSpaceMatrix = cameraSpaceMatrix;
+	cameraUbo.cameraPositionAndPadding = glm::vec4(mainCameraTransform->globalPosition, 0.0f);
+	for (int i = 0; i < 6; ++i) cameraUbo.frustumPlanes[i] = frustumPlanes[i];
+
 	memcpy(bufferManager.buffers[globalDSetComponent->cameraBuffers.id].bufferMapped[currentFrame], &cameraUbo,
 	       sizeof(cameraUbo));
 

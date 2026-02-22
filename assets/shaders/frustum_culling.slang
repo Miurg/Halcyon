@@ -3,7 +3,8 @@
 struct CameraData
 {
     float4x4 cameraSpaceMatrix; // View * Projection
-    float3 cameraPosition;
+    float4   cameraPositionAndPadding;
+    float4   frustumPlanes[6];
 };
 [[vk::binding(0, 0)]] StructuredBuffer<CameraData> camera;
 
@@ -45,22 +46,8 @@ struct PushConstants
 
 
 // Returns true if the AABB is at least partially inside the view frustum
-bool IsAABBVisible(float4x4 mvp, float3 minPos, float3 maxPos)
+bool IsAABBVisible(float4 planes[6], float3 minPos, float3 maxPos)
 {
-    float4 planes[6];
-    // Left:   x + w >= 0
-    planes[0] = mvp[3] + mvp[0];
-    // Right:  w - x >= 0
-    planes[1] = mvp[3] - mvp[0];
-    // Bottom: y + w >= 0
-    planes[2] = mvp[3] + mvp[1];
-    // Top:    w - y >= 0
-    planes[3] = mvp[3] - mvp[1];
-    // Near:   z >= 0  (Vulkan: near plane at z=0 in clip space)
-    planes[4] = mvp[2];
-    // Far:    w - z >= 0
-    planes[5] = mvp[3] - mvp[2];
-
     [unroll]
     for (int i = 0; i < 6; i++)
     {
@@ -89,9 +76,20 @@ void computeMain(uint3 id : SV_DispatchThreadID)
 
     ModelData     obj       = objectBuffer[index];
     TransformData trans     = transformBuffer[obj.transformIndex];
-    float4x4      mvp       = mul(camera[0].cameraSpaceMatrix, trans.model);
 
-    if (!IsAABBVisible(mvp, obj.AABBMin.xyz, obj.AABBMax.xyz))
+    float3 localCenter = (obj.AABBMax.xyz + obj.AABBMin.xyz) * 0.5;
+    float3 localExtents = (obj.AABBMax.xyz - obj.AABBMin.xyz) * 0.5;
+
+    float3 worldCenter = mul(trans.model, float4(localCenter, 1.0)).xyz;
+    float3 right   = abs(mul((float3x3)trans.model, float3(1, 0, 0))) * localExtents.x;
+    float3 up      = abs(mul((float3x3)trans.model, float3(0, 1, 0))) * localExtents.y;
+    float3 forward = abs(mul((float3x3)trans.model, float3(0, 0, 1))) * localExtents.z;
+    float3 worldExtents = right + up + forward;
+
+    float3 worldMin = worldCenter - worldExtents;
+    float3 worldMax = worldCenter + worldExtents;
+
+    if (!IsAABBVisible(camera[0].frustumPlanes, worldMin, worldMax))
         return;
 
     uint drawCommandIndex    = obj.drawCommandIndex;
