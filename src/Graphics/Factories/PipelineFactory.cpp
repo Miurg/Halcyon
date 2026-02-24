@@ -94,7 +94,7 @@ void PipelineFactory::createGraphicsPipeline(VulkanDevice& vulkanDevice, SwapCha
 
 	vk::PipelineRenderingCreateInfo pipelineRenderingCreateInfo;
 	pipelineRenderingCreateInfo.colorAttachmentCount = 1;
-	pipelineRenderingCreateInfo.pColorAttachmentFormats = &swapChain.swapChainImageFormat;
+	pipelineRenderingCreateInfo.pColorAttachmentFormats = &swapChain.hdrFormat;
 	pipelineRenderingCreateInfo.depthAttachmentFormat = tManager.textures[swapChain.depthTextureHandle.id].format;
 
 	vk::PipelineDepthStencilStateCreateInfo depthStencil;

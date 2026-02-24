@@ -16,4 +16,5 @@ public:
 	std::vector<vk::raii::ImageView> swapChainImageViews;
 
 	TextureHandle offscreenTextureHandle;
+	vk::Format hdrFormat = vk::Format::eR16G16B16A16Sfloat;
 };
