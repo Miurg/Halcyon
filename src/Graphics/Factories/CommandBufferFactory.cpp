@@ -161,7 +161,7 @@ void CommandBufferFactory::recordMainCommandBuffer(vk::raii::CommandBuffer& seco
 	                      vk::PipelineStageFlagBits2::eColorAttachmentOutput,
 	                      vk::PipelineStageFlagBits2::eColorAttachmentOutput, vk::ImageAspectFlagBits::eColor);
 
-	transitionImageLayout(secondaryCmd, swapChain.depthImage, vk::ImageLayout::eUndefined,
+	transitionImageLayout(secondaryCmd, tManager.textures[swapChain.depthTextureHandle.id].textureImage, vk::ImageLayout::eUndefined,
 	                      vk::ImageLayout::eDepthAttachmentOptimal, {},
 	                      vk::AccessFlagBits2::eDepthStencilAttachmentWrite, vk::PipelineStageFlagBits2::eTopOfPipe,
 	                      vk::PipelineStageFlagBits2::eEarlyFragmentTests, vk::ImageAspectFlagBits::eDepth);
@@ -175,11 +175,11 @@ void CommandBufferFactory::recordMainCommandBuffer(vk::raii::CommandBuffer& seco
 	attachmentInfo.clearValue = clearColor;
 
 	vk::RenderingAttachmentInfo depthAttachmentInfo;
-	depthAttachmentInfo.imageView = swapChain.depthImageView;
+	depthAttachmentInfo.imageView = tManager.textures[swapChain.depthTextureHandle.id].textureImageView;
 	depthAttachmentInfo.imageLayout = vk::ImageLayout::eDepthAttachmentOptimal;
 	depthAttachmentInfo.loadOp = vk::AttachmentLoadOp::eClear;
 	depthAttachmentInfo.storeOp = vk::AttachmentStoreOp::eDontCare;
-	depthAttachmentInfo.clearValue = swapChain.clearDepth;
+	depthAttachmentInfo.clearValue = vk::ClearDepthStencilValue(1.0f, 0);
 
 	vk::RenderingInfo renderingInfo;
 	renderingInfo.renderArea.offset = 0;

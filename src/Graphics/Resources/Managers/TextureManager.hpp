@@ -27,6 +27,7 @@ public:
 	                                  DescriptorManager& dManager, vk::Format format = vk::Format::eR8G8B8A8Srgb);
 	bool isTextureLoaded(const char texturePath[MAX_PATH_LEN]);
 	void resizeTexture(TextureHandle handle, uint32_t newWidth, uint32_t newHeight);
+	TextureHandle createDepthImage(uint32_t resolutionWidth, uint32_t resolutionHeight);
 	TextureHandle createOffscreenImage(uint32_t resolutionWidth, uint32_t resolutionHeight, vk::Format offscreenFormat);
 	void createOffscreenSampler(Texture& texture);
 	TextureHandle createShadowMap(uint32_t shadowResolutionX, uint32_t shadowResolutionY);

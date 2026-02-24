@@ -4,7 +4,8 @@
 #include "../Resources/Managers/Vertex.hpp"
 
 void PipelineFactory::createGraphicsPipeline(VulkanDevice& vulkanDevice, SwapChain& swapChain,
-                                             DescriptorManager& descriptorManager, PipelineHandler& pipelineHandler)
+                                             DescriptorManager& descriptorManager, PipelineHandler& pipelineHandler,
+                                             TextureManager& tManager)
 {
 	vk::raii::ShaderModule shaderModule =
 	    PipelineFactory::createShaderModule(VulkanUtils::readFile("shaders/shader.spv"), vulkanDevice);
@@ -94,7 +95,7 @@ void PipelineFactory::createGraphicsPipeline(VulkanDevice& vulkanDevice, SwapCha
 	vk::PipelineRenderingCreateInfo pipelineRenderingCreateInfo;
 	pipelineRenderingCreateInfo.colorAttachmentCount = 1;
 	pipelineRenderingCreateInfo.pColorAttachmentFormats = &swapChain.swapChainImageFormat;
-	pipelineRenderingCreateInfo.depthAttachmentFormat = swapChain.depthFormat;
+	pipelineRenderingCreateInfo.depthAttachmentFormat = tManager.textures[swapChain.depthTextureHandle.id].format;
 
 	vk::PipelineDepthStencilStateCreateInfo depthStencil;
 	depthStencil.depthTestEnable = vk::True;
@@ -122,7 +123,8 @@ void PipelineFactory::createGraphicsPipeline(VulkanDevice& vulkanDevice, SwapCha
 }
 
 void PipelineFactory::createShadowPipeline(VulkanDevice& vulkanDevice, SwapChain& swapChain,
-                                           DescriptorManager& descriptorManager, PipelineHandler& pipelineHandler)
+                                           DescriptorManager& descriptorManager, PipelineHandler& pipelineHandler,
+                                           TextureManager& tManager)
 {
 	vk::raii::ShaderModule shaderModule =
 	    PipelineFactory::createShaderModule(VulkanUtils::readFile("shaders/shadow.spv"), vulkanDevice);
@@ -181,7 +183,7 @@ void PipelineFactory::createShadowPipeline(VulkanDevice& vulkanDevice, SwapChain
 	vk::PipelineRenderingCreateInfo pipelineRenderingCreateInfo;
 	pipelineRenderingCreateInfo.colorAttachmentCount = 0;
 	pipelineRenderingCreateInfo.pColorAttachmentFormats = nullptr;
-	pipelineRenderingCreateInfo.depthAttachmentFormat = swapChain.depthFormat;
+	pipelineRenderingCreateInfo.depthAttachmentFormat = tManager.textures[swapChain.depthTextureHandle.id].format;
 
 	vk::PipelineDepthStencilStateCreateInfo depthStencil;
 	depthStencil.depthTestEnable = vk::True;

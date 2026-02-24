@@ -87,13 +87,6 @@ void GraphicsInit::initVulkanCore(GeneralManager& gm)
 	VulkanDeviceFactory::createVulkanDevice(*window, *vulkanDevice);
 	gm.addComponent<VulkanDeviceComponent>(vulkanDeviceEntity, vulkanDevice);
 
-	// Swap Chain
-	Entity swapChainEntity = gm.createEntity();
-	gm.registerContext<MainSwapChainContext>(swapChainEntity);
-	SwapChain* swapChain = new SwapChain();
-	SwapChainFactory::createSwapChain(*swapChain, *vulkanDevice, *window);
-	gm.addComponent<SwapChainComponent>(swapChainEntity, swapChain);
-
 	// VMA Allocator
 	Entity vmaAllocatorEntity = gm.createEntity();
 	gm.registerContext<VMAllocatorContext>(vmaAllocatorEntity);
@@ -183,9 +176,21 @@ void GraphicsInit::initPipelines(GeneralManager& gm)
 {
 	VulkanDevice* vulkanDevice =
 	    gm.getContextComponent<MainVulkanDeviceContext, VulkanDeviceComponent>()->vulkanDeviceInstance;
-	SwapChain* swapChain = gm.getContextComponent<MainSwapChainContext, SwapChainComponent>()->swapChainInstance;
+	Window* window = gm.getContextComponent<MainWindowContext, WindowComponent>()->windowInstance;
 	DescriptorManager* dManager =
 	    gm.getContextComponent<DescriptorManagerContext, DescriptorManagerComponent>()->descriptorManager;
+	TextureManager* tManager = gm.getContextComponent<TextureManagerContext, TextureManagerComponent>()->textureManager;
+
+	// Swap Chain
+	Entity swapChainEntity = gm.createEntity();
+	gm.registerContext<MainSwapChainContext>(swapChainEntity);
+	SwapChain* swapChain = new SwapChain();
+	SwapChainFactory::createSwapChain(*swapChain, *vulkanDevice, *window);
+	swapChain->offscreenTextureHandle = tManager->createOffscreenImage(
+	    swapChain->swapChainExtent.width, swapChain->swapChainExtent.height, swapChain->swapChainImageFormat);
+	swapChain->depthTextureHandle =
+	    tManager->createDepthImage(swapChain->swapChainExtent.width, swapChain->swapChainExtent.height);
+	gm.addComponent<SwapChainComponent>(swapChainEntity, swapChain);
 
 	// Main Descriptor Sets
 	Entity mainDSetsEntity = gm.createEntity();
@@ -198,8 +203,8 @@ void GraphicsInit::initPipelines(GeneralManager& gm)
 	Entity signatureEntity = gm.createEntity();
 	gm.registerContext<MainSignatureContext>(signatureEntity);
 	PipelineHandler* pipelineHandler = new PipelineHandler();
-	PipelineFactory::createGraphicsPipeline(*vulkanDevice, *swapChain, *dManager, *pipelineHandler);
-	PipelineFactory::createShadowPipeline(*vulkanDevice, *swapChain, *dManager, *pipelineHandler);
+	PipelineFactory::createGraphicsPipeline(*vulkanDevice, *swapChain, *dManager, *pipelineHandler, *tManager);
+	PipelineFactory::createShadowPipeline(*vulkanDevice, *swapChain, *dManager, *pipelineHandler, *tManager);
 	PipelineFactory::createFxaaPipeline(*vulkanDevice, *swapChain, *dManager, *pipelineHandler);
 	PipelineFactory::createCullingPipeline(*vulkanDevice, *dManager, *pipelineHandler);
 	gm.addComponent<PipelineHandlerComponent>(signatureEntity, pipelineHandler);
@@ -243,8 +248,10 @@ void GraphicsInit::initScene(GeneralManager& gm)
 	glm::vec3 sunPos = glm::vec3(10.0f, 20.0f, 10.0f);
 	glm::vec3 sunDir = glm::normalize(-sunPos);
 	glm::quat sunRot = glm::quatLookAt(sunDir, glm::vec3(0.0f, 1.0f, 0.0f));
+	glm::vec4 sunColor = glm::vec4(0.984f, 1.0f, 0.808f, 10.0f); // Slightly warm white light with high intensity
+	glm::vec4 sunAmbient = sunColor * 0.1f;                      // Ambient component is 10% of the main light color
 	gm.addComponent<GlobalTransformComponent>(sunEntity, sunPos, sunRot);
-	gm.addComponent<LightComponent>(sunEntity);
+	gm.addComponent<LightComponent>(sunEntity, 8192, 8192, sunColor, sunAmbient);
 	gm.registerContext<SunContext>(sunEntity);
 	CameraComponent* sunCamera = gm.getContextComponent<SunContext, CameraComponent>();
 	LightComponent* sunLight = gm.getContextComponent<SunContext, LightComponent>();
@@ -327,8 +334,6 @@ void GraphicsInit::initScene(GeneralManager& gm)
 #pragma endregion
 
 #pragma region Post-Processing (FXAA)
-	swap->offscreenTextureHandle = tManager->createOffscreenImage(
-	    swap->swapChainExtent.width, swap->swapChainExtent.height, swap->swapChainImageFormat);
 	globalDSetComponent->fxaaDSets = dManager->allocateFxaaDescriptorSet(*dManager->fxaaSetLayout);
 	dManager->updateSingleTextureDSet(globalDSetComponent->fxaaDSets, 0,
 	                                  tManager->textures[swap->offscreenTextureHandle.id].textureImageView,

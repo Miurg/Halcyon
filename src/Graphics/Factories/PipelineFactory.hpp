@@ -7,16 +7,17 @@
 #include "../PipelineHandler.hpp"
 #include "../Resources/Managers/BufferManager.hpp"
 #include "../Resources/Managers/DescriptorManager.hpp"
+#include "../Resources/Managers/TextureManager.hpp"
 
 class PipelineFactory
 {
 public:
 	static void createGraphicsPipeline(VulkanDevice& vulkanDevice, SwapChain& swapChain,
 	                                   DescriptorManager& descriptorManager,
-	                                   PipelineHandler& pipelineHandler);
+	                                   PipelineHandler& pipelineHandler, TextureManager& tManager);
 	static void createShadowPipeline(VulkanDevice& vulkanDevice, SwapChain& swapChain,
-	                                 DescriptorManager& descriptorManager,
-	                                 PipelineHandler& pipelineHandler);
+	                                 DescriptorManager& descriptorManager, PipelineHandler& pipelineHandler,
+	                                 TextureManager& tManager);
 	[[nodiscard]] static vk::raii::ShaderModule createShaderModule(const std::vector<char>& code,
 	                                                               VulkanDevice& vulkanDevice);
 	static void createCullingPipeline(VulkanDevice& vulkanDevice, DescriptorManager& descriptorManager,

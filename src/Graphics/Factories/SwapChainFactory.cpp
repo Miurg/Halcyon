@@ -8,9 +8,6 @@ void SwapChainFactory::createSwapChain(SwapChain& swapChain, VulkanDevice& devic
                                        vk::SwapchainKHR oldHandle)
 {
 	createSwapChainHandle(swapChain, deviceContext, window, oldHandle);
-	createImageViews(swapChain, deviceContext, window);
-	createDepthResources(swapChain, deviceContext, window);
-	// createOffscreenResources(swapChain, deviceContext, window);
 }
 
 void SwapChainFactory::createSwapChainHandle(SwapChain& swapChain, VulkanDevice& deviceContext, Window& window,
@@ -54,6 +51,8 @@ void SwapChainFactory::createSwapChainHandle(SwapChain& swapChain, VulkanDevice&
 
 	swapChain.swapChainHandle = vk::raii::SwapchainKHR(deviceContext.device, swapChainCreateInfo);
 	swapChain.swapChainImages = swapChain.swapChainHandle.getImages();
+
+	createImageViews(swapChain, deviceContext, window);
 }
 
 void SwapChainFactory::createImageViews(SwapChain& swapChain, VulkanDevice& deviceContext, Window& window)
@@ -134,75 +133,9 @@ void SwapChainFactory::recreateSwapChain(SwapChain& swapChain, VulkanDevice& dev
 	dManager.updateSingleTextureDSet(globalDSetComponent.fxaaDSets, 0,
 	                                 tManager.textures[swapChain.offscreenTextureHandle.id].textureImageView,
 	                                 tManager.textures[swapChain.offscreenTextureHandle.id].textureSampler);
-
+	tManager.resizeTexture(swapChain.depthTextureHandle, swapChain.swapChainExtent.width,
+	                       swapChain.swapChainExtent.height);
 #ifdef _DEBUG
 	std::cout << "Swap chain recreated." << std::endl;
 #endif
-}
-
-void SwapChainFactory::createDepthResources(SwapChain& swapChain, VulkanDevice& device, Window& window)
-{
-	swapChain.depthFormat = findDepthFormat(device);
-	VulkanUtils::createImage(swapChain.swapChainExtent.width, swapChain.swapChainExtent.height, swapChain.depthFormat,
-	                         vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eDepthStencilAttachment,
-	                         vk::MemoryPropertyFlagBits::eDeviceLocal, swapChain.depthImage, swapChain.depthImageMemory,
-	                         device);
-	swapChain.depthImageView = VulkanUtils::createImageView(swapChain.depthImage, swapChain.depthFormat,
-	                                                        vk::ImageAspectFlagBits::eDepth, device);
-}
-
-vk::Format SwapChainFactory::findDepthFormat(VulkanDevice& device)
-{
-	return findSupportedFormat(device,
-	                           {vk::Format::eD32Sfloat, vk::Format::eD32SfloatS8Uint, vk::Format::eD24UnormS8Uint},
-	                           vk::ImageTiling::eOptimal, vk::FormatFeatureFlagBits::eDepthStencilAttachment);
-}
-
-vk::Format SwapChainFactory::findSupportedFormat(VulkanDevice& device, const std::vector<vk::Format>& candidates,
-                                                 vk::ImageTiling tiling, vk::FormatFeatureFlags features)
-{
-	for (const auto format : candidates)
-	{
-		vk::FormatProperties props = device.physicalDevice.getFormatProperties(format);
-		if (tiling == vk::ImageTiling::eLinear && (props.linearTilingFeatures & features) == features)
-		{
-			return format;
-		}
-		if (tiling == vk::ImageTiling::eOptimal && (props.optimalTilingFeatures & features) == features)
-		{
-			return format;
-		}
-	}
-
-	throw std::runtime_error("failed to find supported format!");
-}
-
-void SwapChainFactory::createOffscreenResources(SwapChain& swapChain, VulkanDevice& device, Window& window)
-{
-	// VulkanUtils::createImage(
-	//     swapChain.swapChainExtent.width, swapChain.swapChainExtent.height, swapChain.swapChainImageFormat,
-	//     vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eSampled,
-	//     vk::MemoryPropertyFlagBits::eDeviceLocal, swapChain.offscreenImage, swapChain.offscreenImageMemory, device);
-
-	// swapChain.offscreenImageView = VulkanUtils::createImageView(swapChain.offscreenImage,
-	// swapChain.swapChainImageFormat,
-	//                                                             vk::ImageAspectFlagBits::eColor, device);
-	// vk::SamplerCreateInfo samplerInfo{};
-	// samplerInfo.magFilter = vk::Filter::eLinear;
-	// samplerInfo.minFilter = vk::Filter::eLinear;
-	// samplerInfo.addressModeU = vk::SamplerAddressMode::eClampToEdge;
-	// samplerInfo.addressModeV = vk::SamplerAddressMode::eClampToEdge;
-	// samplerInfo.addressModeW = vk::SamplerAddressMode::eClampToEdge;
-	// samplerInfo.anisotropyEnable = vk::False;
-	// samplerInfo.maxAnisotropy = 1.0f;
-	// samplerInfo.borderColor = vk::BorderColor::eFloatOpaqueWhite;
-	// samplerInfo.unnormalizedCoordinates = vk::False;
-	// samplerInfo.compareEnable = vk::False;
-	// samplerInfo.compareOp = vk::CompareOp::eAlways;
-	// samplerInfo.mipmapMode = vk::SamplerMipmapMode::eLinear;
-	// samplerInfo.mipLodBias = 0.0f;
-	// samplerInfo.minLod = 0.0f;
-	// samplerInfo.maxLod = 1.0f;
-
-	// swapChain.offscreenSampler = vk::raii::Sampler(device.device, samplerInfo);
 }
