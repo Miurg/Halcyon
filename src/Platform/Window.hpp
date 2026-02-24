@@ -21,6 +21,7 @@ public:
 	std::queue<InputEvent> inputQueue;
 
 	bool shouldClose() const;
+	void setShouldClose(bool value);
 	void pollEvents() const;
 	void swapBuffers() const;
 	int width;
@@ -29,6 +30,23 @@ public:
 	std::vector<const char*> getRequiredExtensions() const;
 	vk::SurfaceKHR createSurface(vk::Instance instance) const;
 	void waitEvents() const;
+
+	// ===== Platform utility methods =====
+	static double getTime();
+	static void setTime(double time);
+	void setTitle(const char* title);
+	void setWindowSize(int w, int h);
+	void getWindowSize(int* w, int* h) const;
+	void getFramebufferSize(int* w, int* h) const;
+	bool isFocused() const;
+	bool isMinimized() const;
+	void setCursorMode(int mode);
+	int getCursorMode() const;
+	bool isKeyPressed(int key) const;
+	bool isMouseButtonPressed(int button) const;
+	void getCursorPos(double* x, double* y) const;
+	void setCursorPos(double x, double y);
+	static void getMonitorSize(int* w, int* h);
 
 	static void keyCallback(GLFWwindow*, int key, int scancode, int action, int mods);
 	static void mouseButtonCallback(GLFWwindow*, int button, int action, int mods);

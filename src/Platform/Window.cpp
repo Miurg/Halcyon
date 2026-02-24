@@ -58,6 +58,11 @@ bool Window::shouldClose() const
 	return glfwWindowShouldClose(_GLFWwindow);
 }
 
+void Window::setShouldClose(bool value)
+{
+	glfwSetWindowShouldClose(_GLFWwindow, value ? GLFW_TRUE : GLFW_FALSE);
+}
+
 void Window::pollEvents() const
 {
 	glfwPollEvents();
@@ -90,6 +95,86 @@ vk::SurfaceKHR Window::createSurface(vk::Instance instance) const
 void Window::waitEvents() const
 {
 	glfwWaitEvents();
+}
+
+// ===== Platform utility methods =====
+
+double Window::getTime()
+{
+	return glfwGetTime();
+}
+
+void Window::setTime(double time)
+{
+	glfwSetTime(time);
+}
+
+void Window::setTitle(const char* title)
+{
+	glfwSetWindowTitle(_GLFWwindow, title);
+}
+
+void Window::setWindowSize(int w, int h)
+{
+	glfwSetWindowSize(_GLFWwindow, w, h);
+}
+
+void Window::getWindowSize(int* w, int* h) const
+{
+	glfwGetWindowSize(_GLFWwindow, w, h);
+}
+
+void Window::getFramebufferSize(int* w, int* h) const
+{
+	glfwGetFramebufferSize(_GLFWwindow, w, h);
+}
+
+bool Window::isFocused() const
+{
+	return glfwGetWindowAttrib(_GLFWwindow, GLFW_FOCUSED) == GLFW_TRUE;
+}
+
+bool Window::isMinimized() const
+{
+	return glfwGetWindowAttrib(_GLFWwindow, GLFW_ICONIFIED) == GLFW_TRUE;
+}
+
+void Window::setCursorMode(int mode)
+{
+	glfwSetInputMode(_GLFWwindow, GLFW_CURSOR, mode);
+}
+
+int Window::getCursorMode() const
+{
+	return glfwGetInputMode(_GLFWwindow, GLFW_CURSOR);
+}
+
+bool Window::isKeyPressed(int key) const
+{
+	return glfwGetKey(_GLFWwindow, key) == GLFW_PRESS;
+}
+
+bool Window::isMouseButtonPressed(int button) const
+{
+	return glfwGetMouseButton(_GLFWwindow, button) == GLFW_PRESS;
+}
+
+void Window::getCursorPos(double* x, double* y) const
+{
+	glfwGetCursorPos(_GLFWwindow, x, y);
+}
+
+void Window::setCursorPos(double x, double y)
+{
+	glfwSetCursorPos(_GLFWwindow, x, y);
+}
+
+void Window::getMonitorSize(int* w, int* h)
+{
+	GLFWmonitor* monitor = glfwGetPrimaryMonitor();
+	const GLFWvidmode* mode = glfwGetVideoMode(monitor);
+	if (w) *w = mode->width;
+	if (h) *h = mode->height;
 }
 
 void Window::keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)

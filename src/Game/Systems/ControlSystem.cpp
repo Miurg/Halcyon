@@ -14,18 +14,17 @@
 
 void ControlSystem::cursorDisableToggle(Window* window)
 {
-	GLFWwindow* windowHandle = window->getHandle();
 	if (cursorDisable)
 	{
-		glfwSetInputMode(windowHandle, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+		window->setCursorMode(GLFW_CURSOR_NORMAL);
 		cursorDisable = !cursorDisable;
 	}
 	else
 	{
-		glfwSetInputMode(windowHandle, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+		window->setCursorMode(GLFW_CURSOR_DISABLED);
 		int width, height;
-		glfwGetWindowSize(windowHandle, &width, &height);
-		glfwSetCursorPos(windowHandle, width / 2.0, height / 2.0);
+		window->getWindowSize(&width, &height);
+		window->setCursorPos(width / 2.0, height / 2.0);
 		cursorDisable = !cursorDisable;
 	}
 }
@@ -42,7 +41,7 @@ void ControlSystem::update(float deltaTime, GeneralManager& gm)
 
 	if (keyboardState->keys[GLFW_KEY_ESCAPE])
 	{
-		glfwSetWindowShouldClose(windowInstance->windowInstance->getHandle(), true);
+		windowInstance->windowInstance->setShouldClose(true);
 	}
 	if (keyboardState->keys[GLFW_KEY_2])
 	{
@@ -76,11 +75,11 @@ void ControlSystem::update(float deltaTime, GeneralManager& gm)
 		mainCameraTransform->rotateLocal(glm::radians(-yoffset), glm::vec3(1.0f, 0.0f, 0.0f));
 
 		int width, height;
-		glfwGetWindowSize(windowInstance->windowInstance->getHandle(), &width, &height);
+		windowInstance->windowInstance->getWindowSize(&width, &height);
 		double centerX = width / 2.0;
 		double centerY = height / 2.0;
 
-		glfwSetCursorPos(windowInstance->windowInstance->getHandle(), centerX, centerY);
+		windowInstance->windowInstance->setCursorPos(centerX, centerY);
 		lastMousePositionX = centerX;
 		lastMousePositionY = centerY;
 		cursorPositionState->mousePositionX = centerX;
