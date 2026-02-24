@@ -61,7 +61,7 @@ void RenderSystem::update(float deltaTime, GeneralManager& gm)
 	CommandBufferFactory::recordMainCommandBuffer(
 	    frameManager->frames[currentFrameComp->currentFrame].secondaryCommandBuffers[2], imageIndex, swapChain,
 	    pipelineHandler, currentFrameComp->currentFrame, *materialDSetComponent, *dManager, globalDSetComponent,
-	    bufferManager, objectDSetComponent, modelManager);
+	    bufferManager, objectDSetComponent, modelManager, textureManager);
 	CommandBufferFactory::recordFxaaCommandBuffer(
 	    frameManager->frames[currentFrameComp->currentFrame].secondaryCommandBuffers[3], imageIndex, swapChain,
 	    pipelineHandler, *dManager, globalDSetComponent->fxaaDSets);

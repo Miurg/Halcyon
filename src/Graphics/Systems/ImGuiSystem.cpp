@@ -14,6 +14,7 @@
 #include "../Components/NameComponent.hpp"
 #include <glm/gtc/type_ptr.hpp>
 #include <functional>
+#include "../Components/CurrentFrameComponent.hpp"
 
 void ImGuiSystem::onRegistered(GeneralManager& gm)
 {
@@ -82,6 +83,11 @@ void ImGuiSystem::drawEntityNode(Entity entity, GeneralManager& gm)
 
 void ImGuiSystem::update(float deltaTime, GeneralManager& gm)
 {
+	CurrentFrameComponent* currentFrameComp = gm.getContextComponent<CurrentFrameContext, CurrentFrameComponent>();
+	if (!currentFrameComp || !currentFrameComp->frameValid)
+	{
+		return;
+	}
 	ImGui_ImplVulkan_NewFrame();
 	ImGui_ImplGlfw_NewFrame();
 	ImGui::NewFrame();

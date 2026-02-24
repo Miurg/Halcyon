@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vulkan/vulkan_raii.hpp>
+#include "Resources/Managers/ResourceHandles.hpp"
 
 class SwapChain
 {
@@ -19,8 +20,5 @@ public:
 	std::vector<vk::Image> swapChainImages;
 	std::vector<vk::raii::ImageView> swapChainImageViews;
 
-	vk::raii::Image offscreenImage = nullptr;
-	vk::raii::DeviceMemory offscreenImageMemory = nullptr;
-	vk::raii::ImageView offscreenImageView = nullptr;
-	vk::raii::Sampler offscreenSampler = nullptr;
+	TextureHandle offscreenTextureHandle;
 };

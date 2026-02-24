@@ -327,9 +327,12 @@ void GraphicsInit::initScene(GeneralManager& gm)
 #pragma endregion
 
 #pragma region Post-Processing (FXAA)
+	swap->offscreenTextureHandle = tManager->createOffscreenImage(
+	    swap->swapChainExtent.width, swap->swapChainExtent.height, swap->swapChainImageFormat);
 	globalDSetComponent->fxaaDSets = dManager->allocateFxaaDescriptorSet(*dManager->fxaaSetLayout);
-	dManager->updateSingleTextureDSet(globalDSetComponent->fxaaDSets, 0, swap->offscreenImageView,
-	                                  swap->offscreenSampler);
+	dManager->updateSingleTextureDSet(globalDSetComponent->fxaaDSets, 0,
+	                                  tManager->textures[swap->offscreenTextureHandle.id].textureImageView,
+	                                  tManager->textures[swap->offscreenTextureHandle.id].textureSampler);
 #pragma endregion
 
 #ifdef _DEBUG

@@ -17,6 +17,7 @@
 #include "../Components/DescriptorManagerComponent.hpp"
 #include "../Resources/Components/GlobalDSetComponent.hpp"
 #include "../Components/DescriptorManagerComponent.hpp"
+#include "../Components/TextureManagerComponent.hpp"
 
 void FrameBeginSystem::onRegistered(GeneralManager& gm)
 {
@@ -41,13 +42,14 @@ void FrameBeginSystem::update(float deltaTime, GeneralManager& gm)
 	DescriptorManager* dManager =
 	    gm.getContextComponent<DescriptorManagerContext, DescriptorManagerComponent>()->descriptorManager;
 	GlobalDSetComponent* globalDSetComponent = gm.getContextComponent<MainDSetsContext, GlobalDSetComponent>();
+	TextureManager* tManager = gm.getContextComponent<TextureManagerContext, TextureManagerComponent>()->textureManager;
 
 	vulkanDevice.device.waitForFences(*frameManager->frames[currentFrameComp->currentFrame].inFlightFence, vk::True,
 	                                  UINT64_MAX);
 	// Handle window resize
 	if (window.framebufferResized)
 	{
-		SwapChainFactory::recreateSwapChain(swapChain, vulkanDevice, window, *dManager, *globalDSetComponent);
+		SwapChainFactory::recreateSwapChain(swapChain, vulkanDevice, window, *dManager, *globalDSetComponent, *tManager);
 		window.framebufferResized = false;
 		return;
 	}
@@ -60,13 +62,14 @@ void FrameBeginSystem::update(float deltaTime, GeneralManager& gm)
 		if (result == vk::Result::eErrorOutOfDateKHR)
 		{
 			window.framebufferResized = false;
-			SwapChainFactory::recreateSwapChain(swapChain, vulkanDevice, window, *dManager, *globalDSetComponent);
+			SwapChainFactory::recreateSwapChain(swapChain, vulkanDevice, window, *dManager, *globalDSetComponent,
+			                                    *tManager);
 			return;
 		}
 	}
 	catch (vk::OutOfDateKHRError&)
 	{
-		SwapChainFactory::recreateSwapChain(swapChain, vulkanDevice, window, *dManager, *globalDSetComponent);
+		SwapChainFactory::recreateSwapChain(swapChain, vulkanDevice, window, *dManager, *globalDSetComponent, *tManager);
 		return;
 	}
 	catch (vk::SystemError& e)

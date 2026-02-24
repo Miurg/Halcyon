@@ -17,6 +17,7 @@
 #include "../Components/FrameManagerComponent.hpp"
 #include "../Components/DescriptorManagerComponent.hpp"
 #include "../Resources/Components/GlobalDSetComponent.hpp"
+#include "../Components/TextureManagerComponent.hpp"
 
 void FrameEndSystem::onRegistered(GeneralManager& gm)
 {
@@ -37,6 +38,9 @@ void FrameEndSystem::update(float deltaTime, GeneralManager& gm)
 	FrameManager* frameManager = gm.getContextComponent<FrameManagerContext, FrameManagerComponent>()->frameManager;
 	CurrentFrameComponent* currentFrameComp = gm.getContextComponent<CurrentFrameContext, CurrentFrameComponent>();
 	uint32_t imageIndex = gm.getContextComponent<FrameImageContext, FrameImageComponent>()->imageIndex;
+	TextureManager* textureManager =
+	    gm.getContextComponent<TextureManagerContext, TextureManagerComponent>()->textureManager;
+
 	if (!currentFrameComp->frameValid) return;
 
 	vk::PipelineStageFlags waitDestinationStageMask(vk::PipelineStageFlagBits::eColorAttachmentOutput);
@@ -73,7 +77,8 @@ void FrameEndSystem::update(float deltaTime, GeneralManager& gm)
 		DescriptorManager* dManager =
 		    gm.getContextComponent<DescriptorManagerContext, DescriptorManagerComponent>()->descriptorManager;
 		GlobalDSetComponent* globalDSetComponent = gm.getContextComponent<MainDSetsContext, GlobalDSetComponent>();
-		SwapChainFactory::recreateSwapChain(swapChain, vulkanDevice, window, *dManager, *globalDSetComponent);
+		SwapChainFactory::recreateSwapChain(swapChain, vulkanDevice, window, *dManager, *globalDSetComponent,
+		                                    *textureManager);
 	}
 	else if (presentResult != vk::Result::eSuccess)
 	{

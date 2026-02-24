@@ -29,6 +29,42 @@ TextureManager::~TextureManager()
 	}
 }
 
+TextureHandle TextureManager::createOffscreenImage(uint32_t resolutionWidth, uint32_t resolutionHeight,
+                                                   vk::Format offscreenFormat)
+{
+	textures.push_back(Texture());
+	Texture& texture = textures.back();
+
+	TextureManager::createImage(resolutionWidth, resolutionHeight, offscreenFormat, vk::ImageTiling::eOptimal,
+	                            vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eSampled,
+	                            VMA_MEMORY_USAGE_AUTO, texture);
+	TextureManager::createImageView(texture, offscreenFormat, vk::ImageAspectFlagBits::eColor);
+	TextureManager::createShadowSampler(texture);
+	return TextureHandle{static_cast<int>(textures.size() - 1)};
+}
+
+void TextureManager::createOffscreenSampler(Texture& texture)
+{
+	vk::SamplerCreateInfo samplerInfo{};
+	samplerInfo.magFilter = vk::Filter::eLinear;
+	samplerInfo.minFilter = vk::Filter::eLinear;
+	samplerInfo.addressModeU = vk::SamplerAddressMode::eClampToEdge;
+	samplerInfo.addressModeV = vk::SamplerAddressMode::eClampToEdge;
+	samplerInfo.addressModeW = vk::SamplerAddressMode::eClampToEdge;
+	samplerInfo.anisotropyEnable = vk::False;
+	samplerInfo.maxAnisotropy = 1.0f;
+	samplerInfo.borderColor = vk::BorderColor::eFloatOpaqueWhite;
+	samplerInfo.unnormalizedCoordinates = vk::False;
+	samplerInfo.compareEnable = vk::False;
+	samplerInfo.compareOp = vk::CompareOp::eAlways;
+	samplerInfo.mipmapMode = vk::SamplerMipmapMode::eLinear;
+	samplerInfo.mipLodBias = 0.0f;
+	samplerInfo.minLod = 0.0f;
+	samplerInfo.maxLod = 1.0f;
+
+	texture.textureSampler = (*vulkanDevice.device).createSampler(samplerInfo);
+}
+
 TextureHandle TextureManager::createShadowMap(uint32_t shadowResolutionX, uint32_t shadowResolutionY)
 {
 	textures.push_back(Texture());
@@ -156,13 +192,21 @@ void TextureManager::createImage(uint32_t width, uint32_t height, vk::Format for
 		throw std::runtime_error("failed to create VMA image!");
 	}
 	texture.textureImage = vk::Image(textureImageRaw);
+
+	texture.width = width;
+	texture.height = height;
+	texture.format = format;
+	texture.tiling = tiling;
+	texture.usage = usage;
+	texture.memoryUsage = memoryUsage;
 }
 
-int TextureManager::emplaceMaterials(BindlessTextureDSetComponent& dSetComponent, MaterialStructure materialStr, BufferManager& bManager)
+int TextureManager::emplaceMaterials(BindlessTextureDSetComponent& dSetComponent, MaterialStructure materialStr,
+                                     BufferManager& bManager)
 {
 	materials.push_back(materialStr);
 	bManager.writeToBuffer(dSetComponent.materialBuffer, 0, materials.size() - 1, materialStr);
-	return materials.size()-1;
+	return materials.size() - 1;
 }
 
 void TextureManager::createImageView(Texture& texture, vk::Format format, vk::ImageAspectFlags aspectFlags)
@@ -178,6 +222,7 @@ void TextureManager::createImageView(Texture& texture, vk::Format format, vk::Im
 	viewInfo.subresourceRange.layerCount = 1;
 
 	texture.textureImageView = (*vulkanDevice.device).createImageView(viewInfo);
+	texture.aspectFlags = aspectFlags;
 }
 
 void TextureManager::createTextureSampler(Texture& texture)
@@ -194,4 +239,37 @@ void TextureManager::createTextureSampler(Texture& texture)
 	samplerInfo.borderColor = vk::BorderColor::eIntOpaqueBlack;
 
 	texture.textureSampler = (*vulkanDevice.device).createSampler(samplerInfo);
+}
+
+void TextureManager::resizeTexture(TextureHandle handle, uint32_t newWidth, uint32_t newHeight)
+{
+	if (handle.id < 0 || handle.id >= textures.size())
+	{
+		throw std::runtime_error("Invalid texture handle for resizing!");
+	}
+
+	Texture& texture = textures[handle.id];
+
+	if (newWidth == 0 || newHeight == 0)
+	{
+		throw std::runtime_error("Cannot resize texture to 0 width or height!");
+	}
+
+	if (texture.width == newWidth && texture.height == newHeight)
+	{
+		return;
+	}
+
+	if (texture.textureImageView)
+	{
+		(*vulkanDevice.device).destroyImageView(texture.textureImageView);
+	}
+	if (texture.textureImage)
+	{
+		vmaDestroyImage(allocator, texture.textureImage, texture.textureImageAllocation);
+	}
+
+	TextureManager::createImage(newWidth, newHeight, texture.format, texture.tiling, texture.usage, texture.memoryUsage,
+	                            texture);
+	TextureManager::createImageView(texture, texture.format, texture.aspectFlags);
 }

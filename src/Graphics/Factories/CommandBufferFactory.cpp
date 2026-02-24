@@ -143,7 +143,7 @@ void CommandBufferFactory::recordMainCommandBuffer(vk::raii::CommandBuffer& seco
                                                    BindlessTextureDSetComponent& bindlessTextureDSetComponent,
                                                    DescriptorManagerComponent& dManager,
                                                    GlobalDSetComponent* globalDSetComponent, BufferManager& bManager,
-                                                   ModelDSetComponent* objectDSetComponent, ModelManager& mManager)
+                                                   ModelDSetComponent* objectDSetComponent, ModelManager& mManager, TextureManager& tManager)
 {
 	vk::CommandBufferInheritanceInfo inheritanceInfo = {};
 
@@ -155,7 +155,8 @@ void CommandBufferFactory::recordMainCommandBuffer(vk::raii::CommandBuffer& seco
 
 	// --- Step 2: MAIN PASS ---
 
-	transitionImageLayout(secondaryCmd, *swapChain.offscreenImage, vk::ImageLayout::eUndefined,
+	transitionImageLayout(secondaryCmd, tManager.textures[swapChain.offscreenTextureHandle.id].textureImage,
+	                      vk::ImageLayout::eUndefined,
 	                      vk::ImageLayout::eColorAttachmentOptimal, {}, vk::AccessFlagBits2::eColorAttachmentWrite,
 	                      vk::PipelineStageFlagBits2::eColorAttachmentOutput,
 	                      vk::PipelineStageFlagBits2::eColorAttachmentOutput, vk::ImageAspectFlagBits::eColor);
@@ -167,7 +168,7 @@ void CommandBufferFactory::recordMainCommandBuffer(vk::raii::CommandBuffer& seco
 
 	vk::ClearValue clearColor = vk::ClearColorValue(0.0f, 0.637f, 1.0f, 1.0f);
 	vk::RenderingAttachmentInfo attachmentInfo;
-	attachmentInfo.imageView = *swapChain.offscreenImageView;
+	attachmentInfo.imageView = tManager.textures[swapChain.offscreenTextureHandle.id].textureImageView;
 	attachmentInfo.imageLayout = vk::ImageLayout::eColorAttachmentOptimal;
 	attachmentInfo.loadOp = vk::AttachmentLoadOp::eClear;
 	attachmentInfo.storeOp = vk::AttachmentStoreOp::eStore;
@@ -224,7 +225,8 @@ void CommandBufferFactory::recordMainCommandBuffer(vk::raii::CommandBuffer& seco
 	                                 0, drawCommandIndex, commandStride);
 	secondaryCmd.endRendering();
 
-	transitionImageLayout(secondaryCmd, *swapChain.offscreenImage, vk::ImageLayout::eColorAttachmentOptimal,
+	transitionImageLayout(secondaryCmd, tManager.textures[swapChain.offscreenTextureHandle.id].textureImage,
+	                      vk::ImageLayout::eColorAttachmentOptimal,
 	                      vk::ImageLayout::eShaderReadOnlyOptimal, vk::AccessFlagBits2::eColorAttachmentWrite,
 	                      vk::AccessFlagBits2::eShaderRead, vk::PipelineStageFlagBits2::eColorAttachmentOutput,
 	                      vk::PipelineStageFlagBits2::eFragmentShader, vk::ImageAspectFlagBits::eColor);
