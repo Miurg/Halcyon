@@ -94,6 +94,8 @@ MaterialMaps GltfLoader::materialsParser(tinygltf::Model& model, TextureManager&
 							newTex->name = img.name;
 						else if (!img.uri.empty() && img.uri.find("data:") != 0)
 							newTex->name = img.uri;
+						else
+							newTex->name = "__embedded_img_" + std::to_string(sourceImageIndex);
 						int indexInSystem =
 						    tManager
 						        .generateTextureData(newTex->name.c_str(), img.width, img.height,
@@ -129,7 +131,7 @@ MaterialMaps GltfLoader::materialsParser(tinygltf::Model& model, TextureManager&
 						else if (!img.uri.empty() && img.uri.find("data:") != 0)
 							normalName = "normal_" + img.uri;
 						else
-							normalName = "normal_mat" + std::to_string(i);
+							normalName = "normal___embedded_img_" + std::to_string(sourceImageIndex);
 
 						int indexInSystem =
 						    tManager
@@ -166,7 +168,7 @@ MaterialMaps GltfLoader::materialsParser(tinygltf::Model& model, TextureManager&
 						else if (!img.uri.empty() && img.uri.find("data:") != 0)
 							mrName = "mr_" + img.uri;
 						else
-							mrName = "mr_mat" + std::to_string(i);
+							mrName = "mr___embedded_img_" + std::to_string(sourceImageIndex);
 
 						int indexInSystem =
 						    tManager
@@ -203,7 +205,7 @@ MaterialMaps GltfLoader::materialsParser(tinygltf::Model& model, TextureManager&
 						else if (!img.uri.empty() && img.uri.find("data:") != 0)
 							emissiveName = "emissive_" + img.uri;
 						else
-							emissiveName = "emissive_mat" + std::to_string(i);
+							emissiveName = "emissive___embedded_img_" + std::to_string(sourceImageIndex);
 
 						int indexInSystem = tManager
 						                        .generateTextureData(emissiveName.c_str(), img.width, img.height,
