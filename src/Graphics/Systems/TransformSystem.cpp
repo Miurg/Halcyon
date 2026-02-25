@@ -35,7 +35,7 @@ void TransformSystem::onEntityUnsubscribed(Entity entity, GeneralManager& gm)
 	_agents.erase(it, _agents.end());
 }
 
-void TransformSystem::update(float deltaTime, GeneralManager& gm)
+void TransformSystem::update(GeneralManager& gm)
 {
 	struct StackItem
 	{
@@ -82,7 +82,7 @@ void TransformSystem::update(float deltaTime, GeneralManager& gm)
 		bool localDirty = local->isModelDirty;
 		if (localDirty)
 		{
-			local->isModelDirty = false; 
+			local->isModelDirty = false;
 		}
 
 		bool needsUpdate = localDirty || currentItem.isParentDirty;

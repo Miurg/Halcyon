@@ -130,10 +130,10 @@ public:
 		_systemManager.unsubscribe<TSystem>(entity, *this);
 	}
 
-	// Updates all systems with the given delta time.
-	void update(float deltaTime)
+	// Updates all registered systems.
+	void update()
 	{
-		_systemManager.updateSystems(deltaTime, *this);
+		_systemManager.updateSystems(*this);
 	}
 
 	const ActiveEntitySet& getActiveEntities() const noexcept

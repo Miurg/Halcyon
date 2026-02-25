@@ -29,7 +29,7 @@ void FrameBeginSystem::onShutdown(GeneralManager& gm)
 	std::cout << "FrameBeginSystem shutdown!" << std::endl;
 }
 
-void FrameBeginSystem::update(float deltaTime, GeneralManager& gm)
+void FrameBeginSystem::update(GeneralManager& gm)
 {
 	VulkanDevice& vulkanDevice =
 	    *gm.getContextComponent<MainVulkanDeviceContext, VulkanDeviceComponent>()->vulkanDeviceInstance;

@@ -7,11 +7,10 @@
 #include "../Resources/Components/MeshInfoComponent.hpp"
 #include "BufferUpdateSystem.hpp"
 
-
 class RenderSystem : public SystemCore<RenderSystem, GlobalTransformComponent, MeshInfoComponent>
 {
 public:
-	void update(float deltaTime, GeneralManager& gm) override;
+	void update(GeneralManager& gm) override;
 	void onRegistered(GeneralManager& gm) override;
 	void onShutdown(GeneralManager& gm) override;
 	virtual std::vector<std::type_index> getSystemDependencies() const override

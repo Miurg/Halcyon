@@ -8,7 +8,7 @@ class ISystemCore
 {
 public:
 	virtual ~ISystemCore() = default;
-	virtual void update(float deltaTime, GeneralManager& gm) = 0;
+	virtual void update(GeneralManager& gm) = 0;
 	virtual bool shouldProcessEntity(Entity entity, GeneralManager& gm) = 0;
 	virtual void onRegistered(GeneralManager& gm) = 0;
 	virtual void onShutdown(GeneralManager& gm) = 0;

@@ -6,6 +6,7 @@
 #include <GLFW/glfw3.h>
 #include "../../Graphics/GraphicsContexts.hpp"
 #include "../../Platform/PlatformContexts.hpp"
+#include "../../Platform/Components/DeltaTimeComponent.hpp"
 #include "../Components/ControlComponent.hpp"
 #include "../../Platform/Components/WindowComponent.hpp"
 #include "../../Core/GeneralManager.hpp"
@@ -29,8 +30,9 @@ void ControlSystem::cursorDisableToggle(Window* window)
 	}
 }
 
-void ControlSystem::update(float deltaTime, GeneralManager& gm)
+void ControlSystem::update(GeneralManager& gm)
 {
+	float deltaTime = gm.getContextComponent<DeltaTimeContext, DeltaTimeComponent>()->deltaTime;
 	KeyboardStateComponent* keyboardState = gm.getContextComponent<InputDataContext, KeyboardStateComponent>();
 	CursorPositionComponent* cursorPositionState = gm.getContextComponent<InputDataContext, CursorPositionComponent>();
 	WindowComponent* windowInstance = gm.getContextComponent<MainWindowContext, WindowComponent>();

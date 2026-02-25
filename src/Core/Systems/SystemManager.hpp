@@ -188,11 +188,11 @@ public:
 		}
 	}
 
-	void updateSystems(float deltaTime, GeneralManager& gm)
+	void updateSystems(GeneralManager& gm)
 	{
 		for (auto& entry : SystemCore)
 		{
-			entry->update(deltaTime, gm);
+			entry->update(gm);
 		}
 	}
 };

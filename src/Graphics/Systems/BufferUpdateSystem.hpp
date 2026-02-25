@@ -5,8 +5,7 @@
 #include "../Resources/Components/MeshInfoComponent.hpp"
 #include "../../Core/Entitys/EntityManager.hpp"
 
-class BufferUpdateSystem
-    : public SystemCore<BufferUpdateSystem, GlobalTransformComponent, MeshInfoComponent>
+class BufferUpdateSystem : public SystemCore<BufferUpdateSystem, GlobalTransformComponent, MeshInfoComponent>
 {
 public:
 	struct Agent
@@ -18,7 +17,7 @@ public:
 
 	std::vector<Agent> _agents;
 
-	void update(float deltaTime, GeneralManager& gm) override;
+	void update(GeneralManager& gm) override;
 	void onRegistered(GeneralManager& gm) override;
 	void onShutdown(GeneralManager& gm) override;
 	void onEntitySubscribed(Entity entity, GeneralManager& gm) override;

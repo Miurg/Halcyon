@@ -26,7 +26,7 @@ void CameraMatrixSystem::onShutdown(GeneralManager& gm)
 	std::cout << "CameraMatrixSystem shutdown!" << std::endl;
 }
 
-void CameraMatrixSystem::update(float deltaTime, GeneralManager& gm)
+void CameraMatrixSystem::update(GeneralManager& gm)
 {
 	CurrentFrameComponent* currentFrameComp = gm.getContextComponent<CurrentFrameContext, CurrentFrameComponent>();
 	uint32_t currentFrame = currentFrameComp->currentFrame;

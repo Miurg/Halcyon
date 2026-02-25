@@ -30,7 +30,7 @@ protected:
 public:
 	virtual ~SystemCore() = default;
 
-	virtual void update(float deltaTime, GeneralManager& gm)
+	virtual void update(GeneralManager& gm)
 	{
 		// Optional: Override in derived class if needed
 	}

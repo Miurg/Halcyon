@@ -3,6 +3,8 @@
 #include "../../Core/GeneralManager.hpp"
 #include "../../Graphics/Components/LocalTransformComponent.hpp"
 #include "../../Graphics/Components/GlobalTransformComponent.hpp"
+#include "../../Platform/PlatformContexts.hpp"
+#include "../../Platform/Components/DeltaTimeComponent.hpp"
 
 void RotationSystem::onRegistered(GeneralManager& gm)
 {
@@ -25,12 +27,14 @@ void RotationSystem::onEntitySubscribed(Entity entity, GeneralManager& gm)
 
 void RotationSystem::onEntityUnsubscribed(Entity entity, GeneralManager& gm)
 {
-	auto it = std::remove_if(_agents.begin(), _agents.end(), [entity](const Agent& agent) { return agent.entity == entity; });
+	auto it =
+	    std::remove_if(_agents.begin(), _agents.end(), [entity](const Agent& agent) { return agent.entity == entity; });
 	_agents.erase(it, _agents.end());
 }
 
-void RotationSystem::update(float deltaTime, GeneralManager& gm)
+void RotationSystem::update(GeneralManager& gm)
 {
+	float deltaTime = gm.getContextComponent<DeltaTimeContext, DeltaTimeComponent>()->deltaTime;
 	for (auto& agent : _agents)
 	{
 		agent.transform->rotateGlobal(glm::radians(5.0f) * deltaTime, glm::vec3(0.0f, 1.0f, 0.0f));

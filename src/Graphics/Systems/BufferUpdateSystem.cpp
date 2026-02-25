@@ -42,7 +42,7 @@ void BufferUpdateSystem::onEntityUnsubscribed(Entity entity, GeneralManager& gm)
 	_agents.erase(it, _agents.end());
 }
 
-void BufferUpdateSystem::update(float deltaTime, GeneralManager& gm)
+void BufferUpdateSystem::update(GeneralManager& gm)
 {
 	CurrentFrameComponent* currentFrameComp = gm.getContextComponent<CurrentFrameContext, CurrentFrameComponent>();
 	uint32_t currentFrame = currentFrameComp->currentFrame;
@@ -116,7 +116,8 @@ void BufferUpdateSystem::update(float deltaTime, GeneralManager& gm)
 				int meshIndex = agent.meshInfo->mesh;
 
 				// Link texture index
-				primitivePtr[localPrimitiveIndex].materialIndex = modelManager.meshes[meshIndex].primitives[i].materialIndex;
+				primitivePtr[localPrimitiveIndex].materialIndex =
+				    modelManager.meshes[meshIndex].primitives[i].materialIndex;
 
 				// Link transform index
 				primitivePtr[localPrimitiveIndex].transformIndex = currentEntityTransformIndex;

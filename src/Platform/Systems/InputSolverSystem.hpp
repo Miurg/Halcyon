@@ -10,11 +10,11 @@
 
 class InputSolverSystem
     : public SystemCore<InputSolverSystem, WindowComponent, CursorPositionComponent, WindowSizeComponent,
-                              KeyboardStateComponent, MouseStateComponent, ScrollDeltaComponent>
+                        KeyboardStateComponent, MouseStateComponent, ScrollDeltaComponent>
 {
 public:
 	std::vector<Entity> entities;
-	void update(float deltaTime, GeneralManager& gm) override;
+	void update(GeneralManager& gm) override;
 	void onRegistered(GeneralManager& gm) override;
 	void onShutdown(GeneralManager& gm) override;
 	void onEntitySubscribed(Entity entity, GeneralManager& gm) override

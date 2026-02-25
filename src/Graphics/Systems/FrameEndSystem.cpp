@@ -29,7 +29,7 @@ void FrameEndSystem::onShutdown(GeneralManager& gm)
 	std::cout << "FrameEndSystem shutdown!" << std::endl;
 }
 
-void FrameEndSystem::update(float deltaTime, GeneralManager& gm)
+void FrameEndSystem::update(GeneralManager& gm)
 {
 	VulkanDevice& vulkanDevice =
 	    *gm.getContextComponent<MainVulkanDeviceContext, VulkanDeviceComponent>()->vulkanDeviceInstance;
@@ -54,8 +54,8 @@ void FrameEndSystem::update(float deltaTime, GeneralManager& gm)
 
 	// Present the image
 	const vk::PresentInfoKHR presentInfoKHR(
-	    *frameManager->frames[currentFrameComp->currentFrame].renderFinishedSemaphore,
-	                                        *swapChain.swapChainHandle, imageIndex);
+	    *frameManager->frames[currentFrameComp->currentFrame].renderFinishedSemaphore, *swapChain.swapChainHandle,
+	    imageIndex);
 	vk::Result presentResult;
 	try
 	{

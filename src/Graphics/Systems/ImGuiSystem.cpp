@@ -15,6 +15,8 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <functional>
 #include "../Components/CurrentFrameComponent.hpp"
+#include "../../Platform/PlatformContexts.hpp"
+#include "../../Platform/Components/DeltaTimeComponent.hpp"
 
 void ImGuiSystem::onRegistered(GeneralManager& gm)
 {
@@ -81,7 +83,7 @@ void ImGuiSystem::drawEntityNode(Entity entity, GeneralManager& gm)
 	}
 }
 
-void ImGuiSystem::update(float deltaTime, GeneralManager& gm)
+void ImGuiSystem::update(GeneralManager& gm)
 {
 	CurrentFrameComponent* currentFrameComp = gm.getContextComponent<CurrentFrameContext, CurrentFrameComponent>();
 	if (!currentFrameComp || !currentFrameComp->frameValid)
@@ -126,6 +128,7 @@ void ImGuiSystem::update(float deltaTime, GeneralManager& gm)
 	}
 	ImGui::Text("FPS: %d", fps);
 	frameCount++;
+	float deltaTime = gm.getContextComponent<DeltaTimeContext, DeltaTimeComponent>()->deltaTime;
 	time += deltaTime;
 	if (time >= 1.0f)
 	{

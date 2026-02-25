@@ -2,7 +2,7 @@
 
 #include "../../Core/Systems/SystemCore.hpp"
 
-class FrameBeginSystem : public SystemCore<FrameBeginSystem>
+class DeltaTimeSystem : public SystemCore<DeltaTimeSystem>
 {
 public:
 	void update(GeneralManager& gm) override;

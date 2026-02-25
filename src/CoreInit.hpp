@@ -11,6 +11,7 @@
 #include "Graphics/Systems/TransformSystem.hpp"
 #include "Game/Systems/SpawnSystem.hpp"
 #include "Graphics/Systems/ImGuiSystem.hpp"
+#include "Platform/Systems/DeltaTimeSystem.hpp"
 
 
 class CoreInit
@@ -22,6 +23,7 @@ public:
 		std::cout << "COREINIT::RUN::Start init" << std::endl;
 #endif //_DEBUG
 
+		gm.registerSystem<DeltaTimeSystem>();
 		gm.registerSystem<InputSolverSystem>();
 		gm.registerSystem<ControlSystem>();
 		gm.registerSystem<RotationSystem>();

@@ -13,7 +13,7 @@ private:
 	void cursorDisableToggle(Window* window);
 
 public:
-	void update(float deltaTime, GeneralManager& gm) override;
+	void update(GeneralManager& gm) override;
 	void onRegistered(GeneralManager& gm) override
 	{
 		std::cout << "ControlSystem registered!" << std::endl;

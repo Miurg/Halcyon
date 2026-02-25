@@ -27,7 +27,7 @@ void RenderSystem::onShutdown(GeneralManager& gm)
 	std::cout << "RenderSystem shutdown!" << std::endl;
 }
 
-void RenderSystem::update(float deltaTime, GeneralManager& gm)
+void RenderSystem::update(GeneralManager& gm)
 {
 	SwapChain& swapChain = *gm.getContextComponent<MainSwapChainContext, SwapChainComponent>()->swapChainInstance;
 	PipelineHandler& pipelineHandler =

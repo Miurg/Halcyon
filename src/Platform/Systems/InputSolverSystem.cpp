@@ -3,7 +3,7 @@
 #include <GLFW/glfw3.h>
 #include "../PlatformContexts.hpp"
 
-void InputSolverSystem::update(float deltaTime, GeneralManager& gm)
+void InputSolverSystem::update(GeneralManager& gm)
 {
 	for (auto entity : entities)
 	{
@@ -51,7 +51,7 @@ void InputSolverSystem::update(float deltaTime, GeneralManager& gm)
 	}
 }
 
-void InputSolverSystem::onRegistered(GeneralManager& gm) 
+void InputSolverSystem::onRegistered(GeneralManager& gm)
 {
 	std::cout << "InputSolverSystem registered!" << std::endl;
 	Entity windowAndInputEntity = gm.createEntity();
@@ -69,7 +69,7 @@ void InputSolverSystem::onRegistered(GeneralManager& gm)
 	gm.subscribeEntity<InputSolverSystem>(windowAndInputEntity);
 };
 
-void InputSolverSystem::onShutdown(GeneralManager& gm) 
+void InputSolverSystem::onShutdown(GeneralManager& gm)
 {
 	std::cout << "InputSolverSystem shutdown!" << std::endl;
 	Window* window = gm.getContextComponent<MainWindowContext, WindowComponent>()->windowInstance;

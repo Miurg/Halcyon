@@ -1,4 +1,6 @@
 #include "SpawnSystem.hpp"
+#include "../../Platform/PlatformContexts.hpp"
+#include "../../Platform/Components/DeltaTimeComponent.hpp"
 #include <iostream>
 #include "../../Core/GeneralManager.hpp"
 #include "../../Graphics/Components/LocalTransformComponent.hpp"
@@ -16,8 +18,9 @@
 #include "../../Graphics/Systems/TransformSystem.hpp"
 #include "RotationSystem.hpp"
 #include "../../Graphics/Systems/RenderSystem.hpp"
-void SpawnSystem::update(float deltaTime, GeneralManager& gm) 
+void SpawnSystem::update(GeneralManager& gm)
 {
+	float deltaTime = gm.getContextComponent<DeltaTimeContext, DeltaTimeComponent>()->deltaTime;
 	time += deltaTime;
 	//if (time > 0.1)
 	//{
@@ -72,4 +75,3 @@ void SpawnSystem::onShutdown(GeneralManager& gm)
 {
 	std::cout << "SpawnSystem shutdown!" << std::endl;
 }
-
