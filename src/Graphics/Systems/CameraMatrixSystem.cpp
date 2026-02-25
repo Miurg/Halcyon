@@ -68,6 +68,8 @@ void CameraMatrixSystem::update(GeneralManager& gm)
 
 	CameraStructure cameraUbo;
 	cameraUbo.cameraSpaceMatrix = cameraSpaceMatrix;
+	cameraUbo.viewMatrix = view;
+	cameraUbo.projMatrix = proj;
 	cameraUbo.cameraPositionAndPadding = glm::vec4(mainCameraTransform->globalPosition, 0.0f);
 	for (int i = 0; i < 6; ++i) cameraUbo.frustumPlanes[i] = frustumPlanes[i];
 

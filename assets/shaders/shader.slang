@@ -2,6 +2,8 @@
 struct CameraData
 {
     float4x4 cameraSpaceMatrix;
+    float4x4 viewMatrix;
+    float4x4 projMatrix;
     float4   cameraPositionAndPadding;
     float4   frustumPlanes[6];
 };
@@ -197,8 +199,14 @@ float3 ApplyFog(float3 color, float viewDepth)
     return lerp(color, fogColor, factor);
 }
 
+struct FragOutput
+{
+    float4 color    : SV_Target0;
+    float4 vsNormal : SV_Target1;
+};
+
 [shader("fragment")]
-float4 fragMain(VSOutput input) : SV_TARGET
+FragOutput fragMain(VSOutput input)
 {
     float2 dx = ddx(input.fragTexCoord);
     float2 dy = ddy(input.fragTexCoord);
@@ -269,5 +277,11 @@ float4 fragMain(VSOutput input) : SV_TARGET
     // === FINAL OUTPUT ===
     float outAlpha = (input.alphaMode == 2) ? albedo.a : 1.0;
 
-    return float4(ApplyFog(litColor, input.viewDepth), outAlpha);
+    // View-space normal for SSAO
+    float3 viewNormal = mul((float3x3)camera[0].viewMatrix, finalNormal);
+
+    FragOutput output;
+    output.color    = float4(ApplyFog(litColor, input.viewDepth), outAlpha);
+    output.vsNormal = float4(normalize(viewNormal), 1.0);
+    return output;
 }

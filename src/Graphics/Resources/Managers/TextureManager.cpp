@@ -29,14 +29,14 @@ TextureManager::~TextureManager()
 	}
 }
 
-TextureHandle TextureManager::createDepthImage(uint32_t resolutionWidth, uint32_t resolutionHeight) 
+TextureHandle TextureManager::createDepthImage(uint32_t resolutionWidth, uint32_t resolutionHeight)
 {
 	textures.push_back(Texture());
 	Texture& texture = textures.back();
 	vk::Format depthFormat = findBestFormat();
 
 	TextureManager::createImage(resolutionWidth, resolutionHeight, depthFormat, vk::ImageTiling::eOptimal,
-	                            vk::ImageUsageFlagBits::eDepthStencilAttachment,
+	                            vk::ImageUsageFlagBits::eDepthStencilAttachment | vk::ImageUsageFlagBits::eSampled,
 	                            VMA_MEMORY_USAGE_AUTO, texture);
 	TextureManager::createImageView(texture, depthFormat, vk::ImageAspectFlagBits::eDepth);
 	TextureManager::createTextureSampler(texture);

@@ -188,6 +188,8 @@ void GraphicsInit::initPipelines(GeneralManager& gm)
 	SwapChainFactory::createSwapChain(*swapChain, *vulkanDevice, *window);
 	swapChain->offscreenTextureHandle = tManager->createOffscreenImage(
 	    swapChain->swapChainExtent.width, swapChain->swapChainExtent.height, swapChain->hdrFormat);
+	swapChain->viewNormalsTextureHandle = tManager->createOffscreenImage(
+	    swapChain->swapChainExtent.width, swapChain->swapChainExtent.height, vk::Format::eR16G16B16A16Sfloat);
 	swapChain->depthTextureHandle =
 	    tManager->createDepthImage(swapChain->swapChainExtent.width, swapChain->swapChainExtent.height);
 	gm.addComponent<SwapChainComponent>(swapChainEntity, swapChain);

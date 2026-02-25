@@ -74,11 +74,14 @@ void PipelineFactory::createGraphicsPipeline(VulkanDevice& vulkanDevice, SwapCha
 	colorBlendAttachment.dstAlphaBlendFactor = vk::BlendFactor::eZero;
 	colorBlendAttachment.alphaBlendOp = vk::BlendOp::eAdd;
 
+	// Normals RT: must be identical to color blend state (independentBlend not enabled)
+	std::array<vk::PipelineColorBlendAttachmentState, 2> blendAttachments = {colorBlendAttachment, colorBlendAttachment};
+
 	vk::PipelineColorBlendStateCreateInfo colorBlending;
 	colorBlending.logicOpEnable = false;
 	colorBlending.logicOp = vk::LogicOp::eCopy;
-	colorBlending.attachmentCount = 1;
-	colorBlending.pAttachments = &colorBlendAttachment;
+	colorBlending.attachmentCount = static_cast<uint32_t>(blendAttachments.size());
+	colorBlending.pAttachments = blendAttachments.data();
 
 	vk::PipelineLayoutCreateInfo pipelineLayoutInfo;
 	std::array<vk::DescriptorSetLayout, 3> setLayouts = {
@@ -92,9 +95,10 @@ void PipelineFactory::createGraphicsPipeline(VulkanDevice& vulkanDevice, SwapCha
 
 	pipelineHandler.pipelineLayout = vk::raii::PipelineLayout(vulkanDevice.device, pipelineLayoutInfo);
 
+	std::array<vk::Format, 2> colorFormats = {swapChain.hdrFormat, vk::Format::eR16G16B16A16Sfloat};
 	vk::PipelineRenderingCreateInfo pipelineRenderingCreateInfo;
-	pipelineRenderingCreateInfo.colorAttachmentCount = 1;
-	pipelineRenderingCreateInfo.pColorAttachmentFormats = &swapChain.hdrFormat;
+	pipelineRenderingCreateInfo.colorAttachmentCount = static_cast<uint32_t>(colorFormats.size());
+	pipelineRenderingCreateInfo.pColorAttachmentFormats = colorFormats.data();
 	pipelineRenderingCreateInfo.depthAttachmentFormat = tManager.textures[swapChain.depthTextureHandle.id].format;
 
 	vk::PipelineDepthStencilStateCreateInfo depthStencil;

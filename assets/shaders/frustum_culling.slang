@@ -3,6 +3,8 @@
 struct CameraData
 {
     float4x4 cameraSpaceMatrix; // View * Projection
+    float4x4 viewMatrix;
+    float4x4 projMatrix;
     float4   cameraPositionAndPadding;
     float4   frustumPlanes[6];
 };
