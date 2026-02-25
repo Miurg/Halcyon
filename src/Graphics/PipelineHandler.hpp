@@ -12,6 +12,12 @@ public:
 	vk::raii::Pipeline fxaaPipeline = nullptr;
 	vk::raii::PipelineLayout fxaaPipelineLayout = nullptr;
 
+	vk::raii::Pipeline ssaoPipeline = nullptr;
+	vk::raii::PipelineLayout ssaoPipelineLayout = nullptr;
+
+	vk::raii::Pipeline ssaoBlurPipeline = nullptr;
+	vk::raii::PipelineLayout ssaoBlurPipelineLayout = nullptr;
+
 	vk::raii::Pipeline cullingPipeline = nullptr;
 	vk::raii::PipelineLayout cullingPipelineLayout = nullptr;
 };

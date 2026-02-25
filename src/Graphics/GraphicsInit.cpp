@@ -190,6 +190,11 @@ void GraphicsInit::initPipelines(GeneralManager& gm)
 	    swapChain->swapChainExtent.width, swapChain->swapChainExtent.height, swapChain->hdrFormat);
 	swapChain->viewNormalsTextureHandle = tManager->createOffscreenImage(
 	    swapChain->swapChainExtent.width, swapChain->swapChainExtent.height, vk::Format::eR16G16B16A16Sfloat);
+	swapChain->ssaoTextureHandle = tManager->createOffscreenImage(
+	    swapChain->swapChainExtent.width, swapChain->swapChainExtent.height, vk::Format::eR8Unorm);
+	swapChain->ssaoBlurTextureHandle = tManager->createOffscreenImage(
+	    swapChain->swapChainExtent.width, swapChain->swapChainExtent.height, vk::Format::eR8Unorm);
+	swapChain->ssaoNoiseTextureHandle = tManager->createSsaoNoiseTexture();
 	swapChain->depthTextureHandle =
 	    tManager->createDepthImage(swapChain->swapChainExtent.width, swapChain->swapChainExtent.height);
 	gm.addComponent<SwapChainComponent>(swapChainEntity, swapChain);
@@ -208,6 +213,8 @@ void GraphicsInit::initPipelines(GeneralManager& gm)
 	PipelineFactory::createGraphicsPipeline(*vulkanDevice, *swapChain, *dManager, *pipelineHandler, *tManager);
 	PipelineFactory::createShadowPipeline(*vulkanDevice, *swapChain, *dManager, *pipelineHandler, *tManager);
 	PipelineFactory::createFxaaPipeline(*vulkanDevice, *swapChain, *dManager, *pipelineHandler);
+	PipelineFactory::createSsaoPipeline(*vulkanDevice, *swapChain, *dManager, *pipelineHandler);
+	PipelineFactory::createSsaoBlurPipeline(*vulkanDevice, *swapChain, *dManager, *pipelineHandler);
 	PipelineFactory::createCullingPipeline(*vulkanDevice, *dManager, *pipelineHandler);
 	gm.addComponent<PipelineHandlerComponent>(signatureEntity, pipelineHandler);
 
@@ -336,8 +343,38 @@ void GraphicsInit::initScene(GeneralManager& gm)
 #pragma endregion
 
 #pragma region Post-Processing (FXAA)
-	globalDSetComponent->fxaaDSets = dManager->allocateFxaaDescriptorSet(*dManager->fxaaSetLayout);
+	globalDSetComponent->fxaaDSets = dManager->allocateFxaaDescriptorSet(*dManager->screenSpaceSetLayout);
 	dManager->updateSingleTextureDSet(globalDSetComponent->fxaaDSets, 0,
+	                                  tManager->textures[swap->offscreenTextureHandle.id].textureImageView,
+	                                  tManager->textures[swap->offscreenTextureHandle.id].textureSampler);
+	dManager->updateSingleTextureDSet(globalDSetComponent->fxaaDSets, 1,
+	                                  tManager->textures[swap->ssaoBlurTextureHandle.id].textureImageView,
+	                                  tManager->textures[swap->ssaoBlurTextureHandle.id].textureSampler);
+	dManager->updateSingleTextureDSet(globalDSetComponent->fxaaDSets, 2,
+	                                  tManager->textures[swap->offscreenTextureHandle.id].textureImageView,
+	                                  tManager->textures[swap->offscreenTextureHandle.id].textureSampler);
+#pragma endregion
+
+#pragma region SSAO Descriptor Sets
+	globalDSetComponent->ssaoDSets = dManager->allocateFxaaDescriptorSet(*dManager->screenSpaceSetLayout);
+	dManager->updateSingleTextureDSet(globalDSetComponent->ssaoDSets, 0,
+	                                  tManager->textures[swap->depthTextureHandle.id].textureImageView,
+	                                  tManager->textures[swap->depthTextureHandle.id].textureSampler);
+	dManager->updateSingleTextureDSet(globalDSetComponent->ssaoDSets, 1,
+	                                  tManager->textures[swap->viewNormalsTextureHandle.id].textureImageView,
+	                                  tManager->textures[swap->viewNormalsTextureHandle.id].textureSampler);
+	dManager->updateSingleTextureDSet(globalDSetComponent->ssaoDSets, 2,
+	                                  tManager->textures[swap->ssaoNoiseTextureHandle.id].textureImageView,
+	                                  tManager->textures[swap->ssaoNoiseTextureHandle.id].textureSampler);
+
+	globalDSetComponent->ssaoBlurDSets = dManager->allocateFxaaDescriptorSet(*dManager->screenSpaceSetLayout);
+	dManager->updateSingleTextureDSet(globalDSetComponent->ssaoBlurDSets, 0,
+	                                  tManager->textures[swap->ssaoTextureHandle.id].textureImageView,
+	                                  tManager->textures[swap->ssaoTextureHandle.id].textureSampler);
+	dManager->updateSingleTextureDSet(globalDSetComponent->ssaoBlurDSets, 1,
+	                                  tManager->textures[swap->offscreenTextureHandle.id].textureImageView,
+	                                  tManager->textures[swap->offscreenTextureHandle.id].textureSampler);
+	dManager->updateSingleTextureDSet(globalDSetComponent->ssaoBlurDSets, 2,
 	                                  tManager->textures[swap->offscreenTextureHandle.id].textureImageView,
 	                                  tManager->textures[swap->offscreenTextureHandle.id].textureSampler);
 #pragma endregion

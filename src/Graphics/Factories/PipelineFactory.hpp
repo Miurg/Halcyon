@@ -13,8 +13,8 @@ class PipelineFactory
 {
 public:
 	static void createGraphicsPipeline(VulkanDevice& vulkanDevice, SwapChain& swapChain,
-	                                   DescriptorManager& descriptorManager,
-	                                   PipelineHandler& pipelineHandler, TextureManager& tManager);
+	                                   DescriptorManager& descriptorManager, PipelineHandler& pipelineHandler,
+	                                   TextureManager& tManager);
 	static void createShadowPipeline(VulkanDevice& vulkanDevice, SwapChain& swapChain,
 	                                 DescriptorManager& descriptorManager, PipelineHandler& pipelineHandler,
 	                                 TextureManager& tManager);
@@ -24,4 +24,8 @@ public:
 	                                  PipelineHandler& pipelineHandler);
 	static void createFxaaPipeline(VulkanDevice& vulkanDevice, SwapChain& swapChain,
 	                               DescriptorManager& descriptorManager, PipelineHandler& pipelineHandler);
+	static void createSsaoPipeline(VulkanDevice& vulkanDevice, SwapChain& swapChain,
+	                               DescriptorManager& descriptorManager, PipelineHandler& pipelineHandler);
+	static void createSsaoBlurPipeline(VulkanDevice& vulkanDevice, SwapChain& swapChain,
+	                                   DescriptorManager& descriptorManager, PipelineHandler& pipelineHandler);
 };

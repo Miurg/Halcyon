@@ -277,7 +277,6 @@ FragOutput fragMain(VSOutput input)
     // === FINAL OUTPUT ===
     float outAlpha = (input.alphaMode == 2) ? albedo.a : 1.0;
 
-    // View-space normal for SSAO
     float3 viewNormal = mul((float3x3)camera[0].viewMatrix, finalNormal);
 
     FragOutput output;

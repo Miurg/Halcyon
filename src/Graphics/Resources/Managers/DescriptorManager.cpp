@@ -93,19 +93,22 @@ DescriptorManager::DescriptorManager(VulkanDevice& vulkanDevice) : vulkanDevice(
 	vk::DescriptorSetLayoutCreateInfo modelInfo({}, static_cast<uint32_t>(modelBindings.size()), modelBindings.data());
 	modelSetLayout = vk::raii::DescriptorSetLayout(vulkanDevice.device, modelInfo);
 
-	//===FXAA===
-	vk::DescriptorSetLayoutBinding samplerLayoutBinding{};
-	samplerLayoutBinding.binding = 0;
-	samplerLayoutBinding.descriptorCount = 1;
-	samplerLayoutBinding.descriptorType = vk::DescriptorType::eCombinedImageSampler;
-	samplerLayoutBinding.pImmutableSamplers = nullptr;
-	samplerLayoutBinding.stageFlags = vk::ShaderStageFlagBits::eFragment;
+	//===SCREEN SPACE (shared: FXAA, SSAO, SSAOBlur)===
+	std::array<vk::DescriptorSetLayoutBinding, 3> screenSpaceBindings{};
+	for (uint32_t i = 0; i < 3; i++)
+	{
+		screenSpaceBindings[i].binding = i;
+		screenSpaceBindings[i].descriptorCount = 1;
+		screenSpaceBindings[i].descriptorType = vk::DescriptorType::eCombinedImageSampler;
+		screenSpaceBindings[i].pImmutableSamplers = nullptr;
+		screenSpaceBindings[i].stageFlags = vk::ShaderStageFlagBits::eFragment;
+	}
 
 	vk::DescriptorSetLayoutCreateInfo layoutInfo{};
-	layoutInfo.bindingCount = 1;
-	layoutInfo.pBindings = &samplerLayoutBinding;
+	layoutInfo.bindingCount = static_cast<uint32_t>(screenSpaceBindings.size());
+	layoutInfo.pBindings = screenSpaceBindings.data();
 
-	fxaaSetLayout = vk::raii::DescriptorSetLayout(vulkanDevice.device, layoutInfo);
+	screenSpaceSetLayout = vk::raii::DescriptorSetLayout(vulkanDevice.device, layoutInfo);
 }
 
 DescriptorManager::~DescriptorManager()
@@ -114,7 +117,7 @@ DescriptorManager::~DescriptorManager()
 	globalSetLayout.~DescriptorSetLayout();
 	textureSetLayout.~DescriptorSetLayout();
 	modelSetLayout.~DescriptorSetLayout();
-	fxaaSetLayout.~DescriptorSetLayout();
+	screenSpaceSetLayout.~DescriptorSetLayout();
 	imguiPool.reset();
 }
 

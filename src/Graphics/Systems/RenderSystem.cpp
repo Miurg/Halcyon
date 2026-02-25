@@ -62,8 +62,14 @@ void RenderSystem::update(GeneralManager& gm)
 	    frameManager->frames[currentFrameComp->currentFrame].secondaryCommandBuffers[2], imageIndex, swapChain,
 	    pipelineHandler, currentFrameComp->currentFrame, *materialDSetComponent, *dManager, globalDSetComponent,
 	    bufferManager, objectDSetComponent, modelManager, textureManager);
+	CommandBufferFactory::recordSsaoCommandBuffer(
+	    frameManager->frames[currentFrameComp->currentFrame].secondaryCommandBuffers[3], swapChain, pipelineHandler,
+	    *dManager, globalDSetComponent->ssaoDSets, globalDSetComponent->globalDSets, textureManager);
+	CommandBufferFactory::recordSsaoBlurCommandBuffer(
+	    frameManager->frames[currentFrameComp->currentFrame].secondaryCommandBuffers[4], swapChain, pipelineHandler,
+	    *dManager, globalDSetComponent->ssaoBlurDSets, textureManager);
 	CommandBufferFactory::recordFxaaCommandBuffer(
-	    frameManager->frames[currentFrameComp->currentFrame].secondaryCommandBuffers[3], imageIndex, swapChain,
+	    frameManager->frames[currentFrameComp->currentFrame].secondaryCommandBuffers[5], imageIndex, swapChain,
 	    pipelineHandler, *dManager, globalDSetComponent->fxaaDSets);
 	CommandBufferFactory::executeSecondaryBuffers(
 	    frameManager->frames[currentFrameComp->currentFrame].commandBuffer,

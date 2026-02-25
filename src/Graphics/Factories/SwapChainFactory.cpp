@@ -132,6 +132,10 @@ void SwapChainFactory::recreateSwapChain(SwapChain& swapChain, VulkanDevice& dev
 	                       swapChain.swapChainExtent.height);
 	tManager.resizeTexture(swapChain.viewNormalsTextureHandle, swapChain.swapChainExtent.width,
 	                       swapChain.swapChainExtent.height);
+	tManager.resizeTexture(swapChain.ssaoTextureHandle, swapChain.swapChainExtent.width,
+	                       swapChain.swapChainExtent.height);
+	tManager.resizeTexture(swapChain.ssaoBlurTextureHandle, swapChain.swapChainExtent.width,
+	                       swapChain.swapChainExtent.height);
 	dManager.updateSingleTextureDSet(globalDSetComponent.fxaaDSets, 0,
 	                                 tManager.textures[swapChain.offscreenTextureHandle.id].textureImageView,
 	                                 tManager.textures[swapChain.offscreenTextureHandle.id].textureSampler);

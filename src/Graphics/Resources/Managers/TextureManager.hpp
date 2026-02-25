@@ -31,6 +31,7 @@ public:
 	TextureHandle createOffscreenImage(uint32_t resolutionWidth, uint32_t resolutionHeight, vk::Format offscreenFormat);
 	void createOffscreenSampler(Texture& texture);
 	TextureHandle createShadowMap(uint32_t shadowResolutionX, uint32_t shadowResolutionY);
+	TextureHandle createSsaoNoiseTexture();
 	void createImageView(Texture& texture, vk::Format format, vk::ImageAspectFlags aspectFlags);
 	void createTextureSampler(Texture& texture);
 	void createShadowSampler(Texture& texture);

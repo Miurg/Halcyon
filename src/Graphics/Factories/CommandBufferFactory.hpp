@@ -36,6 +36,13 @@ public:
 	static void recordFxaaCommandBuffer(vk::raii::CommandBuffer& secondaryCmd, uint32_t imageIndex, SwapChain& swapChain,
 	                                    PipelineHandler& pipelineHandler, DescriptorManagerComponent& dManager,
 	                                    DSetHandle fxaaDescriptorSetIndex);
+	static void recordSsaoCommandBuffer(vk::raii::CommandBuffer& secondaryCmd, SwapChain& swapChain,
+	                                    PipelineHandler& pipelineHandler, DescriptorManagerComponent& dManager,
+	                                    DSetHandle ssaoDescriptorSetIndex, DSetHandle globalDescriptorSetIndex,
+	                                    TextureManager& tManager);
+	static void recordSsaoBlurCommandBuffer(vk::raii::CommandBuffer& secondaryCmd, SwapChain& swapChain,
+	                                        PipelineHandler& pipelineHandler, DescriptorManagerComponent& dManager,
+	                                        DSetHandle ssaoBlurDescriptorSetIndex, TextureManager& tManager);
 	static void executeSecondaryBuffers(vk::raii::CommandBuffer& primaryCommandBuffer,
 	                                    const vk::raii::CommandBuffers& secondaryBuffers);
 	static void transitionImageLayout(vk::raii::CommandBuffer& commandBuffer, vk::Image image, vk::ImageLayout oldLayout,

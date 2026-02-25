@@ -17,7 +17,7 @@ public:
 	vk::raii::DescriptorSetLayout globalSetLayout = nullptr;
 	vk::raii::DescriptorSetLayout textureSetLayout = nullptr;
 	vk::raii::DescriptorSetLayout modelSetLayout = nullptr;
-	vk::raii::DescriptorSetLayout fxaaSetLayout = nullptr;
+	vk::raii::DescriptorSetLayout screenSpaceSetLayout = nullptr; // Shared layout for FXAA, SSAO, SSAOBlur (3 samplers)
 
 	DSetHandle allocateBindlessTextureDSet();
 	void updateBindlessTextureSet(vk::ImageView textureImageView, vk::Sampler textureSampler,

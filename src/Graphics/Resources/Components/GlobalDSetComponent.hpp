@@ -7,4 +7,6 @@ struct GlobalDSetComponent
 	BufferHandle cameraBuffers;
 	BufferHandle sunCameraBuffers;
 	DSetHandle fxaaDSets;
+	DSetHandle ssaoDSets;
+	DSetHandle ssaoBlurDSets;
 };

@@ -110,10 +110,24 @@ add_slang_shader_target(
     ENTRY computeMain
 )
 
+add_slang_shader_target(
+    ssao
+    SOURCES "assets/shaders/SSAO.slang"
+    ENTRY vertMain fragMain
+)
+
+add_slang_shader_target(
+    ssao_blur
+    SOURCES "assets/shaders/SSAOBlur.slang"
+    ENTRY vertMain fragMain
+)
+
 add_dependencies("${CMAKE_PROJECT_NAME}" shader)
 add_dependencies("${CMAKE_PROJECT_NAME}" shadow)
 add_dependencies("${CMAKE_PROJECT_NAME}" fxaa)
 add_dependencies("${CMAKE_PROJECT_NAME}" frustum_culling)
+add_dependencies("${CMAKE_PROJECT_NAME}" ssao)
+add_dependencies("${CMAKE_PROJECT_NAME}" ssao_blur)
 
 add_custom_command(
     TARGET ${PROJECT_NAME} POST_BUILD

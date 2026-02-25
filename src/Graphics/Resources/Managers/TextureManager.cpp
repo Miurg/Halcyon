@@ -2,6 +2,8 @@
 #include "DescriptorManager.hpp"
 #include "BufferManager.hpp"
 #include "../Factories/TextureUploader.hpp"
+#include <random>
+#include <cmath>
 
 TextureManager::TextureManager(VulkanDevice& vulkanDevice, VmaAllocator allocator)
     : vulkanDevice(vulkanDevice), allocator(allocator)
@@ -90,6 +92,46 @@ TextureHandle TextureManager::createShadowMap(uint32_t shadowResolutionX, uint32
 	                            VMA_MEMORY_USAGE_AUTO, texture);
 	TextureManager::createImageView(texture, shadowFormat, vk::ImageAspectFlagBits::eDepth);
 	TextureManager::createShadowSampler(texture);
+	return TextureHandle{static_cast<int>(textures.size() - 1)};
+}
+
+TextureHandle TextureManager::createSsaoNoiseTexture()
+{
+	// 4x4 RGBA8
+	std::mt19937 rng(42);
+	std::uniform_real_distribution<float> dist(-1.0f, 1.0f);
+	unsigned char pixels[4 * 4 * 4];
+	for (int i = 0; i < 16; i++)
+	{
+		float x = dist(rng);
+		float y = dist(rng);
+		float len = std::sqrt(x * x + y * y);
+		if (len > 0.0001f)
+		{
+			x /= len;
+			y /= len;
+		}
+		pixels[i * 4 + 0] = static_cast<unsigned char>((x * 0.5f + 0.5f) * 255.0f);
+		pixels[i * 4 + 1] = static_cast<unsigned char>((y * 0.5f + 0.5f) * 255.0f);
+		pixels[i * 4 + 2] = 0;
+		pixels[i * 4 + 3] = 255;
+	}
+
+	textures.push_back(Texture());
+	Texture& texture = textures.back();
+	createImage(4, 4, vk::Format::eR8G8B8A8Unorm, vk::ImageTiling::eOptimal,
+	            vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled, VMA_MEMORY_USAGE_AUTO, texture);
+	TextureUploader::uploadTextureFromBuffer(pixels, 4, 4, texture, allocator, vulkanDevice);
+	createImageView(texture, vk::Format::eR8G8B8A8Unorm, vk::ImageAspectFlagBits::eColor);
+
+	vk::SamplerCreateInfo samplerInfo;
+	samplerInfo.magFilter = vk::Filter::eNearest;
+	samplerInfo.minFilter = vk::Filter::eNearest;
+	samplerInfo.addressModeU = vk::SamplerAddressMode::eRepeat;
+	samplerInfo.addressModeV = vk::SamplerAddressMode::eRepeat;
+	samplerInfo.addressModeW = vk::SamplerAddressMode::eRepeat;
+	texture.textureSampler = (*vulkanDevice.device).createSampler(samplerInfo);
+
 	return TextureHandle{static_cast<int>(textures.size() - 1)};
 }
 

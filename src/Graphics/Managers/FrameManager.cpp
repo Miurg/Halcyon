@@ -20,7 +20,7 @@ int FrameManager::initFrameData()
 	vk::CommandBufferAllocateInfo allocInfoSecondary;
 	allocInfoSecondary.commandPool = vulkanDevice.commandPool;
 	allocInfoSecondary.level = vk::CommandBufferLevel::eSecondary;
-	allocInfoSecondary.commandBufferCount = 4;
+	allocInfoSecondary.commandBufferCount = 6; //shadow, cull, main, ssao, ssaoblur, fxaa
 
 	vk::raii::CommandBuffers secondaryBuffers(vulkanDevice.device, allocInfoSecondary);
 	frameData.secondaryCommandBuffers = std::move(secondaryBuffers);
@@ -30,11 +30,11 @@ int FrameManager::initFrameData()
 
 FrameManager::FrameManager(VulkanDevice& vulkanDevice) : vulkanDevice(vulkanDevice) {}
 
-FrameManager::~FrameManager() 
+FrameManager::~FrameManager()
 {
-	if (!frames.empty()) 
+	if (!frames.empty())
 	{
-		for (auto& frame : frames) 
+		for (auto& frame : frames)
 		{
 			frame.commandBuffer.clear();
 			frame.renderFinishedSemaphore.clear();
