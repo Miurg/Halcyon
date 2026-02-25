@@ -385,8 +385,8 @@ void CommandBufferFactory::recordSsaoCommandBuffer(vk::raii::CommandBuffer& seco
 		float bias;
 		float power;
 	} push;
-	push.kernelSize = 32;
-	push.radius = 2.0f;
+	push.kernelSize = 16;
+	push.radius = 8.0f;
 	push.bias = 0.3f;
 	push.power = 6.0f;
 
