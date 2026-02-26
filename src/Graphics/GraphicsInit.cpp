@@ -23,6 +23,7 @@
 #include "Resources/Components/GlobalDSetComponent.hpp"
 #include "Resources/Components/ModelDSetComponent.hpp"
 #include "Components/DrawInfoComponent.hpp"
+#include "Components/SsaoSettingsComponent.hpp"
 
 #include "Components/NameComponent.hpp"
 #include "Components/CameraComponent.hpp"
@@ -380,6 +381,13 @@ void GraphicsInit::initScene(GeneralManager& gm)
 	dManager->updateSingleTextureDSet(globalDSetComponent->ssaoBlurDSets, 2,
 	                                  tManager->textures[swap->offscreenTextureHandle.id].textureImageView,
 	                                  tManager->textures[swap->offscreenTextureHandle.id].textureSampler);
+#pragma endregion
+
+#pragma region SSAO Settings
+	Entity ssaoSettingsEntity = gm.createEntity();
+	gm.addComponent<NameComponent>(ssaoSettingsEntity, "SSAO Settings");
+	gm.registerContext<SsaoSettingsContext>(ssaoSettingsEntity);
+	gm.addComponent<SsaoSettingsComponent>(ssaoSettingsEntity);
 #pragma endregion
 
 #ifdef _DEBUG

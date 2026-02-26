@@ -229,7 +229,7 @@ void CommandBufferFactory::recordMainCommandBuffer(vk::raii::CommandBuffer& seco
 		    commandStride);
 	}
 
-	// Alpha test pass 
+	// Alpha test pass
 	uint32_t alphaTestCount = drawInfo.totalDrawCount - opaqueCount;
 	if (alphaTestCount > 0)
 	{
@@ -339,7 +339,8 @@ void CommandBufferFactory::recordSsaoCommandBuffer(vk::raii::CommandBuffer& seco
                                                    PipelineHandler& pipelineHandler,
                                                    DescriptorManagerComponent& dManager,
                                                    DSetHandle ssaoDescriptorSetIndex,
-                                                   DSetHandle globalDescriptorSetIndex, TextureManager& tManager)
+                                                   DSetHandle globalDescriptorSetIndex, TextureManager& tManager,
+                                                   const SsaoSettingsComponent& ssaoSettings)
 {
 	vk::CommandBufferInheritanceInfo inheritanceInfo = {};
 	vk::CommandBufferBeginInfo beginInfo;
@@ -388,11 +389,15 @@ void CommandBufferFactory::recordSsaoCommandBuffer(vk::raii::CommandBuffer& seco
 		float radius;
 		float bias;
 		float power;
+		int numDirections;
+		float maxScreenRadius;
 	} push;
-	push.kernelSize = 16;
-	push.radius = 8.0f;
-	push.bias = 0.3f;
-	push.power = 6.0f;
+	push.kernelSize = ssaoSettings.kernelSize;
+	push.radius = ssaoSettings.radius;
+	push.bias = ssaoSettings.bias;
+	push.power = ssaoSettings.power;
+	push.numDirections = ssaoSettings.numDirections;
+	push.maxScreenRadius = ssaoSettings.maxScreenRadius;
 
 	secondaryCmd.pushConstants<SsaoPushConstants>(*pipelineHandler.ssaoPipelineLayout,
 	                                              vk::ShaderStageFlagBits::eFragment, 0, push);

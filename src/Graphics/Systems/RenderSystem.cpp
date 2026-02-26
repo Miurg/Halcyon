@@ -17,6 +17,7 @@
 #include "../Managers/FrameManager.hpp"
 #include "../Components/FrameManagerComponent.hpp"
 #include "../Components/DrawInfoComponent.hpp"
+#include "../Components/SsaoSettingsComponent.hpp"
 
 void RenderSystem::onRegistered(GeneralManager& gm)
 {
@@ -48,6 +49,7 @@ void RenderSystem::update(GeneralManager& gm)
 	GlobalDSetComponent* globalDSetComponent = gm.getContextComponent<MainDSetsContext, GlobalDSetComponent>();
 	ModelDSetComponent* objectDSetComponent = gm.getContextComponent<MainDSetsContext, ModelDSetComponent>();
 	DrawInfoComponent* drawInfo = gm.getContextComponent<CurrentFrameContext, DrawInfoComponent>();
+	SsaoSettingsComponent* ssaoSettings = gm.getContextComponent<SsaoSettingsContext, SsaoSettingsComponent>();
 	uint32_t imageIndex = gm.getContextComponent<FrameImageContext, FrameImageComponent>()->imageIndex;
 	if (!currentFrameComp->frameValid) return;
 
@@ -66,7 +68,7 @@ void RenderSystem::update(GeneralManager& gm)
 	    bufferManager, objectDSetComponent, modelManager, textureManager, *drawInfo);
 	CommandBufferFactory::recordSsaoCommandBuffer(
 	    frameManager->frames[currentFrameComp->currentFrame].secondaryCommandBuffers[3], swapChain, pipelineHandler,
-	    *dManager, globalDSetComponent->ssaoDSets, globalDSetComponent->globalDSets, textureManager);
+	    *dManager, globalDSetComponent->ssaoDSets, globalDSetComponent->globalDSets, textureManager, *ssaoSettings);
 	CommandBufferFactory::recordSsaoBlurCommandBuffer(
 	    frameManager->frames[currentFrameComp->currentFrame].secondaryCommandBuffers[4], swapChain, pipelineHandler,
 	    *dManager, globalDSetComponent->ssaoBlurDSets, textureManager);

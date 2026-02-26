@@ -514,7 +514,8 @@ void PipelineFactory::createSsaoPipeline(VulkanDevice& vulkanDevice, SwapChain& 
 	vk::PushConstantRange pushConstantRange{};
 	pushConstantRange.stageFlags = vk::ShaderStageFlagBits::eFragment;
 	pushConstantRange.offset = 0;
-	pushConstantRange.size = 16; // int kernelSize + float radius + float bias + float power
+	pushConstantRange.size =
+	    24; // int kernelSize + float radius + float bias + float power + int numDirections + float maxScreenRadius
 
 	std::array<vk::DescriptorSetLayout, 2> ssaoSetLayouts = {*descriptorManager.screenSpaceSetLayout,
 	                                                         *descriptorManager.globalSetLayout};

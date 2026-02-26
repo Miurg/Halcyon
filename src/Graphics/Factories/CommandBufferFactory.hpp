@@ -13,6 +13,7 @@
 #include "../Resources/Managers/TextureManager.hpp"
 #include "../Resources/Managers/ModelManager.hpp"
 #include "../Components/DrawInfoComponent.hpp"
+#include "../Components/SsaoSettingsComponent.hpp"
 
 // Records secondary command buffers for each render pass (shadow, cull, main, FXAA).
 class CommandBufferFactory
@@ -42,7 +43,7 @@ public:
 	static void recordSsaoCommandBuffer(vk::raii::CommandBuffer& secondaryCmd, SwapChain& swapChain,
 	                                    PipelineHandler& pipelineHandler, DescriptorManagerComponent& dManager,
 	                                    DSetHandle ssaoDescriptorSetIndex, DSetHandle globalDescriptorSetIndex,
-	                                    TextureManager& tManager);
+	                                    TextureManager& tManager, const SsaoSettingsComponent& ssaoSettings);
 	static void recordSsaoBlurCommandBuffer(vk::raii::CommandBuffer& secondaryCmd, SwapChain& swapChain,
 	                                        PipelineHandler& pipelineHandler, DescriptorManagerComponent& dManager,
 	                                        DSetHandle ssaoBlurDescriptorSetIndex, TextureManager& tManager);

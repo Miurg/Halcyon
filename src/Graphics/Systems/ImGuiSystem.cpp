@@ -17,6 +17,7 @@
 #include "../Components/CurrentFrameComponent.hpp"
 #include "../../Platform/PlatformContexts.hpp"
 #include "../../Platform/Components/DeltaTimeComponent.hpp"
+#include "../Components/SsaoSettingsComponent.hpp"
 
 void ImGuiSystem::onRegistered(GeneralManager& gm)
 {
@@ -125,10 +126,13 @@ void ImGuiSystem::update(GeneralManager& gm)
 		ImGui::DragFloat("FOV", &mainCamera->fov, 0.1f, 1.0f, 179.0f);
 		ImGui::DragFloat("Near Plane", &mainCamera->zNear, 0.01f, 0.001f, 10.0f);
 		ImGui::DragFloat("Far Plane", &mainCamera->zFar, 1.0f, 10.0f, 10000.0f);
+		ImGui::DragFloat("Ortho size", &mainCamera->orthoSize, 0.1f, 0.1f, 100.0f);
 	}
-	ImGui::Text("FPS: %d", fps);
-	frameCount++;
 	float deltaTime = gm.getContextComponent<DeltaTimeContext, DeltaTimeComponent>()->deltaTime;
+
+	ImGui::Text("FPS: %d", fps);
+	ImGui::Text("Frame time: %.5f", deltaTime);
+	frameCount++;
 	time += deltaTime;
 	if (time >= 1.0f)
 	{
@@ -268,6 +272,7 @@ void ImGuiSystem::update(GeneralManager& gm)
 				ImGui::DragFloat("FOV", &camera->fov, 0.1f, 1.0f, 179.0f);
 				ImGui::DragFloat("Near Plane", &camera->zNear, 0.01f, 0.001f, 10.0f);
 				ImGui::DragFloat("Far Plane", &camera->zFar, 1.0f, 10.0f, 10000.0f);
+				ImGui::DragFloat("Ortho size", &camera->orthoSize, 0.1f, 0.1f, 100.0f);
 			}
 		}
 
@@ -278,6 +283,20 @@ void ImGuiSystem::update(GeneralManager& gm)
 			{
 				ImGui::DragFloat("Movement Speed", &control->movementSpeed, 0.1f, 0.0f, 100.0f);
 				ImGui::DragFloat("Mouse Sensitivity", &control->mouseSensitivity, 0.01f, 0.0f, 5.0f);
+			}
+		}
+
+		// SSAO Settings Component
+		if (auto* ssao = gm.getComponent<SsaoSettingsComponent>(selectedEntity))
+		{
+			if (ImGui::CollapsingHeader("SSAO Settings", ImGuiTreeNodeFlags_DefaultOpen))
+			{
+				ImGui::SliderInt("Kernel Size", &ssao->kernelSize, 1, 32);
+				ImGui::DragFloat("Radius", &ssao->radius, 0.1f, 0.1f, 50.0f);
+				ImGui::DragFloat("Bias", &ssao->bias, 0.01f, 0.0f, 1.0f);
+				ImGui::DragFloat("Power", &ssao->power, 0.1f, 0.1f, 20.0f);
+				ImGui::SliderInt("Num Directions", &ssao->numDirections, 1, 16);
+				ImGui::DragFloat("Max Screen Radius", &ssao->maxScreenRadius, 0.01f, 0.01f, 1.0f);
 			}
 		}
 	}

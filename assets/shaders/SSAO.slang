@@ -17,6 +17,8 @@ struct PushConstants
     float radius;
     float bias;
     float power;
+    int   numDirections;
+    float maxScreenRadius;
 };
 [[vk::push_constant]] ConstantBuffer<PushConstants> pc;
 
@@ -74,7 +76,7 @@ float4 fragMain(VSOutput input) : SV_Target
 
     float4x4 proj = camera[0].projMatrix;
     float screenRadius = (pc.radius * proj[0][0]) / abs(P.z);
-    screenRadius = min(screenRadius, 0.5); 
+    screenRadius = min(screenRadius, pc.maxScreenRadius); 
     
     if(screenRadius < 0.001) return float4(1.0, 1.0, 1.0, 1.0);
 
@@ -87,8 +89,8 @@ float4 fragMain(VSOutput input) : SV_Target
     
     float jitter = ign;
 
-    const int NUM_DIRECTIONS = 6;
-    int numSteps = clamp(int(screenRadius * 30.0), 3, 8);
+    int NUM_DIRECTIONS = pc.numDirections;
+    int numSteps = pc.kernelSize;
     
     float stepUV = screenRadius / (float(numSteps) + 1.0);
     
