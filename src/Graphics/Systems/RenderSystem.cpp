@@ -16,6 +16,7 @@
 #include "../Components/ModelManagerComponent.hpp"
 #include "../Managers/FrameManager.hpp"
 #include "../Components/FrameManagerComponent.hpp"
+#include "../Components/DrawInfoComponent.hpp"
 
 void RenderSystem::onRegistered(GeneralManager& gm)
 {
@@ -46,6 +47,7 @@ void RenderSystem::update(GeneralManager& gm)
 	    gm.getContextComponent<DescriptorManagerContext, DescriptorManagerComponent>();
 	GlobalDSetComponent* globalDSetComponent = gm.getContextComponent<MainDSetsContext, GlobalDSetComponent>();
 	ModelDSetComponent* objectDSetComponent = gm.getContextComponent<MainDSetsContext, ModelDSetComponent>();
+	DrawInfoComponent* drawInfo = gm.getContextComponent<CurrentFrameContext, DrawInfoComponent>();
 	uint32_t imageIndex = gm.getContextComponent<FrameImageContext, FrameImageComponent>()->imageIndex;
 	if (!currentFrameComp->frameValid) return;
 
@@ -57,11 +59,11 @@ void RenderSystem::update(GeneralManager& gm)
 	    textureManager, modelManager);
 	CommandBufferFactory::recordCullCommandBuffer(
 	    frameManager->frames[currentFrameComp->currentFrame].secondaryCommandBuffers[1], pipelineHandler,
-	    currentFrameComp->currentFrame, *dManager, globalDSetComponent, objectDSetComponent, modelManager);
+	    currentFrameComp->currentFrame, *dManager, globalDSetComponent, objectDSetComponent, modelManager, *drawInfo);
 	CommandBufferFactory::recordMainCommandBuffer(
 	    frameManager->frames[currentFrameComp->currentFrame].secondaryCommandBuffers[2], imageIndex, swapChain,
 	    pipelineHandler, currentFrameComp->currentFrame, *materialDSetComponent, *dManager, globalDSetComponent,
-	    bufferManager, objectDSetComponent, modelManager, textureManager);
+	    bufferManager, objectDSetComponent, modelManager, textureManager, *drawInfo);
 	CommandBufferFactory::recordSsaoCommandBuffer(
 	    frameManager->frames[currentFrameComp->currentFrame].secondaryCommandBuffers[3], swapChain, pipelineHandler,
 	    *dManager, globalDSetComponent->ssaoDSets, globalDSetComponent->globalDSets, textureManager);

@@ -15,6 +15,9 @@ public:
 	static void createGraphicsPipeline(VulkanDevice& vulkanDevice, SwapChain& swapChain,
 	                                   DescriptorManager& descriptorManager, PipelineHandler& pipelineHandler,
 	                                   TextureManager& tManager);
+	static void createAlphaTestPipeline(VulkanDevice& vulkanDevice, SwapChain& swapChain,
+	                                    DescriptorManager& descriptorManager, PipelineHandler& pipelineHandler,
+	                                    TextureManager& tManager);
 	static void createShadowPipeline(VulkanDevice& vulkanDevice, SwapChain& swapChain,
 	                                 DescriptorManager& descriptorManager, PipelineHandler& pipelineHandler,
 	                                 TextureManager& tManager);

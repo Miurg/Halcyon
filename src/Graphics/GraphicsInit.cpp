@@ -22,6 +22,7 @@
 #include "Components/PipelineHandlerComponent.hpp"
 #include "Resources/Components/GlobalDSetComponent.hpp"
 #include "Resources/Components/ModelDSetComponent.hpp"
+#include "Components/DrawInfoComponent.hpp"
 
 #include "Components/NameComponent.hpp"
 #include "Components/CameraComponent.hpp"
@@ -163,6 +164,7 @@ void GraphicsInit::initFrameData(GeneralManager& gm)
 	}
 	gm.addComponent<FrameDataComponent>(frameDataEntity, 0);
 	gm.addComponent<CurrentFrameComponent>(frameDataEntity);
+	gm.addComponent<DrawInfoComponent>(frameDataEntity);
 
 	// Frame Images
 	Entity frameImageEntity = gm.createEntity();
@@ -211,6 +213,7 @@ void GraphicsInit::initPipelines(GeneralManager& gm)
 	gm.registerContext<MainSignatureContext>(signatureEntity);
 	PipelineHandler* pipelineHandler = new PipelineHandler();
 	PipelineFactory::createGraphicsPipeline(*vulkanDevice, *swapChain, *dManager, *pipelineHandler, *tManager);
+	PipelineFactory::createAlphaTestPipeline(*vulkanDevice, *swapChain, *dManager, *pipelineHandler, *tManager);
 	PipelineFactory::createShadowPipeline(*vulkanDevice, *swapChain, *dManager, *pipelineHandler, *tManager);
 	PipelineFactory::createFxaaPipeline(*vulkanDevice, *swapChain, *dManager, *pipelineHandler);
 	PipelineFactory::createSsaoPipeline(*vulkanDevice, *swapChain, *dManager, *pipelineHandler);

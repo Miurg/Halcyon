@@ -83,7 +83,8 @@ void CommandBufferFactory::recordCullCommandBuffer(vk::raii::CommandBuffer& seco
                                                    PipelineHandler& pipelineHandler, uint32_t currentFrame,
                                                    DescriptorManagerComponent& dManager,
                                                    GlobalDSetComponent* globalDSetComponent,
-                                                   ModelDSetComponent* objectDSetComponent, ModelManager& mManager)
+                                                   ModelDSetComponent* objectDSetComponent, ModelManager& mManager,
+                                                   const DrawInfoComponent& drawInfo)
 {
 	// --- Step 1.5: CULLING PASS ---
 	vk::CommandBufferInheritanceInfo inheritanceInfo = {};
@@ -102,24 +103,16 @@ void CommandBufferFactory::recordCullCommandBuffer(vk::raii::CommandBuffer& seco
 	    vk::PipelineBindPoint::eCompute, *pipelineHandler.cullingPipelineLayout, 1,
 	    dManager.descriptorManager->descriptorSets[objectDSetComponent->modelBufferDSet.id][currentFrame], nullptr);
 
-	uint32_t currentInstanceOffset = 0;
-	for (int i = 0; i < mManager.meshes.size(); i++)
-	{
-		for (int j = 0; j < mManager.meshes[i].primitives.size(); j++)
-		{
-			currentInstanceOffset += mManager.meshes[i].entitiesSubscribed;
-		}
-	}
 	struct PushConsts
 	{
 		uint32_t objectCount;
 	} push;
 
-	push.objectCount = currentInstanceOffset;
+	push.objectCount = drawInfo.totalObjectCount;
 
 	secondaryCmd.pushConstants<PushConsts>(*pipelineHandler.cullingPipelineLayout, vk::ShaderStageFlagBits::eCompute, 0,
 	                                       push);
-	uint32_t groupCountX = (currentInstanceOffset + 63) / 64;
+	uint32_t groupCountX = (drawInfo.totalObjectCount + 63) / 64;
 	if (groupCountX > 0) secondaryCmd.dispatch(groupCountX, 1, 1);
 
 	vk::MemoryBarrier2 barrier;
@@ -137,11 +130,14 @@ void CommandBufferFactory::recordCullCommandBuffer(vk::raii::CommandBuffer& seco
 	secondaryCmd.end();
 }
 
-void CommandBufferFactory::recordMainCommandBuffer(
-    vk::raii::CommandBuffer& secondaryCmd, uint32_t imageIndex, SwapChain& swapChain, PipelineHandler& pipelineHandler,
-    uint32_t currentFrame, BindlessTextureDSetComponent& bindlessTextureDSetComponent,
-    DescriptorManagerComponent& dManager, GlobalDSetComponent* globalDSetComponent, BufferManager& bManager,
-    ModelDSetComponent* objectDSetComponent, ModelManager& mManager, TextureManager& tManager)
+void CommandBufferFactory::recordMainCommandBuffer(vk::raii::CommandBuffer& secondaryCmd, uint32_t imageIndex,
+                                                   SwapChain& swapChain, PipelineHandler& pipelineHandler,
+                                                   uint32_t currentFrame,
+                                                   BindlessTextureDSetComponent& bindlessTextureDSetComponent,
+                                                   DescriptorManagerComponent& dManager,
+                                                   GlobalDSetComponent* globalDSetComponent, BufferManager& bManager,
+                                                   ModelDSetComponent* objectDSetComponent, ModelManager& mManager,
+                                                   TextureManager& tManager, const DrawInfoComponent& drawInfo)
 {
 	vk::CommandBufferInheritanceInfo inheritanceInfo = {};
 
@@ -202,8 +198,6 @@ void CommandBufferFactory::recordMainCommandBuffer(
 
 	secondaryCmd.beginRendering(renderingInfo);
 
-	secondaryCmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipelineHandler.graphicsPipeline);
-
 	secondaryCmd.setViewport(0, vk::Viewport(0.0f, 0.0f, static_cast<float>(swapChain.swapChainExtent.width),
 	                                         static_cast<float>(swapChain.swapChainExtent.height), 0.0f, 1.0f));
 	secondaryCmd.setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), swapChain.swapChainExtent));
@@ -219,21 +213,31 @@ void CommandBufferFactory::recordMainCommandBuffer(
 	    dManager.descriptorManager->descriptorSets[bindlessTextureDSetComponent.bindlessTextureSet.id][0], nullptr);
 
 	uint32_t currentBuffer = -1;
-	uint32_t drawCommandIndex = 0;
 	const uint32_t commandStride = sizeof(VkDrawIndexedIndirectCommand);
-	for (int i = 0; i < mManager.meshes.size(); i++)
-	{
-		uint32_t primitiveCount = mManager.meshes[i].primitives.size();
-
-		drawCommandIndex += primitiveCount;
-	}
 	secondaryCmd.bindVertexBuffers(0, mManager.vertexIndexBuffers[mManager.meshes[0].vertexIndexBufferID].vertexBuffer,
 	                               {0});
 	secondaryCmd.bindIndexBuffer(mManager.vertexIndexBuffers[mManager.meshes[0].vertexIndexBufferID].indexBuffer, 0,
 	                             vk::IndexType::eUint32);
 
-	secondaryCmd.drawIndexedIndirect(bManager.buffers[objectDSetComponent->indirectDrawBuffer.id].buffer[currentFrame],
-	                                 0, drawCommandIndex, commandStride);
+	// Opaque pass
+	uint32_t opaqueCount = drawInfo.opaqueDrawCount;
+	if (opaqueCount > 0)
+	{
+		secondaryCmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipelineHandler.graphicsPipeline);
+		secondaryCmd.drawIndexedIndirect(
+		    bManager.buffers[objectDSetComponent->indirectDrawBuffer.id].buffer[currentFrame], 0, opaqueCount,
+		    commandStride);
+	}
+
+	// Alpha test pass 
+	uint32_t alphaTestCount = drawInfo.totalDrawCount - opaqueCount;
+	if (alphaTestCount > 0)
+	{
+		secondaryCmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipelineHandler.alphaTestPipeline);
+		secondaryCmd.drawIndexedIndirect(
+		    bManager.buffers[objectDSetComponent->indirectDrawBuffer.id].buffer[currentFrame],
+		    opaqueCount * commandStride, alphaTestCount, commandStride);
+	}
 	secondaryCmd.endRendering();
 
 	transitionImageLayout(secondaryCmd, tManager.textures[swapChain.offscreenTextureHandle.id].textureImage,

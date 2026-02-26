@@ -12,6 +12,7 @@
 #include "../Resources/Components/GlobalDSetComponent.hpp"
 #include "../Resources/Managers/TextureManager.hpp"
 #include "../Resources/Managers/ModelManager.hpp"
+#include "../Components/DrawInfoComponent.hpp"
 
 // Records secondary command buffers for each render pass (shadow, cull, main, FXAA).
 class CommandBufferFactory
@@ -25,14 +26,16 @@ public:
 	static void recordCullCommandBuffer(vk::raii::CommandBuffer& secondaryCmd, PipelineHandler& pipelineHandler,
 	                                    uint32_t currentFrame, DescriptorManagerComponent& dManager,
 	                                    GlobalDSetComponent* globalDSetComponent,
-	                                    ModelDSetComponent* objectDSetComponent, ModelManager& mManager);
+	                                    ModelDSetComponent* objectDSetComponent, ModelManager& mManager,
+	                                    const DrawInfoComponent& drawInfo);
 
 	static void recordMainCommandBuffer(vk::raii::CommandBuffer& secondaryCmd, uint32_t imageIndex, SwapChain& swapChain,
 	                                    PipelineHandler& pipelineHandler, uint32_t currentFrame,
 	                                    BindlessTextureDSetComponent& bindlessTextureDSetComponent,
 	                                    DescriptorManagerComponent& dManager, GlobalDSetComponent* globalDSetComponent,
 	                                    BufferManager& bManager, ModelDSetComponent* objectDSetComponent,
-	                                    ModelManager& mManager, TextureManager& tManager);
+	                                    ModelManager& mManager, TextureManager& tManager,
+	                                    const DrawInfoComponent& drawInfo);
 	static void recordFxaaCommandBuffer(vk::raii::CommandBuffer& secondaryCmd, uint32_t imageIndex, SwapChain& swapChain,
 	                                    PipelineHandler& pipelineHandler, DescriptorManagerComponent& dManager,
 	                                    DSetHandle fxaaDescriptorSetIndex);

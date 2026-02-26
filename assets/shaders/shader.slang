@@ -62,6 +62,9 @@ struct MaterialData
 static const float PI            = 3.14159265359f;
 static const float MIN_ROUGHNESS = 0.005f;
 
+// 0 == opaque pass, 1 == alpha-test pass
+[[vk::constant_id(0)]] const int ALPHA_TEST_ENABLED = 0;
+
 // === Vertex I/O ===
 struct VSInput
 {
@@ -103,7 +106,7 @@ VSOutput vertMain(VSInput input, uint instanceID : SV_InstanceID, uint baseInsta
 
     float4 worldPos = mul(modelMatrix, float4(input.inPosition, 1.0));
 
-    // Normal matrix (работает отлично при uniform scale)
+    // Normal matrix 
     float3x3 normalMatrix = (float3x3)modelMatrix;
 
     float3 N = normalize(mul(normalMatrix, input.inNormal));
@@ -214,10 +217,10 @@ FragOutput fragMain(VSOutput input)
     // === MATERIAL SAMPLING ===
     float4 albedo = textureArray[NonUniformResourceIndex(input.textureIndex)].SampleGrad(input.fragTexCoord, dx, dy);
 
-    // Alpha test (MASK)
-    if (input.alphaMode == 1)
+    // Only in alpha test pipeline 
+    if (ALPHA_TEST_ENABLED == 1)
     {
-        if (albedo.a < input.alphaCutoff)
+        if (input.alphaMode == 1 && albedo.a < input.alphaCutoff)
             discard;
     }
 
