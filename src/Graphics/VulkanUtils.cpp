@@ -117,17 +117,19 @@ std::vector<char> VulkanUtils::readFile(const std::string& filename)
 	return buffer;
 }
 
-// Creates a 2D image and allocates memory for it.
+// Creates a 2D or Cubemap image and allocates memory for it.
 void VulkanUtils::createImage(uint32_t width, uint32_t height, vk::Format format, vk::ImageTiling tiling,
                               vk::ImageUsageFlags usage, vk::MemoryPropertyFlags properties, vk::raii::Image& image,
-                              vk::raii::DeviceMemory& imageMemory, VulkanDevice& vulkanDevice)
+                              vk::raii::DeviceMemory& imageMemory, VulkanDevice& vulkanDevice, uint32_t mipLevels,
+                              uint32_t arrayLayers, vk::ImageCreateFlags flags)
 {
 	vk::ImageCreateInfo imageInfo;
+	imageInfo.flags = flags;
 	imageInfo.imageType = vk::ImageType::e2D;
 	imageInfo.format = format;
 	imageInfo.extent = vk::Extent3D{width, height, 1};
-	imageInfo.mipLevels = 1;
-	imageInfo.arrayLayers = 1;
+	imageInfo.mipLevels = mipLevels;
+	imageInfo.arrayLayers = arrayLayers;
 	imageInfo.samples = vk::SampleCountFlagBits::e1;
 	imageInfo.tiling = tiling;
 	imageInfo.usage = usage;
@@ -142,20 +144,22 @@ void VulkanUtils::createImage(uint32_t width, uint32_t height, vk::Format format
 	image.bindMemory(*imageMemory, 0);
 }
 
-// Creates a 2D image view.
+// Creates an image view.
 vk::raii::ImageView VulkanUtils::createImageView(vk::Image image, vk::Format format, vk::ImageAspectFlags aspectFlags,
-                                                 VulkanDevice& vulkanDevice)
+                                                 VulkanDevice& vulkanDevice, vk::ImageViewType viewType,
+                                                 uint32_t mipLevels, uint32_t baseMipLevel, uint32_t layerCount,
+                                                 uint32_t baseArrayLayer)
 {
 	vk::ImageViewCreateInfo viewInfo;
 	viewInfo.image = image;
-	viewInfo.viewType = vk::ImageViewType::e2D;
+	viewInfo.viewType = viewType;
 	viewInfo.format = format;
-	viewInfo.subresourceRange = {aspectFlags, 0, 1, 0, 1};
+	viewInfo.subresourceRange = {aspectFlags, baseMipLevel, mipLevels, baseArrayLayer, layerCount};
 	return vk::raii::ImageView(vulkanDevice.device, viewInfo);
 }
 
 void VulkanUtils::copyBufferToImage(vk::Buffer buffer, vk::Image image, uint32_t width, uint32_t height,
-                                    VulkanDevice& vulkanDevice)
+                                    VulkanDevice& vulkanDevice, uint32_t layerCount)
 {
 	vk::raii::CommandBuffer commandBuffer = VulkanUtils::beginSingleTimeCommands(vulkanDevice);
 
@@ -163,11 +167,43 @@ void VulkanUtils::copyBufferToImage(vk::Buffer buffer, vk::Image image, uint32_t
 	region.bufferOffset = 0;
 	region.bufferRowLength = 0;
 	region.bufferImageHeight = 0;
-	region.imageSubresource = {vk::ImageAspectFlagBits::eColor, 0, 0, 1};
+	region.imageSubresource = {vk::ImageAspectFlagBits::eColor, 0, 0, layerCount};
 	region.imageOffset = vk::Offset3D{0, 0, 0};
 	region.imageExtent = vk::Extent3D{width, height, 1};
 
 	commandBuffer.copyBufferToImage(buffer, image, vk::ImageLayout::eTransferDstOptimal, {region});
 
 	VulkanUtils::endSingleTimeCommands(commandBuffer, vulkanDevice);
+}
+
+void VulkanUtils::transitionImageLayout(vk::raii::CommandBuffer& commandBuffer, vk::Image image,
+                                                 vk::ImageLayout oldLayout, vk::ImageLayout newLayout,
+                                                 vk::AccessFlags2 srcAccessMask, vk::AccessFlags2 dstAccessMask,
+                                                 vk::PipelineStageFlags2 srcStageMask,
+                                                 vk::PipelineStageFlags2 dstStageMask,
+                                                 vk::ImageAspectFlags imageAspectFlags, uint32_t layerCount,
+                                                 uint32_t mipLevelCount)
+{
+	vk::ImageMemoryBarrier2 barrier;
+	barrier.srcStageMask = srcStageMask;
+	barrier.srcAccessMask = srcAccessMask;
+	barrier.dstStageMask = dstStageMask;
+	barrier.dstAccessMask = dstAccessMask;
+	barrier.oldLayout = oldLayout;
+	barrier.newLayout = newLayout;
+	barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+	barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+	barrier.image = image;
+
+	barrier.subresourceRange.aspectMask = imageAspectFlags;
+	barrier.subresourceRange.baseMipLevel = 0;
+	barrier.subresourceRange.levelCount = mipLevelCount;
+	barrier.subresourceRange.baseArrayLayer = 0;
+	barrier.subresourceRange.layerCount = layerCount;
+
+	vk::DependencyInfo dependencyInfo;
+	dependencyInfo.dependencyFlags = {};
+	dependencyInfo.imageMemoryBarrierCount = 1;
+	dependencyInfo.pImageMemoryBarriers = &barrier;
+	commandBuffer.pipelineBarrier2(dependencyInfo);
 }

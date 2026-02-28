@@ -31,4 +31,8 @@ public:
 	                               DescriptorManager& descriptorManager, PipelineHandler& pipelineHandler);
 	static void createSsaoBlurPipeline(VulkanDevice& vulkanDevice, SwapChain& swapChain,
 	                                   DescriptorManager& descriptorManager, PipelineHandler& pipelineHandler);
+	static void createEquirectToCubePipeline(VulkanDevice& vulkanDevice, DescriptorManager& descriptorManager,
+	                                         PipelineHandler& pipelineHandler);
+	static void createSkyboxPipeline(VulkanDevice& vulkanDevice, SwapChain& swapChain, PipelineHandler& pipelineHandler,
+	                                 TextureManager& tManager);
 };

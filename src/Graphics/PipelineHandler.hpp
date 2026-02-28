@@ -21,4 +21,9 @@ public:
 
 	vk::raii::Pipeline cullingPipeline = nullptr;
 	vk::raii::PipelineLayout cullingPipelineLayout = nullptr;
+
+	vk::raii::Pipeline equirectToCubePipeline = nullptr;
+	vk::raii::PipelineLayout equirectToCubePipelineLayout = nullptr;
+
+	vk::raii::Pipeline skyboxPipeline = nullptr;
 };

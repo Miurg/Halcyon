@@ -4,6 +4,7 @@ struct CameraData
     float4x4 cameraSpaceMatrix;
     float4x4 viewMatrix;
     float4x4 projMatrix;
+    float4x4 invViewProj;
     float4   cameraPositionAndPadding;
     float4   frustumPlanes[6];
 };

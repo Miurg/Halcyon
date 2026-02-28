@@ -5,6 +5,7 @@ struct CameraStructure
 	alignas(16) glm::mat4 cameraSpaceMatrix;
 	alignas(16) glm::mat4 viewMatrix;
 	alignas(16) glm::mat4 projMatrix;
+	alignas(16) glm::mat4 invViewProj;
 	alignas(16) glm::vec4 cameraPositionAndPadding;
 	alignas(16) glm::vec4 frustumPlanes[6];
 };

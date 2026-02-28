@@ -1,7 +1,9 @@
 #include "TextureUploader.hpp"
+#include "TextureUploader.hpp"
 #include "../../VulkanUtils.hpp"
+#include "../Managers/TextureManager.hpp"
 #include <stb_image.h>
-
+#include <iostream>
 
 void TextureUploader::uploadTextureFromFile(const char* texturePath, Texture& texture, VmaAllocator& allocator,
                                             VulkanDevice& vulkanDevice)
@@ -114,3 +116,92 @@ void TextureUploader::uploadTextureFromBuffer(const unsigned char* pixels, int t
 	vmaDestroyBuffer(allocator, stagingBuffer, stagingAllocation);
 }
 
+void TextureUploader::uploadHdrTextureFromBuffer(const float* pixels, int texWidth, int texHeight, Texture& texture,
+                                                 VmaAllocator& allocator, VulkanDevice& vulkanDevice)
+{
+	if (!pixels)
+	{
+		throw std::runtime_error("pixels data is null!");
+	}
+
+	if (texWidth <= 0 || texHeight <= 0)
+	{
+		throw std::runtime_error("Invalid texture dimensions!");
+	}
+
+	// Create staging buffer (RGBA32F, 16 bytes per pixel)
+	vk::DeviceSize imageSize = static_cast<vk::DeviceSize>(texWidth) * static_cast<vk::DeviceSize>(texHeight) * 16;
+
+	VkBufferCreateInfo bufferInfo = {VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO};
+	bufferInfo.size = imageSize;
+	bufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+
+	VmaAllocationCreateInfo allocInfo = {};
+	allocInfo.usage = VMA_MEMORY_USAGE_AUTO;
+	allocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
+
+	VkBuffer stagingBuffer;
+	VmaAllocation stagingAllocation;
+	VmaAllocationInfo stagingAllocInfo;
+
+	VkResult result =
+	    vmaCreateBuffer(allocator, &bufferInfo, &allocInfo, &stagingBuffer, &stagingAllocation, &stagingAllocInfo);
+	if (result != VK_SUCCESS)
+	{
+		throw std::runtime_error("Failed to create staging buffer for HDR texture upload!");
+	}
+
+	if (!stagingAllocInfo.pMappedData)
+	{
+		vmaDestroyBuffer(allocator, stagingBuffer, stagingAllocation);
+		throw std::runtime_error("Failed to map staging buffer memory!");
+	}
+
+	memcpy(stagingAllocInfo.pMappedData, pixels, static_cast<size_t>(imageSize));
+
+	transitionImageLayout(texture.textureImage, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal,
+	                      vulkanDevice);
+
+	VulkanUtils::copyBufferToImage(stagingBuffer, texture.textureImage, static_cast<uint32_t>(texWidth),
+	                               static_cast<uint32_t>(texHeight), vulkanDevice);
+
+	transitionImageLayout(texture.textureImage, vk::ImageLayout::eTransferDstOptimal,
+	                      vk::ImageLayout::eShaderReadOnlyOptimal, vulkanDevice);
+
+	vmaDestroyBuffer(allocator, stagingBuffer, stagingAllocation);
+}
+
+void TextureUploader::uploadHdrTextureFromFile(const char* texturePath, Texture& texture, TextureManager& tManager,
+                                               VmaAllocator& allocator, VulkanDevice& vulkanDevice)
+{
+	int hdrWidth, hdrHeight, hdrChannels;
+	stbi_set_flip_vertically_on_load(true);
+	float* hdrPixels = stbi_loadf(texturePath, &hdrWidth, &hdrHeight, &hdrChannels, STBI_rgb_alpha);
+	stbi_set_flip_vertically_on_load(false);
+
+	float fallbackPixel[4] = {0.5f, 0.5f, 0.5f, 1.0f};
+	bool freePixels = true;
+	if (!hdrPixels)
+	{
+		std::cout << "Warning: Could not load HDR skybox from " << texturePath << ". Using fallback 1x1 pixel."
+		          << std::endl;
+		hdrPixels = fallbackPixel;
+		hdrWidth = 1;
+		hdrHeight = 1;
+		freePixels = false;
+	}
+
+	tManager.createImage(hdrWidth, hdrHeight, vk::Format::eR32G32B32A32Sfloat, vk::ImageTiling::eOptimal,
+	                     vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled, VMA_MEMORY_USAGE_AUTO,
+	                     texture);
+
+	uploadHdrTextureFromBuffer(hdrPixels, hdrWidth, hdrHeight, texture, allocator, vulkanDevice);
+
+	tManager.createImageView(texture, vk::Format::eR32G32B32A32Sfloat, vk::ImageAspectFlagBits::eColor);
+	tManager.createTextureSampler(texture);
+
+	if (freePixels)
+	{
+		stbi_image_free(hdrPixels);
+	}
+}

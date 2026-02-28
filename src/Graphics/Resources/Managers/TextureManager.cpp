@@ -1,7 +1,10 @@
 #include "TextureManager.hpp"
 #include "DescriptorManager.hpp"
 #include "BufferManager.hpp"
-#include "../Factories/TextureUploader.hpp"
+#include "../../Resources/Factories/TextureUploader.hpp"
+#include "../../Factories/CommandBufferFactory.hpp"
+#include "../../PipelineHandler.hpp"
+#include "../../VulkanUtils.hpp"
 #include <random>
 #include <cmath>
 
@@ -265,6 +268,52 @@ int TextureManager::emplaceMaterials(BindlessTextureDSetComponent& dSetComponent
 	return materials.size() - 1;
 }
 
+TextureHandle TextureManager::createCubemapImage(uint32_t width, uint32_t height, vk::Format format, uint32_t mipLevels)
+{
+	textures.push_back(Texture());
+	Texture& texture = textures.back();
+
+	texture.width = width;
+	texture.height = height;
+	texture.format = format;
+	texture.tiling = vk::ImageTiling::eOptimal;
+	texture.usage =
+	    vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eStorage;
+	texture.memoryUsage = VMA_MEMORY_USAGE_AUTO;
+	texture.layerCount = 6;
+	texture.mipLevels = mipLevels;
+	texture.imageCreateFlags = vk::ImageCreateFlagBits::eCubeCompatible;
+
+	VkImageCreateInfo imageInfo = {VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO};
+	imageInfo.flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
+	imageInfo.imageType = VK_IMAGE_TYPE_2D;
+	imageInfo.extent.width = width;
+	imageInfo.extent.height = height;
+	imageInfo.extent.depth = 1;
+	imageInfo.mipLevels = mipLevels;
+	imageInfo.arrayLayers = 6;
+	imageInfo.format = static_cast<VkFormat>(format);
+	imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+	imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+	imageInfo.usage = static_cast<VkImageUsageFlags>(texture.usage);
+	imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+	imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+
+	VmaAllocationCreateInfo allocInfo = {};
+	allocInfo.usage = texture.memoryUsage;
+
+	VkImage textureImageRaw;
+	VkResult res =
+	    vmaCreateImage(allocator, &imageInfo, &allocInfo, &textureImageRaw, &texture.textureImageAllocation, nullptr);
+	if (res != VK_SUCCESS)
+	{
+		throw std::runtime_error("failed to create VMA cubemap image!");
+	}
+	texture.textureImage = vk::Image(textureImageRaw);
+
+	return TextureHandle{static_cast<int>(textures.size() - 1)};
+}
+
 void TextureManager::createImageView(Texture& texture, vk::Format format, vk::ImageAspectFlags aspectFlags)
 {
 	vk::ImageViewCreateInfo viewInfo;
@@ -276,6 +325,22 @@ void TextureManager::createImageView(Texture& texture, vk::Format format, vk::Im
 	viewInfo.subresourceRange.levelCount = 1;
 	viewInfo.subresourceRange.baseArrayLayer = 0;
 	viewInfo.subresourceRange.layerCount = 1;
+
+	texture.textureImageView = (*vulkanDevice.device).createImageView(viewInfo);
+	texture.aspectFlags = aspectFlags;
+}
+
+void TextureManager::createCubemapImageView(Texture& texture, vk::Format format, vk::ImageAspectFlags aspectFlags)
+{
+	vk::ImageViewCreateInfo viewInfo;
+	viewInfo.image = texture.textureImage;
+	viewInfo.viewType = vk::ImageViewType::eCube;
+	viewInfo.format = format;
+	viewInfo.subresourceRange.aspectMask = aspectFlags;
+	viewInfo.subresourceRange.baseMipLevel = 0;
+	viewInfo.subresourceRange.levelCount = texture.mipLevels;
+	viewInfo.subresourceRange.baseArrayLayer = 0;
+	viewInfo.subresourceRange.layerCount = 6;
 
 	texture.textureImageView = (*vulkanDevice.device).createImageView(viewInfo);
 	texture.aspectFlags = aspectFlags;
@@ -293,6 +358,26 @@ void TextureManager::createTextureSampler(Texture& texture)
 	samplerInfo.maxAnisotropy = properties.limits.maxSamplerAnisotropy;
 	samplerInfo.compareOp = vk::CompareOp::eAlways;
 	samplerInfo.borderColor = vk::BorderColor::eIntOpaqueBlack;
+
+	texture.textureSampler = (*vulkanDevice.device).createSampler(samplerInfo);
+}
+
+void TextureManager::createCubemapSampler(Texture& texture)
+{
+	vk::SamplerCreateInfo samplerInfo;
+	samplerInfo.magFilter = vk::Filter::eLinear;
+	samplerInfo.minFilter = vk::Filter::eLinear;
+	samplerInfo.mipmapMode = vk::SamplerMipmapMode::eLinear;
+	samplerInfo.addressModeU = vk::SamplerAddressMode::eClampToEdge;
+	samplerInfo.addressModeV = vk::SamplerAddressMode::eClampToEdge;
+	samplerInfo.addressModeW = vk::SamplerAddressMode::eClampToEdge;
+	samplerInfo.anisotropyEnable = vk::True;
+	vk::PhysicalDeviceProperties properties = vulkanDevice.physicalDevice.getProperties();
+	samplerInfo.maxAnisotropy = properties.limits.maxSamplerAnisotropy;
+	samplerInfo.compareOp = vk::CompareOp::eNever;
+	samplerInfo.borderColor = vk::BorderColor::eFloatOpaqueWhite;
+	samplerInfo.minLod = 0.0f;
+	samplerInfo.maxLod = static_cast<float>(texture.mipLevels);
 
 	texture.textureSampler = (*vulkanDevice.device).createSampler(samplerInfo);
 }
@@ -328,4 +413,56 @@ void TextureManager::resizeTexture(TextureHandle handle, uint32_t newWidth, uint
 	TextureManager::createImage(newWidth, newHeight, texture.format, texture.tiling, texture.usage, texture.memoryUsage,
 	                            texture);
 	TextureManager::createImageView(texture, texture.format, texture.aspectFlags);
+}
+
+TextureHandle TextureManager::generateCubemapFromHdr(TextureHandle hdrTexture, 
+                                                     PipelineHandler& pHandler, DescriptorManager& dManager,
+                                                     BindlessTextureDSetComponent& dSetComponent)
+{
+	// Create Cubemap
+	TextureHandle cubemapHandle = createCubemapImage(1024, 1024, vk::Format::eR32G32B32A32Sfloat, 1);
+	Texture& cubemapTexture = textures[cubemapHandle.id];
+	createCubemapImageView(cubemapTexture, vk::Format::eR32G32B32A32Sfloat, vk::ImageAspectFlagBits::eColor);
+	createCubemapSampler(cubemapTexture);
+
+	vk::ImageViewCreateInfo viewInfo;
+	viewInfo.image = cubemapTexture.textureImage;
+	viewInfo.viewType = vk::ImageViewType::e2DArray;
+	viewInfo.format = vk::Format::eR32G32B32A32Sfloat;
+	viewInfo.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
+	viewInfo.subresourceRange.baseMipLevel = 0;
+	viewInfo.subresourceRange.levelCount = 1;
+	viewInfo.subresourceRange.baseArrayLayer = 0;
+	viewInfo.subresourceRange.layerCount = 6;
+	vk::raii::ImageView storageImageView(vulkanDevice.device, viewInfo);
+
+	dManager.updateCubemapDescriptors(dSetComponent, cubemapTexture.textureImageView, cubemapTexture.textureSampler,
+	                                  *storageImageView);
+
+	// Convert Equirectangular to Cubemap
+	auto cmd = VulkanUtils::beginSingleTimeCommands(vulkanDevice);
+
+	VulkanUtils::transitionImageLayout(cmd, cubemapTexture.textureImage, vk::ImageLayout::eUndefined,
+	                                vk::ImageLayout::eGeneral, {}, vk::AccessFlagBits2::eShaderWrite,
+	                                vk::PipelineStageFlagBits2::eTopOfPipe, vk::PipelineStageFlagBits2::eComputeShader,
+	                                vk::ImageAspectFlagBits::eColor, 6, 1);
+
+	cmd.bindPipeline(vk::PipelineBindPoint::eCompute, *pHandler.equirectToCubePipeline);
+	cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute, *pHandler.equirectToCubePipelineLayout, 0,
+	                       dManager.descriptorSets[dSetComponent.bindlessTextureSet.id][0], nullptr);
+
+	uint32_t pushConstants = hdrTexture.id;
+	cmd.pushConstants<uint32_t>(*pHandler.equirectToCubePipelineLayout, vk::ShaderStageFlagBits::eCompute, 0,
+	                            pushConstants);
+
+	cmd.dispatch(1024 / 8, 1024 / 8, 6);
+
+	VulkanUtils::transitionImageLayout(cmd, cubemapTexture.textureImage, vk::ImageLayout::eGeneral,
+	                                vk::ImageLayout::eShaderReadOnlyOptimal, vk::AccessFlagBits2::eShaderWrite,
+	                                vk::AccessFlagBits2::eShaderRead, vk::PipelineStageFlagBits2::eComputeShader,
+	                                vk::PipelineStageFlagBits2::eFragmentShader, vk::ImageAspectFlagBits::eColor, 6, 1);
+
+	VulkanUtils::endSingleTimeCommands(cmd, vulkanDevice);
+
+	return cubemapHandle;
 }

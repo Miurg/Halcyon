@@ -15,6 +15,9 @@
 
 class BufferManager;
 class DescriptorManager;
+class CommandBufferFactory;
+class PipelineFactory;
+class PipelineHandler;
 
 // Creates and caches textures (VMA-allocated). Deduplicates by file path.
 class TextureManager
@@ -33,13 +36,18 @@ public:
 	TextureHandle createShadowMap(uint32_t shadowResolutionX, uint32_t shadowResolutionY);
 	TextureHandle createSsaoNoiseTexture();
 	void createImageView(Texture& texture, vk::Format format, vk::ImageAspectFlags aspectFlags);
+	void createCubemapImageView(Texture& texture, vk::Format format, vk::ImageAspectFlags aspectFlags);
 	void createTextureSampler(Texture& texture);
+	void createCubemapSampler(Texture& texture);
 	void createShadowSampler(Texture& texture);
 	vk::Format findBestFormat();
 	vk::Format findBestSupportedFormat(const std::vector<vk::Format>& candidates, vk::ImageTiling tiling,
 	                                   vk::FormatFeatureFlags features);
 	void createImage(uint32_t width, uint32_t height, vk::Format format, vk::ImageTiling tiling,
 	                 vk::ImageUsageFlags usage, VmaMemoryUsage memoryUsage, Texture& texture);
+	TextureHandle createCubemapImage(uint32_t width, uint32_t height, vk::Format format, uint32_t mipLevels = 1);
+	TextureHandle generateCubemapFromHdr(TextureHandle hdrTexture, PipelineHandler& pHandler,
+	                                     DescriptorManager& dManager, BindlessTextureDSetComponent& dSetComponent);
 	std::vector<Texture> textures;
 	std::unordered_map<std::string, TextureHandle> texturePaths;
 

@@ -111,6 +111,12 @@ add_slang_shader_target(
 )
 
 add_slang_shader_target(
+    equirect_to_cube
+    SOURCES "assets/shaders/equirect_to_cube.slang"
+    ENTRY computeMain
+)
+
+add_slang_shader_target(
     ssao
     SOURCES "assets/shaders/SSAO.slang"
     ENTRY vertMain fragMain
@@ -122,12 +128,20 @@ add_slang_shader_target(
     ENTRY vertMain fragMain
 )
 
+add_slang_shader_target(
+    skybox
+    SOURCES "assets/shaders/skybox.slang"
+    ENTRY vertMain fragMain
+)
+
 add_dependencies("${CMAKE_PROJECT_NAME}" shader)
 add_dependencies("${CMAKE_PROJECT_NAME}" shadow)
 add_dependencies("${CMAKE_PROJECT_NAME}" fxaa)
 add_dependencies("${CMAKE_PROJECT_NAME}" frustum_culling)
+add_dependencies("${CMAKE_PROJECT_NAME}" equirect_to_cube)
 add_dependencies("${CMAKE_PROJECT_NAME}" ssao)
 add_dependencies("${CMAKE_PROJECT_NAME}" ssao_blur)
+add_dependencies("${CMAKE_PROJECT_NAME}" skybox)
 
 add_custom_command(
     TARGET ${PROJECT_NAME} POST_BUILD

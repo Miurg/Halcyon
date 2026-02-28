@@ -238,6 +238,11 @@ void CommandBufferFactory::recordMainCommandBuffer(vk::raii::CommandBuffer& seco
 		    bManager.buffers[objectDSetComponent->indirectDrawBuffer.id].buffer[currentFrame],
 		    opaqueCount * commandStride, alphaTestCount, commandStride);
 	}
+
+	// Skybox pass
+	secondaryCmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipelineHandler.skyboxPipeline);
+	secondaryCmd.draw(3, 1, 0, 0);
+
 	secondaryCmd.endRendering();
 
 	transitionImageLayout(secondaryCmd, tManager.textures[swapChain.offscreenTextureHandle.id].textureImage,
@@ -508,7 +513,8 @@ void CommandBufferFactory::transitionImageLayout(vk::raii::CommandBuffer& comman
                                                  vk::AccessFlags2 srcAccessMask, vk::AccessFlags2 dstAccessMask,
                                                  vk::PipelineStageFlags2 srcStageMask,
                                                  vk::PipelineStageFlags2 dstStageMask,
-                                                 vk::ImageAspectFlags imageAspectFlags)
+                                                 vk::ImageAspectFlags imageAspectFlags, uint32_t layerCount,
+                                                 uint32_t mipLevelCount)
 {
 	vk::ImageMemoryBarrier2 barrier;
 	barrier.srcStageMask = srcStageMask;
@@ -523,9 +529,9 @@ void CommandBufferFactory::transitionImageLayout(vk::raii::CommandBuffer& comman
 
 	barrier.subresourceRange.aspectMask = imageAspectFlags;
 	barrier.subresourceRange.baseMipLevel = 0;
-	barrier.subresourceRange.levelCount = 1;
+	barrier.subresourceRange.levelCount = mipLevelCount;
 	barrier.subresourceRange.baseArrayLayer = 0;
-	barrier.subresourceRange.layerCount = 1;
+	barrier.subresourceRange.layerCount = layerCount;
 
 	vk::DependencyInfo dependencyInfo;
 	dependencyInfo.dependencyFlags = {};

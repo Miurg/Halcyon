@@ -6,6 +6,7 @@
 #include "Factories/VulkanDeviceFactory.hpp"
 #include "Factories/SwapChainFactory.hpp"
 #include "Factories/PipelineFactory.hpp"
+#include "Factories/CommandBufferFactory.hpp"
 
 // Entities and Components
 #include "Components/VulkanDeviceComponent.hpp"
@@ -31,6 +32,7 @@
 #include "Components/LocalTransformComponent.hpp"
 #include "Components/GlobalTransformComponent.hpp"
 #include "Components/RelationshipComponent.hpp"
+#include "Components/SkyboxComponent.hpp"
 #include "../Platform/PlatformContexts.hpp"
 #include "../Platform/Components/WindowComponent.hpp"
 
@@ -43,6 +45,7 @@
 #include "Resources/Managers/ModelManager.hpp"
 #include "Resources/Managers/DescriptorManager.hpp"
 #include "Managers/FrameManager.hpp"
+#include "Resources/Factories/TextureUploader.hpp"
 // Contexts
 #include "GraphicsContexts.hpp"
 #include "Resources/ResourceStructures.hpp"
@@ -220,6 +223,8 @@ void GraphicsInit::initPipelines(GeneralManager& gm)
 	PipelineFactory::createSsaoPipeline(*vulkanDevice, *swapChain, *dManager, *pipelineHandler);
 	PipelineFactory::createSsaoBlurPipeline(*vulkanDevice, *swapChain, *dManager, *pipelineHandler);
 	PipelineFactory::createCullingPipeline(*vulkanDevice, *dManager, *pipelineHandler);
+	PipelineFactory::createEquirectToCubePipeline(*vulkanDevice, *dManager, *pipelineHandler);
+	PipelineFactory::createSkyboxPipeline(*vulkanDevice, *swapChain, *pipelineHandler, *tManager);
 	gm.addComponent<PipelineHandlerComponent>(signatureEntity, pipelineHandler);
 
 #ifdef _DEBUG
@@ -243,9 +248,14 @@ void GraphicsInit::initScene(GeneralManager& gm)
 	    gm.getContextComponent<MainDSetsContext, BindlessTextureDSetComponent>();
 	GlobalDSetComponent* globalDSetComponent = gm.getContextComponent<MainDSetsContext, GlobalDSetComponent>();
 	SwapChain* swap = gm.getContextComponent<MainSwapChainContext, SwapChainComponent>()->swapChainInstance;
+	VmaAllocator allocator = gm.getContextComponent<VMAllocatorContext, VMAllocatorComponent>()->allocator;
+	VulkanDevice* vulkanDevice =
+	    gm.getContextComponent<MainVulkanDeviceContext, VulkanDeviceComponent>()->vulkanDeviceInstance;
+	PipelineHandler* pipelineHandler =
+	    gm.getContextComponent<MainSignatureContext, PipelineHandlerComponent>()->pipelineHandler;
 #pragma endregion
 
-#pragma region Scene Entities (Camera & Sun)
+#pragma region Scene Entities (Camera, Sun, Skybox)
 	// === Camera ===
 	Entity cameraEntity = gm.createEntity();
 	gm.addComponent<NameComponent>(cameraEntity, "Main Camera");
@@ -253,6 +263,7 @@ void GraphicsInit::initScene(GeneralManager& gm)
 	gm.addComponent<GlobalTransformComponent>(cameraEntity, glm::vec3(-5.0f, 5.0f, 3.0f));
 	gm.registerContext<MainCameraContext>(cameraEntity);
 	CameraComponent* camera = gm.getContextComponent<MainCameraContext, CameraComponent>();
+	
 
 	// === Sun ===
 	Entity sunEntity = gm.createEntity();
@@ -269,6 +280,13 @@ void GraphicsInit::initScene(GeneralManager& gm)
 	CameraComponent* sunCamera = gm.getContextComponent<SunContext, CameraComponent>();
 	LightComponent* sunLight = gm.getContextComponent<SunContext, LightComponent>();
 	sunLight->textureShadowImage = tManager->createShadowMap(sunLight->sizeX, sunLight->sizeY);
+
+	// === Skybox ===
+	Entity skyboxEntity = gm.createEntity();
+	gm.addComponent<NameComponent>(skyboxEntity, "Skybox");
+	gm.addComponent<SkyboxComponent>(skyboxEntity);
+	gm.registerContext<SkyBoxContext>(skyboxEntity);
+	SkyboxComponent* skybox = gm.getContextComponent<SkyBoxContext, SkyboxComponent>();
 #pragma endregion
 
 #pragma region Global Descriptor Set (Set 0)
@@ -312,6 +330,22 @@ void GraphicsInit::initScene(GeneralManager& gm)
 	auto data = texturePtr->pixels.data();
 	auto path = texturePtr.get()->name.c_str();
 	tManager->generateTextureData(path, texWidth, texHeight, data, *bTextureDSetComponent, *dManager);
+
+	// HDR Skybox Texture
+	std::string hdrPath = "assets/textures/sunflowers_puresky_4k.hdr";
+	tManager->textures.push_back(Texture());
+	Texture& hdrTexture = tManager->textures.back();
+	TextureUploader::uploadHdrTextureFromFile(hdrPath.c_str(), hdrTexture, *tManager, allocator, *vulkanDevice);
+	int hdrIndex = static_cast<int>(tManager->textures.size() - 1);
+	tManager->texturePaths[hdrPath] = TextureHandle{hdrIndex};
+	TextureHandle hdrHandle = tManager->texturePaths[hdrPath];
+
+	dManager->updateBindlessTextureSet(hdrTexture.textureImageView, hdrTexture.textureSampler, *bTextureDSetComponent,
+	                                   hdrIndex);
+	TextureHandle cubemapHandle =
+	    tManager->generateCubemapFromHdr(hdrHandle, *pipelineHandler, *dManager, *bTextureDSetComponent);
+
+	skybox->cubemapTexture = cubemapHandle;
 #pragma endregion
 
 #pragma region Model & Frustum Culling Buffers (Set 1)

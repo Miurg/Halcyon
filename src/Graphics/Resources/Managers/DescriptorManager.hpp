@@ -17,11 +17,13 @@ public:
 	vk::raii::DescriptorSetLayout globalSetLayout = nullptr;
 	vk::raii::DescriptorSetLayout textureSetLayout = nullptr;
 	vk::raii::DescriptorSetLayout modelSetLayout = nullptr;
-	vk::raii::DescriptorSetLayout screenSpaceSetLayout = nullptr; // Shared layout for FXAA, SSAO, SSAOBlur (3 samplers)
+	vk::raii::DescriptorSetLayout screenSpaceSetLayout = nullptr;
 
 	DSetHandle allocateBindlessTextureDSet();
 	void updateBindlessTextureSet(vk::ImageView textureImageView, vk::Sampler textureSampler,
 	                              BindlessTextureDSetComponent& dSetComponent, int textureNumber);
+	void updateCubemapDescriptors(BindlessTextureDSetComponent& dSetComponent, vk::ImageView cubemapImageView,
+	                              vk::Sampler cubemapSampler, vk::ImageView storageImageView);
 	void updateSingleTextureDSet(DSetHandle dIndex, int binding, vk::ImageView imageView, vk::Sampler sampler);
 	DSetHandle allocateStorageBufferDSets(uint32_t count, vk::DescriptorSetLayout layout);
 	void updateStorageBufferDescriptors(BufferManager& bManager, BufferHandle bNumber, DSetHandle dSet,

@@ -17,3 +17,4 @@ class VMAllocatorContext{};
 class ModelManagerContext{};
 class FrameManagerContext{};
 class SsaoSettingsContext{};
+class SkyBoxContext{};
