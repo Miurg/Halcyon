@@ -2,7 +2,7 @@
 
 struct SsaoSettingsComponent
 {
-	int kernelSize = 4;
+	int kernelSize = 6;
 	float radius = 6.0f;
 	float bias = 0.3f;
 	float power = 6.0f;

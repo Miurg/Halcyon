@@ -197,9 +197,9 @@ void GraphicsInit::initPipelines(GeneralManager& gm)
 	swapChain->viewNormalsTextureHandle = tManager->createOffscreenImage(
 	    swapChain->swapChainExtent.width, swapChain->swapChainExtent.height, vk::Format::eR16G16B16A16Sfloat);
 	swapChain->ssaoTextureHandle = tManager->createOffscreenImage(
-	    swapChain->swapChainExtent.width, swapChain->swapChainExtent.height, vk::Format::eR8Unorm);
+	    swapChain->swapChainExtent.width / 2, swapChain->swapChainExtent.height / 2, vk::Format::eR8Unorm);
 	swapChain->ssaoBlurTextureHandle = tManager->createOffscreenImage(
-	    swapChain->swapChainExtent.width, swapChain->swapChainExtent.height, vk::Format::eR8Unorm);
+	    swapChain->swapChainExtent.width / 2, swapChain->swapChainExtent.height / 2, vk::Format::eR8Unorm);
 	swapChain->ssaoNoiseTextureHandle = tManager->createSsaoNoiseTexture();
 	swapChain->depthTextureHandle =
 	    tManager->createDepthImage(swapChain->swapChainExtent.width, swapChain->swapChainExtent.height);
@@ -264,7 +264,6 @@ void GraphicsInit::initScene(GeneralManager& gm)
 	gm.addComponent<GlobalTransformComponent>(cameraEntity, glm::vec3(-5.0f, 5.0f, 3.0f));
 	gm.registerContext<MainCameraContext>(cameraEntity);
 	CameraComponent* camera = gm.getContextComponent<MainCameraContext, CameraComponent>();
-	
 
 	// === Sun ===
 	Entity sunEntity = gm.createEntity();

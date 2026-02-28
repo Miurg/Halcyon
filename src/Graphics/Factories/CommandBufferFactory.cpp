@@ -440,7 +440,8 @@ void CommandBufferFactory::recordSsaoCommandBuffer(vk::raii::CommandBuffer& seco
 
 	vk::RenderingInfo renderingInfo;
 	renderingInfo.renderArea.offset = 0;
-	renderingInfo.renderArea.extent = swapChain.swapChainExtent;
+	renderingInfo.renderArea.extent =
+	    vk::Extent2D{swapChain.swapChainExtent.width / 2, swapChain.swapChainExtent.height / 2};
 	renderingInfo.layerCount = 1;
 	renderingInfo.colorAttachmentCount = 1;
 	renderingInfo.pColorAttachments = &attachmentInfo;
@@ -449,9 +450,10 @@ void CommandBufferFactory::recordSsaoCommandBuffer(vk::raii::CommandBuffer& seco
 
 	secondaryCmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipelineHandler.ssaoPipeline);
 
-	secondaryCmd.setViewport(0, vk::Viewport(0.0f, 0.0f, static_cast<float>(swapChain.swapChainExtent.width),
-	                                         static_cast<float>(swapChain.swapChainExtent.height), 0.0f, 1.0f));
-	secondaryCmd.setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), swapChain.swapChainExtent));
+	secondaryCmd.setViewport(0, vk::Viewport(0.0f, 0.0f, static_cast<float>(swapChain.swapChainExtent.width / 2),
+	                                         static_cast<float>(swapChain.swapChainExtent.height / 2), 0.0f, 1.0f));
+	secondaryCmd.setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), vk::Extent2D{swapChain.swapChainExtent.width / 2,
+	                                                                       swapChain.swapChainExtent.height / 2}));
 
 	secondaryCmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineHandler.ssaoPipelineLayout, 0,
 	                                dManager.descriptorManager->descriptorSets[ssaoDescriptorSetIndex.id][0], nullptr);
@@ -518,7 +520,9 @@ void CommandBufferFactory::recordSsaoBlurCommandBuffer(vk::raii::CommandBuffer& 
 
 	vk::RenderingInfo renderingInfo;
 	renderingInfo.renderArea.offset = 0;
-	renderingInfo.renderArea.extent = swapChain.swapChainExtent;
+	renderingInfo.renderArea.extent =
+	    vk::Extent2D{swapChain.swapChainExtent.width / 2, swapChain.swapChainExtent.height / 2};
+	;
 	renderingInfo.layerCount = 1;
 	renderingInfo.colorAttachmentCount = 1;
 	renderingInfo.pColorAttachments = &attachmentInfo;
@@ -527,9 +531,10 @@ void CommandBufferFactory::recordSsaoBlurCommandBuffer(vk::raii::CommandBuffer& 
 
 	secondaryCmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipelineHandler.ssaoBlurPipeline);
 
-	secondaryCmd.setViewport(0, vk::Viewport(0.0f, 0.0f, static_cast<float>(swapChain.swapChainExtent.width),
-	                                         static_cast<float>(swapChain.swapChainExtent.height), 0.0f, 1.0f));
-	secondaryCmd.setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), swapChain.swapChainExtent));
+	secondaryCmd.setViewport(0, vk::Viewport(0.0f, 0.0f, static_cast<float>(swapChain.swapChainExtent.width / 2),
+	                                         static_cast<float>(swapChain.swapChainExtent.height / 2), 0.0f, 1.0f));
+	secondaryCmd.setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), vk::Extent2D{swapChain.swapChainExtent.width / 2,
+	                                                                       swapChain.swapChainExtent.height / 2}));
 
 	secondaryCmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineHandler.ssaoBlurPipelineLayout, 0,
 	                                dManager.descriptorManager->descriptorSets[ssaoBlurDescriptorSetIndex.id][0],
@@ -539,8 +544,8 @@ void CommandBufferFactory::recordSsaoBlurCommandBuffer(vk::raii::CommandBuffer& 
 	{
 		float texelSize[2];
 	} push;
-	push.texelSize[0] = 1.0f / static_cast<float>(swapChain.swapChainExtent.width);
-	push.texelSize[1] = 1.0f / static_cast<float>(swapChain.swapChainExtent.height);
+	push.texelSize[0] = 1.0f / static_cast<float>(swapChain.swapChainExtent.width / 2);
+	push.texelSize[1] = 1.0f / static_cast<float>(swapChain.swapChainExtent.height / 2);
 
 	secondaryCmd.pushConstants<BlurPushConstants>(*pipelineHandler.ssaoBlurPipelineLayout,
 	                                              vk::ShaderStageFlagBits::eFragment, 0, push);
