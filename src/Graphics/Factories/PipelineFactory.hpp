@@ -35,4 +35,7 @@ public:
 	                                         PipelineHandler& pipelineHandler);
 	static void createSkyboxPipeline(VulkanDevice& vulkanDevice, SwapChain& swapChain, PipelineHandler& pipelineHandler,
 	                                 TextureManager& tManager);
+	static void createDepthPrepassPipeline(VulkanDevice& vulkanDevice, SwapChain& swapChain,
+	                                       DescriptorManager& descriptorManager, PipelineHandler& pipelineHandler,
+	                                       TextureManager& tManager);
 };

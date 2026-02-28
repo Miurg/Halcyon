@@ -9,6 +9,7 @@ public:
 	vk::raii::Pipeline graphicsPipeline = nullptr;
 	vk::raii::Pipeline alphaTestPipeline = nullptr;
 	vk::raii::Pipeline shadowPipeline = nullptr;
+	vk::raii::Pipeline depthPrepassPipeline = nullptr;
 
 	vk::raii::Pipeline fxaaPipeline = nullptr;
 	vk::raii::PipelineLayout fxaaPipelineLayout = nullptr;

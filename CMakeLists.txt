@@ -134,6 +134,12 @@ add_slang_shader_target(
     ENTRY vertMain fragMain
 )
 
+add_slang_shader_target(
+    depth_prepass
+    SOURCES "assets/shaders/depth_prepass.slang"
+    ENTRY vertMain
+)
+
 add_dependencies("${CMAKE_PROJECT_NAME}" shader)
 add_dependencies("${CMAKE_PROJECT_NAME}" shadow)
 add_dependencies("${CMAKE_PROJECT_NAME}" fxaa)
@@ -142,6 +148,7 @@ add_dependencies("${CMAKE_PROJECT_NAME}" equirect_to_cube)
 add_dependencies("${CMAKE_PROJECT_NAME}" ssao)
 add_dependencies("${CMAKE_PROJECT_NAME}" ssao_blur)
 add_dependencies("${CMAKE_PROJECT_NAME}" skybox)
+add_dependencies("${CMAKE_PROJECT_NAME}" depth_prepass)
 
 add_custom_command(
     TARGET ${PROJECT_NAME} POST_BUILD

@@ -218,6 +218,7 @@ void GraphicsInit::initPipelines(GeneralManager& gm)
 	PipelineHandler* pipelineHandler = new PipelineHandler();
 	PipelineFactory::createGraphicsPipeline(*vulkanDevice, *swapChain, *dManager, *pipelineHandler, *tManager);
 	PipelineFactory::createAlphaTestPipeline(*vulkanDevice, *swapChain, *dManager, *pipelineHandler, *tManager);
+	PipelineFactory::createDepthPrepassPipeline(*vulkanDevice, *swapChain, *dManager, *pipelineHandler, *tManager);
 	PipelineFactory::createShadowPipeline(*vulkanDevice, *swapChain, *dManager, *pipelineHandler, *tManager);
 	PipelineFactory::createFxaaPipeline(*vulkanDevice, *swapChain, *dManager, *pipelineHandler);
 	PipelineFactory::createSsaoPipeline(*vulkanDevice, *swapChain, *dManager, *pipelineHandler);

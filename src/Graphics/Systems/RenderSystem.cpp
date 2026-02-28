@@ -62,18 +62,22 @@ void RenderSystem::update(GeneralManager& gm)
 	CommandBufferFactory::recordCullCommandBuffer(
 	    frameManager->frames[currentFrameComp->currentFrame].secondaryCommandBuffers[1], pipelineHandler,
 	    currentFrameComp->currentFrame, *dManager, globalDSetComponent, objectDSetComponent, modelManager, *drawInfo);
-	CommandBufferFactory::recordMainCommandBuffer(
+	CommandBufferFactory::recordDepthPrepassCommandBuffer(
 	    frameManager->frames[currentFrameComp->currentFrame].secondaryCommandBuffers[2], imageIndex, swapChain,
 	    pipelineHandler, currentFrameComp->currentFrame, *materialDSetComponent, *dManager, globalDSetComponent,
 	    bufferManager, objectDSetComponent, modelManager, textureManager, *drawInfo);
+	CommandBufferFactory::recordMainCommandBuffer(
+	    frameManager->frames[currentFrameComp->currentFrame].secondaryCommandBuffers[3], imageIndex, swapChain,
+	    pipelineHandler, currentFrameComp->currentFrame, *materialDSetComponent, *dManager, globalDSetComponent,
+	    bufferManager, objectDSetComponent, modelManager, textureManager, *drawInfo);
 	CommandBufferFactory::recordSsaoCommandBuffer(
-	    frameManager->frames[currentFrameComp->currentFrame].secondaryCommandBuffers[3], swapChain, pipelineHandler,
+	    frameManager->frames[currentFrameComp->currentFrame].secondaryCommandBuffers[4], swapChain, pipelineHandler,
 	    *dManager, globalDSetComponent->ssaoDSets, globalDSetComponent->globalDSets, textureManager, *ssaoSettings);
 	CommandBufferFactory::recordSsaoBlurCommandBuffer(
-	    frameManager->frames[currentFrameComp->currentFrame].secondaryCommandBuffers[4], swapChain, pipelineHandler,
+	    frameManager->frames[currentFrameComp->currentFrame].secondaryCommandBuffers[5], swapChain, pipelineHandler,
 	    *dManager, globalDSetComponent->ssaoBlurDSets, textureManager);
 	CommandBufferFactory::recordFxaaCommandBuffer(
-	    frameManager->frames[currentFrameComp->currentFrame].secondaryCommandBuffers[5], imageIndex, swapChain,
+	    frameManager->frames[currentFrameComp->currentFrame].secondaryCommandBuffers[6], imageIndex, swapChain,
 	    pipelineHandler, *dManager, globalDSetComponent->fxaaDSets);
 	CommandBufferFactory::executeSecondaryBuffers(
 	    frameManager->frames[currentFrameComp->currentFrame].commandBuffer,

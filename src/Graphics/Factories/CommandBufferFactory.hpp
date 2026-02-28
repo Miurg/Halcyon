@@ -29,6 +29,14 @@ public:
 	                                    GlobalDSetComponent* globalDSetComponent,
 	                                    ModelDSetComponent* objectDSetComponent, ModelManager& mManager,
 	                                    const DrawInfoComponent& drawInfo);
+	static void recordDepthPrepassCommandBuffer(vk::raii::CommandBuffer& secondaryCmd, uint32_t imageIndex,
+	                                            SwapChain& swapChain, PipelineHandler& pipelineHandler,
+	                                            uint32_t currentFrame,
+	                                            BindlessTextureDSetComponent& bindlessTextureDSetComponent,
+	                                            DescriptorManagerComponent& dManager,
+	                                            GlobalDSetComponent* globalDSetComponent, BufferManager& bManager,
+	                                            ModelDSetComponent* objectDSetComponent, ModelManager& mManager,
+	                                            TextureManager& tManager, const DrawInfoComponent& drawInfo);
 
 	static void recordMainCommandBuffer(vk::raii::CommandBuffer& secondaryCmd, uint32_t imageIndex, SwapChain& swapChain,
 	                                    PipelineHandler& pipelineHandler, uint32_t currentFrame,

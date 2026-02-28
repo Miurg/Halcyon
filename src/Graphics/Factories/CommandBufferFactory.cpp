@@ -130,6 +130,77 @@ void CommandBufferFactory::recordCullCommandBuffer(vk::raii::CommandBuffer& seco
 	secondaryCmd.end();
 }
 
+void CommandBufferFactory::recordDepthPrepassCommandBuffer(
+    vk::raii::CommandBuffer& secondaryCmd, uint32_t imageIndex, SwapChain& swapChain, PipelineHandler& pipelineHandler,
+    uint32_t currentFrame, BindlessTextureDSetComponent& bindlessTextureDSetComponent,
+    DescriptorManagerComponent& dManager, GlobalDSetComponent* globalDSetComponent, BufferManager& bManager,
+    ModelDSetComponent* objectDSetComponent, ModelManager& mManager, TextureManager& tManager,
+    const DrawInfoComponent& drawInfo)
+{
+	vk::CommandBufferInheritanceInfo inheritanceInfo = {};
+	vk::CommandBufferBeginInfo beginInfo;
+	beginInfo.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit;
+	beginInfo.pInheritanceInfo = &inheritanceInfo;
+
+	secondaryCmd.begin(beginInfo);
+
+	// --- Step 1.9: DEPTH PREPASS ---
+
+	transitionImageLayout(secondaryCmd, tManager.textures[swapChain.depthTextureHandle.id].textureImage,
+	                      vk::ImageLayout::eUndefined, vk::ImageLayout::eDepthAttachmentOptimal, {},
+	                      vk::AccessFlagBits2::eDepthStencilAttachmentWrite, vk::PipelineStageFlagBits2::eTopOfPipe,
+	                      vk::PipelineStageFlagBits2::eEarlyFragmentTests, vk::ImageAspectFlagBits::eDepth);
+
+	vk::RenderingAttachmentInfo depthAttachmentInfo;
+	depthAttachmentInfo.imageView = tManager.textures[swapChain.depthTextureHandle.id].textureImageView;
+	depthAttachmentInfo.imageLayout = vk::ImageLayout::eDepthAttachmentOptimal;
+	depthAttachmentInfo.loadOp = vk::AttachmentLoadOp::eClear;
+	depthAttachmentInfo.storeOp = vk::AttachmentStoreOp::eStore;
+	depthAttachmentInfo.clearValue = vk::ClearDepthStencilValue(1.0f, 0);
+
+	vk::RenderingInfo renderingInfo;
+	renderingInfo.renderArea.offset = 0;
+	renderingInfo.layerCount = 1;
+	renderingInfo.pDepthAttachment = &depthAttachmentInfo;
+	renderingInfo.renderArea.extent = swapChain.swapChainExtent;
+
+	secondaryCmd.beginRendering(renderingInfo);
+	secondaryCmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipelineHandler.depthPrepassPipeline);
+	secondaryCmd.bindDescriptorSets(
+	    vk::PipelineBindPoint::eGraphics, *pipelineHandler.pipelineLayout, 0,
+	    dManager.descriptorManager->descriptorSets[globalDSetComponent->globalDSets.id][currentFrame], nullptr);
+	secondaryCmd.bindDescriptorSets(
+	    vk::PipelineBindPoint::eGraphics, *pipelineHandler.pipelineLayout, 1,
+	    dManager.descriptorManager->descriptorSets[objectDSetComponent->modelBufferDSet.id][currentFrame], nullptr);
+
+	secondaryCmd.setViewport(0, vk::Viewport(0.0f, 0.0f, static_cast<float>(swapChain.swapChainExtent.width),
+	                                         static_cast<float>(swapChain.swapChainExtent.height), 0.0f, 1.0f));
+	secondaryCmd.setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), swapChain.swapChainExtent));
+
+	const uint32_t commandStride = sizeof(VkDrawIndexedIndirectCommand);
+	secondaryCmd.bindVertexBuffers(0, mManager.vertexIndexBuffers[mManager.meshes[0].vertexIndexBufferID].vertexBuffer,
+	                               {0});
+	secondaryCmd.bindIndexBuffer(mManager.vertexIndexBuffers[mManager.meshes[0].vertexIndexBufferID].indexBuffer, 0,
+	                             vk::IndexType::eUint32);
+	uint32_t opaqueCount = drawInfo.opaqueDrawCount;
+	if (opaqueCount > 0)
+	{
+		secondaryCmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipelineHandler.depthPrepassPipeline);
+		secondaryCmd.drawIndexedIndirect(
+		    bManager.buffers[objectDSetComponent->indirectDrawBuffer.id].buffer[currentFrame], 0, opaqueCount,
+		    commandStride);
+	}
+	secondaryCmd.endRendering();
+
+	transitionImageLayout(secondaryCmd, tManager.textures[swapChain.depthTextureHandle.id].textureImage,
+	                      vk::ImageLayout::eDepthAttachmentOptimal, vk::ImageLayout::eShaderReadOnlyOptimal,
+	                      vk::AccessFlagBits2::eDepthStencilAttachmentWrite, vk::AccessFlagBits2::eShaderRead,
+	                      vk::PipelineStageFlagBits2::eLateFragmentTests, vk::PipelineStageFlagBits2::eFragmentShader,
+	                      vk::ImageAspectFlagBits::eDepth);
+
+	secondaryCmd.end();
+}
+
 void CommandBufferFactory::recordMainCommandBuffer(vk::raii::CommandBuffer& secondaryCmd, uint32_t imageIndex,
                                                    SwapChain& swapChain, PipelineHandler& pipelineHandler,
                                                    uint32_t currentFrame,
@@ -182,7 +253,7 @@ void CommandBufferFactory::recordMainCommandBuffer(vk::raii::CommandBuffer& seco
 	vk::RenderingAttachmentInfo depthAttachmentInfo;
 	depthAttachmentInfo.imageView = tManager.textures[swapChain.depthTextureHandle.id].textureImageView;
 	depthAttachmentInfo.imageLayout = vk::ImageLayout::eDepthAttachmentOptimal;
-	depthAttachmentInfo.loadOp = vk::AttachmentLoadOp::eClear;
+	depthAttachmentInfo.loadOp = vk::AttachmentLoadOp::eLoad;
 	depthAttachmentInfo.storeOp = vk::AttachmentStoreOp::eStore;
 	depthAttachmentInfo.clearValue = vk::ClearDepthStencilValue(1.0f, 0);
 
