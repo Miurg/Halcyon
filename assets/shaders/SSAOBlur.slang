@@ -28,18 +28,18 @@ float4 fragMain(VSOutput input) : SV_Target
 {
     float result = 0.0;
 
-    // 4x4 box blur
+    // 6x6 box blur
     [unroll]
-    for (int x = -2; x < 2; x++)
+    for (int x = -3; x < 3; x++)
     {
         [unroll]
-        for (int y = -2; y < 2; y++)
+        for (int y = -3; y < 3; y++)
         {
             float2 offset = float2(float(x), float(y)) * pc.texelSize;
             result += ssaoTexture.SampleLevel(input.uv + offset, 0).r;
         }
     }
 
-    result /= 16.0;
+    result /= 36.0;
     return float4(result, result, result, 1.0);
 }
