@@ -130,17 +130,54 @@ void SwapChainFactory::recreateSwapChain(SwapChain& swapChain, VulkanDevice& dev
 	createSwapChain(swapChain, device, window, oldHandle);
 	tManager.resizeTexture(swapChain.offscreenTextureHandle, swapChain.swapChainExtent.width,
 	                       swapChain.swapChainExtent.height);
-	tManager.resizeTexture(swapChain.viewNormalsTextureHandle, swapChain.swapChainExtent.width,
-	                       swapChain.swapChainExtent.height);
-	tManager.resizeTexture(swapChain.ssaoTextureHandle, swapChain.swapChainExtent.width,
-	                       swapChain.swapChainExtent.height);
-	tManager.resizeTexture(swapChain.ssaoBlurTextureHandle, swapChain.swapChainExtent.width,
-	                       swapChain.swapChainExtent.height);
 	dManager.updateSingleTextureDSet(globalDSetComponent.fxaaDSets, 0,
 	                                 tManager.textures[swapChain.offscreenTextureHandle.id].textureImageView,
 	                                 tManager.textures[swapChain.offscreenTextureHandle.id].textureSampler);
+
+	tManager.resizeTexture(swapChain.ssaoTextureHandle, swapChain.swapChainExtent.width / 2,
+	                       swapChain.swapChainExtent.height / 2);
+	dManager.updateSingleTextureDSet(globalDSetComponent.ssaoDSets, 0,
+	                                 tManager.textures[swapChain.ssaoTextureHandle.id].textureImageView,
+	                                 tManager.textures[swapChain.ssaoTextureHandle.id].textureSampler);
+
+	tManager.resizeTexture(swapChain.ssaoBlurTextureHandle, swapChain.swapChainExtent.width / 2,
+	                       swapChain.swapChainExtent.height / 2);
+
+	tManager.resizeTexture(swapChain.viewNormalsTextureHandle, swapChain.swapChainExtent.width,
+	                       swapChain.swapChainExtent.height);
 	tManager.resizeTexture(swapChain.depthTextureHandle, swapChain.swapChainExtent.width,
 	                       swapChain.swapChainExtent.height);
+
+	// Update FXAA Descriptor Sets
+	dManager.updateSingleTextureDSet(globalDSetComponent.fxaaDSets, 0,
+	                                 tManager.textures[swapChain.offscreenTextureHandle.id].textureImageView,
+	                                 tManager.textures[swapChain.offscreenTextureHandle.id].textureSampler);
+	dManager.updateSingleTextureDSet(globalDSetComponent.fxaaDSets, 1,
+	                                 tManager.textures[swapChain.ssaoBlurTextureHandle.id].textureImageView,
+	                                 tManager.textures[swapChain.ssaoBlurTextureHandle.id].textureSampler);
+	dManager.updateSingleTextureDSet(globalDSetComponent.fxaaDSets, 2,
+	                                 tManager.textures[swapChain.offscreenTextureHandle.id].textureImageView,
+	                                 tManager.textures[swapChain.offscreenTextureHandle.id].textureSampler);
+
+	// Update SSAO Descriptor Sets
+	dManager.updateSingleTextureDSet(globalDSetComponent.ssaoDSets, 0,
+	                                 tManager.textures[swapChain.depthTextureHandle.id].textureImageView,
+	                                 tManager.textures[swapChain.depthTextureHandle.id].textureSampler);
+	dManager.updateSingleTextureDSet(globalDSetComponent.ssaoDSets, 1,
+	                                 tManager.textures[swapChain.viewNormalsTextureHandle.id].textureImageView,
+	                                 tManager.textures[swapChain.viewNormalsTextureHandle.id].textureSampler);
+
+	// Update SSAO Blur Descriptor Sets
+	dManager.updateSingleTextureDSet(globalDSetComponent.ssaoBlurDSets, 0,
+	                                 tManager.textures[swapChain.ssaoTextureHandle.id].textureImageView,
+	                                 tManager.textures[swapChain.ssaoTextureHandle.id].textureSampler);
+	dManager.updateSingleTextureDSet(globalDSetComponent.ssaoBlurDSets, 1,
+	                                 tManager.textures[swapChain.offscreenTextureHandle.id].textureImageView,
+	                                 tManager.textures[swapChain.offscreenTextureHandle.id].textureSampler);
+	dManager.updateSingleTextureDSet(globalDSetComponent.ssaoBlurDSets, 2,
+	                                 tManager.textures[swapChain.offscreenTextureHandle.id].textureImageView,
+	                                 tManager.textures[swapChain.offscreenTextureHandle.id].textureSampler);
+
 #ifdef _DEBUG
 	std::cout << "Swap chain recreated." << std::endl;
 #endif
