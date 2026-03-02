@@ -1,6 +1,6 @@
 #include "DescriptorManager.hpp"
 #include "BufferManager.hpp"
-#include "SharedBindings.hpp"
+#include "Bindings.hpp"
 
 DescriptorManager::DescriptorManager(VulkanDevice& vulkanDevice) : vulkanDevice(vulkanDevice)
 {
@@ -39,11 +39,11 @@ DescriptorManager::DescriptorManager(VulkanDevice& vulkanDevice) : vulkanDevice(
 	imguiPool = vk::raii::DescriptorPool(vulkanDevice.device, imguiPoolInfo);
 
 	//===Global (Set 0): camera + sun===
-	vk::DescriptorSetLayoutBinding cameraBinding(BINDING_CAMERA, vk::DescriptorType::eStorageBuffer, 1,
+	vk::DescriptorSetLayoutBinding cameraBinding(Bindings::Global::Camera, vk::DescriptorType::eStorageBuffer, 1,
 	                                             vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eCompute |
 	                                                 vk::ShaderStageFlagBits::eFragment,
 	                                             nullptr);
-	vk::DescriptorSetLayoutBinding sunBinding(BINDING_SUN, vk::DescriptorType::eStorageBuffer, 1,
+	vk::DescriptorSetLayoutBinding sunBinding(Bindings::Global::Sun, vk::DescriptorType::eStorageBuffer, 1,
 	                                          vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment,
 	                                          nullptr);
 	std::array<vk::DescriptorSetLayoutBinding, 2> globalBindings = {cameraBinding, sunBinding};
@@ -54,18 +54,18 @@ DescriptorManager::DescriptorManager(VulkanDevice& vulkanDevice) : vulkanDevice(
 
 	//===Textures (Set 2): textureArray (bindless) + shadowMap===
 	vk::DescriptorSetLayoutBinding textureBinding(
-	    BINDING_TEXTURE_ARRAY, vk::DescriptorType::eCombinedImageSampler, MAX_BINDLESS_TEXTURES,
+	    Bindings::Textures::Array, vk::DescriptorType::eCombinedImageSampler, MAX_BINDLESS_TEXTURES,
 	                                              vk::ShaderStageFlagBits::eFragment | vk::ShaderStageFlagBits::eCompute,
 	                                              nullptr);
-	vk::DescriptorSetLayoutBinding shadowBinding(BINDING_SHADOW_MAP, vk::DescriptorType::eCombinedImageSampler, 1,
+	vk::DescriptorSetLayoutBinding shadowBinding(Bindings::Textures::ShadowMap, vk::DescriptorType::eCombinedImageSampler, 1,
 	                                             vk::ShaderStageFlagBits::eFragment, nullptr);
-	vk::DescriptorSetLayoutBinding materialBinding(BINDING_MATERIAL_BUFFER, vk::DescriptorType::eStorageBuffer, 1,
+	vk::DescriptorSetLayoutBinding materialBinding(Bindings::Textures::Materials, vk::DescriptorType::eStorageBuffer, 1,
 	                                               vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment,
 	                                               nullptr);
-	vk::DescriptorSetLayoutBinding cubemapSamplerBinding(BINDING_CUBEMAP_SAMPLER,
+	vk::DescriptorSetLayoutBinding cubemapSamplerBinding(Bindings::Textures::CubemapSampler,
 	                                                     vk::DescriptorType::eCombinedImageSampler, 1,
 	                                                     vk::ShaderStageFlagBits::eFragment, nullptr);
-	vk::DescriptorSetLayoutBinding cubemapStorageBinding(BINDING_CUBEMAP_STORAGE, vk::DescriptorType::eStorageImage, 1,
+	vk::DescriptorSetLayoutBinding cubemapStorageBinding(Bindings::Textures::CubemapStorage, vk::DescriptorType::eStorageImage, 1,
 	                                                     vk::ShaderStageFlagBits::eCompute, nullptr);
 	std::array<vk::DescriptorSetLayoutBinding, 5> textureBindings = {textureBinding, shadowBinding, materialBinding,
 	                                                                 cubemapSamplerBinding, cubemapStorageBinding};
@@ -90,15 +90,15 @@ DescriptorManager::DescriptorManager(VulkanDevice& vulkanDevice) : vulkanDevice(
 
 	//===Model (Set 1): primitives + transform + indirectDraw + visibleIndices===
 	vk::DescriptorSetLayoutBinding primitivesBinding(
-	    BINDING_MODEL_DATA, vk::DescriptorType::eStorageBuffer, 1,
+	    Bindings::Model::Primitives, vk::DescriptorType::eStorageBuffer, 1,
 	    vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eCompute,
 	    nullptr);
-	vk::DescriptorSetLayoutBinding transformBinding(BINDING_TRANSFORM_DATA, vk::DescriptorType::eStorageBuffer, 1,
+	vk::DescriptorSetLayoutBinding transformBinding(Bindings::Model::Transforms, vk::DescriptorType::eStorageBuffer, 1,
 	                                                vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eCompute,
 	                                                nullptr);
-	vk::DescriptorSetLayoutBinding commandBinding(BINDING_INDIRECT_DRAW_DATA, vk::DescriptorType::eStorageBuffer, 1,
+	vk::DescriptorSetLayoutBinding commandBinding(Bindings::Model::IndirectDraw, vk::DescriptorType::eStorageBuffer, 1,
 	                                              vk::ShaderStageFlagBits::eCompute, nullptr);
-	vk::DescriptorSetLayoutBinding indicesBinding(BINDING_VISIBLE_INDICES, vk::DescriptorType::eStorageBuffer, 1,
+	vk::DescriptorSetLayoutBinding indicesBinding(Bindings::Model::VisibleIndices, vk::DescriptorType::eStorageBuffer, 1,
 	                                              vk::ShaderStageFlagBits::eCompute | vk::ShaderStageFlagBits::eVertex,
 	                                              nullptr);
 	std::array<vk::DescriptorSetLayoutBinding, 4> modelBindings = {primitivesBinding, transformBinding, commandBinding,
@@ -153,7 +153,7 @@ void DescriptorManager::updateBindlessTextureSet(vk::ImageView textureImageView,
 
 	vk::WriteDescriptorSet descriptorWrite;
 	descriptorWrite.dstSet = descriptorSets[dSetComponent.bindlessTextureSet.id][0];
-	descriptorWrite.dstBinding = BINDING_TEXTURE_ARRAY;
+	descriptorWrite.dstBinding = Bindings::Textures::Array;
 	descriptorWrite.dstArrayElement = textureNumber;
 	descriptorWrite.descriptorType = vk::DescriptorType::eCombinedImageSampler;
 	descriptorWrite.descriptorCount = 1;
@@ -181,14 +181,14 @@ void DescriptorManager::updateCubemapDescriptors(BindlessTextureDSetComponent& d
 	std::array<vk::WriteDescriptorSet, 2> descriptorWrites;
 
 	descriptorWrites[0].dstSet = descriptorSets[dSetComponent.bindlessTextureSet.id][0];
-	descriptorWrites[0].dstBinding = BINDING_CUBEMAP_SAMPLER;
+	descriptorWrites[0].dstBinding = Bindings::Textures::CubemapSampler;
 	descriptorWrites[0].dstArrayElement = 0;
 	descriptorWrites[0].descriptorType = vk::DescriptorType::eCombinedImageSampler;
 	descriptorWrites[0].descriptorCount = 1;
 	descriptorWrites[0].pImageInfo = &samplerInfo;
 
 	descriptorWrites[1].dstSet = descriptorSets[dSetComponent.bindlessTextureSet.id][0];
-	descriptorWrites[1].dstBinding = BINDING_CUBEMAP_STORAGE;
+	descriptorWrites[1].dstBinding = Bindings::Textures::CubemapStorage;
 	descriptorWrites[1].dstArrayElement = 0;
 	descriptorWrites[1].descriptorType = vk::DescriptorType::eStorageImage;
 	descriptorWrites[1].descriptorCount = 1;

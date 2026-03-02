@@ -49,6 +49,7 @@
 // Contexts
 #include "GraphicsContexts.hpp"
 #include "Resources/ResourceStructures.hpp"
+#include "Resources/Managers/Bindings.hpp"
 
 // ImGui
 #include <imgui.h>
@@ -382,37 +383,37 @@ void GraphicsInit::initScene(GeneralManager& gm)
 
 #pragma region Post-Processing (FXAA)
 	globalDSetComponent->fxaaDSets = dManager->allocateFxaaDescriptorSet(*dManager->screenSpaceSetLayout);
-	dManager->updateSingleTextureDSet(globalDSetComponent->fxaaDSets, 0,
+	dManager->updateSingleTextureDSet(globalDSetComponent->fxaaDSets, Bindings::FXAA::ColorInput,
 	                                  tManager->textures[swap->offscreenTextureHandle.id].textureImageView,
 	                                  tManager->textures[swap->offscreenTextureHandle.id].textureSampler);
-	dManager->updateSingleTextureDSet(globalDSetComponent->fxaaDSets, 1,
+	dManager->updateSingleTextureDSet(globalDSetComponent->fxaaDSets, Bindings::FXAA::SsaoInput,
 	                                  tManager->textures[swap->ssaoBlurTextureHandle.id].textureImageView,
 	                                  tManager->textures[swap->ssaoBlurTextureHandle.id].textureSampler);
-	dManager->updateSingleTextureDSet(globalDSetComponent->fxaaDSets, 2,
+	dManager->updateSingleTextureDSet(globalDSetComponent->fxaaDSets, Bindings::FXAA::ColorInput2,
 	                                  tManager->textures[swap->offscreenTextureHandle.id].textureImageView,
 	                                  tManager->textures[swap->offscreenTextureHandle.id].textureSampler);
 #pragma endregion
 
 #pragma region SSAO Descriptor Sets
 	globalDSetComponent->ssaoDSets = dManager->allocateFxaaDescriptorSet(*dManager->screenSpaceSetLayout);
-	dManager->updateSingleTextureDSet(globalDSetComponent->ssaoDSets, 0,
+	dManager->updateSingleTextureDSet(globalDSetComponent->ssaoDSets, Bindings::SSAO::DepthInput,
 	                                  tManager->textures[swap->depthTextureHandle.id].textureImageView,
 	                                  tManager->textures[swap->depthTextureHandle.id].textureSampler);
-	dManager->updateSingleTextureDSet(globalDSetComponent->ssaoDSets, 1,
+	dManager->updateSingleTextureDSet(globalDSetComponent->ssaoDSets, Bindings::SSAO::NormalsInput,
 	                                  tManager->textures[swap->viewNormalsTextureHandle.id].textureImageView,
 	                                  tManager->textures[swap->viewNormalsTextureHandle.id].textureSampler);
-	dManager->updateSingleTextureDSet(globalDSetComponent->ssaoDSets, 2,
+	dManager->updateSingleTextureDSet(globalDSetComponent->ssaoDSets, Bindings::SSAO::NoiseInput,
 	                                  tManager->textures[swap->ssaoNoiseTextureHandle.id].textureImageView,
 	                                  tManager->textures[swap->ssaoNoiseTextureHandle.id].textureSampler);
 
 	globalDSetComponent->ssaoBlurDSets = dManager->allocateFxaaDescriptorSet(*dManager->screenSpaceSetLayout);
-	dManager->updateSingleTextureDSet(globalDSetComponent->ssaoBlurDSets, 0,
+	dManager->updateSingleTextureDSet(globalDSetComponent->ssaoBlurDSets, Bindings::SSAOBlur::SsaoInput,
 	                                  tManager->textures[swap->ssaoTextureHandle.id].textureImageView,
 	                                  tManager->textures[swap->ssaoTextureHandle.id].textureSampler);
-	dManager->updateSingleTextureDSet(globalDSetComponent->ssaoBlurDSets, 1,
+	dManager->updateSingleTextureDSet(globalDSetComponent->ssaoBlurDSets, Bindings::SSAOBlur::ColorInput1,
 	                                  tManager->textures[swap->offscreenTextureHandle.id].textureImageView,
 	                                  tManager->textures[swap->offscreenTextureHandle.id].textureSampler);
-	dManager->updateSingleTextureDSet(globalDSetComponent->ssaoBlurDSets, 2,
+	dManager->updateSingleTextureDSet(globalDSetComponent->ssaoBlurDSets, Bindings::SSAOBlur::ColorInput2,
 	                                  tManager->textures[swap->offscreenTextureHandle.id].textureImageView,
 	                                  tManager->textures[swap->offscreenTextureHandle.id].textureSampler);
 #pragma endregion
