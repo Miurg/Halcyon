@@ -2,6 +2,7 @@
 
 #include <GLFW/glfw3.h>
 #include "../PlatformContexts.hpp"
+#include "../../Graphics/Components/NameComponent.hpp"
 
 void InputSolverSystem::update(GeneralManager& gm)
 {
@@ -62,6 +63,7 @@ void InputSolverSystem::onRegistered(GeneralManager& gm)
 	gm.addComponent<KeyboardStateComponent>(windowAndInputEntity);
 	gm.addComponent<MouseStateComponent>(windowAndInputEntity);
 	gm.addComponent<CursorPositionComponent>(windowAndInputEntity);
+	gm.addComponent<NameComponent>(windowAndInputEntity, "SYSTEM::PLATFORM Window and Input");
 	unsigned int ScreenWidth = 1920;
 	unsigned int ScreenHeight = 1080;
 	gm.addComponent<WindowSizeComponent>(windowAndInputEntity, ScreenWidth, ScreenHeight);

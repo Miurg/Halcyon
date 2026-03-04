@@ -3,13 +3,6 @@
 
 namespace Bindings
 {
-	namespace Sets
-	{
-		constexpr uint32_t Global = 0;
-		constexpr uint32_t Model = 1;
-		constexpr uint32_t Textures = 2;
-	}
-
 	namespace Global
 	{
 		constexpr uint32_t Camera = 0;

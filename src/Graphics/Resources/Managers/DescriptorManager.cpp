@@ -127,10 +127,6 @@ DescriptorManager::DescriptorManager(VulkanDevice& vulkanDevice) : vulkanDevice(
 DescriptorManager::~DescriptorManager()
 {
 	descriptorPool.reset();
-	globalSetLayout.~DescriptorSetLayout();
-	textureSetLayout.~DescriptorSetLayout();
-	modelSetLayout.~DescriptorSetLayout();
-	screenSpaceSetLayout.~DescriptorSetLayout();
 	imguiPool.reset();
 }
 
@@ -263,7 +259,7 @@ void DescriptorManager::updateStorageBufferDescriptors(BufferManager& bManager, 
 	(*vulkanDevice.device).updateDescriptorSets(writes, {});
 }
 
-DSetHandle DescriptorManager::allocateFxaaDescriptorSet(vk::DescriptorSetLayout layout)
+DSetHandle DescriptorManager::allocateOffscreenDescriptorSet(vk::DescriptorSetLayout layout)
 {
 	vk::DescriptorSetAllocateInfo allocInfo(*descriptorPool, layout);
 	auto allocatedSets = vulkanDevice.device.allocateDescriptorSets(allocInfo);

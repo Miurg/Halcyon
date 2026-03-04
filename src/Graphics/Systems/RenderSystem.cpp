@@ -18,6 +18,8 @@
 #include "../Components/FrameManagerComponent.hpp"
 #include "../Components/DrawInfoComponent.hpp"
 #include "../Components/SsaoSettingsComponent.hpp"
+#include "../Components/RenderGraphComponent.hpp"
+#include "../RenderGraph/RenderGraph.hpp"
 
 void RenderSystem::onRegistered(GeneralManager& gm)
 {
@@ -50,36 +52,123 @@ void RenderSystem::update(GeneralManager& gm)
 	ModelDSetComponent* objectDSetComponent = gm.getContextComponent<MainDSetsContext, ModelDSetComponent>();
 	DrawInfoComponent* drawInfo = gm.getContextComponent<CurrentFrameContext, DrawInfoComponent>();
 	SsaoSettingsComponent* ssaoSettings = gm.getContextComponent<SsaoSettingsContext, SsaoSettingsComponent>();
+	RenderGraph& rg = *gm.getContextComponent<RenderGraphContext, RenderGraphComponent>()->renderGraph;
 	uint32_t imageIndex = gm.getContextComponent<FrameImageContext, FrameImageComponent>()->imageIndex;
 	if (!currentFrameComp->frameValid) return;
 
 	ImGui::Render();
 
-	CommandBufferFactory::recordShadowCommandBuffer(
-	    frameManager->frames[currentFrameComp->currentFrame].secondaryCommandBuffers[0], pipelineHandler,
-	    currentFrameComp->currentFrame, *lightTexture, *dManager, globalDSetComponent, objectDSetComponent,
-	    textureManager, modelManager);
-	CommandBufferFactory::recordCullCommandBuffer(
-	    frameManager->frames[currentFrameComp->currentFrame].secondaryCommandBuffers[1], pipelineHandler,
-	    currentFrameComp->currentFrame, *dManager, globalDSetComponent, objectDSetComponent, modelManager, *drawInfo);
-	CommandBufferFactory::recordDepthPrepassCommandBuffer(
-	    frameManager->frames[currentFrameComp->currentFrame].secondaryCommandBuffers[2], imageIndex, swapChain,
-	    pipelineHandler, currentFrameComp->currentFrame, *materialDSetComponent, *dManager, globalDSetComponent,
-	    bufferManager, objectDSetComponent, modelManager, textureManager, *drawInfo);
-	CommandBufferFactory::recordMainCommandBuffer(
-	    frameManager->frames[currentFrameComp->currentFrame].secondaryCommandBuffers[3], imageIndex, swapChain,
-	    pipelineHandler, currentFrameComp->currentFrame, *materialDSetComponent, *dManager, globalDSetComponent,
-	    bufferManager, objectDSetComponent, modelManager, textureManager, *drawInfo);
-	CommandBufferFactory::recordSsaoCommandBuffer(
-	    frameManager->frames[currentFrameComp->currentFrame].secondaryCommandBuffers[4], swapChain, pipelineHandler,
-	    *dManager, globalDSetComponent->ssaoDSets, globalDSetComponent->globalDSets, textureManager, *ssaoSettings);
-	CommandBufferFactory::recordSsaoBlurCommandBuffer(
-	    frameManager->frames[currentFrameComp->currentFrame].secondaryCommandBuffers[5], swapChain, pipelineHandler,
-	    *dManager, globalDSetComponent->ssaoBlurDSets, textureManager);
-	CommandBufferFactory::recordFxaaCommandBuffer(
-	    frameManager->frames[currentFrameComp->currentFrame].secondaryCommandBuffers[6], imageIndex, swapChain,
-	    pipelineHandler, *dManager, globalDSetComponent->fxaaDSets);
-	CommandBufferFactory::executeSecondaryBuffers(
-	    frameManager->frames[currentFrameComp->currentFrame].commandBuffer,
-	    frameManager->frames[currentFrameComp->currentFrame].secondaryCommandBuffers);
+	uint32_t currentFrame = currentFrameComp->currentFrame;
+	auto& frame = frameManager->frames[currentFrame];
+
+	rg.clearFrame();
+
+	// Kainda static resources - imported each frame but same handles
+	auto shadowMapHandle =
+	    rg.importImage("shadowMap", textureManager.textures[lightTexture->textureShadowImage.id].textureImage,
+	                   vk::ImageAspectFlagBits::eDepth);
+	auto swapChainHandle =
+	    rg.importImage("swapChainImage", swapChain.swapChainImages[imageIndex], vk::ImageAspectFlagBits::eColor);
+
+	// Transient resources
+	auto depthHandle = rg.getHandle("depth");
+	auto offscreenHandle = rg.getHandle("offscreen");
+	auto viewNormalsHandle = rg.getHandle("viewNormals");
+	auto ssaoHandle = rg.getHandle("ssao");
+	auto ssaoBlurHandle = rg.getHandle("ssaoBlur");
+
+	vk::ImageView depthImageView = rg.getImageView(depthHandle);
+	vk::ImageView offscreenImageView = rg.getImageView(offscreenHandle);
+	vk::ImageView viewNormalsImageView = rg.getImageView(viewNormalsHandle);
+	vk::ImageView ssaoImageView = rg.getImageView(ssaoHandle);
+	vk::ImageView ssaoBlurImageView = rg.getImageView(ssaoBlurHandle);
+
+	rg.addPass("Shadow", /*reads=*/{},
+	           /*writes=*/{{shadowMapHandle, RGResourceUsage::DepthAttachmentWrite}},
+	           [&](vk::raii::CommandBuffer& primaryCmd)
+	           {
+		           CommandBufferFactory::recordShadowCommandBuffer(
+		               frame.secondaryCommandBuffers[0], pipelineHandler, currentFrame, *lightTexture, *dManager,
+		               globalDSetComponent, objectDSetComponent, textureManager, modelManager);
+		           primaryCmd.executeCommands(*frame.secondaryCommandBuffers[0]);
+	           });
+
+	rg.addPass("Cull", /*reads=*/{}, /*writes=*/{},
+	           [&](vk::raii::CommandBuffer& primaryCmd)
+	           {
+		           CommandBufferFactory::recordCullCommandBuffer(frame.secondaryCommandBuffers[1], pipelineHandler,
+		                                                         currentFrame, *dManager, globalDSetComponent,
+		                                                         objectDSetComponent, modelManager, *drawInfo);
+		           primaryCmd.executeCommands(*frame.secondaryCommandBuffers[1]);
+	           });
+
+	rg.addPass("DepthPrepass", /*reads=*/{},
+	           /*writes=*/{{depthHandle, RGResourceUsage::DepthAttachmentWrite}},
+	           [&](vk::raii::CommandBuffer& primaryCmd)
+	           {
+		           CommandBufferFactory::recordDepthPrepassCommandBuffer(
+		               frame.secondaryCommandBuffers[2], imageIndex, swapChain, pipelineHandler, currentFrame,
+		               *materialDSetComponent, *dManager, globalDSetComponent, bufferManager, objectDSetComponent,
+		               modelManager, depthImageView, *drawInfo);
+		           primaryCmd.executeCommands(*frame.secondaryCommandBuffers[2]);
+	           });
+
+	rg.addPass("Main",
+	           /*reads=*/{{shadowMapHandle, RGResourceUsage::ShaderRead}},
+	           /*writes=*/
+	           {{offscreenHandle, RGResourceUsage::ColorAttachmentWrite},
+	            {viewNormalsHandle, RGResourceUsage::ColorAttachmentWrite},
+	            {depthHandle, RGResourceUsage::DepthAttachmentWrite}},
+	           [&](vk::raii::CommandBuffer& primaryCmd)
+	           {
+		           CommandBufferFactory::recordMainCommandBuffer(
+		               frame.secondaryCommandBuffers[3], imageIndex, swapChain, pipelineHandler, currentFrame,
+		               *materialDSetComponent, *dManager, globalDSetComponent, bufferManager, objectDSetComponent,
+		               modelManager, offscreenImageView, viewNormalsImageView, depthImageView, *drawInfo);
+		           primaryCmd.executeCommands(*frame.secondaryCommandBuffers[3]);
+	           });
+
+	rg.addPass("SSAO",
+	           /*reads=*/
+	           {{depthHandle, RGResourceUsage::ShaderRead}, {viewNormalsHandle, RGResourceUsage::ShaderRead}},
+	           /*writes=*/{{ssaoHandle, RGResourceUsage::ColorAttachmentWrite}},
+	           [&](vk::raii::CommandBuffer& primaryCmd)
+	           {
+		           CommandBufferFactory::recordSsaoCommandBuffer(
+		               frame.secondaryCommandBuffers[4], swapChain, pipelineHandler, *dManager,
+		               globalDSetComponent->ssaoDSets, globalDSetComponent->globalDSets, ssaoImageView, *ssaoSettings);
+		           primaryCmd.executeCommands(*frame.secondaryCommandBuffers[4]);
+	           });
+
+	rg.addPass("SSAOBlur",
+	           /*reads=*/{{ssaoHandle, RGResourceUsage::ShaderRead}},
+	           /*writes=*/{{ssaoBlurHandle, RGResourceUsage::ColorAttachmentWrite}},
+	           [&](vk::raii::CommandBuffer& primaryCmd)
+	           {
+		           CommandBufferFactory::recordSsaoBlurCommandBuffer(
+		               frame.secondaryCommandBuffers[5], swapChain, pipelineHandler, *dManager,
+		               globalDSetComponent->ssaoBlurDSets, ssaoBlurImageView);
+		           primaryCmd.executeCommands(*frame.secondaryCommandBuffers[5]);
+	           });
+
+	rg.addPass("FXAA",
+	           /*reads=*/
+	           {{offscreenHandle, RGResourceUsage::ShaderRead}, {ssaoBlurHandle, RGResourceUsage::ShaderRead}},
+	           /*writes=*/{{swapChainHandle, RGResourceUsage::ColorAttachmentWrite}},
+	           [&](vk::raii::CommandBuffer& primaryCmd)
+	           {
+		           CommandBufferFactory::recordFxaaCommandBuffer(frame.secondaryCommandBuffers[6], imageIndex, swapChain,
+		                                                         pipelineHandler, *dManager,
+		                                                         globalDSetComponent->fxaaDSets);
+		           primaryCmd.executeCommands(*frame.secondaryCommandBuffers[6]);
+	           });
+
+	// Present barrier
+	rg.addPass("Present", /*reads=*/{{swapChainHandle, RGResourceUsage::Present}}, /*writes=*/{}, nullptr);
+
+	rg.compile();
+
+	frame.commandBuffer.begin({});
+	rg.execute(frame.commandBuffer);
+	frame.commandBuffer.end();
 }

@@ -15,7 +15,7 @@ void PipelineFactory::createGraphicsPipeline(VulkanDevice& vulkanDevice, SwapCha
 	vertShaderStageInfo.module = shaderModule;
 	vertShaderStageInfo.pName = "vertMain";
 
-	//ALPHA_TEST_ENABLED = 0 opaque
+	// ALPHA_TEST_ENABLED = 0 opaque
 	vk::SpecializationMapEntry specEntry{0, 0, sizeof(int32_t)};
 	int32_t specData = 0;
 	vk::SpecializationInfo specInfo{1, &specEntry, sizeof(specData), &specData};
@@ -106,7 +106,7 @@ void PipelineFactory::createGraphicsPipeline(VulkanDevice& vulkanDevice, SwapCha
 	vk::PipelineRenderingCreateInfo pipelineRenderingCreateInfo;
 	pipelineRenderingCreateInfo.colorAttachmentCount = static_cast<uint32_t>(colorFormats.size());
 	pipelineRenderingCreateInfo.pColorAttachmentFormats = colorFormats.data();
-	pipelineRenderingCreateInfo.depthAttachmentFormat = tManager.textures[swapChain.depthTextureHandle.id].format;
+	pipelineRenderingCreateInfo.depthAttachmentFormat = tManager.findBestFormat();
 
 	vk::PipelineDepthStencilStateCreateInfo depthStencil;
 	depthStencil.depthTestEnable = vk::True;
@@ -145,7 +145,7 @@ void PipelineFactory::createAlphaTestPipeline(VulkanDevice& vulkanDevice, SwapCh
 	vertShaderStageInfo.module = shaderModule;
 	vertShaderStageInfo.pName = "vertMain";
 
-	//ALPHA_TEST_ENABLED = 1 alpha test
+	// ALPHA_TEST_ENABLED = 1 alpha test
 	vk::SpecializationMapEntry specEntry{0, 0, sizeof(int32_t)};
 	int32_t specData = 1;
 	vk::SpecializationInfo specInfo{1, &specEntry, sizeof(specData), &specData};
@@ -223,7 +223,7 @@ void PipelineFactory::createAlphaTestPipeline(VulkanDevice& vulkanDevice, SwapCh
 	vk::PipelineRenderingCreateInfo pipelineRenderingCreateInfo;
 	pipelineRenderingCreateInfo.colorAttachmentCount = static_cast<uint32_t>(colorFormats.size());
 	pipelineRenderingCreateInfo.pColorAttachmentFormats = colorFormats.data();
-	pipelineRenderingCreateInfo.depthAttachmentFormat = tManager.textures[swapChain.depthTextureHandle.id].format;
+	pipelineRenderingCreateInfo.depthAttachmentFormat = tManager.findBestFormat();
 
 	vk::PipelineDepthStencilStateCreateInfo depthStencil;
 	depthStencil.depthTestEnable = vk::True;
@@ -311,7 +311,7 @@ void PipelineFactory::createShadowPipeline(VulkanDevice& vulkanDevice, SwapChain
 	vk::PipelineRenderingCreateInfo pipelineRenderingCreateInfo;
 	pipelineRenderingCreateInfo.colorAttachmentCount = 0;
 	pipelineRenderingCreateInfo.pColorAttachmentFormats = nullptr;
-	pipelineRenderingCreateInfo.depthAttachmentFormat = tManager.textures[swapChain.depthTextureHandle.id].format;
+	pipelineRenderingCreateInfo.depthAttachmentFormat = tManager.findBestFormat();
 
 	vk::PipelineDepthStencilStateCreateInfo depthStencil;
 	depthStencil.depthTestEnable = vk::True;
@@ -801,7 +801,7 @@ void PipelineFactory::createSkyboxPipeline(VulkanDevice& vulkanDevice, SwapChain
 	vk::PipelineRenderingCreateInfo pipelineRenderingCreateInfo;
 	pipelineRenderingCreateInfo.colorAttachmentCount = static_cast<uint32_t>(colorFormats.size());
 	pipelineRenderingCreateInfo.pColorAttachmentFormats = colorFormats.data();
-	pipelineRenderingCreateInfo.depthAttachmentFormat = tManager.textures[swapChain.depthTextureHandle.id].format;
+	pipelineRenderingCreateInfo.depthAttachmentFormat = tManager.findBestFormat();
 
 	vk::PipelineDepthStencilStateCreateInfo depthStencil;
 	depthStencil.depthTestEnable = vk::True;
@@ -830,8 +830,8 @@ void PipelineFactory::createSkyboxPipeline(VulkanDevice& vulkanDevice, SwapChain
 }
 
 void PipelineFactory::createDepthPrepassPipeline(VulkanDevice& vulkanDevice, SwapChain& swapChain,
-                                           DescriptorManager& descriptorManager, PipelineHandler& pipelineHandler,
-                                           TextureManager& tManager)
+                                                 DescriptorManager& descriptorManager, PipelineHandler& pipelineHandler,
+                                                 TextureManager& tManager)
 {
 	vk::raii::ShaderModule shaderModule =
 	    PipelineFactory::createShaderModule(VulkanUtils::readFile("shaders/depth_prepass.spv"), vulkanDevice);
@@ -890,7 +890,7 @@ void PipelineFactory::createDepthPrepassPipeline(VulkanDevice& vulkanDevice, Swa
 	vk::PipelineRenderingCreateInfo pipelineRenderingCreateInfo;
 	pipelineRenderingCreateInfo.colorAttachmentCount = 0;
 	pipelineRenderingCreateInfo.pColorAttachmentFormats = nullptr;
-	pipelineRenderingCreateInfo.depthAttachmentFormat = tManager.textures[swapChain.depthTextureHandle.id].format;
+	pipelineRenderingCreateInfo.depthAttachmentFormat = tManager.findBestFormat();
 
 	vk::PipelineDepthStencilStateCreateInfo depthStencil;
 	depthStencil.depthTestEnable = vk::True;

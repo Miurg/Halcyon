@@ -18,12 +18,6 @@ void CommandBufferFactory::recordShadowCommandBuffer(vk::raii::CommandBuffer& se
 
 	// --- Step 1: SHADOW PASS ---
 
-	transitionImageLayout(secondaryCmd, tManager.textures[lightTexture.textureShadowImage.id].textureImage,
-	                      vk::ImageLayout::eUndefined, vk::ImageLayout::eDepthAttachmentOptimal,
-	                      vk::AccessFlagBits2::eNone, vk::AccessFlagBits2::eDepthStencilAttachmentWrite,
-	                      vk::PipelineStageFlagBits2::eTopOfPipe, vk::PipelineStageFlagBits2::eEarlyFragmentTests,
-	                      vk::ImageAspectFlagBits::eDepth);
-
 	vk::RenderingAttachmentInfo shadowDepthInfo;
 	shadowDepthInfo.imageView = tManager.textures[lightTexture.textureShadowImage.id].textureImageView;
 	shadowDepthInfo.imageLayout = vk::ImageLayout::eDepthAttachmentOptimal;
@@ -69,12 +63,6 @@ void CommandBufferFactory::recordShadowCommandBuffer(vk::raii::CommandBuffer& se
 		}
 	}
 	secondaryCmd.endRendering();
-
-	transitionImageLayout(secondaryCmd, tManager.textures[lightTexture.textureShadowImage.id].textureImage,
-	                      vk::ImageLayout::eDepthAttachmentOptimal, vk::ImageLayout::eShaderReadOnlyOptimal,
-	                      vk::AccessFlagBits2::eDepthStencilAttachmentWrite, vk::AccessFlagBits2::eShaderRead,
-	                      vk::PipelineStageFlagBits2::eLateFragmentTests, vk::PipelineStageFlagBits2::eFragmentShader,
-	                      vk::ImageAspectFlagBits::eDepth);
 
 	secondaryCmd.end();
 }
@@ -134,7 +122,7 @@ void CommandBufferFactory::recordDepthPrepassCommandBuffer(
     vk::raii::CommandBuffer& secondaryCmd, uint32_t imageIndex, SwapChain& swapChain, PipelineHandler& pipelineHandler,
     uint32_t currentFrame, BindlessTextureDSetComponent& bindlessTextureDSetComponent,
     DescriptorManagerComponent& dManager, GlobalDSetComponent* globalDSetComponent, BufferManager& bManager,
-    ModelDSetComponent* objectDSetComponent, ModelManager& mManager, TextureManager& tManager,
+    ModelDSetComponent* objectDSetComponent, ModelManager& mManager, vk::ImageView depthImageView,
     const DrawInfoComponent& drawInfo)
 {
 	vk::CommandBufferInheritanceInfo inheritanceInfo = {};
@@ -146,13 +134,8 @@ void CommandBufferFactory::recordDepthPrepassCommandBuffer(
 
 	// --- Step 1.9: DEPTH PREPASS ---
 
-	transitionImageLayout(secondaryCmd, tManager.textures[swapChain.depthTextureHandle.id].textureImage,
-	                      vk::ImageLayout::eUndefined, vk::ImageLayout::eDepthAttachmentOptimal, {},
-	                      vk::AccessFlagBits2::eDepthStencilAttachmentWrite, vk::PipelineStageFlagBits2::eTopOfPipe,
-	                      vk::PipelineStageFlagBits2::eEarlyFragmentTests, vk::ImageAspectFlagBits::eDepth);
-
 	vk::RenderingAttachmentInfo depthAttachmentInfo;
-	depthAttachmentInfo.imageView = tManager.textures[swapChain.depthTextureHandle.id].textureImageView;
+	depthAttachmentInfo.imageView = depthImageView;
 	depthAttachmentInfo.imageLayout = vk::ImageLayout::eDepthAttachmentOptimal;
 	depthAttachmentInfo.loadOp = vk::AttachmentLoadOp::eClear;
 	depthAttachmentInfo.storeOp = vk::AttachmentStoreOp::eStore;
@@ -190,25 +173,18 @@ void CommandBufferFactory::recordDepthPrepassCommandBuffer(
 		    bManager.buffers[objectDSetComponent->indirectDrawBuffer.id].buffer[currentFrame], 0, opaqueCount,
 		    commandStride);
 	}
-	secondaryCmd.endRendering();
 
-	transitionImageLayout(secondaryCmd, tManager.textures[swapChain.depthTextureHandle.id].textureImage,
-	                      vk::ImageLayout::eDepthAttachmentOptimal, vk::ImageLayout::eShaderReadOnlyOptimal,
-	                      vk::AccessFlagBits2::eDepthStencilAttachmentWrite, vk::AccessFlagBits2::eShaderRead,
-	                      vk::PipelineStageFlagBits2::eLateFragmentTests, vk::PipelineStageFlagBits2::eFragmentShader,
-	                      vk::ImageAspectFlagBits::eDepth);
+	secondaryCmd.endRendering();
 
 	secondaryCmd.end();
 }
 
-void CommandBufferFactory::recordMainCommandBuffer(vk::raii::CommandBuffer& secondaryCmd, uint32_t imageIndex,
-                                                   SwapChain& swapChain, PipelineHandler& pipelineHandler,
-                                                   uint32_t currentFrame,
-                                                   BindlessTextureDSetComponent& bindlessTextureDSetComponent,
-                                                   DescriptorManagerComponent& dManager,
-                                                   GlobalDSetComponent* globalDSetComponent, BufferManager& bManager,
-                                                   ModelDSetComponent* objectDSetComponent, ModelManager& mManager,
-                                                   TextureManager& tManager, const DrawInfoComponent& drawInfo)
+void CommandBufferFactory::recordMainCommandBuffer(
+    vk::raii::CommandBuffer& secondaryCmd, uint32_t imageIndex, SwapChain& swapChain, PipelineHandler& pipelineHandler,
+    uint32_t currentFrame, BindlessTextureDSetComponent& bindlessTextureDSetComponent,
+    DescriptorManagerComponent& dManager, GlobalDSetComponent* globalDSetComponent, BufferManager& bManager,
+    ModelDSetComponent* objectDSetComponent, ModelManager& mManager, vk::ImageView offscreenImageView,
+    vk::ImageView viewNormalsImageView, vk::ImageView depthImageView, const DrawInfoComponent& drawInfo)
 {
 	vk::CommandBufferInheritanceInfo inheritanceInfo = {};
 
@@ -220,38 +196,23 @@ void CommandBufferFactory::recordMainCommandBuffer(vk::raii::CommandBuffer& seco
 
 	// --- Step 2: MAIN PASS ---
 
-	transitionImageLayout(secondaryCmd, tManager.textures[swapChain.offscreenTextureHandle.id].textureImage,
-	                      vk::ImageLayout::eUndefined, vk::ImageLayout::eColorAttachmentOptimal, {},
-	                      vk::AccessFlagBits2::eColorAttachmentWrite, vk::PipelineStageFlagBits2::eColorAttachmentOutput,
-	                      vk::PipelineStageFlagBits2::eColorAttachmentOutput, vk::ImageAspectFlagBits::eColor);
-
-	transitionImageLayout(secondaryCmd, tManager.textures[swapChain.viewNormalsTextureHandle.id].textureImage,
-	                      vk::ImageLayout::eUndefined, vk::ImageLayout::eColorAttachmentOptimal, {},
-	                      vk::AccessFlagBits2::eColorAttachmentWrite, vk::PipelineStageFlagBits2::eColorAttachmentOutput,
-	                      vk::PipelineStageFlagBits2::eColorAttachmentOutput, vk::ImageAspectFlagBits::eColor);
-
-	transitionImageLayout(secondaryCmd, tManager.textures[swapChain.depthTextureHandle.id].textureImage,
-	                      vk::ImageLayout::eShaderReadOnlyOptimal, vk::ImageLayout::eDepthAttachmentOptimal, {},
-	                      vk::AccessFlagBits2::eDepthStencilAttachmentWrite, vk::PipelineStageFlagBits2::eTopOfPipe,
-	                      vk::PipelineStageFlagBits2::eEarlyFragmentTests, vk::ImageAspectFlagBits::eDepth);
-
 	vk::ClearValue clearColor = vk::ClearColorValue(0.0f, 0.637f, 1.0f, 1.0f);
 	vk::RenderingAttachmentInfo attachmentInfo;
-	attachmentInfo.imageView = tManager.textures[swapChain.offscreenTextureHandle.id].textureImageView;
+	attachmentInfo.imageView = offscreenImageView;
 	attachmentInfo.imageLayout = vk::ImageLayout::eColorAttachmentOptimal;
 	attachmentInfo.loadOp = vk::AttachmentLoadOp::eClear;
 	attachmentInfo.storeOp = vk::AttachmentStoreOp::eStore;
 	attachmentInfo.clearValue = clearColor;
 
 	vk::RenderingAttachmentInfo normalsAttachmentInfo;
-	normalsAttachmentInfo.imageView = tManager.textures[swapChain.viewNormalsTextureHandle.id].textureImageView;
+	normalsAttachmentInfo.imageView = viewNormalsImageView;
 	normalsAttachmentInfo.imageLayout = vk::ImageLayout::eColorAttachmentOptimal;
 	normalsAttachmentInfo.loadOp = vk::AttachmentLoadOp::eClear;
 	normalsAttachmentInfo.storeOp = vk::AttachmentStoreOp::eStore;
 	normalsAttachmentInfo.clearValue = vk::ClearValue(vk::ClearColorValue(0.0f, 0.0f, 0.0f, 0.0f));
 
 	vk::RenderingAttachmentInfo depthAttachmentInfo;
-	depthAttachmentInfo.imageView = tManager.textures[swapChain.depthTextureHandle.id].textureImageView;
+	depthAttachmentInfo.imageView = depthImageView;
 	depthAttachmentInfo.imageLayout = vk::ImageLayout::eDepthAttachmentOptimal;
 	depthAttachmentInfo.loadOp = vk::AttachmentLoadOp::eLoad;
 	depthAttachmentInfo.storeOp = vk::AttachmentStoreOp::eStore;
@@ -316,24 +277,6 @@ void CommandBufferFactory::recordMainCommandBuffer(vk::raii::CommandBuffer& seco
 
 	secondaryCmd.endRendering();
 
-	transitionImageLayout(secondaryCmd, tManager.textures[swapChain.offscreenTextureHandle.id].textureImage,
-	                      vk::ImageLayout::eColorAttachmentOptimal, vk::ImageLayout::eShaderReadOnlyOptimal,
-	                      vk::AccessFlagBits2::eColorAttachmentWrite, vk::AccessFlagBits2::eShaderRead,
-	                      vk::PipelineStageFlagBits2::eColorAttachmentOutput,
-	                      vk::PipelineStageFlagBits2::eFragmentShader, vk::ImageAspectFlagBits::eColor);
-
-	transitionImageLayout(secondaryCmd, tManager.textures[swapChain.viewNormalsTextureHandle.id].textureImage,
-	                      vk::ImageLayout::eColorAttachmentOptimal, vk::ImageLayout::eShaderReadOnlyOptimal,
-	                      vk::AccessFlagBits2::eColorAttachmentWrite, vk::AccessFlagBits2::eShaderRead,
-	                      vk::PipelineStageFlagBits2::eColorAttachmentOutput,
-	                      vk::PipelineStageFlagBits2::eFragmentShader, vk::ImageAspectFlagBits::eColor);
-
-	transitionImageLayout(secondaryCmd, tManager.textures[swapChain.depthTextureHandle.id].textureImage,
-	                      vk::ImageLayout::eDepthAttachmentOptimal, vk::ImageLayout::eShaderReadOnlyOptimal,
-	                      vk::AccessFlagBits2::eDepthStencilAttachmentWrite, vk::AccessFlagBits2::eShaderRead,
-	                      vk::PipelineStageFlagBits2::eLateFragmentTests, vk::PipelineStageFlagBits2::eFragmentShader,
-	                      vk::ImageAspectFlagBits::eDepth);
-
 	secondaryCmd.end();
 }
 
@@ -350,11 +293,6 @@ void CommandBufferFactory::recordFxaaCommandBuffer(vk::raii::CommandBuffer& seco
 	secondaryCmd.begin(beginInfo);
 
 	// --- Step 3: FXAA PASS ---
-
-	transitionImageLayout(secondaryCmd, swapChain.swapChainImages[imageIndex], vk::ImageLayout::eUndefined,
-	                      vk::ImageLayout::eColorAttachmentOptimal, vk::AccessFlagBits2::eNone,
-	                      vk::AccessFlagBits2::eColorAttachmentWrite, vk::PipelineStageFlagBits2::eTopOfPipe,
-	                      vk::PipelineStageFlagBits2::eColorAttachmentOutput, vk::ImageAspectFlagBits::eColor);
 
 	vk::RenderingAttachmentInfo attachmentInfo;
 	attachmentInfo.imageView = swapChain.swapChainImageViews[imageIndex];
@@ -403,11 +341,6 @@ void CommandBufferFactory::recordFxaaCommandBuffer(vk::raii::CommandBuffer& seco
 
 	secondaryCmd.endRendering();
 
-	transitionImageLayout(secondaryCmd, swapChain.swapChainImages[imageIndex], vk::ImageLayout::eColorAttachmentOptimal,
-	                      vk::ImageLayout::ePresentSrcKHR, vk::AccessFlagBits2::eColorAttachmentWrite, {},
-	                      vk::PipelineStageFlagBits2::eColorAttachmentOutput, vk::PipelineStageFlagBits2::eBottomOfPipe,
-	                      vk::ImageAspectFlagBits::eColor);
-
 	secondaryCmd.end();
 }
 
@@ -415,7 +348,7 @@ void CommandBufferFactory::recordSsaoCommandBuffer(vk::raii::CommandBuffer& seco
                                                    PipelineHandler& pipelineHandler,
                                                    DescriptorManagerComponent& dManager,
                                                    DSetHandle ssaoDescriptorSetIndex,
-                                                   DSetHandle globalDescriptorSetIndex, TextureManager& tManager,
+                                                   DSetHandle globalDescriptorSetIndex, vk::ImageView ssaoImageView,
                                                    const SsaoSettingsComponent& ssaoSettings)
 {
 	vk::CommandBufferInheritanceInfo inheritanceInfo = {};
@@ -425,14 +358,8 @@ void CommandBufferFactory::recordSsaoCommandBuffer(vk::raii::CommandBuffer& seco
 
 	secondaryCmd.begin(beginInfo);
 
-	transitionImageLayout(secondaryCmd, tManager.textures[swapChain.ssaoTextureHandle.id].textureImage,
-	                      vk::ImageLayout::eUndefined, vk::ImageLayout::eColorAttachmentOptimal,
-	                      vk::AccessFlagBits2::eNone, vk::AccessFlagBits2::eColorAttachmentWrite,
-	                      vk::PipelineStageFlagBits2::eTopOfPipe, vk::PipelineStageFlagBits2::eColorAttachmentOutput,
-	                      vk::ImageAspectFlagBits::eColor);
-
 	vk::RenderingAttachmentInfo attachmentInfo;
-	attachmentInfo.imageView = tManager.textures[swapChain.ssaoTextureHandle.id].textureImageView;
+	attachmentInfo.imageView = ssaoImageView;
 	attachmentInfo.imageLayout = vk::ImageLayout::eColorAttachmentOptimal;
 	attachmentInfo.loadOp = vk::AttachmentLoadOp::eClear;
 	attachmentInfo.storeOp = vk::AttachmentStoreOp::eStore;
@@ -484,19 +411,14 @@ void CommandBufferFactory::recordSsaoCommandBuffer(vk::raii::CommandBuffer& seco
 
 	secondaryCmd.endRendering();
 
-	transitionImageLayout(secondaryCmd, tManager.textures[swapChain.ssaoTextureHandle.id].textureImage,
-	                      vk::ImageLayout::eColorAttachmentOptimal, vk::ImageLayout::eShaderReadOnlyOptimal,
-	                      vk::AccessFlagBits2::eColorAttachmentWrite, vk::AccessFlagBits2::eShaderRead,
-	                      vk::PipelineStageFlagBits2::eColorAttachmentOutput,
-	                      vk::PipelineStageFlagBits2::eFragmentShader, vk::ImageAspectFlagBits::eColor);
-
 	secondaryCmd.end();
 }
 
 void CommandBufferFactory::recordSsaoBlurCommandBuffer(vk::raii::CommandBuffer& secondaryCmd, SwapChain& swapChain,
                                                        PipelineHandler& pipelineHandler,
                                                        DescriptorManagerComponent& dManager,
-                                                       DSetHandle ssaoBlurDescriptorSetIndex, TextureManager& tManager)
+                                                       DSetHandle ssaoBlurDescriptorSetIndex,
+                                                       vk::ImageView ssaoBlurImageView)
 {
 	vk::CommandBufferInheritanceInfo inheritanceInfo = {};
 	vk::CommandBufferBeginInfo beginInfo;
@@ -505,14 +427,8 @@ void CommandBufferFactory::recordSsaoBlurCommandBuffer(vk::raii::CommandBuffer& 
 
 	secondaryCmd.begin(beginInfo);
 
-	transitionImageLayout(secondaryCmd, tManager.textures[swapChain.ssaoBlurTextureHandle.id].textureImage,
-	                      vk::ImageLayout::eUndefined, vk::ImageLayout::eColorAttachmentOptimal,
-	                      vk::AccessFlagBits2::eNone, vk::AccessFlagBits2::eColorAttachmentWrite,
-	                      vk::PipelineStageFlagBits2::eTopOfPipe, vk::PipelineStageFlagBits2::eColorAttachmentOutput,
-	                      vk::ImageAspectFlagBits::eColor);
-
 	vk::RenderingAttachmentInfo attachmentInfo;
-	attachmentInfo.imageView = tManager.textures[swapChain.ssaoBlurTextureHandle.id].textureImageView;
+	attachmentInfo.imageView = ssaoBlurImageView;
 	attachmentInfo.imageLayout = vk::ImageLayout::eColorAttachmentOptimal;
 	attachmentInfo.loadOp = vk::AttachmentLoadOp::eClear;
 	attachmentInfo.storeOp = vk::AttachmentStoreOp::eStore;
@@ -553,12 +469,6 @@ void CommandBufferFactory::recordSsaoBlurCommandBuffer(vk::raii::CommandBuffer& 
 	secondaryCmd.draw(3, 1, 0, 0);
 
 	secondaryCmd.endRendering();
-
-	transitionImageLayout(secondaryCmd, tManager.textures[swapChain.ssaoBlurTextureHandle.id].textureImage,
-	                      vk::ImageLayout::eColorAttachmentOptimal, vk::ImageLayout::eShaderReadOnlyOptimal,
-	                      vk::AccessFlagBits2::eColorAttachmentWrite, vk::AccessFlagBits2::eShaderRead,
-	                      vk::PipelineStageFlagBits2::eColorAttachmentOutput,
-	                      vk::PipelineStageFlagBits2::eFragmentShader, vk::ImageAspectFlagBits::eColor);
 
 	secondaryCmd.end();
 }

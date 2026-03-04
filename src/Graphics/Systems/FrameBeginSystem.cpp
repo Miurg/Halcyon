@@ -16,8 +16,8 @@
 #include "../Components/FrameManagerComponent.hpp"
 #include "../Components/DescriptorManagerComponent.hpp"
 #include "../Resources/Components/GlobalDSetComponent.hpp"
-#include "../Components/DescriptorManagerComponent.hpp"
-#include "../Components/TextureManagerComponent.hpp"
+#include "../Components/RenderGraphComponent.hpp"
+#include "../RenderGraph/RenderGraph.hpp"
 
 void FrameBeginSystem::onRegistered(GeneralManager& gm)
 {
@@ -42,14 +42,14 @@ void FrameBeginSystem::update(GeneralManager& gm)
 	DescriptorManager* dManager =
 	    gm.getContextComponent<DescriptorManagerContext, DescriptorManagerComponent>()->descriptorManager;
 	GlobalDSetComponent* globalDSetComponent = gm.getContextComponent<MainDSetsContext, GlobalDSetComponent>();
-	TextureManager* tManager = gm.getContextComponent<TextureManagerContext, TextureManagerComponent>()->textureManager;
+	RenderGraph* rg = gm.getContextComponent<RenderGraphContext, RenderGraphComponent>()->renderGraph;
 
 	vulkanDevice.device.waitForFences(*frameManager->frames[currentFrameComp->currentFrame].inFlightFence, vk::True,
 	                                  UINT64_MAX);
 	// Handle window resize
 	if (window.framebufferResized)
 	{
-		SwapChainFactory::recreateSwapChain(swapChain, vulkanDevice, window, *dManager, *globalDSetComponent, *tManager);
+		SwapChainFactory::recreateSwapChain(swapChain, vulkanDevice, window, *rg, *dManager, *globalDSetComponent);
 		window.framebufferResized = false;
 		return;
 	}
@@ -62,14 +62,13 @@ void FrameBeginSystem::update(GeneralManager& gm)
 		if (result == vk::Result::eErrorOutOfDateKHR)
 		{
 			window.framebufferResized = false;
-			SwapChainFactory::recreateSwapChain(swapChain, vulkanDevice, window, *dManager, *globalDSetComponent,
-			                                    *tManager);
+			SwapChainFactory::recreateSwapChain(swapChain, vulkanDevice, window, *rg, *dManager, *globalDSetComponent);
 			return;
 		}
 	}
 	catch (vk::OutOfDateKHRError&)
 	{
-		SwapChainFactory::recreateSwapChain(swapChain, vulkanDevice, window, *dManager, *globalDSetComponent, *tManager);
+		SwapChainFactory::recreateSwapChain(swapChain, vulkanDevice, window, *rg, *dManager, *globalDSetComponent);
 		return;
 	}
 	catch (vk::SystemError& e)

@@ -36,14 +36,15 @@ public:
 	                                            DescriptorManagerComponent& dManager,
 	                                            GlobalDSetComponent* globalDSetComponent, BufferManager& bManager,
 	                                            ModelDSetComponent* objectDSetComponent, ModelManager& mManager,
-	                                            TextureManager& tManager, const DrawInfoComponent& drawInfo);
+	                                            vk::ImageView depthImageView, const DrawInfoComponent& drawInfo);
 
 	static void recordMainCommandBuffer(vk::raii::CommandBuffer& secondaryCmd, uint32_t imageIndex, SwapChain& swapChain,
 	                                    PipelineHandler& pipelineHandler, uint32_t currentFrame,
 	                                    BindlessTextureDSetComponent& bindlessTextureDSetComponent,
 	                                    DescriptorManagerComponent& dManager, GlobalDSetComponent* globalDSetComponent,
 	                                    BufferManager& bManager, ModelDSetComponent* objectDSetComponent,
-	                                    ModelManager& mManager, TextureManager& tManager,
+	                                    ModelManager& mManager, vk::ImageView offscreenImageView,
+	                                    vk::ImageView viewNormalsImageView, vk::ImageView depthImageView,
 	                                    const DrawInfoComponent& drawInfo);
 	static void recordFxaaCommandBuffer(vk::raii::CommandBuffer& secondaryCmd, uint32_t imageIndex, SwapChain& swapChain,
 	                                    PipelineHandler& pipelineHandler, DescriptorManagerComponent& dManager,
@@ -51,10 +52,10 @@ public:
 	static void recordSsaoCommandBuffer(vk::raii::CommandBuffer& secondaryCmd, SwapChain& swapChain,
 	                                    PipelineHandler& pipelineHandler, DescriptorManagerComponent& dManager,
 	                                    DSetHandle ssaoDescriptorSetIndex, DSetHandle globalDescriptorSetIndex,
-	                                    TextureManager& tManager, const SsaoSettingsComponent& ssaoSettings);
+	                                    vk::ImageView ssaoImageView, const SsaoSettingsComponent& ssaoSettings);
 	static void recordSsaoBlurCommandBuffer(vk::raii::CommandBuffer& secondaryCmd, SwapChain& swapChain,
 	                                        PipelineHandler& pipelineHandler, DescriptorManagerComponent& dManager,
-	                                        DSetHandle ssaoBlurDescriptorSetIndex, TextureManager& tManager);
+	                                        DSetHandle ssaoBlurDescriptorSetIndex, vk::ImageView ssaoBlurImageView);
 	static void executeSecondaryBuffers(vk::raii::CommandBuffer& primaryCommandBuffer,
 	                                    const vk::raii::CommandBuffers& secondaryBuffers);
 	static void transitionImageLayout(vk::raii::CommandBuffer& commandBuffer, vk::Image image, vk::ImageLayout oldLayout,
@@ -62,23 +63,4 @@ public:
 	                                  vk::AccessFlags2 dstAccessMask, vk::PipelineStageFlags2 srcStageMask,
 	                                  vk::PipelineStageFlags2 dstStageMask, vk::ImageAspectFlags imageAspectFlags,
 	                                  uint32_t layerCount = 1, uint32_t mipLevelCount = 1);
-};
-
-// Aggregate of references passed into primary command buffer recording.
-struct CommandBufferStruct
-{
-	vk::raii::CommandBuffer& commandBuffer;
-	uint32_t imageIndex;
-	std::vector<int>& textureInfo;
-	SwapChain& swapChain;
-	PipelineHandler& pipelineHandler;
-	uint32_t currentFrame;
-	BufferManager& bufferManager;
-	std::vector<MeshInfoComponent*>& meshInfo;
-	CameraComponent& camera;
-	LightComponent& lightTexture;
-	BindlessTextureDSetComponent& materialDSet;
-	DescriptorManagerComponent& dManager;
-	GlobalDSetComponent* globalDSetComponent;
-	ModelDSetComponent* objectDSetComponent;
 };

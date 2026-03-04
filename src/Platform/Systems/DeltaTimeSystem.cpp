@@ -2,6 +2,7 @@
 #include "../PlatformContexts.hpp"
 #include "../Components/DeltaTimeComponent.hpp"
 #include "../Window.hpp"
+#include "../../Graphics/Components/NameComponent.hpp"
 
 void DeltaTimeSystem::update(GeneralManager& gm)
 {
@@ -18,6 +19,7 @@ void DeltaTimeSystem::onRegistered(GeneralManager& gm)
 	Entity deltaTimeEntity = gm.createEntity();
 	gm.registerContext<DeltaTimeContext>(deltaTimeEntity);
 	gm.addComponent<DeltaTimeComponent>(deltaTimeEntity);
+	gm.addComponent<NameComponent>(deltaTimeEntity, "SYSTEM::PLATFORM Delta Time");
 }
 
 void DeltaTimeSystem::onShutdown(GeneralManager& gm)

@@ -28,7 +28,7 @@ public:
 	DSetHandle allocateStorageBufferDSets(uint32_t count, vk::DescriptorSetLayout layout);
 	void updateStorageBufferDescriptors(BufferManager& bManager, BufferHandle bNumber, DSetHandle dSet,
 	                                    uint32_t binding);
-	DSetHandle allocateFxaaDescriptorSet(vk::DescriptorSetLayout layout);
+	DSetHandle allocateOffscreenDescriptorSet(vk::DescriptorSetLayout layout);
 	std::vector<std::vector<vk::DescriptorSet>> descriptorSets;
 
 	vk::raii::DescriptorPool imguiPool = nullptr;

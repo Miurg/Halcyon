@@ -17,7 +17,8 @@
 #include "../Components/FrameManagerComponent.hpp"
 #include "../Components/DescriptorManagerComponent.hpp"
 #include "../Resources/Components/GlobalDSetComponent.hpp"
-#include "../Components/TextureManagerComponent.hpp"
+#include "../Components/RenderGraphComponent.hpp"
+#include "../RenderGraph/RenderGraph.hpp"
 
 void FrameEndSystem::onRegistered(GeneralManager& gm)
 {
@@ -38,8 +39,6 @@ void FrameEndSystem::update(GeneralManager& gm)
 	FrameManager* frameManager = gm.getContextComponent<FrameManagerContext, FrameManagerComponent>()->frameManager;
 	CurrentFrameComponent* currentFrameComp = gm.getContextComponent<CurrentFrameContext, CurrentFrameComponent>();
 	uint32_t imageIndex = gm.getContextComponent<FrameImageContext, FrameImageComponent>()->imageIndex;
-	TextureManager* textureManager =
-	    gm.getContextComponent<TextureManagerContext, TextureManagerComponent>()->textureManager;
 
 	if (!currentFrameComp->frameValid) return;
 
@@ -77,8 +76,8 @@ void FrameEndSystem::update(GeneralManager& gm)
 		DescriptorManager* dManager =
 		    gm.getContextComponent<DescriptorManagerContext, DescriptorManagerComponent>()->descriptorManager;
 		GlobalDSetComponent* globalDSetComponent = gm.getContextComponent<MainDSetsContext, GlobalDSetComponent>();
-		SwapChainFactory::recreateSwapChain(swapChain, vulkanDevice, window, *dManager, *globalDSetComponent,
-		                                    *textureManager);
+		RenderGraph* rg = gm.getContextComponent<RenderGraphContext, RenderGraphComponent>()->renderGraph;
+		SwapChainFactory::recreateSwapChain(swapChain, vulkanDevice, window, *rg, *dManager, *globalDSetComponent);
 	}
 	else if (presentResult != vk::Result::eSuccess)
 	{

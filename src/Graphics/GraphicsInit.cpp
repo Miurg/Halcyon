@@ -25,6 +25,8 @@
 #include "Resources/Components/ModelDSetComponent.hpp"
 #include "Components/DrawInfoComponent.hpp"
 #include "Components/SsaoSettingsComponent.hpp"
+#include "Components/RenderGraphComponent.hpp"
+#include "RenderGraph/RenderGraph.hpp"
 
 #include "Components/NameComponent.hpp"
 #include "Components/CameraComponent.hpp"
@@ -92,6 +94,7 @@ void GraphicsInit::initVulkanCore(GeneralManager& gm)
 	VulkanDevice* vulkanDevice = new VulkanDevice();
 	VulkanDeviceFactory::createVulkanDevice(*window, *vulkanDevice);
 	gm.addComponent<VulkanDeviceComponent>(vulkanDeviceEntity, vulkanDevice);
+	gm.addComponent<NameComponent>(vulkanDeviceEntity, "SYSTEM Vulkan Device");
 
 	// VMA Allocator
 	Entity vmaAllocatorEntity = gm.createEntity();
@@ -113,6 +116,7 @@ void GraphicsInit::initVulkanCore(GeneralManager& gm)
 		throw std::runtime_error("failed to create VMA allocator!");
 	}
 	gm.addComponent<VMAllocatorComponent>(vmaAllocatorEntity, allocator);
+	gm.addComponent<NameComponent>(vmaAllocatorEntity, "SYSTEM VMA Allocator");
 }
 #pragma endregion
 
@@ -128,30 +132,35 @@ void GraphicsInit::initManagers(GeneralManager& gm)
 	gm.registerContext<TextureManagerContext>(textureManagerEntity);
 	TextureManager* textureManager = new TextureManager(*vulkanDevice, allocator);
 	gm.addComponent<TextureManagerComponent>(textureManagerEntity, textureManager);
+	gm.addComponent<NameComponent>(textureManagerEntity, "SYSTEM Texture Manager");
 
 	// Buffer Manager
 	Entity bufferManagerEntity = gm.createEntity();
 	gm.registerContext<BufferManagerContext>(bufferManagerEntity);
 	BufferManager* bManager = new BufferManager(*vulkanDevice, allocator);
 	gm.addComponent<BufferManagerComponent>(bufferManagerEntity, bManager);
+	gm.addComponent<NameComponent>(bufferManagerEntity, "SYSTEM Buffer Manager");
 
 	// Model Manager
 	Entity modelManagerEntity = gm.createEntity();
 	gm.registerContext<ModelManagerContext>(modelManagerEntity);
 	ModelManager* mManager = new ModelManager(*vulkanDevice, allocator);
 	gm.addComponent<ModelManagerComponent>(modelManagerEntity, mManager);
+	gm.addComponent<NameComponent>(modelManagerEntity, "SYSTEM Model Manager");
 
 	// Descriptor Manager
 	Entity descriptorManagerEntity = gm.createEntity();
 	gm.registerContext<DescriptorManagerContext>(descriptorManagerEntity);
 	DescriptorManager* dManager = new DescriptorManager(*vulkanDevice);
 	gm.addComponent<DescriptorManagerComponent>(descriptorManagerEntity, dManager);
+	gm.addComponent<NameComponent>(descriptorManagerEntity, "SYSTEM Descriptor Manager");
 
 	// Frame Manager
 	Entity frameManagerEntity = gm.createEntity();
 	gm.registerContext<FrameManagerContext>(frameManagerEntity);
 	FrameManager* fManager = new FrameManager(*vulkanDevice);
 	gm.addComponent<FrameManagerComponent>(frameManagerEntity, fManager);
+	gm.addComponent<NameComponent>(frameManagerEntity, "SYSTEM Frame Manager");
 }
 #pragma endregion
 
@@ -170,11 +179,13 @@ void GraphicsInit::initFrameData(GeneralManager& gm)
 	gm.addComponent<FrameDataComponent>(frameDataEntity, 0);
 	gm.addComponent<CurrentFrameComponent>(frameDataEntity);
 	gm.addComponent<DrawInfoComponent>(frameDataEntity);
+	gm.addComponent<NameComponent>(frameDataEntity, "SYSTEM Frame Data");
 
 	// Frame Images
 	Entity frameImageEntity = gm.createEntity();
 	gm.registerContext<FrameImageContext>(frameImageEntity);
 	gm.addComponent<FrameImageComponent>(frameImageEntity);
+	gm.addComponent<NameComponent>(frameImageEntity, "SYSTEM Frame Image");
 }
 #pragma endregion
 
@@ -187,24 +198,30 @@ void GraphicsInit::initPipelines(GeneralManager& gm)
 	DescriptorManager* dManager =
 	    gm.getContextComponent<DescriptorManagerContext, DescriptorManagerComponent>()->descriptorManager;
 	TextureManager* tManager = gm.getContextComponent<TextureManagerContext, TextureManagerComponent>()->textureManager;
+	VmaAllocator vmaAlloc = gm.getContextComponent<VMAllocatorContext, VMAllocatorComponent>()->allocator;
 
 	// Swap Chain
 	Entity swapChainEntity = gm.createEntity();
 	gm.registerContext<MainSwapChainContext>(swapChainEntity);
 	SwapChain* swapChain = new SwapChain();
 	SwapChainFactory::createSwapChain(*swapChain, *vulkanDevice, *window);
-	swapChain->offscreenTextureHandle = tManager->createOffscreenImage(
-	    swapChain->swapChainExtent.width, swapChain->swapChainExtent.height, swapChain->hdrFormat);
-	swapChain->viewNormalsTextureHandle = tManager->createOffscreenImage(
-	    swapChain->swapChainExtent.width, swapChain->swapChainExtent.height, vk::Format::eR16G16B16A16Sfloat);
-	swapChain->ssaoTextureHandle = tManager->createOffscreenImage(
-	    swapChain->swapChainExtent.width / 2, swapChain->swapChainExtent.height / 2, vk::Format::eR8Unorm);
-	swapChain->ssaoBlurTextureHandle = tManager->createOffscreenImage(
-	    swapChain->swapChainExtent.width / 2, swapChain->swapChainExtent.height / 2, vk::Format::eR8Unorm);
 	swapChain->ssaoNoiseTextureHandle = tManager->createSsaoNoiseTexture();
-	swapChain->depthTextureHandle =
-	    tManager->createDepthImage(swapChain->swapChainExtent.width, swapChain->swapChainExtent.height);
 	gm.addComponent<SwapChainComponent>(swapChainEntity, swapChain);
+	gm.addComponent<NameComponent>(swapChainEntity, "SYSTEM Swap Chain");
+
+	// RenderGraph 
+	Entity rgEntity = gm.createEntity();
+	RenderGraph* rg = new RenderGraph(*vulkanDevice, vmaAlloc);
+	gm.registerContext<RenderGraphContext>(rgEntity);
+	rg->createResource({tManager->findBestFormat(), RGSizeMode::FullExtent, vk::ImageAspectFlagBits::eDepth}, "depth");
+	rg->createResource({swapChain->hdrFormat, RGSizeMode::FullExtent, vk::ImageAspectFlagBits::eColor}, "offscreen");
+	rg->createResource({vk::Format::eR16G16B16A16Sfloat, RGSizeMode::FullExtent, vk::ImageAspectFlagBits::eColor},
+	                   "viewNormals");
+	rg->createResource({vk::Format::eR8Unorm, RGSizeMode::HalfExtent, vk::ImageAspectFlagBits::eColor}, "ssao");
+	rg->createResource({vk::Format::eR8Unorm, RGSizeMode::HalfExtent, vk::ImageAspectFlagBits::eColor}, "ssaoBlur");
+	rg->handleResize(swapChain->swapChainExtent.width, swapChain->swapChainExtent.height);
+	gm.addComponent<RenderGraphComponent>(rgEntity, rg);
+	gm.addComponent<NameComponent>(rgEntity, "SYSTEM Render Graph");
 
 	// Main Descriptor Sets
 	Entity mainDSetsEntity = gm.createEntity();
@@ -212,6 +229,7 @@ void GraphicsInit::initPipelines(GeneralManager& gm)
 	gm.addComponent<BindlessTextureDSetComponent>(mainDSetsEntity);
 	gm.addComponent<GlobalDSetComponent>(mainDSetsEntity);
 	gm.addComponent<ModelDSetComponent>(mainDSetsEntity);
+	gm.addComponent<NameComponent>(mainDSetsEntity, "SYSTEM Descriptor Sets");
 
 	// Signature and Pipelines
 	Entity signatureEntity = gm.createEntity();
@@ -228,6 +246,7 @@ void GraphicsInit::initPipelines(GeneralManager& gm)
 	PipelineFactory::createEquirectToCubePipeline(*vulkanDevice, *dManager, *pipelineHandler);
 	PipelineFactory::createSkyboxPipeline(*vulkanDevice, *swapChain, *pipelineHandler, *tManager);
 	gm.addComponent<PipelineHandlerComponent>(signatureEntity, pipelineHandler);
+	gm.addComponent<NameComponent>(signatureEntity, "SYSTEM Pipeline Handler");
 
 #ifdef _DEBUG
 	std::cout << "GRAPHICSINIT::VULKANNEEDS::Succes!" << std::endl;
@@ -381,41 +400,19 @@ void GraphicsInit::initScene(GeneralManager& gm)
 	                                         objectDSetComponent->modelBufferDSet, 3);
 #pragma endregion
 
-#pragma region Post-Processing (FXAA)
-	globalDSetComponent->fxaaDSets = dManager->allocateFxaaDescriptorSet(*dManager->screenSpaceSetLayout);
-	dManager->updateSingleTextureDSet(globalDSetComponent->fxaaDSets, Bindings::FXAA::ColorInput,
-	                                  tManager->textures[swap->offscreenTextureHandle.id].textureImageView,
-	                                  tManager->textures[swap->offscreenTextureHandle.id].textureSampler);
-	dManager->updateSingleTextureDSet(globalDSetComponent->fxaaDSets, Bindings::FXAA::SsaoInput,
-	                                  tManager->textures[swap->ssaoBlurTextureHandle.id].textureImageView,
-	                                  tManager->textures[swap->ssaoBlurTextureHandle.id].textureSampler);
-	dManager->updateSingleTextureDSet(globalDSetComponent->fxaaDSets, Bindings::FXAA::ColorInput2,
-	                                  tManager->textures[swap->offscreenTextureHandle.id].textureImageView,
-	                                  tManager->textures[swap->offscreenTextureHandle.id].textureSampler);
-#pragma endregion
+#pragma region Post-Processing & SSAO Descriptor Sets
+	RenderGraph* rg = gm.getContextComponent<RenderGraphContext, RenderGraphComponent>()->renderGraph;
+	globalDSetComponent->fxaaDSets = dManager->allocateOffscreenDescriptorSet(*dManager->screenSpaceSetLayout);
+	globalDSetComponent->ssaoDSets = dManager->allocateOffscreenDescriptorSet(*dManager->screenSpaceSetLayout);
+	globalDSetComponent->ssaoBlurDSets = dManager->allocateOffscreenDescriptorSet(*dManager->screenSpaceSetLayout);
 
-#pragma region SSAO Descriptor Sets
-	globalDSetComponent->ssaoDSets = dManager->allocateFxaaDescriptorSet(*dManager->screenSpaceSetLayout);
-	dManager->updateSingleTextureDSet(globalDSetComponent->ssaoDSets, Bindings::SSAO::DepthInput,
-	                                  tManager->textures[swap->depthTextureHandle.id].textureImageView,
-	                                  tManager->textures[swap->depthTextureHandle.id].textureSampler);
-	dManager->updateSingleTextureDSet(globalDSetComponent->ssaoDSets, Bindings::SSAO::NormalsInput,
-	                                  tManager->textures[swap->viewNormalsTextureHandle.id].textureImageView,
-	                                  tManager->textures[swap->viewNormalsTextureHandle.id].textureSampler);
+	// SSAO NoiseInput is a static texture — write it manually.
 	dManager->updateSingleTextureDSet(globalDSetComponent->ssaoDSets, Bindings::SSAO::NoiseInput,
 	                                  tManager->textures[swap->ssaoNoiseTextureHandle.id].textureImageView,
 	                                  tManager->textures[swap->ssaoNoiseTextureHandle.id].textureSampler);
 
-	globalDSetComponent->ssaoBlurDSets = dManager->allocateFxaaDescriptorSet(*dManager->screenSpaceSetLayout);
-	dManager->updateSingleTextureDSet(globalDSetComponent->ssaoBlurDSets, Bindings::SSAOBlur::SsaoInput,
-	                                  tManager->textures[swap->ssaoTextureHandle.id].textureImageView,
-	                                  tManager->textures[swap->ssaoTextureHandle.id].textureSampler);
-	dManager->updateSingleTextureDSet(globalDSetComponent->ssaoBlurDSets, Bindings::SSAOBlur::ColorInput1,
-	                                  tManager->textures[swap->offscreenTextureHandle.id].textureImageView,
-	                                  tManager->textures[swap->offscreenTextureHandle.id].textureSampler);
-	dManager->updateSingleTextureDSet(globalDSetComponent->ssaoBlurDSets, Bindings::SSAOBlur::ColorInput2,
-	                                  tManager->textures[swap->offscreenTextureHandle.id].textureImageView,
-	                                  tManager->textures[swap->offscreenTextureHandle.id].textureSampler);
+	// All other bindings are managed by RG.
+	rg->updateDescriptors(*dManager, *globalDSetComponent);
 #pragma endregion
 
 #pragma region SSAO Settings

@@ -11,6 +11,8 @@
 #include "Graphics/Components/PipelineHandlerComponent.hpp"
 #include "Graphics/Components/FrameManagerComponent.hpp"
 #include "Graphics/Components/VMAllocatorComponent.hpp"
+#include "Graphics/Components/RenderGraphComponent.hpp"
+#include "Graphics/RenderGraph/RenderGraph.hpp"
 #include "Platform/PlatformContexts.hpp"
 
 #include <imgui.h>
@@ -31,6 +33,7 @@ void Cleanup::cleanup(GeneralManager& gm)
 	PipelineHandler* pipelineHandler =
 	    gm.getContextComponent<MainSignatureContext, PipelineHandlerComponent>()->pipelineHandler;
 	VMAllocatorComponent* vmaComp = gm.getContextComponent<VMAllocatorContext, VMAllocatorComponent>();
+	RenderGraph* rg = gm.getContextComponent<RenderGraphContext, RenderGraphComponent>()->renderGraph;
 
 	vulkanDevice->device.waitIdle();
 
@@ -73,6 +76,11 @@ void Cleanup::cleanup(GeneralManager& gm)
 	{
 		delete pipelineHandler;
 		pipelineHandler = nullptr;
+	}
+	if (rg)
+	{
+		delete rg;
+		rg = nullptr;
 	}
 	if (vmaComp && vmaComp->allocator)
 	{
