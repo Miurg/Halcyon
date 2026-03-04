@@ -27,19 +27,26 @@ VSOutput vertMain(uint vertexID : SV_VertexID)
 float4 fragMain(VSOutput input) : SV_Target
 {
     float result = 0.0;
+    float totalWeight = 0.0;
 
-    // 6x6 box blur
+    const float weights[7] = { 0.006, 0.061, 0.242, 0.383, 0.242, 0.061, 0.006 };
+
     [unroll]
-    for (int x = -3; x < 3; x++)
+    for (int x = -3; x <= 3; x++)
     {
         [unroll]
-        for (int y = -3; y < 3; y++)
+        for (int y = -3; y <= 3; y++)
         {
             float2 offset = float2(float(x), float(y)) * pc.texelSize;
-            result += ssaoTexture.SampleLevel(input.uv + offset, 0).r;
+
+            float weight = weights[x + 3] * weights[y + 3];
+
+            result += ssaoTexture.SampleLevel(input.uv + offset, 0).r * weight;
+            totalWeight += weight;
         }
     }
 
-    result /= 36.0;
+    result /= totalWeight;
+
     return float4(result, result, result, 1.0);
 }
