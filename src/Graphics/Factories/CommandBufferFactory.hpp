@@ -3,9 +3,7 @@
 #include <vulkan/vulkan_raii.hpp>
 #include "../SwapChain.hpp"
 #include "../PipelineHandler.hpp"
-#include "../Resources/Managers/VertexIndexBuffer.hpp"
 #include "../Resources/Managers/BufferManager.hpp"
-#include "../Components/CameraComponent.hpp"
 #include "../Components/LightComponent.hpp"
 #include "../Components/DescriptorManagerComponent.hpp"
 #include "../Resources/Components/ModelDSetComponent.hpp"
@@ -15,49 +13,41 @@
 #include "../Components/DrawInfoComponent.hpp"
 #include "../Components/SsaoSettingsComponent.hpp"
 
-// Records secondary command buffers for each render pass (shadow, cull, main, FXAA).
 class CommandBufferFactory
 {
 public:
-	static void recordShadowCommandBuffer(vk::raii::CommandBuffer& secondaryCmd, PipelineHandler& pipelineHandler,
-	                                      uint32_t currentFrame, LightComponent& lightTexture,
-	                                      DescriptorManagerComponent& dManager, GlobalDSetComponent* globalDSetComponent,
-	                                      ModelDSetComponent* objectDSetComponent, TextureManager& tManager,
-	                                      ModelManager& mManager);
-	static void recordCullCommandBuffer(vk::raii::CommandBuffer& secondaryCmd, PipelineHandler& pipelineHandler,
-	                                    uint32_t currentFrame, DescriptorManagerComponent& dManager,
-	                                    GlobalDSetComponent* globalDSetComponent,
-	                                    ModelDSetComponent* objectDSetComponent, ModelManager& mManager,
-	                                    const DrawInfoComponent& drawInfo);
-	static void recordDepthPrepassCommandBuffer(vk::raii::CommandBuffer& secondaryCmd, uint32_t imageIndex,
-	                                            SwapChain& swapChain, PipelineHandler& pipelineHandler,
-	                                            uint32_t currentFrame,
-	                                            BindlessTextureDSetComponent& bindlessTextureDSetComponent,
-	                                            DescriptorManagerComponent& dManager,
-	                                            GlobalDSetComponent* globalDSetComponent, BufferManager& bManager,
-	                                            ModelDSetComponent* objectDSetComponent, ModelManager& mManager,
-	                                            vk::ImageView depthImageView, const DrawInfoComponent& drawInfo);
+	static void drawShadowPass(vk::raii::CommandBuffer& cmd, PipelineHandler& pipelineHandler, uint32_t currentFrame,
+	                           LightComponent& lightTexture, DescriptorManagerComponent& dManager,
+	                           GlobalDSetComponent* globalDSetComponent, ModelDSetComponent* objectDSetComponent,
+	                           TextureManager& tManager, ModelManager& mManager);
 
-	static void recordMainCommandBuffer(vk::raii::CommandBuffer& secondaryCmd, uint32_t imageIndex, SwapChain& swapChain,
-	                                    PipelineHandler& pipelineHandler, uint32_t currentFrame,
-	                                    BindlessTextureDSetComponent& bindlessTextureDSetComponent,
-	                                    DescriptorManagerComponent& dManager, GlobalDSetComponent* globalDSetComponent,
-	                                    BufferManager& bManager, ModelDSetComponent* objectDSetComponent,
-	                                    ModelManager& mManager, vk::ImageView offscreenImageView,
-	                                    vk::ImageView viewNormalsImageView, vk::ImageView depthImageView,
-	                                    const DrawInfoComponent& drawInfo);
-	static void recordFxaaCommandBuffer(vk::raii::CommandBuffer& secondaryCmd, uint32_t imageIndex, SwapChain& swapChain,
-	                                    PipelineHandler& pipelineHandler, DescriptorManagerComponent& dManager,
-	                                    DSetHandle fxaaDescriptorSetIndex);
-	static void recordSsaoCommandBuffer(vk::raii::CommandBuffer& secondaryCmd, SwapChain& swapChain,
-	                                    PipelineHandler& pipelineHandler, DescriptorManagerComponent& dManager,
-	                                    DSetHandle ssaoDescriptorSetIndex, DSetHandle globalDescriptorSetIndex,
-	                                    vk::ImageView ssaoImageView, const SsaoSettingsComponent& ssaoSettings);
-	static void recordSsaoBlurCommandBuffer(vk::raii::CommandBuffer& secondaryCmd, SwapChain& swapChain,
-	                                        PipelineHandler& pipelineHandler, DescriptorManagerComponent& dManager,
-	                                        DSetHandle ssaoBlurDescriptorSetIndex, vk::ImageView ssaoBlurImageView);
-	static void executeSecondaryBuffers(vk::raii::CommandBuffer& primaryCommandBuffer,
-	                                    const vk::raii::CommandBuffers& secondaryBuffers);
+	static void drawCullPass(vk::raii::CommandBuffer& cmd, PipelineHandler& pipelineHandler, uint32_t currentFrame,
+	                         DescriptorManagerComponent& dManager, GlobalDSetComponent* globalDSetComponent,
+	                         ModelDSetComponent* objectDSetComponent, ModelManager& mManager,
+	                         const DrawInfoComponent& drawInfo);
+
+	static void drawDepthPrepass(vk::raii::CommandBuffer& cmd, SwapChain& swapChain, PipelineHandler& pipelineHandler,
+	                             uint32_t currentFrame, BindlessTextureDSetComponent& bindlessTextureDSetComponent,
+	                             DescriptorManagerComponent& dManager, GlobalDSetComponent* globalDSetComponent,
+	                             BufferManager& bManager, ModelDSetComponent* objectDSetComponent,
+	                             ModelManager& mManager, const DrawInfoComponent& drawInfo);
+
+	static void drawMainPass(vk::raii::CommandBuffer& cmd, SwapChain& swapChain, PipelineHandler& pipelineHandler,
+	                         uint32_t currentFrame, BindlessTextureDSetComponent& bindlessTextureDSetComponent,
+	                         DescriptorManagerComponent& dManager, GlobalDSetComponent* globalDSetComponent,
+	                         BufferManager& bManager, ModelDSetComponent* objectDSetComponent, ModelManager& mManager,
+	                         const DrawInfoComponent& drawInfo);
+
+	static void drawFxaaPass(vk::raii::CommandBuffer& cmd, SwapChain& swapChain, PipelineHandler& pipelineHandler,
+	                         DescriptorManagerComponent& dManager, DSetHandle fxaaDescriptorSetIndex);
+
+	static void drawSsaoPass(vk::raii::CommandBuffer& cmd, SwapChain& swapChain, PipelineHandler& pipelineHandler,
+	                         DescriptorManagerComponent& dManager, DSetHandle ssaoDescriptorSetIndex,
+	                         DSetHandle globalDescriptorSetIndex, const SsaoSettingsComponent& ssaoSettings);
+
+	static void drawSsaoBlurPass(vk::raii::CommandBuffer& cmd, SwapChain& swapChain, PipelineHandler& pipelineHandler,
+	                             DescriptorManagerComponent& dManager, DSetHandle ssaoBlurDescriptorSetIndex);
+
 	static void transitionImageLayout(vk::raii::CommandBuffer& commandBuffer, vk::Image image, vk::ImageLayout oldLayout,
 	                                  vk::ImageLayout newLayout, vk::AccessFlags2 srcAccessMask,
 	                                  vk::AccessFlags2 dstAccessMask, vk::PipelineStageFlags2 srcStageMask,

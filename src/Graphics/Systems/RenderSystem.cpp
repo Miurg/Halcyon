@@ -64,11 +64,11 @@ void RenderSystem::update(GeneralManager& gm)
 	rg.clearFrame();
 
 	// Kainda static resources - imported each frame but same handles
-	auto shadowMapHandle =
-	    rg.importImage("shadowMap", textureManager.textures[lightTexture->textureShadowImage.id].textureImage,
-	                   vk::ImageAspectFlagBits::eDepth);
-	auto swapChainHandle =
-	    rg.importImage("swapChainImage", swapChain.swapChainImages[imageIndex], vk::ImageAspectFlagBits::eColor);
+	auto shadowMapHandle = rg.importImage(
+	    "shadowMap", textureManager.textures[lightTexture->textureShadowImage.id].textureImage,
+	    textureManager.textures[lightTexture->textureShadowImage.id].textureImageView, vk::ImageAspectFlagBits::eDepth);
+	auto swapChainHandle = rg.importImage("swapChainImage", swapChain.swapChainImages[imageIndex],
+	                                      swapChain.swapChainImageViews[imageIndex], vk::ImageAspectFlagBits::eColor);
 
 	// Transient resources
 	auto depthHandle = rg.getHandle("depth");
@@ -77,94 +77,95 @@ void RenderSystem::update(GeneralManager& gm)
 	auto ssaoHandle = rg.getHandle("ssao");
 	auto ssaoBlurHandle = rg.getHandle("ssaoBlur");
 
-	vk::ImageView depthImageView = rg.getImageView(depthHandle);
-	vk::ImageView offscreenImageView = rg.getImageView(offscreenHandle);
-	vk::ImageView viewNormalsImageView = rg.getImageView(viewNormalsHandle);
-	vk::ImageView ssaoImageView = rg.getImageView(ssaoHandle);
-	vk::ImageView ssaoBlurImageView = rg.getImageView(ssaoBlurHandle);
+	vk::ClearValue clearSky = vk::ClearColorValue(0.0f, 0.637f, 1.0f, 1.0f);
+	vk::ClearValue clearBlack = vk::ClearColorValue(0.0f, 0.0f, 0.0f, 0.0f);
+	vk::ClearValue clearWhite = vk::ClearColorValue(1.0f, 1.0f, 1.0f, 1.0f);
+	vk::ClearValue clearDepth1 = vk::ClearDepthStencilValue(1.0f, 0);
+	vk::ClearValue clearDepth0 = vk::ClearDepthStencilValue(0.0f, 0);
 
-	rg.addPass("Shadow", /*reads=*/{},
-	           /*writes=*/{{shadowMapHandle, RGResourceUsage::DepthAttachmentWrite}},
-	           [&](vk::raii::CommandBuffer& primaryCmd)
+	rg.addPass("Shadow",
+	           {.depthAttachment = RGAttachmentConfig{shadowMapHandle, vk::AttachmentLoadOp::eClear,
+	                                                  vk::AttachmentStoreOp::eStore, clearDepth0},
+	            .customExtent = vk::Extent2D{static_cast<uint32_t>(lightTexture->sizeX),
+	                                         static_cast<uint32_t>(lightTexture->sizeY)}},
+	           {}, {{shadowMapHandle, RGResourceUsage::DepthAttachmentWrite}},
+	           [&](vk::raii::CommandBuffer& cmd)
 	           {
-		           CommandBufferFactory::recordShadowCommandBuffer(
-		               frame.secondaryCommandBuffers[0], pipelineHandler, currentFrame, *lightTexture, *dManager,
-		               globalDSetComponent, objectDSetComponent, textureManager, modelManager);
-		           primaryCmd.executeCommands(*frame.secondaryCommandBuffers[0]);
+		           CommandBufferFactory::drawShadowPass(cmd, pipelineHandler, currentFrame, *lightTexture, *dManager,
+		                                                globalDSetComponent, objectDSetComponent, textureManager,
+		                                                modelManager);
 	           });
 
-	rg.addPass("Cull", /*reads=*/{}, /*writes=*/{},
-	           [&](vk::raii::CommandBuffer& primaryCmd)
+	rg.addPass("Cull", {.isCompute = true}, {}, {},
+	           [&](vk::raii::CommandBuffer& cmd)
 	           {
-		           CommandBufferFactory::recordCullCommandBuffer(frame.secondaryCommandBuffers[1], pipelineHandler,
-		                                                         currentFrame, *dManager, globalDSetComponent,
-		                                                         objectDSetComponent, modelManager, *drawInfo);
-		           primaryCmd.executeCommands(*frame.secondaryCommandBuffers[1]);
+		           CommandBufferFactory::drawCullPass(cmd, pipelineHandler, currentFrame, *dManager, globalDSetComponent,
+		                                              objectDSetComponent, modelManager, *drawInfo);
 	           });
 
-	rg.addPass("DepthPrepass", /*reads=*/{},
-	           /*writes=*/{{depthHandle, RGResourceUsage::DepthAttachmentWrite}},
-	           [&](vk::raii::CommandBuffer& primaryCmd)
+	rg.addPass("DepthPrepass",
+	           {.depthAttachment = RGAttachmentConfig{depthHandle, vk::AttachmentLoadOp::eClear,
+	                                                  vk::AttachmentStoreOp::eStore, clearDepth1}},
+	           {}, {{depthHandle, RGResourceUsage::DepthAttachmentWrite}},
+	           [&](vk::raii::CommandBuffer& cmd)
 	           {
-		           CommandBufferFactory::recordDepthPrepassCommandBuffer(
-		               frame.secondaryCommandBuffers[2], imageIndex, swapChain, pipelineHandler, currentFrame,
-		               *materialDSetComponent, *dManager, globalDSetComponent, bufferManager, objectDSetComponent,
-		               modelManager, depthImageView, *drawInfo);
-		           primaryCmd.executeCommands(*frame.secondaryCommandBuffers[2]);
+		           CommandBufferFactory::drawDepthPrepass(cmd, swapChain, pipelineHandler, currentFrame,
+		                                                  *materialDSetComponent, *dManager, globalDSetComponent,
+		                                                  bufferManager, objectDSetComponent, modelManager, *drawInfo);
 	           });
 
-	rg.addPass("Main",
-	           /*reads=*/{{shadowMapHandle, RGResourceUsage::ShaderRead}},
-	           /*writes=*/
-	           {{offscreenHandle, RGResourceUsage::ColorAttachmentWrite},
-	            {viewNormalsHandle, RGResourceUsage::ColorAttachmentWrite},
-	            {depthHandle, RGResourceUsage::DepthAttachmentWrite}},
-	           [&](vk::raii::CommandBuffer& primaryCmd)
-	           {
-		           CommandBufferFactory::recordMainCommandBuffer(
-		               frame.secondaryCommandBuffers[3], imageIndex, swapChain, pipelineHandler, currentFrame,
-		               *materialDSetComponent, *dManager, globalDSetComponent, bufferManager, objectDSetComponent,
-		               modelManager, offscreenImageView, viewNormalsImageView, depthImageView, *drawInfo);
-		           primaryCmd.executeCommands(*frame.secondaryCommandBuffers[3]);
-	           });
+	rg.addPass(
+	    "Main",
+	    {.colorAttachments = {{offscreenHandle, vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore, clearSky},
+	                          {viewNormalsHandle, vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore,
+	                           clearBlack}},
+	     .depthAttachment =
+	         RGAttachmentConfig{depthHandle, vk::AttachmentLoadOp::eLoad, vk::AttachmentStoreOp::eStore, clearDepth1}},
+	    {{shadowMapHandle, RGResourceUsage::ShaderRead}},
+	    {{offscreenHandle, RGResourceUsage::ColorAttachmentWrite},
+	     {viewNormalsHandle, RGResourceUsage::ColorAttachmentWrite},
+	     {depthHandle, RGResourceUsage::DepthAttachmentWrite}},
+	    [&](vk::raii::CommandBuffer& cmd)
+	    {
+		    CommandBufferFactory::drawMainPass(cmd, swapChain, pipelineHandler, currentFrame, *materialDSetComponent,
+		                                       *dManager, globalDSetComponent, bufferManager, objectDSetComponent,
+		                                       modelManager, *drawInfo);
+	    });
 
-	rg.addPass("SSAO",
-	           /*reads=*/
-	           {{depthHandle, RGResourceUsage::ShaderRead}, {viewNormalsHandle, RGResourceUsage::ShaderRead}},
-	           /*writes=*/{{ssaoHandle, RGResourceUsage::ColorAttachmentWrite}},
-	           [&](vk::raii::CommandBuffer& primaryCmd)
-	           {
-		           CommandBufferFactory::recordSsaoCommandBuffer(
-		               frame.secondaryCommandBuffers[4], swapChain, pipelineHandler, *dManager,
-		               globalDSetComponent->ssaoDSets, globalDSetComponent->globalDSets, ssaoImageView, *ssaoSettings);
-		           primaryCmd.executeCommands(*frame.secondaryCommandBuffers[4]);
-	           });
+	rg.addPass(
+	    "SSAO",
+	    {.colorAttachments = {{ssaoHandle, vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore, clearWhite}}},
+	    {{depthHandle, RGResourceUsage::ShaderRead}, {viewNormalsHandle, RGResourceUsage::ShaderRead}},
+	    {{ssaoHandle, RGResourceUsage::ColorAttachmentWrite}},
+	    [&](vk::raii::CommandBuffer& cmd)
+	    {
+		    CommandBufferFactory::drawSsaoPass(cmd, swapChain, pipelineHandler, *dManager, globalDSetComponent->ssaoDSets,
+		                                       globalDSetComponent->globalDSets, *ssaoSettings);
+	    });
 
 	rg.addPass("SSAOBlur",
-	           /*reads=*/{{ssaoHandle, RGResourceUsage::ShaderRead}},
-	           /*writes=*/{{ssaoBlurHandle, RGResourceUsage::ColorAttachmentWrite}},
-	           [&](vk::raii::CommandBuffer& primaryCmd)
+	           {.colorAttachments = {{ssaoBlurHandle, vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore,
+	                                  clearWhite}}},
+	           {{ssaoHandle, RGResourceUsage::ShaderRead}}, {{ssaoBlurHandle, RGResourceUsage::ColorAttachmentWrite}},
+	           [&](vk::raii::CommandBuffer& cmd)
 	           {
-		           CommandBufferFactory::recordSsaoBlurCommandBuffer(
-		               frame.secondaryCommandBuffers[5], swapChain, pipelineHandler, *dManager,
-		               globalDSetComponent->ssaoBlurDSets, ssaoBlurImageView);
-		           primaryCmd.executeCommands(*frame.secondaryCommandBuffers[5]);
+		           CommandBufferFactory::drawSsaoBlurPass(cmd, swapChain, pipelineHandler, *dManager,
+		                                                  globalDSetComponent->ssaoBlurDSets);
 	           });
 
 	rg.addPass("FXAA",
-	           /*reads=*/
+	           {.colorAttachments = {{swapChainHandle, vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore,
+	                                  clearBlack}}},
 	           {{offscreenHandle, RGResourceUsage::ShaderRead}, {ssaoBlurHandle, RGResourceUsage::ShaderRead}},
-	           /*writes=*/{{swapChainHandle, RGResourceUsage::ColorAttachmentWrite}},
-	           [&](vk::raii::CommandBuffer& primaryCmd)
+	           {{swapChainHandle, RGResourceUsage::ColorAttachmentWrite}},
+	           [&](vk::raii::CommandBuffer& cmd)
 	           {
-		           CommandBufferFactory::recordFxaaCommandBuffer(frame.secondaryCommandBuffers[6], imageIndex, swapChain,
-		                                                         pipelineHandler, *dManager,
-		                                                         globalDSetComponent->fxaaDSets);
-		           primaryCmd.executeCommands(*frame.secondaryCommandBuffers[6]);
+		           CommandBufferFactory::drawFxaaPass(cmd, swapChain, pipelineHandler, *dManager,
+		                                              globalDSetComponent->fxaaDSets);
 	           });
 
 	// Present barrier
-	rg.addPass("Present", /*reads=*/{{swapChainHandle, RGResourceUsage::Present}}, /*writes=*/{}, nullptr);
+	rg.addPass("Present", {}, {{swapChainHandle, RGResourceUsage::Present}}, {}, nullptr);
 
 	rg.compile();
 

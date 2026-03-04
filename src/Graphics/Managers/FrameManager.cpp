@@ -17,13 +17,6 @@ int FrameManager::initFrameData()
 	frameData.inFlightFence =
 	    vk::raii::Fence(vulkanDevice.device, vk::FenceCreateInfo(vk::FenceCreateFlagBits::eSignaled));
 
-	vk::CommandBufferAllocateInfo allocInfoSecondary;
-	allocInfoSecondary.commandPool = vulkanDevice.commandPool;
-	allocInfoSecondary.level = vk::CommandBufferLevel::eSecondary;
-	allocInfoSecondary.commandBufferCount = 7; //shadow, cull, depth prepass, main, ssao, ssaoblur, fxaa
-
-	vk::raii::CommandBuffers secondaryBuffers(vulkanDevice.device, allocInfoSecondary);
-	frameData.secondaryCommandBuffers = std::move(secondaryBuffers);
 	frames.push_back(std::move(frameData));
 	return static_cast<int>(frames.size() - 1);
 }
@@ -40,7 +33,6 @@ FrameManager::~FrameManager()
 			frame.renderFinishedSemaphore.clear();
 			frame.presentCompleteSemaphore.clear();
 			frame.inFlightFence.clear();
-			frame.secondaryCommandBuffers.clear();
 		}
 	}
 }

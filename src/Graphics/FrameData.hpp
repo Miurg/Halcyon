@@ -9,5 +9,4 @@ struct FrameData
 	vk::raii::Semaphore renderFinishedSemaphore = nullptr;
 	vk::raii::Fence inFlightFence = nullptr;
 	vk::raii::CommandBuffer commandBuffer = nullptr;
-	vk::raii::CommandBuffers secondaryCommandBuffers = nullptr;
 };

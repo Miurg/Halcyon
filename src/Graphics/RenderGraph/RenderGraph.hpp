@@ -36,39 +36,38 @@ struct RGCompiledPass
 	std::vector<RGBarrier> barriers;
 };
 
-// Render Graph: manages transient resources, computes barriers, executes passes.
 class RenderGraph
 {
 public:
 	RenderGraph(VulkanDevice& device, VmaAllocator allocator);
 	~RenderGraph();
 
-	// --- Resource API ---
-
-	// Create a transient resource (VMA-allocated image + imageView + sampler).
+	// Resource API
 	RGResourceHandle createResource(const RGImageDesc& desc, const std::string& name);
-
-	// Import an external resource (swapchain image, shadow map — not owned by RG).
-	RGResourceHandle importImage(const std::string& name, vk::Image image, vk::ImageAspectFlags aspect);
-
-	// Resize all transient resources to match the new extent.
+	RGResourceHandle importImage(const std::string& name, vk::Image image, vk::ImageView imageView,
+	                             vk::ImageAspectFlags aspect);
 	void handleResize(uint32_t newWidth, uint32_t newHeight);
-
-	// Update descriptor sets after resize/creation. Call once after handleResize.
 	void updateDescriptors(DescriptorManager& dManager, GlobalDSetComponent& globalDSets);
 
-	// --- Per-frame API ---
+	// Per frame API
 
-	void addPass(const std::string& name, std::vector<RGResourceAccess> reads, std::vector<RGResourceAccess> writes,
-	             std::function<void(vk::raii::CommandBuffer& cmd)> executeFn);
+	// Register a render/compute pass in the graph.
+	// name      — debug label for the pass.
+	// desc      — rendering setup: color/depth attachments, load/store ops, clear values (see RGPassDesc).
+	//             RG auto-calls beginRendering/endRendering based on this.
+	//             Render area extent is auto-derived from first attachment.
+	//             Set isCompute = true for dispatch-only passes (no rendering setup).
+	// reads     — resources this pass samples from (triggers layout transitions).
+	// writes    — resources this pass renders into (triggers layout transitions).
+	// executeFn — lambda with draw/dispatch commands. Receives primary cmd buffer.
+	//             Do NOT call beginRendering/endRendering inside — RG handles that.
+	void addPass(const std::string& name, const RGPassDesc& desc, std::vector<RGResourceAccess> reads,
+	             std::vector<RGResourceAccess> writes, std::function<void(vk::raii::CommandBuffer& cmd)> executeFn);
 	void compile();
 	void execute(vk::raii::CommandBuffer& cmd);
-
-	// Clear passes for next frame. Does NOT destroy resources.
 	void clearFrame();
 
-	// --- Accessors ---
-
+	// Accessors
 	vk::Image getImage(RGResourceHandle handle) const;
 	vk::ImageView getImageView(RGResourceHandle handle) const;
 	vk::Sampler getSampler(RGResourceHandle handle) const;
@@ -88,6 +87,8 @@ private:
 	VulkanDevice& vulkanDevice;
 	VmaAllocator allocator;
 	bool needsDescriptorUpdate = false;
+	uint32_t currentWidth = 0;
+	uint32_t currentHeight = 0;
 
 	std::vector<RGResourceEntry> resources;
 	std::vector<RGPass> passes;

@@ -40,8 +40,8 @@ RGResourceHandle RenderGraph::createResource(const RGImageDesc& desc, const std:
 	return handle;
 }
 
-// Imported resources are re-registered each frame (swapchain image for example changes per-frame)
-RGResourceHandle RenderGraph::importImage(const std::string& name, vk::Image image, vk::ImageAspectFlags aspect)
+RGResourceHandle RenderGraph::importImage(const std::string& name, vk::Image image, vk::ImageView imageView,
+                                          vk::ImageAspectFlags aspect)
 {
 	// Check if resource already exists by name
 	for (uint32_t i = 0; i < resources.size(); ++i)
@@ -49,6 +49,7 @@ RGResourceHandle RenderGraph::importImage(const std::string& name, vk::Image ima
 		if (resources[i].name == name && !resources[i].isTransient)
 		{
 			resources[i].image = image;
+			resources[i].imageView = imageView;
 			return i;
 		}
 	}
@@ -57,6 +58,7 @@ RGResourceHandle RenderGraph::importImage(const std::string& name, vk::Image ima
 	RGResourceEntry entry;
 	entry.name = name;
 	entry.image = image;
+	entry.imageView = imageView;
 	entry.aspectFlags = aspect;
 	entry.isTransient = false;
 	resources.push_back(std::move(entry));
@@ -65,6 +67,9 @@ RGResourceHandle RenderGraph::importImage(const std::string& name, vk::Image ima
 
 void RenderGraph::handleResize(uint32_t newWidth, uint32_t newHeight)
 {
+	currentWidth = newWidth;
+	currentHeight = newHeight;
+
 	for (auto& res : resources)
 	{
 		if (!res.isTransient) continue;
@@ -152,11 +157,11 @@ void RenderGraph::updateDescriptors(DescriptorManager& dManager, GlobalDSetCompo
 	needsDescriptorUpdate = false;
 }
 
-void RenderGraph::addPass(const std::string& name, std::vector<RGResourceAccess> reads,
+void RenderGraph::addPass(const std::string& name, const RGPassDesc& desc, std::vector<RGResourceAccess> reads,
                           std::vector<RGResourceAccess> writes,
                           std::function<void(vk::raii::CommandBuffer& cmd)> executeFn)
 {
-	passes.push_back({name, std::move(reads), std::move(writes), std::move(executeFn)});
+	passes.push_back({name, desc, std::move(reads), std::move(writes), std::move(executeFn)});
 }
 
 void RenderGraph::compile()
@@ -208,6 +213,7 @@ void RenderGraph::execute(vk::raii::CommandBuffer& cmd)
 {
 	for (const auto& compiled : compiledPasses)
 	{
+		// Emit barriers
 		if (!compiled.barriers.empty())
 		{
 			std::vector<vk::ImageMemoryBarrier2> vkBarriers;
@@ -240,9 +246,79 @@ void RenderGraph::execute(vk::raii::CommandBuffer& cmd)
 			cmd.pipelineBarrier2(depInfo);
 		}
 
+		const auto& desc = compiled.pass->desc;
+		bool didBeginRendering = false;
+
+		if (!desc.isCompute && (!desc.colorAttachments.empty() || desc.depthAttachment.has_value()))
+		{
+			std::vector<vk::RenderingAttachmentInfo> colorInfos;
+			for (const auto& att : desc.colorAttachments)
+			{
+				vk::RenderingAttachmentInfo info;
+				info.imageView = resources[att.handle].imageView;
+				info.imageLayout = vk::ImageLayout::eColorAttachmentOptimal;
+				info.loadOp = att.loadOp;
+				info.storeOp = att.storeOp;
+				info.clearValue = att.clearValue;
+				colorInfos.push_back(info);
+			}
+
+			vk::RenderingAttachmentInfo depthInfo;
+			if (desc.depthAttachment.has_value())
+			{
+				const auto& da = desc.depthAttachment.value();
+				depthInfo.imageView = resources[da.handle].imageView;
+				depthInfo.imageLayout = vk::ImageLayout::eDepthAttachmentOptimal;
+				depthInfo.loadOp = da.loadOp;
+				depthInfo.storeOp = da.storeOp;
+				depthInfo.clearValue = da.clearValue;
+			}
+
+			// Auto-derive extent from first attachment dimensions if not explicitly set.
+			vk::Extent2D extent;
+			if (desc.customExtent.has_value())
+			{
+				extent = desc.customExtent.value();
+			}
+			else
+			{
+				// Use first attachment's actual dimensions.
+				RGResourceHandle firstHandle = RG_INVALID_HANDLE;
+				if (!desc.colorAttachments.empty())
+					firstHandle = desc.colorAttachments[0].handle;
+				else if (desc.depthAttachment.has_value())
+					firstHandle = desc.depthAttachment->handle;
+
+				const auto& res = resources[firstHandle];
+				if (res.isTransient && res.currentWidth > 0)
+					extent = vk::Extent2D{res.currentWidth, res.currentHeight};
+				else
+					extent = vk::Extent2D{currentWidth, currentHeight};
+			}
+
+			vk::RenderingInfo renderingInfo;
+			renderingInfo.renderArea.offset = vk::Offset2D{0, 0};
+			renderingInfo.renderArea.extent = extent;
+			renderingInfo.layerCount = 1;
+			renderingInfo.colorAttachmentCount = static_cast<uint32_t>(colorInfos.size());
+			renderingInfo.pColorAttachments = colorInfos.empty() ? nullptr : colorInfos.data();
+			if (desc.depthAttachment.has_value())
+			{
+				renderingInfo.pDepthAttachment = &depthInfo;
+			}
+
+			cmd.beginRendering(renderingInfo);
+			didBeginRendering = true;
+		}
+
 		if (compiled.pass->execute)
 		{
 			compiled.pass->execute(cmd);
+		}
+
+		if (didBeginRendering)
+		{
+			cmd.endRendering();
 		}
 	}
 }
