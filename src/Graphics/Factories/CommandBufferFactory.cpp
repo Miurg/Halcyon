@@ -45,8 +45,9 @@ void CommandBufferFactory::drawCullPass(vk::raii::CommandBuffer& cmd, PipelineHa
                                         uint32_t currentFrame, DescriptorManagerComponent& dManager,
                                         GlobalDSetComponent* globalDSetComponent,
                                         ModelDSetComponent* objectDSetComponent, ModelManager& mManager,
-                                        const DrawInfoComponent& drawInfo)
+                                        BufferManager& bManager, const DrawInfoComponent& drawInfo)
 {
+	// === Frustum Culling ===
 	cmd.bindPipeline(vk::PipelineBindPoint::eCompute, *pipelineHandler.cullingPipeline);
 
 	cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute, *pipelineHandler.cullingPipelineLayout, 0,
@@ -67,17 +68,68 @@ void CommandBufferFactory::drawCullPass(vk::raii::CommandBuffer& cmd, PipelineHa
 	uint32_t groupCountX = (drawInfo.totalObjectCount + 63) / 64;
 	if (groupCountX > 0) cmd.dispatch(groupCountX, 1, 1);
 
-	vk::MemoryBarrier2 barrier;
-	barrier.srcStageMask = vk::PipelineStageFlagBits2::eComputeShader;
-	barrier.srcAccessMask = vk::AccessFlagBits2::eShaderWrite | vk::AccessFlagBits2::eShaderRead;
-	barrier.dstStageMask = vk::PipelineStageFlagBits2::eDrawIndirect | vk::PipelineStageFlagBits2::eVertexShader;
-	barrier.dstAccessMask = vk::AccessFlagBits2::eIndirectCommandRead | vk::AccessFlagBits2::eShaderRead;
+	// === Barrier: Culling -> fillBuffer ===
+	vk::MemoryBarrier2 cullBarrier;
+	cullBarrier.srcStageMask = vk::PipelineStageFlagBits2::eComputeShader;
+	cullBarrier.srcAccessMask = vk::AccessFlagBits2::eShaderWrite;
+	cullBarrier.dstStageMask = vk::PipelineStageFlagBits2::eTransfer | vk::PipelineStageFlagBits2::eComputeShader;
+	cullBarrier.dstAccessMask = vk::AccessFlagBits2::eTransferWrite | vk::AccessFlagBits2::eShaderRead;
 
-	vk::DependencyInfo depInfo;
-	depInfo.memoryBarrierCount = 1;
-	depInfo.pMemoryBarriers = &barrier;
+	vk::DependencyInfo cullDepInfo;
+	cullDepInfo.memoryBarrierCount = 1;
+	cullDepInfo.pMemoryBarriers = &cullBarrier;
+	cmd.pipelineBarrier2(cullDepInfo);
 
-	cmd.pipelineBarrier2(depInfo);
+	// ===  Zero the draw count buffer ===
+	cmd.fillBuffer(bManager.buffers[objectDSetComponent->drawCountBuffer.id].buffer[currentFrame], 0,
+	               sizeof(uint32_t) * 2, 0);
+
+	// === Barrier: fillBuffer -> Compaction ===
+	vk::MemoryBarrier2 fillBarrier;
+	fillBarrier.srcStageMask = vk::PipelineStageFlagBits2::eTransfer;
+	fillBarrier.srcAccessMask = vk::AccessFlagBits2::eTransferWrite;
+	fillBarrier.dstStageMask = vk::PipelineStageFlagBits2::eComputeShader;
+	fillBarrier.dstAccessMask = vk::AccessFlagBits2::eShaderWrite | vk::AccessFlagBits2::eShaderRead;
+
+	vk::DependencyInfo fillDepInfo;
+	fillDepInfo.memoryBarrierCount = 1;
+	fillDepInfo.pMemoryBarriers = &fillBarrier;
+	cmd.pipelineBarrier2(fillDepInfo);
+
+	// === Compaction ===
+	cmd.bindPipeline(vk::PipelineBindPoint::eCompute, *pipelineHandler.compactingCullPipeline);
+	cmd.bindDescriptorSets(
+	    vk::PipelineBindPoint::eCompute, *pipelineHandler.compactingCullPipelineLayout, 0,
+	    dManager.descriptorManager->descriptorSets[objectDSetComponent->modelBufferDSet.id][currentFrame], nullptr);
+
+	struct CompactionPush
+	{
+		uint32_t drawCommandCount;
+		uint32_t offset;
+	} compactPush;
+
+	uint32_t opaqueCount = drawInfo.opaqueDrawCount;
+	uint32_t totalDrawCount = drawInfo.totalDrawCount;
+
+	// Compact all draw commands in one dispatch (opaque + alpha are consecutive in indirectDrawBuffer)
+	compactPush.drawCommandCount = totalDrawCount;
+	compactPush.offset = 0;
+	cmd.pushConstants<CompactionPush>(*pipelineHandler.compactingCullPipelineLayout, vk::ShaderStageFlagBits::eCompute,
+	                                  0, compactPush);
+	uint32_t compactGroups = (totalDrawCount + 63) / 64;
+	if (compactGroups > 0) cmd.dispatch(compactGroups, 1, 1);
+
+	// === Barrier: Compaction -> DrawIndirect ===
+	vk::MemoryBarrier2 drawBarrier;
+	drawBarrier.srcStageMask = vk::PipelineStageFlagBits2::eComputeShader;
+	drawBarrier.srcAccessMask = vk::AccessFlagBits2::eShaderWrite;
+	drawBarrier.dstStageMask = vk::PipelineStageFlagBits2::eDrawIndirect | vk::PipelineStageFlagBits2::eVertexShader;
+	drawBarrier.dstAccessMask = vk::AccessFlagBits2::eIndirectCommandRead | vk::AccessFlagBits2::eShaderRead;
+
+	vk::DependencyInfo drawDepInfo;
+	drawDepInfo.memoryBarrierCount = 1;
+	drawDepInfo.pMemoryBarriers = &drawBarrier;
+	cmd.pipelineBarrier2(drawDepInfo);
 }
 
 void CommandBufferFactory::drawDepthPrepass(vk::raii::CommandBuffer& cmd, SwapChain& swapChain,
@@ -108,8 +160,9 @@ void CommandBufferFactory::drawDepthPrepass(vk::raii::CommandBuffer& cmd, SwapCh
 	if (opaqueCount > 0)
 	{
 		cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipelineHandler.depthPrepassPipeline);
-		cmd.drawIndexedIndirect(bManager.buffers[objectDSetComponent->indirectDrawBuffer.id].buffer[currentFrame], 0,
-		                        opaqueCount, commandStride);
+		cmd.drawIndexedIndirectCount(bManager.buffers[objectDSetComponent->compactedDrawBuffer.id].buffer[currentFrame],
+		                             0, bManager.buffers[objectDSetComponent->drawCountBuffer.id].buffer[currentFrame], 0,
+		                             opaqueCount, commandStride);
 	}
 }
 
@@ -144,8 +197,9 @@ void CommandBufferFactory::drawMainPass(vk::raii::CommandBuffer& cmd, SwapChain&
 	if (opaqueCount > 0)
 	{
 		cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipelineHandler.graphicsPipeline);
-		cmd.drawIndexedIndirect(bManager.buffers[objectDSetComponent->indirectDrawBuffer.id].buffer[currentFrame], 0,
-		                        opaqueCount, commandStride);
+		cmd.drawIndexedIndirectCount(bManager.buffers[objectDSetComponent->compactedDrawBuffer.id].buffer[currentFrame],
+		                             0, bManager.buffers[objectDSetComponent->drawCountBuffer.id].buffer[currentFrame], 0,
+		                             opaqueCount, commandStride);
 	}
 
 	// Alpha test pass
@@ -153,8 +207,10 @@ void CommandBufferFactory::drawMainPass(vk::raii::CommandBuffer& cmd, SwapChain&
 	if (alphaTestCount > 0)
 	{
 		cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipelineHandler.alphaTestPipeline);
-		cmd.drawIndexedIndirect(bManager.buffers[objectDSetComponent->indirectDrawBuffer.id].buffer[currentFrame],
-		                        opaqueCount * commandStride, alphaTestCount, commandStride);
+		cmd.drawIndexedIndirectCount(bManager.buffers[objectDSetComponent->compactedDrawBuffer.id].buffer[currentFrame],
+		                             opaqueCount * commandStride,
+		                             bManager.buffers[objectDSetComponent->drawCountBuffer.id].buffer[currentFrame],
+		                             sizeof(uint32_t), alphaTestCount, commandStride);
 	}
 
 	// Skybox pass

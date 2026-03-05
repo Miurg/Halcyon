@@ -140,6 +140,12 @@ add_slang_shader_target(
     ENTRY vertMain
 )
 
+add_slang_shader_target(
+    frustum_compaction
+    SOURCES "assets/shaders/frustum_compaction.slang"
+    ENTRY computeMain
+)
+
 add_dependencies("${CMAKE_PROJECT_NAME}" shader)
 add_dependencies("${CMAKE_PROJECT_NAME}" shadow)
 add_dependencies("${CMAKE_PROJECT_NAME}" fxaa)
@@ -149,6 +155,7 @@ add_dependencies("${CMAKE_PROJECT_NAME}" ssao)
 add_dependencies("${CMAKE_PROJECT_NAME}" ssao_blur)
 add_dependencies("${CMAKE_PROJECT_NAME}" skybox)
 add_dependencies("${CMAKE_PROJECT_NAME}" depth_prepass)
+add_dependencies("${CMAKE_PROJECT_NAME}" frustum_compaction)
 
 add_custom_command(
     TARGET ${PROJECT_NAME} POST_BUILD

@@ -199,6 +199,7 @@ void VulkanDeviceFactory::createLogicalDevice(VulkanDevice& vulkanDevice)
 	featureChain.get<vk::PhysicalDeviceVulkan12Features>().runtimeDescriptorArray = true;
 	featureChain.get<vk::PhysicalDeviceVulkan12Features>().descriptorBindingSampledImageUpdateAfterBind = true;
 	featureChain.get<vk::PhysicalDeviceVulkan12Features>().shaderSampledImageArrayNonUniformIndexing = true;
+	featureChain.get<vk::PhysicalDeviceVulkan12Features>().drawIndirectCount = true;
 
 	vk::DeviceCreateInfo deviceCreateInfo{};
 	deviceCreateInfo.pNext = &featureChain.get<vk::PhysicalDeviceFeatures2>();

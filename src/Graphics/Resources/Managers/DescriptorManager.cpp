@@ -55,9 +55,9 @@ DescriptorManager::DescriptorManager(VulkanDevice& vulkanDevice) : vulkanDevice(
 	//===Textures (Set 2): textureArray (bindless) + shadowMap===
 	vk::DescriptorSetLayoutBinding textureBinding(
 	    Bindings::Textures::Array, vk::DescriptorType::eCombinedImageSampler, MAX_BINDLESS_TEXTURES,
-	                                              vk::ShaderStageFlagBits::eFragment | vk::ShaderStageFlagBits::eCompute,
-	                                              nullptr);
-	vk::DescriptorSetLayoutBinding shadowBinding(Bindings::Textures::ShadowMap, vk::DescriptorType::eCombinedImageSampler, 1,
+	    vk::ShaderStageFlagBits::eFragment | vk::ShaderStageFlagBits::eCompute, nullptr);
+	vk::DescriptorSetLayoutBinding shadowBinding(Bindings::Textures::ShadowMap,
+	                                             vk::DescriptorType::eCombinedImageSampler, 1,
 	                                             vk::ShaderStageFlagBits::eFragment, nullptr);
 	vk::DescriptorSetLayoutBinding materialBinding(Bindings::Textures::Materials, vk::DescriptorType::eStorageBuffer, 1,
 	                                               vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment,
@@ -65,7 +65,8 @@ DescriptorManager::DescriptorManager(VulkanDevice& vulkanDevice) : vulkanDevice(
 	vk::DescriptorSetLayoutBinding cubemapSamplerBinding(Bindings::Textures::CubemapSampler,
 	                                                     vk::DescriptorType::eCombinedImageSampler, 1,
 	                                                     vk::ShaderStageFlagBits::eFragment, nullptr);
-	vk::DescriptorSetLayoutBinding cubemapStorageBinding(Bindings::Textures::CubemapStorage, vk::DescriptorType::eStorageImage, 1,
+	vk::DescriptorSetLayoutBinding cubemapStorageBinding(Bindings::Textures::CubemapStorage,
+	                                                     vk::DescriptorType::eStorageImage, 1,
 	                                                     vk::ShaderStageFlagBits::eCompute, nullptr);
 	std::array<vk::DescriptorSetLayoutBinding, 5> textureBindings = {textureBinding, shadowBinding, materialBinding,
 	                                                                 cubemapSamplerBinding, cubemapStorageBinding};
@@ -91,8 +92,7 @@ DescriptorManager::DescriptorManager(VulkanDevice& vulkanDevice) : vulkanDevice(
 	//===Model (Set 1): primitives + transform + indirectDraw + visibleIndices===
 	vk::DescriptorSetLayoutBinding primitivesBinding(
 	    Bindings::Model::Primitives, vk::DescriptorType::eStorageBuffer, 1,
-	    vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eCompute,
-	    nullptr);
+	    vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eCompute, nullptr);
 	vk::DescriptorSetLayoutBinding transformBinding(Bindings::Model::Transforms, vk::DescriptorType::eStorageBuffer, 1,
 	                                                vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eCompute,
 	                                                nullptr);
@@ -101,8 +101,12 @@ DescriptorManager::DescriptorManager(VulkanDevice& vulkanDevice) : vulkanDevice(
 	vk::DescriptorSetLayoutBinding indicesBinding(Bindings::Model::VisibleIndices, vk::DescriptorType::eStorageBuffer, 1,
 	                                              vk::ShaderStageFlagBits::eCompute | vk::ShaderStageFlagBits::eVertex,
 	                                              nullptr);
-	std::array<vk::DescriptorSetLayoutBinding, 4> modelBindings = {primitivesBinding, transformBinding, commandBinding,
-	                                                               indicesBinding};
+	vk::DescriptorSetLayoutBinding compactedDrawBinding(Bindings::Model::CompactedDraw,
+	                                                    vk::DescriptorType::eStorageBuffer, 1,
+	                                                    vk::ShaderStageFlagBits::eCompute, nullptr);
+	vk::DescriptorSetLayoutBinding drawCountBinding(Bindings::Model::DrawCount, vk::DescriptorType::eStorageBuffer, 1,
+	    vk::ShaderStageFlagBits::eCompute | vk::ShaderStageFlagBits::eVertex, nullptr);
+	std::array<vk::DescriptorSetLayoutBinding, 6> modelBindings = {primitivesBinding, transformBinding, commandBinding, indicesBinding, compactedDrawBinding, drawCountBinding};
 	vk::DescriptorSetLayoutCreateInfo modelInfo({}, static_cast<uint32_t>(modelBindings.size()), modelBindings.data());
 	modelSetLayout = vk::raii::DescriptorSetLayout(vulkanDevice.device, modelInfo);
 

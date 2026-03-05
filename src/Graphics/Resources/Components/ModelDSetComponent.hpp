@@ -8,5 +8,7 @@ struct ModelDSetComponent
 	BufferHandle transformBuffer;
 	BufferHandle indirectDrawBuffer;
 	BufferHandle visibleIndicesBuffer;
+	BufferHandle drawCountBuffer;
+	BufferHandle compactedDrawBuffer;
 	BufferHandle totalIndicies;
 };

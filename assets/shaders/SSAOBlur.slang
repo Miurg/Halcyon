@@ -1,6 +1,6 @@
-[vk::binding(0, 0)] Sampler2D ssaoTexture;
-[vk::binding(1, 0)] Sampler2D unused1;
-[vk::binding(2, 0)] Sampler2D unused2;
+[[vk::binding(0, 0)]] Sampler2D ssaoTexture;
+[[vk::binding(1, 0)]] Sampler2D unused1;
+[[vk::binding(2, 0)]] Sampler2D unused2;
 
 struct PushConstants
 {

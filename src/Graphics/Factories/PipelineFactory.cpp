@@ -683,6 +683,41 @@ void PipelineFactory::createCullingPipeline(VulkanDevice& vulkanDevice, Descript
 	pipelineHandler.cullingPipeline = vk::raii::Pipeline(vulkanDevice.device, nullptr, pipelineInfo);
 }
 
+void PipelineFactory::createCompactingCullPipeline(VulkanDevice& vulkanDevice, DescriptorManager& descriptorManager,
+                                                   PipelineHandler& pipelineHandler)
+{
+	vk::raii::ShaderModule shaderModule =
+	    PipelineFactory::createShaderModule(VulkanUtils::readFile("shaders/frustum_compaction.spv"), vulkanDevice);
+
+	vk::PipelineShaderStageCreateInfo computeShaderStageInfo;
+	computeShaderStageInfo.stage = vk::ShaderStageFlagBits::eCompute;
+	computeShaderStageInfo.module = *shaderModule;
+	computeShaderStageInfo.pName = "computeMain";
+
+	vk::PushConstantRange pushConstantRange;
+	pushConstantRange.stageFlags = vk::ShaderStageFlagBits::eCompute;
+	pushConstantRange.offset = 0;
+	pushConstantRange.size = sizeof(uint32_t) * 2;
+
+	vk::DescriptorSetLayout setLayouts[] = {
+	    *descriptorManager.modelSetLayout, // Set 0
+	};
+
+	vk::PipelineLayoutCreateInfo pipelineLayoutInfo;
+	pipelineLayoutInfo.setLayoutCount = 1;
+	pipelineLayoutInfo.pSetLayouts = setLayouts;
+	pipelineLayoutInfo.pushConstantRangeCount = 1;
+	pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;
+
+	pipelineHandler.compactingCullPipelineLayout = vk::raii::PipelineLayout(vulkanDevice.device, pipelineLayoutInfo);
+
+	vk::ComputePipelineCreateInfo pipelineInfo;
+	pipelineInfo.stage = computeShaderStageInfo;
+	pipelineInfo.layout = *pipelineHandler.compactingCullPipelineLayout;
+
+	pipelineHandler.compactingCullPipeline = vk::raii::Pipeline(vulkanDevice.device, nullptr, pipelineInfo);
+}
+
 void PipelineFactory::createEquirectToCubePipeline(VulkanDevice& vulkanDevice, DescriptorManager& descriptorManager,
                                                    PipelineHandler& pipelineHandler)
 {

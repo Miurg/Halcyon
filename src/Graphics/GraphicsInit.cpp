@@ -209,7 +209,7 @@ void GraphicsInit::initPipelines(GeneralManager& gm)
 	gm.addComponent<SwapChainComponent>(swapChainEntity, swapChain);
 	gm.addComponent<NameComponent>(swapChainEntity, "SYSTEM Swap Chain");
 
-	// RenderGraph 
+	// RenderGraph
 	Entity rgEntity = gm.createEntity();
 	RenderGraph* rg = new RenderGraph(*vulkanDevice, vmaAlloc);
 	gm.registerContext<RenderGraphContext>(rgEntity);
@@ -245,6 +245,7 @@ void GraphicsInit::initPipelines(GeneralManager& gm)
 	PipelineFactory::createCullingPipeline(*vulkanDevice, *dManager, *pipelineHandler);
 	PipelineFactory::createEquirectToCubePipeline(*vulkanDevice, *dManager, *pipelineHandler);
 	PipelineFactory::createSkyboxPipeline(*vulkanDevice, *swapChain, *pipelineHandler, *tManager);
+	PipelineFactory::createCompactingCullPipeline(*vulkanDevice, *dManager, *pipelineHandler);
 	gm.addComponent<PipelineHandlerComponent>(signatureEntity, pipelineHandler);
 	gm.addComponent<NameComponent>(signatureEntity, "SYSTEM Pipeline Handler");
 
@@ -398,6 +399,22 @@ void GraphicsInit::initScene(GeneralManager& gm)
 	                           sizeof(uint32_t) * 10240, MAX_FRAMES_IN_FLIGHT, vk::BufferUsageFlagBits::eStorageBuffer);
 	dManager->updateStorageBufferDescriptors(*bManager, objectDSetComponent->visibleIndicesBuffer,
 	                                         objectDSetComponent->modelBufferDSet, 3);
+
+	objectDSetComponent->compactedDrawBuffer =
+	    bManager->createBuffer((vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal),
+	                           sizeof(IndirectDrawStructure) * 10240, MAX_FRAMES_IN_FLIGHT,
+	                           vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eIndirectBuffer |
+	                               vk::BufferUsageFlagBits::eTransferDst);
+	dManager->updateStorageBufferDescriptors(*bManager, objectDSetComponent->compactedDrawBuffer,
+	                                         objectDSetComponent->modelBufferDSet, 4);
+
+	objectDSetComponent->drawCountBuffer =
+	    bManager->createBuffer((vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal),
+	                           sizeof(uint32_t) * 10240, MAX_FRAMES_IN_FLIGHT,
+	                           vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eIndirectBuffer |
+	                               vk::BufferUsageFlagBits::eTransferDst);
+	dManager->updateStorageBufferDescriptors(*bManager, objectDSetComponent->drawCountBuffer,
+	                                         objectDSetComponent->modelBufferDSet, 5);
 #pragma endregion
 
 #pragma region Post-Processing & SSAO Descriptor Sets

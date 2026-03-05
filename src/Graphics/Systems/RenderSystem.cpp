@@ -100,7 +100,7 @@ void RenderSystem::update(GeneralManager& gm)
 	           [&](vk::raii::CommandBuffer& cmd)
 	           {
 		           CommandBufferFactory::drawCullPass(cmd, pipelineHandler, currentFrame, *dManager, globalDSetComponent,
-		                                              objectDSetComponent, modelManager, *drawInfo);
+		                                              objectDSetComponent, modelManager, bufferManager, *drawInfo);
 	           });
 
 	rg.addPass("DepthPrepass",

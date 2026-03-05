@@ -23,7 +23,7 @@ public:
 
 	static void drawCullPass(vk::raii::CommandBuffer& cmd, PipelineHandler& pipelineHandler, uint32_t currentFrame,
 	                         DescriptorManagerComponent& dManager, GlobalDSetComponent* globalDSetComponent,
-	                         ModelDSetComponent* objectDSetComponent, ModelManager& mManager,
+	                         ModelDSetComponent* objectDSetComponent, ModelManager& mManager, BufferManager& bManager,
 	                         const DrawInfoComponent& drawInfo);
 
 	static void drawDepthPrepass(vk::raii::CommandBuffer& cmd, SwapChain& swapChain, PipelineHandler& pipelineHandler,

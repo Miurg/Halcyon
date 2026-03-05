@@ -25,6 +25,8 @@ public:
 	                                                               VulkanDevice& vulkanDevice);
 	static void createCullingPipeline(VulkanDevice& vulkanDevice, DescriptorManager& descriptorManager,
 	                                  PipelineHandler& pipelineHandler);
+	static void createCompactingCullPipeline(VulkanDevice& vulkanDevice, DescriptorManager& descriptorManager,
+	                                         PipelineHandler& pipelineHandler);
 	static void createFxaaPipeline(VulkanDevice& vulkanDevice, SwapChain& swapChain,
 	                               DescriptorManager& descriptorManager, PipelineHandler& pipelineHandler);
 	static void createSsaoPipeline(VulkanDevice& vulkanDevice, SwapChain& swapChain,

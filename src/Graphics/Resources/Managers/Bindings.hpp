@@ -15,6 +15,8 @@ namespace Bindings
 		constexpr uint32_t Transforms = 1;
 		constexpr uint32_t IndirectDraw = 2;
 		constexpr uint32_t VisibleIndices = 3;
+		constexpr uint32_t CompactedDraw = 4;
+		constexpr uint32_t DrawCount = 5;
 	}
 
 	namespace Textures

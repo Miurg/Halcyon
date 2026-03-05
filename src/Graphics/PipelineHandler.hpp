@@ -27,4 +27,7 @@ public:
 	vk::raii::PipelineLayout equirectToCubePipelineLayout = nullptr;
 
 	vk::raii::Pipeline skyboxPipeline = nullptr;
+
+	vk::raii::Pipeline compactingCullPipeline = nullptr;
+	vk::raii::PipelineLayout compactingCullPipelineLayout = nullptr;
 };
