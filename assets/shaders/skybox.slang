@@ -21,9 +21,9 @@ struct VSOutput
 [shader("vertex")]
 VSOutput vertMain(uint vertexID : SV_VertexID)
 {
-    // Generate a fullscreen triangle on the far plane (z = 1.0)
+    // Generate a fullscreen triangle on the far plane (z = 0.0, reverse-Z)
     float2 uv = float2((vertexID << 1) & 2, vertexID & 2);
-    float4 pos = float4(uv * 2.0 - 1.0, 1.0, 1.0);
+    float4 pos = float4(uv * 2.0 - 1.0, 0.0, 1.0);
     
     VSOutput output;
     output.pos = pos;

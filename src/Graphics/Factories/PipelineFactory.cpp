@@ -228,7 +228,7 @@ void PipelineFactory::createAlphaTestPipeline(VulkanDevice& vulkanDevice, SwapCh
 	vk::PipelineDepthStencilStateCreateInfo depthStencil;
 	depthStencil.depthTestEnable = vk::True;
 	depthStencil.depthWriteEnable = vk::True;
-	depthStencil.depthCompareOp = vk::CompareOp::eLess;
+	depthStencil.depthCompareOp = vk::CompareOp::eGreater;
 	depthStencil.depthBoundsTestEnable = vk::False;
 	depthStencil.stencilTestEnable = vk::False;
 
@@ -841,7 +841,7 @@ void PipelineFactory::createSkyboxPipeline(VulkanDevice& vulkanDevice, SwapChain
 	vk::PipelineDepthStencilStateCreateInfo depthStencil;
 	depthStencil.depthTestEnable = vk::True;
 	depthStencil.depthWriteEnable = vk::False;
-	depthStencil.depthCompareOp = vk::CompareOp::eLessOrEqual;
+	depthStencil.depthCompareOp = vk::CompareOp::eGreaterOrEqual;
 	depthStencil.depthBoundsTestEnable = vk::False;
 	depthStencil.stencilTestEnable = vk::False;
 
@@ -930,7 +930,7 @@ void PipelineFactory::createDepthPrepassPipeline(VulkanDevice& vulkanDevice, Swa
 	vk::PipelineDepthStencilStateCreateInfo depthStencil;
 	depthStencil.depthTestEnable = vk::True;
 	depthStencil.depthWriteEnable = vk::True;
-	depthStencil.depthCompareOp = vk::CompareOp::eLess;
+	depthStencil.depthCompareOp = vk::CompareOp::eGreater;
 	depthStencil.depthBoundsTestEnable = vk::False;
 	depthStencil.stencilTestEnable = vk::False;
 

@@ -43,10 +43,11 @@ void CameraMatrixSystem::update(GeneralManager& gm)
 
 	// === Camera ===
 	glm::mat4 view = mainCameraTransform->getViewMatrix();
+	// Reverse-Z: swap near/far so near maps to 1.0, far maps to 0.0
 	glm::mat4 proj = glm::perspectiveRH_ZO(glm::radians(mainCamera->fov),
 	                                       static_cast<float>(swapChain.swapChainExtent.width) /
 	                                           static_cast<float>(swapChain.swapChainExtent.height),
-	                                       mainCamera->zNear, mainCamera->zFar);
+	                                       mainCamera->zFar, mainCamera->zNear);
 	proj[1][1] *= -1; // Y-flip
 
 	glm::mat4 cameraSpaceMatrix = proj * view;

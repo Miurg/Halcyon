@@ -105,7 +105,7 @@ void RenderSystem::update(GeneralManager& gm)
 
 	rg.addPass("DepthPrepass",
 	           {.depthAttachment = RGAttachmentConfig{depthHandle, vk::AttachmentLoadOp::eClear,
-	                                                  vk::AttachmentStoreOp::eStore, clearDepth1}},
+	                                                  vk::AttachmentStoreOp::eStore, clearDepth0}},
 	           {}, {{depthHandle, RGResourceUsage::DepthAttachmentWrite}},
 	           [&](vk::raii::CommandBuffer& cmd)
 	           {

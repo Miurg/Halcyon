@@ -42,6 +42,8 @@ float3 reconstructViewPos(float2 uv, float depth)
 {
     float4x4 proj = camera[0].projMatrix;
     float viewZ = proj[3][2] / (-depth - proj[2][2]);
+    // Reverse-Z produces positive viewZ; force negative for RH convention
+    viewZ = -abs(viewZ);
     float negViewZ = -viewZ;
     
     float2 ndc = uv * 2.0 - 1.0;
@@ -69,7 +71,7 @@ float4 fragMain(VSOutput input) : SV_Target
 {
     float depth = depthTexture.SampleLevel(input.uv, 0).r;
 
-    if (depth >= 1.0) 
+    if (depth <= 0.0) 
         return float4(1.0, 1.0, 1.0, 1.0);
 
     float3 P = reconstructViewPos(input.uv, depth);
@@ -118,7 +120,7 @@ float4 fragMain(VSOutput input) : SV_Target
 
             float depthS = depthTexture.SampleLevel(sampleUV, 0).r;
             
-            if (depthS < 1.0)
+            if (depthS > 0.0)
             {
                 float3 S = reconstructViewPos(sampleUV, depthS);
                 float3 V = S - P;
