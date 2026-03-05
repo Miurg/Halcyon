@@ -697,7 +697,7 @@ void PipelineFactory::createCompactingCullPipeline(VulkanDevice& vulkanDevice, D
 	vk::PushConstantRange pushConstantRange;
 	pushConstantRange.stageFlags = vk::ShaderStageFlagBits::eCompute;
 	pushConstantRange.offset = 0;
-	pushConstantRange.size = sizeof(uint32_t) * 2;
+	pushConstantRange.size = sizeof(uint32_t) * 4;
 
 	vk::DescriptorSetLayout setLayouts[] = {
 	    *descriptorManager.modelSetLayout, // Set 0

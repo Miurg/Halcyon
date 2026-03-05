@@ -16,7 +16,9 @@ struct VkDrawIndexedIndirectCommand
 struct PushConstants
 {
     uint drawCommandCount;
-    uint offset;
+    uint outputOffset;
+    uint inputOffset;
+    uint countIndex;
 };
 [[vk::push_constant]] PushConstants push;
 
@@ -29,14 +31,12 @@ void computeMain(uint3 id : SV_DispatchThreadID)
     if (drawIndex >= push.drawCommandCount)
         return;
 
-    // Read the uncompacted command
-    VkDrawIndexedIndirectCommand cmd = indirectDrawBuffer[drawIndex];
+    VkDrawIndexedIndirectCommand cmd = indirectDrawBuffer[drawIndex + push.inputOffset];
 
     if (cmd.instanceCount > 0)
     {
         uint slotIndex;
-        InterlockedAdd(drawCountBuffer[0], 1, slotIndex);
-
-        compactedDrawBuffer[slotIndex + push.offset] = cmd;
+        InterlockedAdd(drawCountBuffer[push.countIndex], 1, slotIndex);
+        compactedDrawBuffer[slotIndex + push.outputOffset] = cmd;
     }
 }

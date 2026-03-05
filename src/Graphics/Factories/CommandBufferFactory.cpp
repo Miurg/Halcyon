@@ -105,19 +105,40 @@ void CommandBufferFactory::drawCullPass(vk::raii::CommandBuffer& cmd, PipelineHa
 	struct CompactionPush
 	{
 		uint32_t drawCommandCount;
-		uint32_t offset;
+		uint32_t outputOffset; // Where to start writing in compacted buffer
+		uint32_t inputOffset;  // Where to start reading from uncompacted buffer
+		uint32_t countIndex;   // 0 for opaque, 1 for alpha test
 	} compactPush;
 
 	uint32_t opaqueCount = drawInfo.opaqueDrawCount;
 	uint32_t totalDrawCount = drawInfo.totalDrawCount;
+	uint32_t alphaTestCount = totalDrawCount - opaqueCount;
 
-	// Compact all draw commands in one dispatch (opaque + alpha are consecutive in indirectDrawBuffer)
-	compactPush.drawCommandCount = totalDrawCount;
-	compactPush.offset = 0;
-	cmd.pushConstants<CompactionPush>(*pipelineHandler.compactingCullPipelineLayout, vk::ShaderStageFlagBits::eCompute,
-	                                  0, compactPush);
-	uint32_t compactGroups = (totalDrawCount + 63) / 64;
-	if (compactGroups > 0) cmd.dispatch(compactGroups, 1, 1);
+	// Opaque Compaction
+	if (opaqueCount > 0)
+	{
+		compactPush.drawCommandCount = opaqueCount;
+		compactPush.outputOffset = 0;
+		compactPush.inputOffset = 0;
+		compactPush.countIndex = 0;
+		cmd.pushConstants<CompactionPush>(*pipelineHandler.compactingCullPipelineLayout,
+		                                  vk::ShaderStageFlagBits::eCompute, 0, compactPush);
+		uint32_t compactGroups = (opaqueCount + 63) / 64;
+		cmd.dispatch(compactGroups, 1, 1);
+	}
+
+	// Alpha Test Compaction
+	if (alphaTestCount > 0)
+	{
+		compactPush.drawCommandCount = alphaTestCount;
+		compactPush.outputOffset = opaqueCount;
+		compactPush.inputOffset = opaqueCount;
+		compactPush.countIndex = 1;
+		cmd.pushConstants<CompactionPush>(*pipelineHandler.compactingCullPipelineLayout,
+		                                  vk::ShaderStageFlagBits::eCompute, 0, compactPush);
+		uint32_t compactGroups = (alphaTestCount + 63) / 64;
+		cmd.dispatch(compactGroups, 1, 1);
+	}
 
 	// === Barrier: Compaction -> DrawIndirect ===
 	vk::MemoryBarrier2 drawBarrier;
