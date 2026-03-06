@@ -95,7 +95,7 @@ add_slang_shader_target(
 add_slang_shader_target(
     shadow
     SOURCES "assets/shaders/shadow.slang"
-    ENTRY vertShadow
+    ENTRY vertMain
 )
 
 add_slang_shader_target(

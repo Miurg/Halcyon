@@ -40,7 +40,7 @@ struct VSOutput
 };
 
 [shader("vertex")]
-VSOutput vertShadow(VSInput input, uint instanceID : SV_InstanceID, uint baseInstance : SV_StartInstanceLocation)
+VSOutput vertMain(VSInput input, uint instanceID : SV_InstanceID, uint baseInstance : SV_StartInstanceLocation)
 {
     ModelData     model     = objectBuffer[baseInstance + instanceID];
     float4x4      modelMatrix = transformBuffer[model.transformIndex].model;
