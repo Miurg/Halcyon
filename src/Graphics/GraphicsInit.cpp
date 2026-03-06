@@ -365,7 +365,7 @@ void GraphicsInit::initPipelines(GeneralManager& gm)
 
 	auto [ssaoBlurLayout, ssaoBlurPipeline] =
 	    PipelineFactory::build(dev, GraphicsPipelineDesc{
-	                                    .shaderPath = "shaders/ssao_blur.spv",
+	                                    .shaderPath = "shaders/ssaoblur.spv",
 	                                    .cullMode = vk::CullModeFlagBits::eNone,
 	                                    .colorAttachments = {PipelineFactory::opaqueAttachment()},
 	                                    .colorFormats = {vk::Format::eR8Unorm},

@@ -87,75 +87,39 @@ function(add_slang_shader_target TARGET_NAME)
     add_custom_target(${TARGET_NAME} ALL DEPENDS ${OUT_FILE})
 endfunction()
 
-add_slang_shader_target(
-    shader
-    SOURCES "assets/shaders/shader.slang"
-    ENTRY vertMain fragMain
-)
-add_slang_shader_target(
-    shadow
-    SOURCES "assets/shaders/shadow.slang"
-    ENTRY vertMain
-)
+# Auto gather shader files and create targets
+file(GLOB SLANG_SHADER_FILES "${CMAKE_CURRENT_LIST_DIR}/assets/shaders/*.slang")
 
-add_slang_shader_target(
-    fxaa
-    SOURCES "assets/shaders/FXAA.slang"
-    ENTRY vertMain fragMain
-)
+foreach(SHADER_FILE ${SLANG_SHADER_FILES})
+    get_filename_component(SHADER_NAME "${SHADER_FILE}" NAME_WE)
 
-add_slang_shader_target(
-    frustum_culling
-    SOURCES "assets/shaders/frustum_culling.slang"
-    ENTRY computeMain
-)
+    # Read the shader file content to find entry points
+    file(READ "${SHADER_FILE}" SHADER_CONTENT)
+    
+    set(ENTRY_POINTS "")
+    foreach(PREFIX vert frag compute)
+        string(FIND "${SHADER_CONTENT}" "${PREFIX}Main" FOUND_POS)
+        if(NOT FOUND_POS EQUAL -1)
+            list(APPEND ENTRY_POINTS "${PREFIX}Main")
+        endif()
+    endforeach()
 
-add_slang_shader_target(
-    equirect_to_cube
-    SOURCES "assets/shaders/equirect_to_cube.slang"
-    ENTRY computeMain
-)
+    if(NOT ENTRY_POINTS)
+        message(WARNING "No known entry points found in ${SHADER_NAME}.slang, skipping")
+        continue()
+    endif()
 
-add_slang_shader_target(
-    ssao
-    SOURCES "assets/shaders/SSAO.slang"
-    ENTRY vertMain fragMain
-)
+    message(STATUS "Shader ${SHADER_NAME}: entries = ${ENTRY_POINTS}")
 
-add_slang_shader_target(
-    ssao_blur
-    SOURCES "assets/shaders/SSAOBlur.slang"
-    ENTRY vertMain fragMain
-)
+    add_slang_shader_target(
+        "shader_${SHADER_NAME}"
+        SOURCES "${SHADER_FILE}"
+        OUTPUT_NAME "${SHADER_NAME}"
+        ENTRY ${ENTRY_POINTS}
+    )
 
-add_slang_shader_target(
-    skybox
-    SOURCES "assets/shaders/skybox.slang"
-    ENTRY vertMain fragMain
-)
-
-add_slang_shader_target(
-    depth_prepass
-    SOURCES "assets/shaders/depth_prepass.slang"
-    ENTRY vertMain
-)
-
-add_slang_shader_target(
-    frustum_compaction
-    SOURCES "assets/shaders/frustum_compaction.slang"
-    ENTRY computeMain
-)
-
-add_dependencies("${CMAKE_PROJECT_NAME}" shader)
-add_dependencies("${CMAKE_PROJECT_NAME}" shadow)
-add_dependencies("${CMAKE_PROJECT_NAME}" fxaa)
-add_dependencies("${CMAKE_PROJECT_NAME}" frustum_culling)
-add_dependencies("${CMAKE_PROJECT_NAME}" equirect_to_cube)
-add_dependencies("${CMAKE_PROJECT_NAME}" ssao)
-add_dependencies("${CMAKE_PROJECT_NAME}" ssao_blur)
-add_dependencies("${CMAKE_PROJECT_NAME}" skybox)
-add_dependencies("${CMAKE_PROJECT_NAME}" depth_prepass)
-add_dependencies("${CMAKE_PROJECT_NAME}" frustum_compaction)
+    add_dependencies("${CMAKE_PROJECT_NAME}" "shader_${SHADER_NAME}")
+endforeach()
 
 add_custom_command(
     TARGET ${PROJECT_NAME} POST_BUILD
