@@ -16,10 +16,19 @@
 class CommandBufferFactory
 {
 public:
+	static void drawShadowCullPass(vk::raii::CommandBuffer& cmd, PipelineHandler& pipelineHandler, uint32_t currentFrame,
+	                               DescriptorManagerComponent& dManager, GlobalDSetComponent* globalDSetComponent,
+	                               ModelDSetComponent* objectDSetComponent, ModelManager& mManager,
+	                               BufferManager& bManager, const DrawInfoComponent& drawInfo);
 	static void drawShadowPass(vk::raii::CommandBuffer& cmd, PipelineHandler& pipelineHandler, uint32_t currentFrame,
 	                           LightComponent& lightTexture, DescriptorManagerComponent& dManager,
 	                           GlobalDSetComponent* globalDSetComponent, ModelDSetComponent* objectDSetComponent,
-	                           TextureManager& tManager, ModelManager& mManager);
+	                           TextureManager& tManager, ModelManager& mManager, BufferManager& bManager,
+	                           const DrawInfoComponent& drawInfo);
+
+	static void drawResetInstancePass(vk::raii::CommandBuffer& cmd, PipelineHandler& pipelineHandler,
+	                                  uint32_t currentFrame, DescriptorManagerComponent& dManager,
+	                                  ModelDSetComponent* objectDSetComponent, const DrawInfoComponent& drawInfo);
 
 	static void drawCullPass(vk::raii::CommandBuffer& cmd, PipelineHandler& pipelineHandler, uint32_t currentFrame,
 	                         DescriptorManagerComponent& dManager, GlobalDSetComponent* globalDSetComponent,

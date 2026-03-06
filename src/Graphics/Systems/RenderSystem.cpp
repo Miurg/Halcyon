@@ -83,6 +83,14 @@ void RenderSystem::update(GeneralManager& gm)
 	vk::ClearValue clearDepth1 = vk::ClearDepthStencilValue(1.0f, 0);
 	vk::ClearValue clearDepth0 = vk::ClearDepthStencilValue(0.0f, 0);
 
+	rg.addPass("ShadowCull", {.isCompute = true}, {}, {},
+	           [&](vk::raii::CommandBuffer& cmd)
+	           {
+		           CommandBufferFactory::drawShadowCullPass(cmd, pipelineHandler, currentFrame, *dManager,
+		                                                    globalDSetComponent, objectDSetComponent, modelManager,
+		                                                    bufferManager, *drawInfo);
+	           });
+
 	rg.addPass("Shadow",
 	           {.depthAttachment = RGAttachmentConfig{shadowMapHandle, vk::AttachmentLoadOp::eClear,
 	                                                  vk::AttachmentStoreOp::eStore, clearDepth0},
@@ -93,7 +101,14 @@ void RenderSystem::update(GeneralManager& gm)
 	           {
 		           CommandBufferFactory::drawShadowPass(cmd, pipelineHandler, currentFrame, *lightTexture, *dManager,
 		                                                globalDSetComponent, objectDSetComponent, textureManager,
-		                                                modelManager);
+		                                                modelManager, bufferManager, *drawInfo);
+	           });
+
+	rg.addPass("ResetInstanceCount", {.isCompute = true}, {}, {},
+	           [&](vk::raii::CommandBuffer& cmd)
+	           {
+		           CommandBufferFactory::drawResetInstancePass(cmd, pipelineHandler, currentFrame, *dManager,
+		                                                       objectDSetComponent, *drawInfo);
 	           });
 
 	rg.addPass("Cull", {.isCompute = true}, {}, {},

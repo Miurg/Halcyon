@@ -154,12 +154,47 @@ void CameraMatrixSystem::update(GeneralManager& gm)
 
 	glm::mat4 lightSpaceMatrix = lightProj * lightView;
 
+	glm::mat4 sunFrustumCamera = glm::transpose(lightSpaceMatrix);
+	glm::vec4 sunFrustumPlanes[6];
+	sunFrustumPlanes[0] = sunFrustumCamera[3] + sunFrustumCamera[0]; // Left
+	sunFrustumPlanes[1] = sunFrustumCamera[3] - sunFrustumCamera[0]; // Right
+	sunFrustumPlanes[2] = sunFrustumCamera[3] + sunFrustumCamera[1]; // Bottom
+	sunFrustumPlanes[3] = sunFrustumCamera[3] - sunFrustumCamera[1]; // Top
+	sunFrustumPlanes[4] = sunFrustumCamera[2];                // Near
+	sunFrustumPlanes[5] = sunFrustumCamera[3] - sunFrustumCamera[2]; // Far
+
+	for (int i = 0; i < 6; ++i)
+	{
+		float length = glm::length(glm::vec3(sunFrustumPlanes[i]));
+		sunFrustumPlanes[i] /= length;
+	}
+
 	SunStructure sunUbo{.lightSpaceMatrix = lightSpaceMatrix,
 	                    .direction = glm::vec4(-lightDir, 1.0f),
 	                    .color = lightComponent->color,
 	                    .ambient = lightComponent->ambient,
 	                    .shadowMapSize =
 	                        glm::vec4(shadowMapWidth, shadowMapWidth, 1.0f / shadowMapWidth, 1.0f / shadowMapWidth)};
+	for (int i = 0; i < 6; ++i) sunUbo.frustumPlanes[i] = sunFrustumPlanes[i];
+	sunUbo.shadowCasterRange = lightComponent->shadowCasterRange;
+	
+	glm::vec2 lsMin(std::numeric_limits<float>::max());
+	glm::vec2 lsMax(-std::numeric_limits<float>::max());
+
+	for (const auto& corner : frustumCorners)
+	{
+		glm::vec4 ls = lightSpaceMatrix * corner;
+		ls /= ls.w;
+		lsMin.x = glm::min(lsMin.x, ls.x);
+		lsMax.x = glm::max(lsMax.x, ls.x);
+		lsMin.y = glm::min(lsMin.y, ls.y);
+		lsMax.y = glm::max(lsMax.y, ls.y);
+	}
+
+	const float epsilon = 0.02f;
+	sunUbo.cameraFrustumLightSpaceBounds =
+	    glm::vec4(lsMin.x - epsilon, lsMax.x + epsilon, lsMin.y - epsilon, lsMax.y + epsilon);
+	
 	memcpy(bufferManager.buffers[globalDSetComponent->sunCameraBuffers.id].bufferMapped[currentFrame], &sunUbo,
 	       sizeof(sunUbo));
 }

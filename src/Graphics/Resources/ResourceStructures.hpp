@@ -13,10 +13,16 @@ struct CameraStructure
 struct SunStructure
 {
 	alignas(16) glm::mat4 lightSpaceMatrix;
-	glm::vec4 direction;     // xyz: direction, w: padding
-	glm::vec4 color;         // rgb: color, w: intensity of light
-	glm::vec4 ambient;       // rgb: ambient color, w: intensity of ambient
-	glm::vec4 shadowMapSize; // x: width, y: height, z: 1.0/width, w: 1.0/height
+	alignas(16) glm::vec4 direction; // xyz: direction, w: padding
+	alignas(16) glm::vec4 color;     // rgb: color, w: intensity of light
+	alignas(16) glm::vec4 ambient;   // rgb: ambient color, w: intensity of ambient
+	alignas(16) glm::vec4 shadowMapSize; // x: width, y: height, z: 1.0/width, w: 1.0/height
+	alignas(16) glm::vec4 frustumPlanes[6];
+	float shadowCasterRange;
+	float _pad1;
+	float _pad2;
+	float _pad3;
+	alignas(16) glm::vec4 cameraFrustumLightSpaceBounds;
 };
 
 // GPU-side per-primitive data (64 bytes, 16-byte aligned). Matches shader SSBO layout.

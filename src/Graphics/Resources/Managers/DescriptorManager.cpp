@@ -44,7 +44,8 @@ DescriptorManager::DescriptorManager(VulkanDevice& vulkanDevice) : vulkanDevice(
 	                                                 vk::ShaderStageFlagBits::eFragment,
 	                                             nullptr);
 	vk::DescriptorSetLayoutBinding sunBinding(Bindings::Global::Sun, vk::DescriptorType::eStorageBuffer, 1,
-	                                          vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment,
+	                                          vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment |
+	                                              vk::ShaderStageFlagBits::eCompute,
 	                                          nullptr);
 	std::array<vk::DescriptorSetLayoutBinding, 2> globalBindings = {cameraBinding, sunBinding};
 
@@ -105,8 +106,10 @@ DescriptorManager::DescriptorManager(VulkanDevice& vulkanDevice) : vulkanDevice(
 	                                                    vk::DescriptorType::eStorageBuffer, 1,
 	                                                    vk::ShaderStageFlagBits::eCompute, nullptr);
 	vk::DescriptorSetLayoutBinding drawCountBinding(Bindings::Model::DrawCount, vk::DescriptorType::eStorageBuffer, 1,
-	    vk::ShaderStageFlagBits::eCompute | vk::ShaderStageFlagBits::eVertex, nullptr);
-	std::array<vk::DescriptorSetLayoutBinding, 6> modelBindings = {primitivesBinding, transformBinding, commandBinding, indicesBinding, compactedDrawBinding, drawCountBinding};
+	                                                vk::ShaderStageFlagBits::eCompute | vk::ShaderStageFlagBits::eVertex,
+	                                                nullptr);
+	std::array<vk::DescriptorSetLayoutBinding, 6> modelBindings = {
+	    primitivesBinding, transformBinding, commandBinding, indicesBinding, compactedDrawBinding, drawCountBinding};
 	vk::DescriptorSetLayoutCreateInfo modelInfo({}, static_cast<uint32_t>(modelBindings.size()), modelBindings.data());
 	modelSetLayout = vk::raii::DescriptorSetLayout(vulkanDevice.device, modelInfo);
 

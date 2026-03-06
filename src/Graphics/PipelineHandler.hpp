@@ -30,4 +30,10 @@ public:
 
 	vk::raii::Pipeline compactingCullPipeline = nullptr;
 	vk::raii::PipelineLayout compactingCullPipelineLayout = nullptr;
+
+	vk::raii::Pipeline shadowCullingPipeline = nullptr;
+	vk::raii::PipelineLayout shadowCullingPipelineLayout = nullptr;
+
+	vk::raii::Pipeline resetInstancePipeline = nullptr;
+	vk::raii::PipelineLayout resetInstancePipelineLayout = nullptr;
 };

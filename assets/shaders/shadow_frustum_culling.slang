@@ -2,7 +2,7 @@
 
 struct CameraData
 {
-	float4x4 cameraSpaceMatrix; // View * Projection
+	float4x4 cameraSpaceMatrix;
 	float4x4 viewMatrix;
 	float4x4 projMatrix;
 	float4x4 invViewProj;
@@ -12,6 +12,21 @@ struct CameraData
 [[vk::binding(0, 0)]]
 StructuredBuffer<CameraData> camera;
 
+struct SunUBO
+{
+	float4x4 lightSpaceMatrix;
+	float4 sunDirection;
+	float4 sunColor;
+	float4 sunAmbient;
+	float4 shadowMapSize;
+	float4 frustumPlanes[6];
+	float shadowCasterRange;
+	float3 _pad;
+	float4 cameraFrustumLightSpaceBounds;
+};
+[[vk::binding(1, 0)]]
+StructuredBuffer<SunUBO> sun;
+
 // === SET 1 ===
 
 struct ModelData
@@ -20,7 +35,7 @@ struct ModelData
 	float4 AABBMax;
 	uint transformIndex;
 	uint materialIndex;
-	uint drawCommandIndex; // unused
+	uint drawCommandIndex;
 };
 [[vk::binding(0, 1)]]
 StructuredBuffer<ModelData> objectBuffer;
@@ -53,23 +68,32 @@ struct PushConstants
 [[vk::push_constant]]
 PushConstants push;
 
-// Returns true if the AABB is at least partially inside the view frustum
 bool IsAABBVisible(float4 planes[6], float3 minPos, float3 maxPos)
 {
 	[unroll]
 	for (int i = 0; i < 6; i++)
 	{
-		// Pick the positive vertex for this plane
 		float3 p;
 		p.x = (planes[i].x > 0) ? maxPos.x : minPos.x;
 		p.y = (planes[i].y > 0) ? maxPos.y : minPos.y;
 		p.z = (planes[i].z > 0) ? maxPos.z : minPos.z;
 
-		// If the positive vertex is outside, the whole AABB is outside
 		if (dot(planes[i].xyz, p) + planes[i].w < 0) return false;
 	}
 
 	return true;
+}
+
+float4[6] BuildShadowCasterFrustum(float4 cameraPlanes[6], float3 lightDir, float shadowCasterRange)
+{
+	float4 extruded[6];
+	[unroll]
+	for (int i = 0; i < 6; i++)
+	{
+		extruded[i] = cameraPlanes[i];
+		extruded[i].w += max(0.0, dot(cameraPlanes[i].xyz, -lightDir)) * shadowCasterRange;
+	}
+	return extruded;
 }
 
 [shader("compute")]
@@ -77,32 +101,35 @@ bool IsAABBVisible(float4 planes[6], float3 minPos, float3 maxPos)
 void computeMain(uint3 id: SV_DispatchThreadID)
 {
 	uint index = id.x;
-	if (index >= push.objectCount) // Out of range check
-		return;
+	if (index >= push.objectCount) return;
 
 	ModelData obj = objectBuffer[index];
 	TransformData trans = transformBuffer[obj.transformIndex];
 
-	float3 localCenter = (obj.AABBMax.xyz + obj.AABBMin.xyz) * 0.5;
+	float3 localCenter  = (obj.AABBMax.xyz + obj.AABBMin.xyz) * 0.5;
 	float3 localExtents = (obj.AABBMax.xyz - obj.AABBMin.xyz) * 0.5;
 
-	float3 worldCenter = mul(trans.model, float4(localCenter, 1.0)).xyz;
-	float3 right = abs(mul((float3x3)trans.model, float3(1, 0, 0))) * localExtents.x;
-	float3 up = abs(mul((float3x3)trans.model, float3(0, 1, 0))) * localExtents.y;
-	float3 forward = abs(mul((float3x3)trans.model, float3(0, 0, 1))) * localExtents.z;
+	float3 worldCenter  = mul(trans.model, float4(localCenter, 1.0)).xyz;
+	float3 right        = abs(mul((float3x3)trans.model, float3(1, 0, 0))) * localExtents.x;
+	float3 up           = abs(mul((float3x3)trans.model, float3(0, 1, 0))) * localExtents.y;
+	float3 forward      = abs(mul((float3x3)trans.model, float3(0, 0, 1))) * localExtents.z;
 	float3 worldExtents = right + up + forward;
 
 	float3 worldMin = worldCenter - worldExtents;
 	float3 worldMax = worldCenter + worldExtents;
 
-	if (!IsAABBVisible(camera[0].frustumPlanes, worldMin, worldMax)) return;
+	float4 shadowFrustum[6] = BuildShadowCasterFrustum(
+		camera[0].frustumPlanes,
+		sun[0].sunDirection.xyz,
+		sun[0].shadowCasterRange
+	);
 
-	uint drawCommandIndex = obj.drawCommandIndex;
+	if (!IsAABBVisible(shadowFrustum, worldMin, worldMax)) return;
+
+	uint drawCommandIndex    = obj.drawCommandIndex;
 	uint visibleBufferOffset = indirectDrawBuffer[drawCommandIndex].firstInstance;
 
-	// Atomically
 	uint slotIndex;
 	InterlockedAdd(indirectDrawBuffer[drawCommandIndex].instanceCount, 1, slotIndex);
-
 	visibleIndicesBuffer[slotIndex + visibleBufferOffset] = index;
 }

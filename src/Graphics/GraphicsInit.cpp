@@ -385,6 +385,15 @@ void GraphicsInit::initPipelines(GeneralManager& gm)
 	pipelineHandler->cullingPipelineLayout = std::move(cullLayout);
 	pipelineHandler->cullingPipeline = std::move(cullPipeline);
 
+	auto [shadowCullLayout, shadowCullPipeline] =
+	    PipelineFactory::build(dev, ComputePipelineDesc{
+	                                    .shaderPath = "shaders/shadow_frustum_culling.spv",
+	                                    .setLayouts = {*dManager->globalSetLayout, *dManager->modelSetLayout},
+	                                    .pushConstants = {{vk::ShaderStageFlagBits::eCompute, 0, sizeof(uint32_t)}},
+	                                });
+	pipelineHandler->shadowCullingPipelineLayout = std::move(shadowCullLayout);
+	pipelineHandler->shadowCullingPipeline = std::move(shadowCullPipeline);
+
 	auto [compactLayout, compactPipeline] =
 	    PipelineFactory::build(dev, ComputePipelineDesc{
 	                                    .shaderPath = "shaders/frustum_compaction.spv",
@@ -393,6 +402,15 @@ void GraphicsInit::initPipelines(GeneralManager& gm)
 	                                });
 	pipelineHandler->compactingCullPipelineLayout = std::move(compactLayout);
 	pipelineHandler->compactingCullPipeline = std::move(compactPipeline);
+
+	auto [resetInstLayout, resetInstPipeline] =
+	    PipelineFactory::build(dev, ComputePipelineDesc{
+	                                    .shaderPath = "shaders/reset_instance_count.spv",
+	                                    .setLayouts = {*dManager->modelSetLayout},
+	                                    .pushConstants = {{vk::ShaderStageFlagBits::eCompute, 0, sizeof(uint32_t)}},
+	                                });
+	pipelineHandler->resetInstancePipelineLayout = std::move(resetInstLayout);
+	pipelineHandler->resetInstancePipeline = std::move(resetInstPipeline);
 
 	auto [equirectLayout, equirectPipeline] =
 	    PipelineFactory::build(dev, ComputePipelineDesc{
