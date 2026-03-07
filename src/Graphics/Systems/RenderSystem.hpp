@@ -1,13 +1,13 @@
 #pragma once
 
 #include <vector>
-#include "../../Core/Systems/SystemCore.hpp"
+#include "../../Orhescyon/Systems/SystemCore.hpp"
 #include "../Components/GlobalTransformComponent.hpp"
 #include "../Resources/Components/TextureInfoComponent.hpp"
 #include "../Resources/Components/MeshInfoComponent.hpp"
 #include "BufferUpdateSystem.hpp"
-
-class RenderSystem : public SystemCore<RenderSystem, GlobalTransformComponent, MeshInfoComponent>
+using Orhescyon::GeneralManager;
+class RenderSystem : public Orhescyon::SystemCore<RenderSystem, GlobalTransformComponent, MeshInfoComponent>
 {
 public:
 	void update(GeneralManager& gm) override;

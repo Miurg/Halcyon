@@ -1,11 +1,11 @@
 
 #include <vector>
-#include "../../Core/Systems/SystemCore.hpp"
+#include "../../Orhescyon/Systems/SystemCore.hpp"
 #include "../../Graphics/Components/LocalTransformComponent.hpp"
-#include "../../Core/GeneralManager.hpp"
-#include "../../Core/Entitys/EntityManager.hpp"
-
-class SpawnSystem : public SystemCore<SpawnSystem>
+#include "../../Orhescyon/GeneralManager.hpp"
+#include "../../Orhescyon/Entitys/EntityManager.hpp"
+using Orhescyon::GeneralManager;
+class SpawnSystem : public Orhescyon::SystemCore<SpawnSystem>
 {
 
 public:

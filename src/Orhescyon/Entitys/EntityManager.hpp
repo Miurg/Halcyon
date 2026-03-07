@@ -4,6 +4,8 @@
 
 using Entity = uint32_t;
 
+namespace Orhescyon
+{
 class EntityManager
 {
 private:
@@ -17,3 +19,5 @@ public:
 		return _nextEntity.fetch_add(1, std::memory_order_relaxed);
 	}
 };
+
+}

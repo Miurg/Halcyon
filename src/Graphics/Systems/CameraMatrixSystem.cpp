@@ -5,7 +5,7 @@
 #include <vector>
 #include <algorithm>
 #include <cmath>
-#include "../../Core/GeneralManager.hpp"
+#include "../../Orhescyon/GeneralManager.hpp"
 #include "../GraphicsContexts.hpp"
 #include "../Components/SwapChainComponent.hpp"
 #include "../Components/BufferManagerComponent.hpp"

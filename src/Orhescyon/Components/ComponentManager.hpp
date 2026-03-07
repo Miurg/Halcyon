@@ -7,7 +7,8 @@
 
 #include "../Entitys/EntityManager.hpp"
 #include "ComponentArray.hpp"
-
+namespace Orhescyon
+{
 // Type-erased component storage. Each component type gets a static ComponentArray.
 // removeEntity() uses registered callbacks to erase from all arrays without knowing concrete types.
 class ComponentManager
@@ -64,3 +65,5 @@ public:
 		}
 	}
 };
+
+}

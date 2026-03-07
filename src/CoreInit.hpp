@@ -1,5 +1,5 @@
 #pragma once
-#include "Core/GeneralManager.hpp"
+#include "Orhescyon/GeneralManager.hpp"
 #include "Platform/Systems/InputSolverSystem.hpp"
 #include "Game/Systems/ControlSystem.hpp"
 #include "Graphics/Systems/RenderSystem.hpp"
@@ -13,7 +13,7 @@
 #include "Graphics/Systems/ImGuiSystem.hpp"
 #include "Platform/Systems/DeltaTimeSystem.hpp"
 
-
+Orhescyon::GeneralManager;
 class CoreInit
 {
 public:

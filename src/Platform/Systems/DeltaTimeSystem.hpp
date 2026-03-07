@@ -1,8 +1,8 @@
 #pragma once
 
-#include "../../Core/Systems/SystemCore.hpp"
-
-class DeltaTimeSystem : public SystemCore<DeltaTimeSystem>
+#include "../../Orhescyon/Systems/SystemCore.hpp"
+using Orhescyon::GeneralManager;
+class DeltaTimeSystem : public Orhescyon::SystemCore<DeltaTimeSystem>
 {
 public:
 	void update(GeneralManager& gm) override;

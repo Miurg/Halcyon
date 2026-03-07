@@ -5,7 +5,8 @@
 #include <algorithm>
 
 using Entity = uint32_t;
-
+namespace Orhescyon
+{
 // Sparse/dense set — O(1) insert, erase (swap-with-last), and contains.
 class ActiveEntitySet
 {
@@ -67,3 +68,5 @@ private:
 	std::vector<Entity> _dense;
 	std::vector<size_t> _sparse;
 };
+
+}

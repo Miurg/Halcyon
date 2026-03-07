@@ -1,16 +1,16 @@
 #pragma once
 
 #include <vector>
-#include "../../Core/Systems/SystemCore.hpp"
+#include "../../Orhescyon/Systems/SystemCore.hpp"
 #include "../Resources/Components/TextureInfoComponent.hpp"
 #include "../Resources/Components/MeshInfoComponent.hpp"
 #include "BufferUpdateSystem.hpp"
 #include "../Components/LocalTransformComponent.hpp"
 #include "../Components/GlobalTransformComponent.hpp"
 #include "../Components/RelationshipComponent.hpp"
-
-class TransformSystem
-    : public SystemCore<TransformSystem, GlobalTransformComponent, LocalTransformComponent, RelationshipComponent>
+using Orhescyon::GeneralManager;
+class TransformSystem : public Orhescyon::SystemCore<TransformSystem, GlobalTransformComponent, LocalTransformComponent,
+                                                   RelationshipComponent>
 {
 private:
 public:

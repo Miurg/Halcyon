@@ -1,11 +1,11 @@
 #pragma once
-#include "../../Core/Systems/SystemCore.hpp"
+#include "../../Orhescyon/Systems/SystemCore.hpp"
 #include "../Components/GlobalTransformComponent.hpp"
 #include "../Resources/Components/TextureInfoComponent.hpp"
 #include "../Resources/Components/MeshInfoComponent.hpp"
-#include "../../Core/Entitys/EntityManager.hpp"
-
-class BufferUpdateSystem : public SystemCore<BufferUpdateSystem, GlobalTransformComponent, MeshInfoComponent>
+#include "../../Orhescyon/Entitys/EntityManager.hpp"
+using Orhescyon::GeneralManager;
+class BufferUpdateSystem : public Orhescyon::SystemCore<BufferUpdateSystem, GlobalTransformComponent, MeshInfoComponent>
 {
 public:
 	struct Agent

@@ -14,9 +14,9 @@
 #include "Cleanup.hpp"
 #include "MainLoop.hpp"
 #include <exception>
-#include "Core/GeneralManager.hpp"
+#include "Orhescyon/GeneralManager.hpp"
 App::App() {}
-
+Orhescyon::GeneralManager;
 int App::run()
 {
 	GeneralManager gm;

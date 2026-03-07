@@ -2,7 +2,7 @@
 #include "../Resources/Managers/BufferManager.hpp"
 #include <iostream>
 #include <chrono>
-#include "../../Core/GeneralManager.hpp"
+#include "../../Orhescyon/GeneralManager.hpp"
 #include "../GraphicsContexts.hpp"
 #include "../Components/SwapChainComponent.hpp"
 #include "../Components/BufferManagerComponent.hpp"

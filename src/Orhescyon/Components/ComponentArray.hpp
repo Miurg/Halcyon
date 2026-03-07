@@ -2,6 +2,8 @@
 #include "StablePool.hpp"
 #include <limits>
 #include <vector>
+namespace Orhescyon
+{
 // Sparse array mapping Entity → slot in a StablePool.
 // Adding a component to an entity that already has one overwrites it in-place.
 template <typename TComponent, uint32_t PoolBlockSize = 4096>
@@ -76,3 +78,4 @@ public:
 		_pool.reserveBlocks(numBlocks);
 	}
 };
+}

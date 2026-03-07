@@ -1,7 +1,8 @@
 #pragma once
 
-#include "Core/GeneralManager.hpp"
+#include "Orhescyon/GeneralManager.hpp"
 
+using Orhescyon::GeneralManager;
 class Cleanup
 {
 public:

@@ -9,8 +9,10 @@
 #include "ISystemCore.hpp"
 #include "../Entitys/ActiveEntitySet.hpp"
 
-class GeneralManager;
 
+namespace Orhescyon
+{
+class GeneralManager;
 // Owns all systems and tracks bidirectional entity↔system subscriptions.
 // subscribe() recursively resolves system dependencies.
 class SystemManager
@@ -196,3 +198,5 @@ public:
 		}
 	}
 };
+
+} // namespace Orhescyon

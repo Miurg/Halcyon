@@ -1,8 +1,8 @@
 #pragma once
 
-#include "../../Core/Systems/SystemCore.hpp"
-
-class ImGuiSystem : public SystemCore<ImGuiSystem>
+#include "../../Orhescyon/Systems/SystemCore.hpp"
+using Orhescyon::GeneralManager;
+class ImGuiSystem : public Orhescyon::SystemCore<ImGuiSystem>
 {
 public:
 	void update(GeneralManager& gm) override;

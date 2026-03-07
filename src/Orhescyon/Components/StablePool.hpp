@@ -4,7 +4,8 @@
 #include <memory>
 #include <utility>
 #include <vector>
-
+namespace Orhescyon
+{
 // Pointer-stable pool allocator. Blocks are never freed or moved, so pointers remain valid.
 // Freed slots are recycled via an internal free list. BlockSize must be a power of two.
 template <typename T, uint32_t BlockSize = 4096>
@@ -140,3 +141,5 @@ public:
 		return static_cast<uint32_t>(_blocks.size());
 	}
 };
+
+}

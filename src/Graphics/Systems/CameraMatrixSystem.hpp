@@ -1,7 +1,7 @@
 #pragma once
-#include "../../Core/Systems/SystemCore.hpp"
-
-class CameraMatrixSystem : public SystemCore<CameraMatrixSystem>
+#include "../../Orhescyon/Systems/SystemCore.hpp"
+using Orhescyon::GeneralManager;
+class CameraMatrixSystem : public Orhescyon::SystemCore<CameraMatrixSystem>
 {
 public:
 	void update(GeneralManager& gm) override;

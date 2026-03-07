@@ -4,7 +4,8 @@
 #include "ISystemCore.hpp"
 #include "../GeneralManager.hpp"
 #include <iostream>
-
+namespace Orhescyon
+{
 // CRTP base for systems. RequiredComponents are auto-checked in shouldProcessEntity().
 template <typename Derived, typename... RequiredComponents>
 class SystemCore : public ISystemCore
@@ -68,3 +69,5 @@ public:
 		// Optional: Override in derived class if needed
 	}
 };
+}
+    

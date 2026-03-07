@@ -5,14 +5,14 @@
 #include "../Components/MeshInfoComponent.hpp"
 #include "../../VulkanDevice.hpp"
 #include "../Managers/PrimitivesInfo.hpp"
-#include "../../../Core/Entitys/EntityManager.hpp"
+#include "../../../Orhescyon/Entitys/EntityManager.hpp"
 #include "../Managers/BufferManager.hpp"
 #include "../Managers/DescriptorManager.hpp"
 #include "../Components/BindlessTextureDSetComponent.hpp"
-#include "../../../Core/GeneralManager.hpp"
+#include "../../../Orhescyon/GeneralManager.hpp"
 #include "GltfLoader.hpp"
 #include "../Managers/TextureManager.hpp"
-
+using Orhescyon::GeneralManager;
 class ModelFactory
 {
 public:

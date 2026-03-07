@@ -1,8 +1,8 @@
 #pragma once
 
-#include "../../Core/Systems/SystemCore.hpp"
-
-class FrameEndSystem : public SystemCore<FrameEndSystem>
+#include "../../Orhescyon/Systems/SystemCore.hpp"
+using Orhescyon::GeneralManager;
+class FrameEndSystem : public Orhescyon::SystemCore<FrameEndSystem>
 {
 public:
 	void update(GeneralManager& gm) override;

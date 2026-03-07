@@ -1,8 +1,10 @@
 #pragma once
-#include "../../Core/Systems/SystemCore.hpp"
-#include "../../Core/GeneralManager.hpp"
+#include "../../Orhescyon/Systems/SystemCore.hpp"
+#include "../../Orhescyon/GeneralManager.hpp"
 #include "../../Platform/Window.hpp"
-class ControlSystem : public SystemCore<ControlSystem>
+using Orhescyon::GeneralManager;
+
+class ControlSystem : public Orhescyon::SystemCore<ControlSystem>
 {
 private:
 	bool cursorDisable = true;

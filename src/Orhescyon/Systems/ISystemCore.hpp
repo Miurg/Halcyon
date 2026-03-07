@@ -2,6 +2,8 @@
 
 #include <vector>
 #include <typeindex>
+namespace Orhescyon
+{
 class GeneralManager;
 // System interface. Lifecycle: onRegistered → (onEntitySubscribed/update/onEntityUnsubscribed)* → onShutdown.
 class ISystemCore
@@ -16,3 +18,5 @@ public:
 	virtual void onEntitySubscribed(Entity entity, GeneralManager& gm) = 0;
 	virtual void onEntityUnsubscribed(Entity entity, GeneralManager& gm) = 0;
 };
+}
+	

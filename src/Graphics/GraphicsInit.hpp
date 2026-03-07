@@ -1,6 +1,8 @@
 #pragma once
-#include "../Core/GeneralManager.hpp"
+#include "../Orhescyon/GeneralManager.hpp"
 #include "Resources/Factories/GltfLoader.hpp"
+
+using Orhescyon::GeneralManager;
 
 class GraphicsInit
 {

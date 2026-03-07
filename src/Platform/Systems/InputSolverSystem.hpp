@@ -1,15 +1,15 @@
 #pragma once
 
-#include "../../Core/Systems/SystemCore.hpp"
+#include "../../Orhescyon/Systems/SystemCore.hpp"
 #include "../Components/CursorPositionComponent.hpp"
 #include "../Components/WindowSizeComponent.hpp"
 #include "../Components/KeyboardStateComponent.hpp"
 #include "../Components/MouseStateComponent.hpp"
 #include "../Components/ScrollDeltaComponent.hpp"
 #include "../Components/WindowComponent.hpp"
-
+using Orhescyon::GeneralManager;
 class InputSolverSystem
-    : public SystemCore<InputSolverSystem, WindowComponent, CursorPositionComponent, WindowSizeComponent,
+    : public Orhescyon::SystemCore<InputSolverSystem, WindowComponent, CursorPositionComponent, WindowSizeComponent,
                         KeyboardStateComponent, MouseStateComponent, ScrollDeltaComponent>
 {
 public:

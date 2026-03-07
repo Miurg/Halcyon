@@ -1,6 +1,6 @@
 #include "RotationSystem.hpp"
 #include <iostream>
-#include "../../Core/GeneralManager.hpp"
+#include "../../Orhescyon/GeneralManager.hpp"
 #include "../../Graphics/Components/LocalTransformComponent.hpp"
 #include "../../Graphics/Components/GlobalTransformComponent.hpp"
 #include "../../Platform/PlatformContexts.hpp"
