@@ -30,7 +30,7 @@ private:
 		return array;
 	}
 
-	static std::unordered_map<std::type_index, std::function<void(Entity)>> _removeCallbacks;
+	inline static std::unordered_map<std::type_index, std::function<void(Entity)>> _removeCallbacks;
 
 public:
 	template <typename TComponent, typename... Args>
@@ -66,4 +66,4 @@ public:
 	}
 };
 
-}
+} // namespace Orhescyon
