@@ -144,14 +144,14 @@ void RenderGraph::updateDescriptors(DescriptorManager& dManager, GlobalDSetCompo
 	}
 
 	// SSAO Blur descriptor set
-	if (ssao && offscreen)
+	if (ssao && depth && viewNormals)
 	{
 		dManager.updateSingleTextureDSet(globalDSets.ssaoBlurDSets, Bindings::SSAOBlur::SsaoInput, ssao->imageView,
 		                                 ssao->sampler);
-		dManager.updateSingleTextureDSet(globalDSets.ssaoBlurDSets, Bindings::SSAOBlur::ColorInput1, offscreen->imageView,
-		                                 offscreen->sampler);
-		dManager.updateSingleTextureDSet(globalDSets.ssaoBlurDSets, Bindings::SSAOBlur::ColorInput2, offscreen->imageView,
-		                                 offscreen->sampler);
+		dManager.updateSingleTextureDSet(globalDSets.ssaoBlurDSets, Bindings::SSAOBlur::DepthInput, depth->imageView,
+		                                 depth->sampler);
+		dManager.updateSingleTextureDSet(globalDSets.ssaoBlurDSets, Bindings::SSAOBlur::NormalsInput,
+		                                 viewNormals->imageView, viewNormals->sampler);
 	}
 
 	needsDescriptorUpdate = false;

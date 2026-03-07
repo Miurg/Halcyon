@@ -358,7 +358,7 @@ void GraphicsInit::initPipelines(GeneralManager& gm)
 	                                    .colorAttachments = {PipelineFactory::opaqueAttachment()},
 	                                    .colorFormats = {vk::Format::eR8Unorm},
 	                                    .setLayouts = {*dManager->screenSpaceSetLayout, *dManager->globalSetLayout},
-	                                    .pushConstants = {{vk::ShaderStageFlagBits::eFragment, 0, 24u}},
+	                                    .pushConstants = {{vk::ShaderStageFlagBits::eFragment, 0, 40u}},
 	                                });
 	pipelineHandler->ssaoPipelineLayout = std::move(ssaoLayout);
 	pipelineHandler->ssaoPipeline = std::move(ssaoPipeline);

@@ -297,6 +297,9 @@ void ImGuiSystem::update(GeneralManager& gm)
 				ImGui::DragFloat("Power", &ssao->power, 0.1f, 0.1f, 20.0f);
 				ImGui::SliderInt("Num Directions", &ssao->numDirections, 1, 16);
 				ImGui::DragFloat("Max Screen Radius", &ssao->maxScreenRadius, 0.01f, 0.01f, 1.0f);
+				ImGui::DragFloat("Fade start", &ssao->fadeStart, 10.0f, 1000.0f);
+				ImGui::DragFloat("Fade end", &ssao->fadeEnd, 10.0f, 1000.0f);
+
 			}
 		}
 	}

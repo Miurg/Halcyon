@@ -614,6 +614,9 @@ void CommandBufferFactory::drawSsaoPass(vk::raii::CommandBuffer& cmd, SwapChain&
 		float power;
 		int numDirections;
 		float maxScreenRadius;
+		float fadeStart;
+		float fadeEnd;
+		float texelSize[2];
 	} push;
 	push.kernelSize = ssaoSettings.kernelSize;
 	push.radius = ssaoSettings.radius;
@@ -621,6 +624,10 @@ void CommandBufferFactory::drawSsaoPass(vk::raii::CommandBuffer& cmd, SwapChain&
 	push.power = ssaoSettings.power;
 	push.numDirections = ssaoSettings.numDirections;
 	push.maxScreenRadius = ssaoSettings.maxScreenRadius;
+	push.fadeStart = ssaoSettings.fadeStart;
+	push.fadeEnd = ssaoSettings.fadeEnd;
+	push.texelSize[0] = 1.0f / static_cast<float>(swapChain.swapChainExtent.width / 2);
+	push.texelSize[1] = 1.0f / static_cast<float>(swapChain.swapChainExtent.height / 2);
 
 	cmd.pushConstants<SsaoPushConstants>(*pipelineHandler.ssaoPipelineLayout, vk::ShaderStageFlagBits::eFragment, 0,
 	                                     push);

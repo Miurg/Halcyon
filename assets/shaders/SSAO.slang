@@ -23,6 +23,9 @@ struct PushConstants
 	float power;
 	int numDirections;
 	float maxScreenRadius;
+	float fadeStart;
+	float fadeEnd;
+	float2 texelSize;
 };
 [[vk::push_constant]]
 ConstantBuffer<PushConstants> pc;
@@ -78,6 +81,11 @@ float4 fragMain(VSOutput input) : SV_Target
 	if (depth <= 0.0) return float4(1.0, 1.0, 1.0, 1.0);
 
 	float3 P = reconstructViewPos(input.uv, depth);
+	
+	// Distance fade check
+	float fade = smoothstep(-pc.fadeEnd, -pc.fadeStart, P.z);
+	if (fade <= 0.001) return float4(1.0, 1.0, 1.0, 1.0);
+	
 	float3 N = normalize(normalsTexture.SampleLevel(input.uv, 0).xyz);
 
 	float4x4 proj = camera[0].projMatrix;
@@ -99,6 +107,10 @@ float4 fragMain(VSOutput input) : SV_Target
 	int numSteps = pc.kernelSize;
 
 	float stepUV = screenRadius / (float(numSteps) + 1.0);
+	
+	// CLAMP: Prevent sub-pixel sampling. Step must be at least 1 pixel wide.
+	float minStepTarget = length(pc.texelSize);
+	stepUV = max(stepUV, minStepTarget);
 
 	float occlusion = 0.0;
 	float directionStepAngle = (2.0 * 3.14159265) / float(NUM_DIRECTIONS);
@@ -148,6 +160,9 @@ float4 fragMain(VSOutput input) : SV_Target
 
 	occlusion /= float(NUM_DIRECTIONS);
 	occlusion = pow(1.0 - saturate(occlusion), pc.power);
+
+	// Apply distance fade
+	occlusion = lerp(1.0, occlusion, fade);
 
 	return float4(occlusion, occlusion, occlusion, 1.0);
 }

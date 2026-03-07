@@ -8,6 +8,8 @@ struct SsaoSettingsComponent
 	float power = 8.0f;
 	int numDirections = 12;
 	float maxScreenRadius = 0.5f;
+	float fadeStart = 100.0f;
+	float fadeEnd = 300.0f;
 
 	SsaoSettingsComponent() = default;
 };
