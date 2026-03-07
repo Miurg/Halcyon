@@ -32,7 +32,7 @@ void TextureUploader::transitionImageLayout(vk::Image image, vk::ImageLayout old
 	barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 	barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 	barrier.image = image;
-	barrier.subresourceRange = {vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1};
+	barrier.subresourceRange = {vk::ImageAspectFlagBits::eColor, 0, vk::RemainingMipLevels, 0, 1};
 
 	vk::PipelineStageFlags sourceStage;
 	vk::PipelineStageFlags destinationStage;
@@ -110,8 +110,7 @@ void TextureUploader::uploadTextureFromBuffer(const unsigned char* pixels, int t
 	VulkanUtils::copyBufferToImage(stagingBuffer, texture.textureImage, static_cast<uint32_t>(texWidth),
 	                               static_cast<uint32_t>(texHeight), vulkanDevice);
 
-	transitionImageLayout(texture.textureImage, vk::ImageLayout::eTransferDstOptimal,
-	                      vk::ImageLayout::eShaderReadOnlyOptimal, vulkanDevice);
+	generateMipmaps(texture.textureImage, texture.format, texWidth, texHeight, texture.mipLevels, vulkanDevice);
 
 	vmaDestroyBuffer(allocator, stagingBuffer, stagingAllocation);
 }
@@ -165,8 +164,7 @@ void TextureUploader::uploadHdrTextureFromBuffer(const float* pixels, int texWid
 	VulkanUtils::copyBufferToImage(stagingBuffer, texture.textureImage, static_cast<uint32_t>(texWidth),
 	                               static_cast<uint32_t>(texHeight), vulkanDevice);
 
-	transitionImageLayout(texture.textureImage, vk::ImageLayout::eTransferDstOptimal,
-	                      vk::ImageLayout::eShaderReadOnlyOptimal, vulkanDevice);
+	generateMipmaps(texture.textureImage, texture.format, texWidth, texHeight, texture.mipLevels, vulkanDevice);
 
 	vmaDestroyBuffer(allocator, stagingBuffer, stagingAllocation);
 }
@@ -191,9 +189,11 @@ void TextureUploader::uploadHdrTextureFromFile(const char* texturePath, Texture&
 		freePixels = false;
 	}
 
+	uint32_t mipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(hdrWidth, hdrHeight)))) + 1;
 	tManager.createImage(hdrWidth, hdrHeight, vk::Format::eR32G32B32A32Sfloat, vk::ImageTiling::eOptimal,
-	                     vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled, VMA_MEMORY_USAGE_AUTO,
-	                     texture);
+	                     vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eTransferDst |
+	                         vk::ImageUsageFlagBits::eSampled,
+	                     VMA_MEMORY_USAGE_AUTO, texture, mipLevels);
 
 	uploadHdrTextureFromBuffer(hdrPixels, hdrWidth, hdrHeight, texture, allocator, vulkanDevice);
 
@@ -204,4 +204,80 @@ void TextureUploader::uploadHdrTextureFromFile(const char* texturePath, Texture&
 	{
 		stbi_image_free(hdrPixels);
 	}
+}
+
+void TextureUploader::generateMipmaps(vk::Image image, vk::Format imageFormat, int32_t texWidth, int32_t texHeight,
+                                      uint32_t mipLevels, VulkanDevice& vulkanDevice)
+{
+	vk::FormatProperties formatProperties = vulkanDevice.physicalDevice.getFormatProperties(imageFormat);
+	if (!(formatProperties.optimalTilingFeatures & vk::FormatFeatureFlagBits::eSampledImageFilterLinear))
+	{
+		throw std::runtime_error("texture image format does not support linear blitting!");
+	}
+
+	auto commandBuffer = VulkanUtils::beginSingleTimeCommands(vulkanDevice);
+
+	vk::ImageMemoryBarrier barrier;
+	barrier.image = image;
+	barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+	barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+	barrier.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
+	barrier.subresourceRange.baseArrayLayer = 0;
+	barrier.subresourceRange.layerCount = 1;
+	barrier.subresourceRange.levelCount = 1;
+
+	int32_t mipWidth = texWidth;
+	int32_t mipHeight = texHeight;
+
+	for (uint32_t i = 1; i < mipLevels; i++)
+	{
+		barrier.subresourceRange.baseMipLevel = i - 1;
+		barrier.oldLayout = vk::ImageLayout::eTransferDstOptimal;
+		barrier.newLayout = vk::ImageLayout::eTransferSrcOptimal;
+		barrier.srcAccessMask = vk::AccessFlagBits::eTransferWrite;
+		barrier.dstAccessMask = vk::AccessFlagBits::eTransferRead;
+
+		commandBuffer.pipelineBarrier(vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eTransfer, {}, {},
+		                              {}, barrier);
+
+		vk::ImageBlit blit;
+		blit.srcOffsets[0] = vk::Offset3D{0, 0, 0};
+		blit.srcOffsets[1] = vk::Offset3D{mipWidth, mipHeight, 1};
+		blit.srcSubresource.aspectMask = vk::ImageAspectFlagBits::eColor;
+		blit.srcSubresource.mipLevel = i - 1;
+		blit.srcSubresource.baseArrayLayer = 0;
+		blit.srcSubresource.layerCount = 1;
+
+		blit.dstOffsets[0] = vk::Offset3D{0, 0, 0};
+		blit.dstOffsets[1] = vk::Offset3D{mipWidth > 1 ? mipWidth / 2 : 1, mipHeight > 1 ? mipHeight / 2 : 1, 1};
+		blit.dstSubresource.aspectMask = vk::ImageAspectFlagBits::eColor;
+		blit.dstSubresource.mipLevel = i;
+		blit.dstSubresource.baseArrayLayer = 0;
+		blit.dstSubresource.layerCount = 1;
+
+		commandBuffer.blitImage(image, vk::ImageLayout::eTransferSrcOptimal, image, vk::ImageLayout::eTransferDstOptimal,
+		                        blit, vk::Filter::eLinear);
+
+		barrier.oldLayout = vk::ImageLayout::eTransferSrcOptimal;
+		barrier.newLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
+		barrier.srcAccessMask = vk::AccessFlagBits::eTransferRead;
+		barrier.dstAccessMask = vk::AccessFlagBits::eShaderRead;
+
+		commandBuffer.pipelineBarrier(vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eFragmentShader,
+		                              {}, {}, {}, barrier);
+
+		if (mipWidth > 1) mipWidth /= 2;
+		if (mipHeight > 1) mipHeight /= 2;
+	}
+
+	barrier.subresourceRange.baseMipLevel = mipLevels - 1;
+	barrier.oldLayout = vk::ImageLayout::eTransferDstOptimal;
+	barrier.newLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
+	barrier.srcAccessMask = vk::AccessFlagBits::eTransferWrite;
+	barrier.dstAccessMask = vk::AccessFlagBits::eShaderRead;
+
+	commandBuffer.pipelineBarrier(vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eFragmentShader, {},
+	                              {}, {}, barrier);
+
+	VulkanUtils::endSingleTimeCommands(commandBuffer, vulkanDevice);
 }

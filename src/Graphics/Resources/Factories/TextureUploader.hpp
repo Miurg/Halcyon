@@ -22,4 +22,6 @@ public:
 	                                       VmaAllocator& allocator, VulkanDevice& vulkanDevice);
 	static void uploadHdrTextureFromFile(const char* texturePath, Texture& texture, TextureManager& tManager,
 	                                     VmaAllocator& allocator, VulkanDevice& vulkanDevice);
+	static void generateMipmaps(vk::Image image, vk::Format imageFormat, int32_t texWidth, int32_t texHeight,
+	                            uint32_t mipLevels, VulkanDevice& vulkanDevice);
 };

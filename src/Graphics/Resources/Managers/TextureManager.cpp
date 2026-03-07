@@ -201,9 +201,11 @@ TextureHandle TextureManager::generateTextureData(const char texturePath[MAX_PAT
 	textures.push_back(Texture());
 	Texture& texture = textures.back();
 
+	uint32_t mipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(texWidth, texHeight)))) + 1;
 	TextureManager::createImage(texWidth, texHeight, format, vk::ImageTiling::eOptimal,
-	                            vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled,
-	                            VMA_MEMORY_USAGE_AUTO, texture);
+	                            vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eTransferDst |
+	                                vk::ImageUsageFlagBits::eSampled,
+	                            VMA_MEMORY_USAGE_AUTO, texture, mipLevels);
 	TextureUploader::uploadTextureFromBuffer(pixels, texWidth, texHeight, texture, allocator, vulkanDevice);
 	TextureManager::createImageView(texture, format, vk::ImageAspectFlagBits::eColor);
 	TextureManager::createTextureSampler(texture);
@@ -220,7 +222,8 @@ bool TextureManager::isTextureLoaded(const char texturePath[MAX_PATH_LEN])
 }
 
 void TextureManager::createImage(uint32_t width, uint32_t height, vk::Format format, vk::ImageTiling tiling,
-                                 vk::ImageUsageFlags usage, VmaMemoryUsage memoryUsage, Texture& texture)
+                                 vk::ImageUsageFlags usage, VmaMemoryUsage memoryUsage, Texture& texture,
+                                 uint32_t mipLevels)
 {
 	if (width == 0 || height == 0)
 	{
@@ -231,7 +234,7 @@ void TextureManager::createImage(uint32_t width, uint32_t height, vk::Format for
 	imageInfo.extent.width = width;
 	imageInfo.extent.height = height;
 	imageInfo.extent.depth = 1;
-	imageInfo.mipLevels = 1;
+	imageInfo.mipLevels = mipLevels;
 	imageInfo.arrayLayers = 1;
 	imageInfo.format = static_cast<VkFormat>(format);
 	imageInfo.tiling = static_cast<VkImageTiling>(tiling);
@@ -258,6 +261,7 @@ void TextureManager::createImage(uint32_t width, uint32_t height, vk::Format for
 	texture.tiling = tiling;
 	texture.usage = usage;
 	texture.memoryUsage = memoryUsage;
+	texture.mipLevels = mipLevels;
 }
 
 int TextureManager::emplaceMaterials(BindlessTextureDSetComponent& dSetComponent, MaterialStructure materialStr,
@@ -322,7 +326,7 @@ void TextureManager::createImageView(Texture& texture, vk::Format format, vk::Im
 	viewInfo.format = format;
 	viewInfo.subresourceRange.aspectMask = aspectFlags;
 	viewInfo.subresourceRange.baseMipLevel = 0;
-	viewInfo.subresourceRange.levelCount = 1;
+	viewInfo.subresourceRange.levelCount = texture.mipLevels;
 	viewInfo.subresourceRange.baseArrayLayer = 0;
 	viewInfo.subresourceRange.layerCount = 1;
 
@@ -358,6 +362,8 @@ void TextureManager::createTextureSampler(Texture& texture)
 	samplerInfo.maxAnisotropy = properties.limits.maxSamplerAnisotropy;
 	samplerInfo.compareOp = vk::CompareOp::eAlways;
 	samplerInfo.borderColor = vk::BorderColor::eIntOpaqueBlack;
+	samplerInfo.minLod = 0.0f;
+	samplerInfo.maxLod = static_cast<float>(texture.mipLevels);
 
 	texture.textureSampler = (*vulkanDevice.device).createSampler(samplerInfo);
 }
@@ -415,8 +421,8 @@ void TextureManager::resizeTexture(TextureHandle handle, uint32_t newWidth, uint
 	TextureManager::createImageView(texture, texture.format, texture.aspectFlags);
 }
 
-TextureHandle TextureManager::generateCubemapFromHdr(TextureHandle hdrTexture, 
-                                                     PipelineHandler& pHandler, DescriptorManager& dManager,
+TextureHandle TextureManager::generateCubemapFromHdr(TextureHandle hdrTexture, PipelineHandler& pHandler,
+                                                     DescriptorManager& dManager,
                                                      BindlessTextureDSetComponent& dSetComponent)
 {
 	// Create Cubemap
@@ -442,10 +448,10 @@ TextureHandle TextureManager::generateCubemapFromHdr(TextureHandle hdrTexture,
 	// Convert Equirectangular to Cubemap
 	auto cmd = VulkanUtils::beginSingleTimeCommands(vulkanDevice);
 
-	VulkanUtils::transitionImageLayout(cmd, cubemapTexture.textureImage, vk::ImageLayout::eUndefined,
-	                                vk::ImageLayout::eGeneral, {}, vk::AccessFlagBits2::eShaderWrite,
-	                                vk::PipelineStageFlagBits2::eTopOfPipe, vk::PipelineStageFlagBits2::eComputeShader,
-	                                vk::ImageAspectFlagBits::eColor, 6, 1);
+	VulkanUtils::transitionImageLayout(
+	    cmd, cubemapTexture.textureImage, vk::ImageLayout::eUndefined, vk::ImageLayout::eGeneral, {},
+	    vk::AccessFlagBits2::eShaderWrite, vk::PipelineStageFlagBits2::eTopOfPipe,
+	    vk::PipelineStageFlagBits2::eComputeShader, vk::ImageAspectFlagBits::eColor, 6, 1);
 
 	cmd.bindPipeline(vk::PipelineBindPoint::eCompute, *pHandler.equirectToCubePipeline);
 	cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute, *pHandler.equirectToCubePipelineLayout, 0,
@@ -457,10 +463,10 @@ TextureHandle TextureManager::generateCubemapFromHdr(TextureHandle hdrTexture,
 
 	cmd.dispatch(1024 / 8, 1024 / 8, 6);
 
-	VulkanUtils::transitionImageLayout(cmd, cubemapTexture.textureImage, vk::ImageLayout::eGeneral,
-	                                vk::ImageLayout::eShaderReadOnlyOptimal, vk::AccessFlagBits2::eShaderWrite,
-	                                vk::AccessFlagBits2::eShaderRead, vk::PipelineStageFlagBits2::eComputeShader,
-	                                vk::PipelineStageFlagBits2::eFragmentShader, vk::ImageAspectFlagBits::eColor, 6, 1);
+	VulkanUtils::transitionImageLayout(
+	    cmd, cubemapTexture.textureImage, vk::ImageLayout::eGeneral, vk::ImageLayout::eShaderReadOnlyOptimal,
+	    vk::AccessFlagBits2::eShaderWrite, vk::AccessFlagBits2::eShaderRead, vk::PipelineStageFlagBits2::eComputeShader,
+	    vk::PipelineStageFlagBits2::eFragmentShader, vk::ImageAspectFlagBits::eColor, 6, 1);
 
 	VulkanUtils::endSingleTimeCommands(cmd, vulkanDevice);
 

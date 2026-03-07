@@ -44,7 +44,7 @@ public:
 	vk::Format findBestSupportedFormat(const std::vector<vk::Format>& candidates, vk::ImageTiling tiling,
 	                                   vk::FormatFeatureFlags features);
 	void createImage(uint32_t width, uint32_t height, vk::Format format, vk::ImageTiling tiling,
-	                 vk::ImageUsageFlags usage, VmaMemoryUsage memoryUsage, Texture& texture);
+	                 vk::ImageUsageFlags usage, VmaMemoryUsage memoryUsage, Texture& texture, uint32_t mipLevels = 1);
 	TextureHandle createCubemapImage(uint32_t width, uint32_t height, vk::Format format, uint32_t mipLevels = 1);
 	TextureHandle generateCubemapFromHdr(TextureHandle hdrTexture, PipelineHandler& pHandler,
 	                                     DescriptorManager& dManager, BindlessTextureDSetComponent& dSetComponent);
