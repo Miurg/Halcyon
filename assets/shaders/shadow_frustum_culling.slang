@@ -84,18 +84,6 @@ bool IsAABBVisible(float4 planes[6], float3 minPos, float3 maxPos)
 	return true;
 }
 
-float4[6] BuildShadowCasterFrustum(float4 cameraPlanes[6], float3 lightDir, float shadowCasterRange)
-{
-	float4 extruded[6];
-	[unroll]
-	for (int i = 0; i < 6; i++)
-	{
-		extruded[i] = cameraPlanes[i];
-		extruded[i].w += max(0.0, dot(cameraPlanes[i].xyz, -lightDir)) * shadowCasterRange;
-	}
-	return extruded;
-}
-
 [shader("compute")]
 [numthreads(64, 1, 1)]
 void computeMain(uint3 id: SV_DispatchThreadID)
@@ -118,13 +106,7 @@ void computeMain(uint3 id: SV_DispatchThreadID)
 	float3 worldMin = worldCenter - worldExtents;
 	float3 worldMax = worldCenter + worldExtents;
 
-	float4 shadowFrustum[6] = BuildShadowCasterFrustum(
-		camera[0].frustumPlanes,
-		sun[0].sunDirection.xyz,
-		sun[0].shadowCasterRange
-	);
-
-	if (!IsAABBVisible(shadowFrustum, worldMin, worldMax)) return;
+    if (!IsAABBVisible(sun[0].frustumPlanes, worldMin, worldMax)) return;
 
 	uint drawCommandIndex    = obj.drawCommandIndex;
 	uint visibleBufferOffset = indirectDrawBuffer[drawCommandIndex].firstInstance;
