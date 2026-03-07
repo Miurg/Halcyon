@@ -44,7 +44,7 @@ void CommandBufferFactory::drawShadowCullPass(vk::raii::CommandBuffer& cmd, Pipe
 
 	// ===  Zero the draw count buffer ===
 	cmd.fillBuffer(bManager.buffers[objectDSetComponent->drawCountBuffer.id].buffer[currentFrame], 0,
-	               sizeof(uint32_t) * 2, 0);
+	               sizeof(uint32_t) * 4, 0);
 
 	// === Barrier: fillBuffer -> Compaction ===
 	vk::MemoryBarrier2 fillBarrier;
@@ -72,34 +72,62 @@ void CommandBufferFactory::drawShadowCullPass(vk::raii::CommandBuffer& cmd, Pipe
 		uint32_t countIndex;   // 0 for opaque, 1 for alpha test
 	} compactPush;
 
-	uint32_t opaqueCount = drawInfo.opaqueDrawCount;
-	uint32_t totalDrawCount = drawInfo.totalDrawCount;
-	uint32_t alphaTestCount = totalDrawCount - opaqueCount;
+	uint32_t opaqueSingleCount = drawInfo.opaqueSingleCount;
+	uint32_t opaqueDoubleCount = drawInfo.opaqueDoubleCount;
+	uint32_t alphaSingleCount = drawInfo.alphaSingleCount;
+	uint32_t alphaDoubleCount = drawInfo.alphaDoubleCount;
 
-	// Opaque Compaction
-	if (opaqueCount > 0)
+	uint32_t currentOffset = 0;
+
+	// 1. Opaque Single-Sided Compaction
+	if (opaqueSingleCount > 0)
 	{
-		compactPush.drawCommandCount = opaqueCount;
-		compactPush.outputOffset = 0;
-		compactPush.inputOffset = 0;
+		compactPush.drawCommandCount = opaqueSingleCount;
+		compactPush.outputOffset = currentOffset;
+		compactPush.inputOffset = currentOffset;
 		compactPush.countIndex = 0;
 		cmd.pushConstants<CompactionPush>(*pipelineHandler.compactingCullPipelineLayout,
 		                                  vk::ShaderStageFlagBits::eCompute, 0, compactPush);
-		uint32_t compactGroups = (opaqueCount + 63) / 64;
-		cmd.dispatch(compactGroups, 1, 1);
+		cmd.dispatch((opaqueSingleCount + 63) / 64, 1, 1);
+		currentOffset += opaqueSingleCount;
 	}
 
-	// Alpha Test Compaction
-	if (alphaTestCount > 0)
+	// 2. Opaque Double-Sided Compaction
+	if (opaqueDoubleCount > 0)
 	{
-		compactPush.drawCommandCount = alphaTestCount;
-		compactPush.outputOffset = opaqueCount;
-		compactPush.inputOffset = opaqueCount;
+		compactPush.drawCommandCount = opaqueDoubleCount;
+		compactPush.outputOffset = currentOffset;
+		compactPush.inputOffset = currentOffset;
 		compactPush.countIndex = 1;
 		cmd.pushConstants<CompactionPush>(*pipelineHandler.compactingCullPipelineLayout,
 		                                  vk::ShaderStageFlagBits::eCompute, 0, compactPush);
-		uint32_t compactGroups = (alphaTestCount + 63) / 64;
-		cmd.dispatch(compactGroups, 1, 1);
+		cmd.dispatch((opaqueDoubleCount + 63) / 64, 1, 1);
+		currentOffset += opaqueDoubleCount;
+	}
+
+	// 3. Alpha Single-Sided Compaction
+	if (alphaSingleCount > 0)
+	{
+		compactPush.drawCommandCount = alphaSingleCount;
+		compactPush.outputOffset = currentOffset;
+		compactPush.inputOffset = currentOffset;
+		compactPush.countIndex = 2;
+		cmd.pushConstants<CompactionPush>(*pipelineHandler.compactingCullPipelineLayout,
+		                                  vk::ShaderStageFlagBits::eCompute, 0, compactPush);
+		cmd.dispatch((alphaSingleCount + 63) / 64, 1, 1);
+		currentOffset += alphaSingleCount;
+	}
+
+	// 4. Alpha Double-Sided Compaction
+	if (alphaDoubleCount > 0)
+	{
+		compactPush.drawCommandCount = alphaDoubleCount;
+		compactPush.outputOffset = currentOffset;
+		compactPush.inputOffset = currentOffset;
+		compactPush.countIndex = 3;
+		cmd.pushConstants<CompactionPush>(*pipelineHandler.compactingCullPipelineLayout,
+		                                  vk::ShaderStageFlagBits::eCompute, 0, compactPush);
+		cmd.dispatch((alphaDoubleCount + 63) / 64, 1, 1);
 	}
 
 	// === Barrier: Compaction -> DrawIndirect ===
@@ -139,22 +167,58 @@ void CommandBufferFactory::drawShadowPass(vk::raii::CommandBuffer& cmd, Pipeline
 	                    vk::IndexType::eUint32);
 	cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipelineHandler.shadowPipeline);
 
-	uint32_t opaqueCount = drawInfo.opaqueDrawCount;
-	if (opaqueCount > 0)
-	{
-		cmd.drawIndexedIndirectCount(bManager.buffers[objectDSetComponent->compactedDrawBuffer.id].buffer[currentFrame],
-		                             0, bManager.buffers[objectDSetComponent->drawCountBuffer.id].buffer[currentFrame], 0,
-		                             opaqueCount, commandStride);
-	}
+	uint32_t opaqueSingleCount = drawInfo.opaqueSingleCount;
+	uint32_t opaqueDoubleCount = drawInfo.opaqueDoubleCount;
+	uint32_t alphaSingleCount = drawInfo.alphaSingleCount;
+	uint32_t alphaDoubleCount = drawInfo.alphaDoubleCount;
 
-	// Alpha test pass
-	uint32_t alphaTestCount = drawInfo.totalDrawCount - opaqueCount;
-	if (alphaTestCount > 0)
+	uint32_t currentCommandOffset = 0;
+	uint32_t currentCountBufferOffset = 0;
+
+	// 1. Opaque Single-Sided
+	if (opaqueSingleCount > 0)
 	{
+		cmd.setCullMode(vk::CullModeFlagBits::eBack);
 		cmd.drawIndexedIndirectCount(bManager.buffers[objectDSetComponent->compactedDrawBuffer.id].buffer[currentFrame],
-		                             opaqueCount * commandStride,
+		                             currentCommandOffset,
 		                             bManager.buffers[objectDSetComponent->drawCountBuffer.id].buffer[currentFrame],
-		                             sizeof(uint32_t), drawInfo.totalDrawCount, commandStride);
+		                             currentCountBufferOffset, opaqueSingleCount, commandStride);
+		currentCommandOffset += opaqueSingleCount * commandStride;
+	}
+	currentCountBufferOffset += sizeof(uint32_t);
+
+	// 2. Opaque Double-Sided
+	if (opaqueDoubleCount > 0)
+	{
+		cmd.setCullMode(vk::CullModeFlagBits::eNone);
+		cmd.drawIndexedIndirectCount(bManager.buffers[objectDSetComponent->compactedDrawBuffer.id].buffer[currentFrame],
+		                             currentCommandOffset,
+		                             bManager.buffers[objectDSetComponent->drawCountBuffer.id].buffer[currentFrame],
+		                             currentCountBufferOffset, opaqueDoubleCount, commandStride);
+		currentCommandOffset += opaqueDoubleCount * commandStride;
+	}
+	currentCountBufferOffset += sizeof(uint32_t);
+
+	// 3. Alpha Single-Sided
+	if (alphaSingleCount > 0)
+	{
+		cmd.setCullMode(vk::CullModeFlagBits::eBack);
+		cmd.drawIndexedIndirectCount(bManager.buffers[objectDSetComponent->compactedDrawBuffer.id].buffer[currentFrame],
+		                             currentCommandOffset,
+		                             bManager.buffers[objectDSetComponent->drawCountBuffer.id].buffer[currentFrame],
+		                             currentCountBufferOffset, alphaSingleCount, commandStride);
+		currentCommandOffset += alphaSingleCount * commandStride;
+	}
+	currentCountBufferOffset += sizeof(uint32_t);
+
+	// 4. Alpha Double-Sided
+	if (alphaDoubleCount > 0)
+	{
+		cmd.setCullMode(vk::CullModeFlagBits::eNone);
+		cmd.drawIndexedIndirectCount(bManager.buffers[objectDSetComponent->compactedDrawBuffer.id].buffer[currentFrame],
+		                             currentCommandOffset,
+		                             bManager.buffers[objectDSetComponent->drawCountBuffer.id].buffer[currentFrame],
+		                             currentCountBufferOffset, alphaDoubleCount, commandStride);
 	}
 }
 
@@ -235,7 +299,7 @@ void CommandBufferFactory::drawCullPass(vk::raii::CommandBuffer& cmd, PipelineHa
 
 	// ===  Zero the draw count buffer ===
 	cmd.fillBuffer(bManager.buffers[objectDSetComponent->drawCountBuffer.id].buffer[currentFrame], 0,
-	               sizeof(uint32_t) * 2, 0);
+	               sizeof(uint32_t) * 4, 0);
 
 	// === Barrier: fillBuffer -> Compaction ===
 	vk::MemoryBarrier2 fillBarrier;
@@ -263,34 +327,62 @@ void CommandBufferFactory::drawCullPass(vk::raii::CommandBuffer& cmd, PipelineHa
 		uint32_t countIndex;   // 0 for opaque, 1 for alpha test
 	} compactPush;
 
-	uint32_t opaqueCount = drawInfo.opaqueDrawCount;
-	uint32_t totalDrawCount = drawInfo.totalDrawCount;
-	uint32_t alphaTestCount = totalDrawCount - opaqueCount;
+	uint32_t opaqueSingleCount = drawInfo.opaqueSingleCount;
+	uint32_t opaqueDoubleCount = drawInfo.opaqueDoubleCount;
+	uint32_t alphaSingleCount = drawInfo.alphaSingleCount;
+	uint32_t alphaDoubleCount = drawInfo.alphaDoubleCount;
 
-	// Opaque Compaction
-	if (opaqueCount > 0)
+	uint32_t currentOffset = 0;
+
+	// 1. Opaque Single-Sided Compaction
+	if (opaqueSingleCount > 0)
 	{
-		compactPush.drawCommandCount = opaqueCount;
-		compactPush.outputOffset = 0;
-		compactPush.inputOffset = 0;
+		compactPush.drawCommandCount = opaqueSingleCount;
+		compactPush.outputOffset = currentOffset;
+		compactPush.inputOffset = currentOffset;
 		compactPush.countIndex = 0;
 		cmd.pushConstants<CompactionPush>(*pipelineHandler.compactingCullPipelineLayout,
 		                                  vk::ShaderStageFlagBits::eCompute, 0, compactPush);
-		uint32_t compactGroups = (opaqueCount + 63) / 64;
-		cmd.dispatch(compactGroups, 1, 1);
+		cmd.dispatch((opaqueSingleCount + 63) / 64, 1, 1);
+		currentOffset += opaqueSingleCount;
 	}
 
-	// Alpha Test Compaction
-	if (alphaTestCount > 0)
+	// 2. Opaque Double-Sided Compaction
+	if (opaqueDoubleCount > 0)
 	{
-		compactPush.drawCommandCount = alphaTestCount;
-		compactPush.outputOffset = opaqueCount;
-		compactPush.inputOffset = opaqueCount;
+		compactPush.drawCommandCount = opaqueDoubleCount;
+		compactPush.outputOffset = currentOffset;
+		compactPush.inputOffset = currentOffset;
 		compactPush.countIndex = 1;
 		cmd.pushConstants<CompactionPush>(*pipelineHandler.compactingCullPipelineLayout,
 		                                  vk::ShaderStageFlagBits::eCompute, 0, compactPush);
-		uint32_t compactGroups = (alphaTestCount + 63) / 64;
-		cmd.dispatch(compactGroups, 1, 1);
+		cmd.dispatch((opaqueDoubleCount + 63) / 64, 1, 1);
+		currentOffset += opaqueDoubleCount;
+	}
+
+	// 3. Alpha Single-Sided Compaction
+	if (alphaSingleCount > 0)
+	{
+		compactPush.drawCommandCount = alphaSingleCount;
+		compactPush.outputOffset = currentOffset;
+		compactPush.inputOffset = currentOffset;
+		compactPush.countIndex = 2;
+		cmd.pushConstants<CompactionPush>(*pipelineHandler.compactingCullPipelineLayout,
+		                                  vk::ShaderStageFlagBits::eCompute, 0, compactPush);
+		cmd.dispatch((alphaSingleCount + 63) / 64, 1, 1);
+		currentOffset += alphaSingleCount;
+	}
+
+	// 4. Alpha Double-Sided Compaction
+	if (alphaDoubleCount > 0)
+	{
+		compactPush.drawCommandCount = alphaDoubleCount;
+		compactPush.outputOffset = currentOffset;
+		compactPush.inputOffset = currentOffset;
+		compactPush.countIndex = 3;
+		cmd.pushConstants<CompactionPush>(*pipelineHandler.compactingCullPipelineLayout,
+		                                  vk::ShaderStageFlagBits::eCompute, 0, compactPush);
+		cmd.dispatch((alphaDoubleCount + 63) / 64, 1, 1);
 	}
 
 	// === Barrier: Compaction -> DrawIndirect ===
@@ -330,13 +422,34 @@ void CommandBufferFactory::drawDepthPrepass(vk::raii::CommandBuffer& cmd, SwapCh
 	cmd.bindVertexBuffers(0, mManager.vertexIndexBuffers[mManager.meshes[0].vertexIndexBufferID].vertexBuffer, {0});
 	cmd.bindIndexBuffer(mManager.vertexIndexBuffers[mManager.meshes[0].vertexIndexBufferID].indexBuffer, 0,
 	                    vk::IndexType::eUint32);
-	uint32_t opaqueCount = drawInfo.opaqueDrawCount;
-	if (opaqueCount > 0)
+	uint32_t opaqueSingleCount = drawInfo.opaqueSingleCount;
+	uint32_t opaqueDoubleCount = drawInfo.opaqueDoubleCount;
+
+	cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipelineHandler.depthPrepassPipeline);
+
+	uint32_t currentCommandOffset = 0;
+	uint32_t currentCountBufferOffset = 0;
+
+	// 1. Opaque Single-Sided
+	if (opaqueSingleCount > 0)
 	{
-		cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipelineHandler.depthPrepassPipeline);
+		cmd.setCullMode(vk::CullModeFlagBits::eBack);
 		cmd.drawIndexedIndirectCount(bManager.buffers[objectDSetComponent->compactedDrawBuffer.id].buffer[currentFrame],
-		                             0, bManager.buffers[objectDSetComponent->drawCountBuffer.id].buffer[currentFrame], 0,
-		                             opaqueCount, commandStride);
+		                             currentCommandOffset,
+		                             bManager.buffers[objectDSetComponent->drawCountBuffer.id].buffer[currentFrame],
+		                             currentCountBufferOffset, opaqueSingleCount, commandStride);
+		currentCommandOffset += opaqueSingleCount * commandStride;
+	}
+	currentCountBufferOffset += sizeof(uint32_t);
+
+	// 2. Opaque Double-Sided
+	if (opaqueDoubleCount > 0)
+	{
+		cmd.setCullMode(vk::CullModeFlagBits::eNone);
+		cmd.drawIndexedIndirectCount(bManager.buffers[objectDSetComponent->compactedDrawBuffer.id].buffer[currentFrame],
+		                             currentCommandOffset,
+		                             bManager.buffers[objectDSetComponent->drawCountBuffer.id].buffer[currentFrame],
+		                             currentCountBufferOffset, opaqueDoubleCount, commandStride);
 	}
 }
 
@@ -366,25 +479,76 @@ void CommandBufferFactory::drawMainPass(vk::raii::CommandBuffer& cmd, SwapChain&
 	cmd.bindIndexBuffer(mManager.vertexIndexBuffers[mManager.meshes[0].vertexIndexBufferID].indexBuffer, 0,
 	                    vk::IndexType::eUint32);
 
-	// Opaque pass
-	uint32_t opaqueCount = drawInfo.opaqueDrawCount;
-	if (opaqueCount > 0)
+	uint32_t opaqueSingleCount = drawInfo.opaqueSingleCount;
+	uint32_t opaqueDoubleCount = drawInfo.opaqueDoubleCount;
+	uint32_t alphaSingleCount = drawInfo.alphaSingleCount;
+	uint32_t alphaDoubleCount = drawInfo.alphaDoubleCount;
+
+	uint32_t currentCommandOffset = 0;
+	uint32_t currentCountBufferOffset = 0;
+
+	// Opaque passes
+	if (opaqueSingleCount > 0 || opaqueDoubleCount > 0)
 	{
 		cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipelineHandler.graphicsPipeline);
-		cmd.drawIndexedIndirectCount(bManager.buffers[objectDSetComponent->compactedDrawBuffer.id].buffer[currentFrame],
-		                             0, bManager.buffers[objectDSetComponent->drawCountBuffer.id].buffer[currentFrame], 0,
-		                             opaqueCount, commandStride);
+
+		// 1. Opaque Single-Sided
+		if (opaqueSingleCount > 0)
+		{
+			cmd.setCullMode(vk::CullModeFlagBits::eBack);
+			cmd.drawIndexedIndirectCount(
+			    bManager.buffers[objectDSetComponent->compactedDrawBuffer.id].buffer[currentFrame], currentCommandOffset,
+			    bManager.buffers[objectDSetComponent->drawCountBuffer.id].buffer[currentFrame], currentCountBufferOffset,
+			    opaqueSingleCount, commandStride);
+			currentCommandOffset += opaqueSingleCount * commandStride;
+		}
+		currentCountBufferOffset += sizeof(uint32_t);
+
+		// 2. Opaque Double-Sided
+		if (opaqueDoubleCount > 0)
+		{
+			cmd.setCullMode(vk::CullModeFlagBits::eNone);
+			cmd.drawIndexedIndirectCount(
+			    bManager.buffers[objectDSetComponent->compactedDrawBuffer.id].buffer[currentFrame], currentCommandOffset,
+			    bManager.buffers[objectDSetComponent->drawCountBuffer.id].buffer[currentFrame], currentCountBufferOffset,
+			    opaqueDoubleCount, commandStride);
+			currentCommandOffset += opaqueDoubleCount * commandStride;
+		}
+		currentCountBufferOffset += sizeof(uint32_t);
+	}
+	else
+	{
+		// Advance offsets if opaque passes are entirely skipped but we need to reach alpha passes
+		currentCommandOffset += (opaqueSingleCount + opaqueDoubleCount) * commandStride;
+		currentCountBufferOffset += 2 * sizeof(uint32_t);
 	}
 
-	// Alpha test pass
-	uint32_t alphaTestCount = drawInfo.totalDrawCount - opaqueCount;
-	if (alphaTestCount > 0)
+	// Alpha test passes
+	if (alphaSingleCount > 0 || alphaDoubleCount > 0)
 	{
 		cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipelineHandler.alphaTestPipeline);
-		cmd.drawIndexedIndirectCount(bManager.buffers[objectDSetComponent->compactedDrawBuffer.id].buffer[currentFrame],
-		                             opaqueCount * commandStride,
-		                             bManager.buffers[objectDSetComponent->drawCountBuffer.id].buffer[currentFrame],
-		                             sizeof(uint32_t), alphaTestCount, commandStride);
+
+		// 3. Alpha Single-Sided
+		if (alphaSingleCount > 0)
+		{
+			cmd.setCullMode(vk::CullModeFlagBits::eBack);
+			cmd.drawIndexedIndirectCount(
+			    bManager.buffers[objectDSetComponent->compactedDrawBuffer.id].buffer[currentFrame], currentCommandOffset,
+			    bManager.buffers[objectDSetComponent->drawCountBuffer.id].buffer[currentFrame], currentCountBufferOffset,
+			    alphaSingleCount, commandStride);
+			currentCommandOffset += alphaSingleCount * commandStride;
+		}
+		currentCountBufferOffset += sizeof(uint32_t);
+
+		// 4. Alpha Double-Sided
+		if (alphaDoubleCount > 0)
+		{
+			cmd.setCullMode(vk::CullModeFlagBits::eNone);
+			cmd.drawIndexedIndirectCount(
+			    bManager.buffers[objectDSetComponent->compactedDrawBuffer.id].buffer[currentFrame], currentCommandOffset,
+			    bManager.buffers[objectDSetComponent->drawCountBuffer.id].buffer[currentFrame], currentCountBufferOffset,
+			    alphaDoubleCount, commandStride);
+		}
 	}
 
 	// Skybox pass

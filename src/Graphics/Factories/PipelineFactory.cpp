@@ -82,6 +82,7 @@ BuiltPipeline PipelineFactory::build(vk::raii::Device& device, const GraphicsPip
 	    .setViewportState(1, 1)
 	    .addDynamicState(vk::DynamicState::eViewport)
 	    .addDynamicState(vk::DynamicState::eScissor)
+	    .addDynamicState(vk::DynamicState::eCullMode)
 	    .setRasterizer(vk::PolygonMode::eFill, desc.cullMode, desc.frontFace)
 	    .setMultisampling(vk::SampleCountFlagBits::e1);
 
@@ -101,12 +102,10 @@ BuiltPipeline PipelineFactory::build(vk::raii::Device& device, const GraphicsPip
 	return result;
 }
 
-
 // Compute build
 BuiltPipeline PipelineFactory::build(vk::raii::Device& device, const ComputePipelineDesc& desc)
 {
 	auto shader = loadShader(device, desc.shaderPath);
-
 
 	PipelineBuilder builder;
 	builder.addShaderStage(vk::ShaderStageFlagBits::eCompute, shader, desc.entry.c_str());

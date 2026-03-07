@@ -263,6 +263,9 @@ MaterialMaps GltfLoader::materialsParser(tinygltf::Model& model, TextureManager&
 			material.alphaCutoff = static_cast<float>(alphaCutoffIt->second.number_value);
 		}
 
+		// Double Sided
+		material.doubleSided = model.materials[i].doubleSided ? 1 : 0;
+
 		maps.materials.emplace(i, tManager.emplaceMaterials(dSetComponent, material, bManager));
 	}
 	return maps;

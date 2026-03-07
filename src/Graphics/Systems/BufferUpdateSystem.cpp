@@ -100,7 +100,7 @@ void BufferUpdateSystem::update(GeneralManager& gm)
 	int globalCullIndex = 0;
 	IndirectDrawStructure currentDraw{};
 
-	auto writePrimitivesForPass = [&](bool opaquePass)
+	auto writePrimitivesForPass = [&](bool isOpaquePass, bool isDoubleSidedPass)
 	{
 		for (size_t b = 0; b < batch.size(); ++b)
 		{
@@ -115,8 +115,9 @@ void BufferUpdateSystem::update(GeneralManager& gm)
 			{
 				uint32_t matIdx = modelManager.meshes[meshIdx].primitives[i].materialIndex;
 				bool isOpaque = (textureManager.materials[matIdx].alphaMode == 0);
+				bool isDoubleSided = (textureManager.materials[matIdx].doubleSided == 1);
 
-				if (opaquePass != isOpaque) continue;
+				if (isOpaquePass != isOpaque || isDoubleSidedPass != isDoubleSided) continue;
 
 				// Write indirect draw command
 				currentDraw.indexCount = modelManager.meshes[meshIdx].primitives[i].indexCount;
@@ -126,7 +127,7 @@ void BufferUpdateSystem::update(GeneralManager& gm)
 				currentDraw.firstInstance = globalCullIndex;
 				indirectBufferPtr[globalPrimitiveIndex] = currentDraw;
 
-				// Write per entity primitive data (for culling shader)
+				// Write per entity primitive data
 				int currentEntityTransformIndex = baseTransformPerBatch[b];
 				globalCullIndex += modelManager.meshes[meshIdx].entitiesSubscribed;
 				for (const auto& agent : agentsInBatch)
@@ -148,14 +149,27 @@ void BufferUpdateSystem::update(GeneralManager& gm)
 		}
 	};
 
-	// opaque
-	writePrimitivesForPass(true);
-	uint32_t opaqueDrawCount = globalPrimitiveIndex;
+	// Opaque Single-Sided
+	writePrimitivesForPass(true, false);
+	uint32_t opaqueSingleCount = globalPrimitiveIndex;
 
-	//non opaque
-	writePrimitivesForPass(false);
+	// Opaque Double-Sided
+	writePrimitivesForPass(true, true);
+	uint32_t opaqueDoubleCount = globalPrimitiveIndex - opaqueSingleCount;
 
-	drawInfo->opaqueDrawCount = opaqueDrawCount;
+	// Alpha Single-Sided
+	writePrimitivesForPass(false, false);
+	uint32_t alphaSingleCount = globalPrimitiveIndex - (opaqueSingleCount + opaqueDoubleCount);
+
+	// Alpha Double-Sided
+	writePrimitivesForPass(false, true);
+	uint32_t alphaDoubleCount = globalPrimitiveIndex - (opaqueSingleCount + opaqueDoubleCount + alphaSingleCount);
+
+	drawInfo->opaqueSingleCount = opaqueSingleCount;
+	drawInfo->opaqueDoubleCount = opaqueDoubleCount;
+	drawInfo->alphaSingleCount = alphaSingleCount;
+	drawInfo->alphaDoubleCount = alphaDoubleCount;
+
 	drawInfo->totalDrawCount = globalPrimitiveIndex;
 	drawInfo->totalObjectCount = localPrimitiveIndex;
 }

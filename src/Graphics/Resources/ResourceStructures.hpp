@@ -61,7 +61,7 @@ struct MaterialStructure
 	float alphaCutoff = 0.5f;
 	uint32_t alphaMode = 0; // 0 = OPAQUE, 1 = MASK, 2 = BLEND
 	float emissiveStrength = 1.0f;
-	float padding0 = 0.0f;
+	uint32_t doubleSided = 0; // 0 = single-sided, 1 = double-sided
 
 	alignas(16) glm::vec3 emissiveFactor = {1.0f, 1.0f, 1.0f};
 	float padding1 = 0.0f;
