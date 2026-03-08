@@ -1,6 +1,7 @@
 #pragma once
 
-#include "../../Orhescyon/Systems/SystemCore.hpp"
+#include <Orhescyon/GeneralManager.hpp>
+#include <Orhescyon/Systems/SystemCore.hpp>
 #include "../Components/CursorPositionComponent.hpp"
 #include "../Components/WindowSizeComponent.hpp"
 #include "../Components/KeyboardStateComponent.hpp"

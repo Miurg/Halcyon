@@ -3,7 +3,6 @@
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_vulkan.h>
 #include <iostream>
-#include "../../Orhescyon/GeneralManager.hpp"
 #include "../GraphicsContexts.hpp"
 #include "../Components/GlobalTransformComponent.hpp"
 #include "../Components/CameraComponent.hpp"

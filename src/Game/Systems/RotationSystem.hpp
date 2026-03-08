@@ -1,10 +1,9 @@
 #pragma once
 
 #include <vector>
-#include "../../Orhescyon/Systems/SystemCore.hpp"
 #include "../../Graphics/Components/LocalTransformComponent.hpp"
-#include "../../Orhescyon/GeneralManager.hpp"
-#include "../../Orhescyon/Entitys/EntityManager.hpp"
+#include <Orhescyon/GeneralManager.hpp>
+#include <Orhescyon/Systems/SystemCore.hpp>
 
 using Orhescyon::GeneralManager;
 

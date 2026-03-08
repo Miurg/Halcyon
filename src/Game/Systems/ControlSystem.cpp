@@ -9,7 +9,6 @@
 #include "../../Platform/Components/DeltaTimeComponent.hpp"
 #include "../Components/ControlComponent.hpp"
 #include "../../Platform/Components/WindowComponent.hpp"
-#include "../../Orhescyon/GeneralManager.hpp"
 #include "../../Platform/Window.hpp"
 #include "../../Graphics/Components/GlobalTransformComponent.hpp"
 

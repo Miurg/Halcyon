@@ -1,9 +1,9 @@
 #pragma once
-#include "../../Orhescyon/Systems/SystemCore.hpp"
 #include "../Components/GlobalTransformComponent.hpp"
 #include "../Resources/Components/TextureInfoComponent.hpp"
 #include "../Resources/Components/MeshInfoComponent.hpp"
-#include "../../Orhescyon/Entitys/EntityManager.hpp"
+#include <Orhescyon/GeneralManager.hpp>
+#include <Orhescyon/Systems/SystemCore.hpp>
 using Orhescyon::GeneralManager;
 class BufferUpdateSystem : public Orhescyon::SystemCore<BufferUpdateSystem, GlobalTransformComponent, MeshInfoComponent>
 {

@@ -1,7 +1,8 @@
 #pragma once
 
 #include <vector>
-#include "../../Orhescyon/Systems/SystemCore.hpp"
+#include <Orhescyon/GeneralManager.hpp>
+#include <Orhescyon/Systems/SystemCore.hpp>
 #include "../Components/GlobalTransformComponent.hpp"
 #include "../Resources/Components/TextureInfoComponent.hpp"
 #include "../Resources/Components/MeshInfoComponent.hpp"

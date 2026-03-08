@@ -3,7 +3,6 @@
 #include <iostream>
 #include <vulkan/vulkan_raii.hpp>
 #include "../Factories/SwapChainFactory.hpp"
-#include "../../Orhescyon/GeneralManager.hpp"
 #include "../GraphicsContexts.hpp"
 #include "../Components/VulkanDeviceComponent.hpp"
 #include "../Components/SwapChainComponent.hpp"

@@ -1,6 +1,7 @@
 #pragma once
 
-#include "../../Orhescyon/Systems/SystemCore.hpp"
+#include <Orhescyon/GeneralManager.hpp>
+#include <Orhescyon/Systems/SystemCore.hpp>
 using Orhescyon::GeneralManager;
 class ImGuiSystem : public Orhescyon::SystemCore<ImGuiSystem>
 {

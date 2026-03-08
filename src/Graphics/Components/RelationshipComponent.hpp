@@ -1,6 +1,5 @@
 #pragma once
-#include "../../Orhescyon/Entitys/EntityManager.hpp"
-#include "../../Orhescyon/GeneralManager.hpp"
+#include <Orhescyon/GeneralManager.hpp>
 
 const Entity NULL_ENTITY = 0;
 // Intrusive linked-list scene hierarchy. addChild() prepends to sibling list.

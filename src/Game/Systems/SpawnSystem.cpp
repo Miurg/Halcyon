@@ -2,7 +2,6 @@
 #include "../../Platform/PlatformContexts.hpp"
 #include "../../Platform/Components/DeltaTimeComponent.hpp"
 #include <iostream>
-#include "../../Orhescyon/GeneralManager.hpp"
 #include "../../Graphics/Components/LocalTransformComponent.hpp"
 #include "../../Graphics/Components/GlobalTransformComponent.hpp"
 #include "../../Graphics/Resources/Components/MeshInfoComponent.hpp"

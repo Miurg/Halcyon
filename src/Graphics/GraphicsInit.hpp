@@ -1,5 +1,5 @@
 #pragma once
-#include "../Orhescyon/GeneralManager.hpp"
+#include <Orhescyon/GeneralManager.hpp>
 #include "Resources/Factories/GltfLoader.hpp"
 
 using Orhescyon::GeneralManager;

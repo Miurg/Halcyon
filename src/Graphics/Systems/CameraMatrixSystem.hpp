@@ -1,5 +1,6 @@
 #pragma once
-#include "../../Orhescyon/Systems/SystemCore.hpp"
+#include <Orhescyon/GeneralManager.hpp>
+#include <Orhescyon/Systems/SystemCore.hpp>
 using Orhescyon::GeneralManager;
 class CameraMatrixSystem : public Orhescyon::SystemCore<CameraMatrixSystem>
 {

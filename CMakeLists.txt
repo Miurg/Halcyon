@@ -13,6 +13,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 file(GLOB_RECURSE MY_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
+include(FetchContent)
+
+
+
 
 find_package(Vulkan REQUIRED)
 find_package(glm CONFIG REQUIRED)
@@ -22,6 +26,14 @@ find_path(TINYGLTF_INCLUDE_DIRS "tiny_gltf.h")
 find_path(STB_INCLUDE_DIRS "stb_image.h") 
 find_package(VulkanMemoryAllocator CONFIG REQUIRED)
 find_package(imgui CONFIG REQUIRED)
+
+FetchContent_Declare(
+    Orhescyon
+    GIT_REPOSITORY https://github.com/Miurg/Orhescyon.git
+    GIT_TAG main 
+)
+
+FetchContent_MakeAvailable(Orhescyon)
 
 add_executable("${CMAKE_PROJECT_NAME}" ${MY_SOURCES})
 target_precompile_headers("${CMAKE_PROJECT_NAME}" PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src/pch.h")
@@ -34,6 +46,7 @@ target_link_libraries("${CMAKE_PROJECT_NAME}" PRIVATE tinyobjloader::tinyobjload
 target_include_directories("${CMAKE_PROJECT_NAME}" PRIVATE ${STB_INCLUDE_DIRS})
 target_link_libraries("${CMAKE_PROJECT_NAME}" PRIVATE GPUOpen::VulkanMemoryAllocator)
 target_link_libraries("${CMAKE_PROJECT_NAME}" PRIVATE imgui::imgui)
+target_link_libraries("${CMAKE_PROJECT_NAME}" PRIVATE Orhescyon)
 
 if(MSVC)
     target_compile_options("${CMAKE_PROJECT_NAME}" PRIVATE "/Zc:__cplusplus" "/permissive-")

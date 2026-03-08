@@ -1,6 +1,6 @@
 #pragma once
-#include "../../Orhescyon/Systems/SystemCore.hpp"
-#include "../../Orhescyon/GeneralManager.hpp"
+#include <Orhescyon/GeneralManager.hpp>
+#include <Orhescyon/Systems/SystemCore.hpp>
 #include "../../Platform/Window.hpp"
 using Orhescyon::GeneralManager;
 

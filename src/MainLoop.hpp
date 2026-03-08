@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Orhescyon/GeneralManager.hpp"
+#include <Orhescyon/GeneralManager.hpp>
 using Orhescyon::GeneralManager;
 class MainLoop
 {
