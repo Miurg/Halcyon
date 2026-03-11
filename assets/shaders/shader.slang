@@ -209,7 +209,7 @@ struct FragOutput
 };
 
 [shader("fragment")]
-FragOutput fragMain(VSOutput input)
+FragOutput fragMain(VSOutput input, bool isFrontFace: SV_IsFrontFace)
 {
 	MaterialData mat = materialBuffer[input.materialIndex];
 
@@ -234,7 +234,8 @@ FragOutput fragMain(VSOutput input)
 	float metallic = saturate(mrSample.b * mat.metallicFactor);
 
 	// === NORMAL MAPPING ===
-	float3 N = normalize(input.fragNormal);
+    float3 N = normalize(input.fragNormal);
+    if (!isFrontFace) N = -N;
 	float3 T = normalize(input.fragTangent);
 	float3 B = normalize(input.fragBitangent);
 
@@ -272,16 +273,20 @@ FragOutput fragMain(VSOutput input)
 
 	float3 sunRadiance = sun[0].sunColor.rgb * sun[0].sunColor.a;
 
-	// === IBL ===
-	float3 F_ibl = F0 + (max(float3(1.0 - roughness, 1.0 - roughness, 1.0 - roughness), F0) - F0) * pow(1.0 - NdotV, 5.0);
+    // === IBL ===
+    float3 F_ibl = F0 + (max(float3(1.0 - roughness, 1.0 - roughness, 1.0 - roughness), F0) - F0) * pow(1.0 - NdotV, 5.0);
 
-	float3 irradiance = irradianceMap.Sample(finalNormal).rgb;
-	float3 iblDiffuse = (1.0 - F_ibl) * (1.0 - metallic) * albedo.rgb * irradiance;
+    float3 irradiance = irradianceMap.Sample(finalNormal).rgb;
+    float3 iblDiffuse = (1.0 - F_ibl) * (1.0 - metallic) * albedo.rgb * irradiance;
 
-	float3 R = reflect(-V, finalNormal);
-	float3 prefilteredColor = prefilteredMap.SampleLevel(R, roughness * MAX_REFLECTION_LOD).rgb;
-	float2 brdf = brdfLutMap.SampleLevel(float2(NdotV, roughness), 0).rg;
-	float3 iblSpecular = prefilteredColor * (F_ibl * brdf.x + brdf.y);
+    float3 iblSpecular = float3(0.0, 0.0, 0.0);
+    if (mat.alphaMode != 1 || mat.doubleSided != 0) // mostly for foliage
+    {
+        float3 R = reflect(-V, finalNormal);
+        float3 prefilteredColor = prefilteredMap.SampleLevel(R, roughness * MAX_REFLECTION_LOD).rgb;
+        float2 brdf = brdfLutMap.SampleLevel(float2(NdotV, roughness), 0).rg;
+        iblSpecular = prefilteredColor * (F_ibl * brdf.x + brdf.y);
+    }
 
     float3 ambient = (iblDiffuse + iblSpecular) * sun[0].sunAmbient.a;
 
