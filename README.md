@@ -18,14 +18,7 @@ Unlike generic ECS implementations, Halcyon uses a strict data-oriented approach
 ### 2. Vulkan Rendering
 The engine has transitioned from OpenGL to Vulkan to leverage modern GPU capabilities and explicit resource management.
 
-## 🚀 Getting Started
-
-### Prerequisites
-* C++ Compiler (supporting C++17 or newer)
-* CMake (3.20 or newer)
-* Vulkan SDK installed on your machine
-
-## Building from source
+## Getting Started
 
 ### Prerequisites
 
