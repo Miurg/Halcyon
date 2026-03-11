@@ -2,6 +2,8 @@
 
 #include <Orhescyon/GeneralManager.hpp>
 #include <Orhescyon/Systems/SystemCore.hpp>
+#include <vector>
+
 using Orhescyon::GeneralManager;
 class ImGuiSystem : public Orhescyon::SystemCore<ImGuiSystem>
 {
@@ -13,6 +15,10 @@ public:
 	float time = 0;
 	uint32_t fps = 0;
 	Entity selectedEntity = static_cast<Entity>(-1);
+
+	std::vector<float> frameTimes;
+	float avgFrameTime = 0.0f;
+	float onePercentLowFrameTime = 0.0f;
 
 private:
 	void drawEntityNode(Entity entity, GeneralManager& gm);

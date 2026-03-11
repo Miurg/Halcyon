@@ -3,6 +3,8 @@
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_vulkan.h>
 #include <iostream>
+#include <numeric>
+#include <algorithm>
 #include "../GraphicsContexts.hpp"
 #include "../Components/GlobalTransformComponent.hpp"
 #include "../Components/CameraComponent.hpp"
@@ -130,12 +132,35 @@ void ImGuiSystem::update(GeneralManager& gm)
 	float deltaTime = gm.getContextComponent<DeltaTimeContext, DeltaTimeComponent>()->deltaTime;
 
 	ImGui::Text("FPS: %d", fps);
-	ImGui::Text("Frame time: %.5f", deltaTime);
+	ImGui::Text("Avg Frame time: %.2f ms", avgFrameTime * 1000.0f);
+	ImGui::Text("1%% Low: %.2f ms", onePercentLowFrameTime * 1000.0f);
 	frameCount++;
 	time += deltaTime;
+	frameTimes.push_back(deltaTime);
+
 	if (time >= 1.0f)
 	{
 		fps = frameCount;
+
+		if (!frameTimes.empty())
+		{
+			float sum = 0.0f;
+			for (float ft : frameTimes) sum += ft;
+			avgFrameTime = sum / frameTimes.size();
+
+			std::vector<float> sortedTimes = frameTimes;
+			std::sort(sortedTimes.begin(), sortedTimes.end(), std::greater<float>());
+
+			size_t onePercentCount = std::max<size_t>(1, frameTimes.size() / 100);
+			float worstSum = 0.0f;
+			for (size_t i = 0; i < onePercentCount; ++i)
+			{
+				worstSum += sortedTimes[i];
+			}
+			onePercentLowFrameTime = worstSum / onePercentCount;
+		}
+
+		frameTimes.clear();
 		frameCount = 0;
 		time = 0;
 	}
@@ -298,7 +323,6 @@ void ImGuiSystem::update(GeneralManager& gm)
 				ImGui::DragFloat("Max Screen Radius", &ssao->maxScreenRadius, 0.01f, 0.01f, 1.0f);
 				ImGui::DragFloat("Fade start", &ssao->fadeStart, 10.0f, 1000.0f);
 				ImGui::DragFloat("Fade end", &ssao->fadeEnd, 10.0f, 1000.0f);
-
 			}
 		}
 	}
