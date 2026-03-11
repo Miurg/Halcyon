@@ -25,25 +25,36 @@ The engine has transitioned from OpenGL to Vulkan to leverage modern GPU capabil
 * CMake (3.20 or newer)
 * Vulkan SDK installed on your machine
 
-### Installation
+## Building from source
 
-1.  Clone the repository:
-    ```bash
-    git clone [https://github.com/Miurg/Halcyon.git](https://github.com/Miurg/Halcyon.git)
-    cd Halcyon
-    ```
+### Prerequisites
 
-2.  Build the project (out-of-source build is recommended):
-    ```bash
-    mkdir build
-    cd build
-    cmake ..
-    cmake --build .
-    ```
+| Tool | Notes |
+|------|-------|
+| [Visual Studio 2022](https://visualstudio.microsoft.com/) | Requires **Desktop development with C++** workload |
+| [CMake](https://cmake.org/) ≥ 3.20 | |
+| [Ninja](https://ninja-build.org/) | Or install via Visual Studio Installer |
+| [vcpkg](https://github.com/microsoft/vcpkg) | Set `VCPKG_ROOT` environment variable after installing |
+| [Vulkan SDK](https://vulkan.lunarg.com/) | Includes `slangc` — no separate Slang install needed |
 
-3.  Run the engine:
-    * executable will be located in the `out` directory.
+### Steps
+```bash
+git clone https://github.com/Miurg/Halcyon.git
+cd Halcyon
 
+# Install dependencies
+vcpkg install
+
+# Configure (vcpkg dependencies are fetched automatically)
+cmake --preset x64-debug
+
+# Build
+cmake --build out/build/x64-debug
+```
+
+For release build replace `x64-debug` with `x64-release`.
+
+> **Note:** The debug preset builds single-threaded for cleaner error output.
 ## 🎯 Project Goals
 
 The primary goal of Halcyon is to explore advanced graphics programming and engine architecture.
