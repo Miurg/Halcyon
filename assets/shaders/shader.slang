@@ -62,20 +62,30 @@ struct MaterialData
 	uint emissiveIndex;
 	float alphaCutoff;
 	uint alphaMode;
-	float emissiveStrength;
-	float padding0;
-
-	float3 emissiveFactor;
+    float emissiveStrength;
+    uint doubleSided;
+    float3 emissiveFactor;
+    float emissivePadding;
+	float roughnessFactor;
+	float metallicFactor;
 	float padding1;
+	float padding2;
 };
 [[vk::binding(2, 2)]]
 StructuredBuffer<MaterialData> materialBuffer;
 
+[[vk::binding(5, 2)]]
+SamplerCube irradianceMap;
+[[vk::binding(6, 2)]]
+SamplerCube prefilteredMap;
+[[vk::binding(7, 2)]]
+Sampler2D brdfLutMap;
+
 // === CONST ===
 static const float PI = 3.14159265359f;
 static const float MIN_ROUGHNESS = 0.005f;
+static const float MAX_REFLECTION_LOD = 4.0f;
 
-// 0 == opaque pass, 1 == alpha-test pass
 [[vk::constant_id(0)]]
 const int ALPHA_TEST_ENABLED = 0;
 
@@ -101,14 +111,7 @@ struct VSOutput
 	float3 fragWorldPos;
 	float viewDepth;
 
-	nointerpolation uint textureIndex;
-	nointerpolation uint normalMapIndex;
-	nointerpolation uint metallicRoughnessIndex;
-	nointerpolation uint emissiveIndex;
-	nointerpolation float alphaCutoff;
-	nointerpolation uint alphaMode;
-	nointerpolation float emissiveStrength;
-	nointerpolation float3 emissiveFactor;
+	nointerpolation uint materialIndex;
 };
 
 [shader("vertex")]
@@ -120,15 +123,12 @@ VSOutput vertMain(VSInput input, uint instanceID: SV_InstanceID, uint baseInstan
 
 	float4 worldPos = mul(modelMatrix, float4(input.inPosition, 1.0));
 
-	// Normal matrix
 	float3x3 normalMatrix = (float3x3)modelMatrix;
 
 	float3 N = normalize(mul(normalMatrix, input.inNormal));
 	float3 T = normalize(mul(normalMatrix, input.inTangent.xyz));
-	T = normalize(T - dot(T, N) * N); // Gram-Schmidt
+	T = normalize(T - dot(T, N) * N);
 	float3 B = cross(N, T) * input.inTangent.w;
-
-	MaterialData mat = materialBuffer[model.materialIndex];
 
 	VSOutput output;
 	output.pos = mul(camera[0].cameraSpaceMatrix, worldPos);
@@ -140,15 +140,7 @@ VSOutput vertMain(VSInput input, uint instanceID: SV_InstanceID, uint baseInstan
 	output.fragTangent = T;
 	output.fragBitangent = B;
 	output.fragWorldPos = worldPos.xyz;
-
-	output.textureIndex = mat.textureIndex;
-	output.normalMapIndex = mat.normalMapIndex;
-	output.metallicRoughnessIndex = mat.metallicRoughnessIndex;
-	output.emissiveIndex = mat.emissiveIndex;
-	output.alphaCutoff = mat.alphaCutoff;
-	output.alphaMode = mat.alphaMode;
-	output.emissiveStrength = mat.emissiveStrength;
-	output.emissiveFactor = mat.emissiveFactor;
+	output.materialIndex = model.materialIndex;
 
 	return output;
 }
@@ -162,7 +154,6 @@ float3 SampleNormalMap(uint mapIndex, float2 uv, float2 dx, float2 dy)
 
 float ComputeShadow(float3 projCoords, float2 texelSize, float3 surfaceNormal, float3 lightDir)
 {
-	// Early-out
 	if (any(projCoords.xy < 0.0) || any(projCoords.xy > 1.0) || projCoords.z <= 0.0 || projCoords.z >= 1.0) return 1.0;
 
 	float bias = max(0.0005 * (1.0 - dot(surfaceNormal, lightDir)), 0.00005);
@@ -182,7 +173,6 @@ float ComputeShadow(float3 projCoords, float2 texelSize, float3 surfaceNormal, f
 	return shadow / 9.0;
 }
 
-// Cook-Torrance BRDF
 float D_GGX(float NdotH, float a)
 {
 	float a2 = a * a;
@@ -190,7 +180,6 @@ float D_GGX(float NdotH, float a)
 	return a2 / (PI * d * d);
 }
 
-// Correlated Smith GGX Visibility Term (combines G and the denominator)
 float V_SmithGGXCorrelated(float NdotV, float NdotL, float a)
 {
 	float ggxV = NdotL * (NdotV * (1.0 - a) + a);
@@ -200,7 +189,6 @@ float V_SmithGGXCorrelated(float NdotV, float NdotL, float a)
 
 float3 F_Schlick(float cosTheta, float3 F0)
 {
-	// Fast Spherical Gaussian approximation
 	return F0 + (1.0 - F0) * exp2((-5.55473 * cosTheta - 6.98316) * cosTheta);
 }
 
@@ -223,33 +211,34 @@ struct FragOutput
 [shader("fragment")]
 FragOutput fragMain(VSOutput input)
 {
+	MaterialData mat = materialBuffer[input.materialIndex];
+
 	float2 dx = ddx(input.fragTexCoord);
 	float2 dy = ddy(input.fragTexCoord);
 
 	// === MATERIAL SAMPLING ===
-	float4 albedo = textureArray[NonUniformResourceIndex(input.textureIndex)].SampleGrad(input.fragTexCoord, dx, dy);
+	float4 albedo = textureArray[NonUniformResourceIndex(mat.textureIndex)].SampleGrad(input.fragTexCoord, dx, dy);
 
-	// Only in alpha test pipeline
 	if (ALPHA_TEST_ENABLED == 1)
 	{
-		if (input.alphaMode == 1 && albedo.a < input.alphaCutoff) discard;
+		if (mat.alphaMode == 1 && albedo.a < mat.alphaCutoff) discard;
 	}
 
 	float3 emissive =
-	    textureArray[NonUniformResourceIndex(input.emissiveIndex)].SampleGrad(input.fragTexCoord, dx, dy).rgb;
-	emissive *= input.emissiveFactor * input.emissiveStrength;
+	    textureArray[NonUniformResourceIndex(mat.emissiveIndex)].SampleGrad(input.fragTexCoord, dx, dy).rgb;
+	emissive *= mat.emissiveFactor * mat.emissiveStrength;
 
 	float4 mrSample =
-	    textureArray[NonUniformResourceIndex(input.metallicRoughnessIndex)].SampleGrad(input.fragTexCoord, dx, dy);
-	float roughness = max(mrSample.g, MIN_ROUGHNESS);
-	float metallic = saturate(mrSample.b);
+	    textureArray[NonUniformResourceIndex(mat.metallicRoughnessIndex)].SampleGrad(input.fragTexCoord, dx, dy);
+	float roughness = max(mrSample.g * mat.roughnessFactor, MIN_ROUGHNESS);
+	float metallic = saturate(mrSample.b * mat.metallicFactor);
 
 	// === NORMAL MAPPING ===
 	float3 N = normalize(input.fragNormal);
 	float3 T = normalize(input.fragTangent);
 	float3 B = normalize(input.fragBitangent);
 
-	float3 mapNormal = SampleNormalMap(input.normalMapIndex, input.fragTexCoord, dx, dy);
+	float3 mapNormal = SampleNormalMap(mat.normalMapIndex, input.fragTexCoord, dx, dy);
 	float3 finalNormal = normalize(mapNormal.x * T + mapNormal.y * B + mapNormal.z * N);
 
 	// === LIGHTING SETUP ===
@@ -257,10 +246,10 @@ FragOutput fragMain(VSOutput input)
 	float3 V = normalize(camera[0].cameraPositionAndPadding.xyz - input.fragWorldPos);
 	float3 H = normalize(L + V);
 
-	float NdotL = max(dot(finalNormal, L), 0.0);
+    float NdotL = max(dot(finalNormal, L), 1e-4);
 	float NdotV = max(dot(finalNormal, V), 1e-4);
 	float NdotH = max(dot(finalNormal, H), 0.0);
-	float HdotV = max(dot(H, V), 0.0);
+    float HdotV = max(dot(H, V), 0.0);
 
 	// === SHADOW (PCF 3x3) ===
 	float2 shadowTexelSize = sun[0].shadowMapSize.zw;
@@ -282,14 +271,25 @@ FragOutput fragMain(VSOutput input)
 	float3 diffuse = kD * albedo.rgb / PI;
 
 	float3 sunRadiance = sun[0].sunColor.rgb * sun[0].sunColor.a;
-	float3 ambient = sun[0].sunAmbient.rgb * sun[0].sunAmbient.a * albedo.rgb;
+
+	// === IBL ===
+	float3 F_ibl = F0 + (max(float3(1.0 - roughness, 1.0 - roughness, 1.0 - roughness), F0) - F0) * pow(1.0 - NdotV, 5.0);
+
+	float3 irradiance = irradianceMap.Sample(finalNormal).rgb;
+	float3 iblDiffuse = (1.0 - F_ibl) * (1.0 - metallic) * albedo.rgb * irradiance;
+
+	float3 R = reflect(-V, finalNormal);
+	float3 prefilteredColor = prefilteredMap.SampleLevel(R, roughness * MAX_REFLECTION_LOD).rgb;
+	float2 brdf = brdfLutMap.SampleLevel(float2(NdotV, roughness), 0).rg;
+	float3 iblSpecular = prefilteredColor * (F_ibl * brdf.x + brdf.y);
+
+    float3 ambient = (iblDiffuse + iblSpecular) * sun[0].sunAmbient.a;
 
 	float3 litColor = (diffuse + specular) * sunRadiance * NdotL * shadow + ambient + emissive;
-
 	litColor *= input.fragColor;
 
 	// === FINAL OUTPUT ===
-	float outAlpha = (input.alphaMode == 2) ? albedo.a : 1.0;
+	float outAlpha = (mat.alphaMode == 2) ? albedo.a : 1.0;
 
 	float3 viewNormal = mul((float3x3)camera[0].viewMatrix, finalNormal);
 
