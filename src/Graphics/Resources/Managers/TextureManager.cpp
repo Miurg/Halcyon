@@ -1,10 +1,11 @@
-#include "TextureManager.hpp"
+﻿#include "TextureManager.hpp"
 #include "DescriptorManager.hpp"
 #include "BufferManager.hpp"
 #include "../../Resources/Factories/TextureUploader.hpp"
 #include "../../Factories/CommandBufferFactory.hpp"
 #include "../../PipelineHandler.hpp"
 #include "../../VulkanUtils.hpp"
+#include "Bindings.hpp"
 #include <random>
 #include <cmath>
 
@@ -471,4 +472,201 @@ TextureHandle TextureManager::generateCubemapFromHdr(TextureHandle hdrTexture, P
 	VulkanUtils::endSingleTimeCommands(cmd, vulkanDevice);
 
 	return cubemapHandle;
+}
+
+TextureHandle TextureManager::generateIrradianceMap(TextureHandle envCubemap, PipelineHandler& pHandler,
+                                                    DescriptorManager& dManager,
+                                                    BindlessTextureDSetComponent& dSetComponent)
+{
+	const uint32_t irradianceSize = 32;
+	TextureHandle irradianceHandle = createCubemapImage(irradianceSize, irradianceSize, vk::Format::eR32G32B32A32Sfloat);
+	Texture& irradianceTexture = textures[irradianceHandle.id];
+	createCubemapImageView(irradianceTexture, vk::Format::eR32G32B32A32Sfloat, vk::ImageAspectFlagBits::eColor);
+	createCubemapSampler(irradianceTexture);
+
+	// Create storage image view for compute write
+	vk::ImageViewCreateInfo viewInfo;
+	viewInfo.image = irradianceTexture.textureImage;
+	viewInfo.viewType = vk::ImageViewType::e2DArray;
+	viewInfo.format = vk::Format::eR32G32B32A32Sfloat;
+	viewInfo.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
+	viewInfo.subresourceRange.baseMipLevel = 0;
+	viewInfo.subresourceRange.levelCount = 1;
+	viewInfo.subresourceRange.baseArrayLayer = 0;
+	viewInfo.subresourceRange.layerCount = 6;
+	vk::raii::ImageView storageImageView(vulkanDevice.device, viewInfo);
+
+	// Temporarily update cubemap storage descriptor to point to our irradiance output
+	dManager.updateCubemapDescriptors(dSetComponent, textures[envCubemap.id].textureImageView,
+	                                  textures[envCubemap.id].textureSampler, *storageImageView);
+
+	auto cmd = VulkanUtils::beginSingleTimeCommands(vulkanDevice);
+
+	VulkanUtils::transitionImageLayout(
+	    cmd, irradianceTexture.textureImage, vk::ImageLayout::eUndefined, vk::ImageLayout::eGeneral, {},
+	    vk::AccessFlagBits2::eShaderWrite, vk::PipelineStageFlagBits2::eTopOfPipe,
+	    vk::PipelineStageFlagBits2::eComputeShader, vk::ImageAspectFlagBits::eColor, 6, 1);
+
+	cmd.bindPipeline(vk::PipelineBindPoint::eCompute, *pHandler.irradiancePipeline);
+	cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute, *pHandler.irradiancePipelineLayout, 0,
+	                       dManager.descriptorSets[dSetComponent.bindlessTextureSet.id][0], nullptr);
+
+	float sampleDelta = 0.025f;
+	cmd.pushConstants<float>(*pHandler.irradiancePipelineLayout, vk::ShaderStageFlagBits::eCompute, 0, sampleDelta);
+
+	cmd.dispatch(irradianceSize / 8, irradianceSize / 8, 6);
+
+	VulkanUtils::transitionImageLayout(
+	    cmd, irradianceTexture.textureImage, vk::ImageLayout::eGeneral, vk::ImageLayout::eShaderReadOnlyOptimal,
+	    vk::AccessFlagBits2::eShaderWrite, vk::AccessFlagBits2::eShaderRead, vk::PipelineStageFlagBits2::eComputeShader,
+	    vk::PipelineStageFlagBits2::eFragmentShader, vk::ImageAspectFlagBits::eColor, 6, 1);
+
+	VulkanUtils::endSingleTimeCommands(cmd, vulkanDevice);
+
+	return irradianceHandle;
+}
+
+TextureHandle TextureManager::generatePrefilteredEnvMap(TextureHandle envCubemap, PipelineHandler& pHandler,
+                                                        DescriptorManager& dManager,
+                                                        BindlessTextureDSetComponent& dSetComponent)
+{
+	const uint32_t prefilteredSize = 128;
+	const uint32_t maxMipLevels = 5;
+
+	TextureHandle prefilteredHandle =
+	    createCubemapImage(prefilteredSize, prefilteredSize, vk::Format::eR32G32B32A32Sfloat, maxMipLevels);
+	Texture& prefilteredTexture = textures[prefilteredHandle.id];
+	createCubemapImageView(prefilteredTexture, vk::Format::eR32G32B32A32Sfloat, vk::ImageAspectFlagBits::eColor);
+	createCubemapSampler(prefilteredTexture);
+
+	auto initCmd = VulkanUtils::beginSingleTimeCommands(vulkanDevice);
+
+	VulkanUtils::transitionImageLayout(
+	    initCmd, prefilteredTexture.textureImage, vk::ImageLayout::eUndefined, vk::ImageLayout::eGeneral, {},
+	    vk::AccessFlagBits2::eShaderWrite, vk::PipelineStageFlagBits2::eTopOfPipe,
+	    vk::PipelineStageFlagBits2::eComputeShader, vk::ImageAspectFlagBits::eColor, 6, maxMipLevels);
+
+	VulkanUtils::endSingleTimeCommands(initCmd, vulkanDevice);
+
+	// Process each mip level in a separate command buffer so storage views stay alive
+	for (uint32_t mip = 0; mip < maxMipLevels; mip++)
+	{
+		uint32_t mipWidth = prefilteredSize >> mip;
+		uint32_t mipHeight = prefilteredSize >> mip;
+
+		// Create a storage image view for this specific mip level
+		vk::ImageViewCreateInfo viewInfo;
+		viewInfo.image = prefilteredTexture.textureImage;
+		viewInfo.viewType = vk::ImageViewType::e2DArray;
+		viewInfo.format = vk::Format::eR32G32B32A32Sfloat;
+		viewInfo.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
+		viewInfo.subresourceRange.baseMipLevel = mip;
+		viewInfo.subresourceRange.levelCount = 1;
+		viewInfo.subresourceRange.baseArrayLayer = 0;
+		viewInfo.subresourceRange.layerCount = 6;
+		vk::raii::ImageView mipStorageView(vulkanDevice.device, viewInfo);
+
+		// Update cubemap descriptors: environment stays as sampler, output is this mip
+		dManager.updateCubemapDescriptors(dSetComponent, textures[envCubemap.id].textureImageView,
+		                                  textures[envCubemap.id].textureSampler, *mipStorageView);
+
+		auto cmd = VulkanUtils::beginSingleTimeCommands(vulkanDevice);
+
+		cmd.bindPipeline(vk::PipelineBindPoint::eCompute, *pHandler.prefilterPipeline);
+		cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute, *pHandler.prefilterPipelineLayout, 0,
+		                       dManager.descriptorSets[dSetComponent.bindlessTextureSet.id][0], nullptr);
+
+		float roughness = static_cast<float>(mip) / static_cast<float>(maxMipLevels - 1);
+		cmd.pushConstants<float>(*pHandler.prefilterPipelineLayout, vk::ShaderStageFlagBits::eCompute, 0, roughness);
+
+		uint32_t groupsX = std::max(1u, mipWidth / 8);
+		uint32_t groupsY = std::max(1u, mipHeight / 8);
+		cmd.dispatch(groupsX, groupsY, 6);
+
+		VulkanUtils::endSingleTimeCommands(cmd, vulkanDevice);
+	}
+
+	auto finalCmd = VulkanUtils::beginSingleTimeCommands(vulkanDevice);
+
+	VulkanUtils::transitionImageLayout(
+	    finalCmd, prefilteredTexture.textureImage, vk::ImageLayout::eGeneral, vk::ImageLayout::eShaderReadOnlyOptimal,
+	    vk::AccessFlagBits2::eShaderWrite, vk::AccessFlagBits2::eShaderRead, vk::PipelineStageFlagBits2::eComputeShader,
+	    vk::PipelineStageFlagBits2::eFragmentShader, vk::ImageAspectFlagBits::eColor, 6, maxMipLevels);
+
+	VulkanUtils::endSingleTimeCommands(finalCmd, vulkanDevice);
+
+	return prefilteredHandle;
+}
+
+TextureHandle TextureManager::generateBrdfLut(PipelineHandler& pHandler, DescriptorManager& dManager,
+                                              BindlessTextureDSetComponent& dSetComponent)
+{
+	const uint32_t brdfLutSize = 512;
+
+	textures.push_back(Texture());
+	Texture& brdfLutTexture = textures.back();
+
+	createImage(brdfLutSize, brdfLutSize, vk::Format::eR32G32Sfloat, vk::ImageTiling::eOptimal,
+	            vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eStorage, VMA_MEMORY_USAGE_AUTO,
+	            brdfLutTexture);
+	createImageView(brdfLutTexture, vk::Format::eR32G32Sfloat, vk::ImageAspectFlagBits::eColor);
+
+	// Create a sampler for the BRDF LUT
+	vk::SamplerCreateInfo samplerInfo;
+	samplerInfo.magFilter = vk::Filter::eLinear;
+	samplerInfo.minFilter = vk::Filter::eLinear;
+	samplerInfo.mipmapMode = vk::SamplerMipmapMode::eLinear;
+	samplerInfo.addressModeU = vk::SamplerAddressMode::eClampToEdge;
+	samplerInfo.addressModeV = vk::SamplerAddressMode::eClampToEdge;
+	samplerInfo.addressModeW = vk::SamplerAddressMode::eClampToEdge;
+	brdfLutTexture.textureSampler = (*vulkanDevice.device).createSampler(samplerInfo);
+
+	// Create a temporary storage image view for compute write
+	vk::ImageViewCreateInfo viewInfo;
+	viewInfo.image = brdfLutTexture.textureImage;
+	viewInfo.viewType = vk::ImageViewType::e2D;
+	viewInfo.format = vk::Format::eR32G32Sfloat;
+	viewInfo.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
+	viewInfo.subresourceRange.baseMipLevel = 0;
+	viewInfo.subresourceRange.levelCount = 1;
+	viewInfo.subresourceRange.baseArrayLayer = 0;
+	viewInfo.subresourceRange.layerCount = 1;
+	vk::raii::ImageView storageView(vulkanDevice.device, viewInfo);
+
+	// Temporarily update the CubemapStorage descriptor to point to our BRDF LUT output
+	vk::DescriptorImageInfo storageImgInfo;
+	storageImgInfo.sampler = nullptr;
+	storageImgInfo.imageView = *storageView;
+	storageImgInfo.imageLayout = vk::ImageLayout::eGeneral;
+
+	vk::WriteDescriptorSet storageWrite;
+	storageWrite.dstSet = dManager.descriptorSets[dSetComponent.bindlessTextureSet.id][0];
+	storageWrite.dstBinding = Bindings::Textures::CubemapStorage;
+	storageWrite.dstArrayElement = 0;
+	storageWrite.descriptorType = vk::DescriptorType::eStorageImage;
+	storageWrite.descriptorCount = 1;
+	storageWrite.pImageInfo = &storageImgInfo;
+	vulkanDevice.device.updateDescriptorSets(storageWrite, {});
+
+	auto cmd = VulkanUtils::beginSingleTimeCommands(vulkanDevice);
+
+	VulkanUtils::transitionImageLayout(
+	    cmd, brdfLutTexture.textureImage, vk::ImageLayout::eUndefined, vk::ImageLayout::eGeneral, {},
+	    vk::AccessFlagBits2::eShaderWrite, vk::PipelineStageFlagBits2::eTopOfPipe,
+	    vk::PipelineStageFlagBits2::eComputeShader, vk::ImageAspectFlagBits::eColor, 1, 1);
+
+	cmd.bindPipeline(vk::PipelineBindPoint::eCompute, *pHandler.brdfLutPipeline);
+	cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute, *pHandler.brdfLutPipelineLayout, 0,
+	                       dManager.descriptorSets[dSetComponent.bindlessTextureSet.id][0], nullptr);
+
+	cmd.dispatch(brdfLutSize / 8, brdfLutSize / 8, 1);
+
+	VulkanUtils::transitionImageLayout(
+	    cmd, brdfLutTexture.textureImage, vk::ImageLayout::eGeneral, vk::ImageLayout::eShaderReadOnlyOptimal,
+	    vk::AccessFlagBits2::eShaderWrite, vk::AccessFlagBits2::eShaderRead, vk::PipelineStageFlagBits2::eComputeShader,
+	    vk::PipelineStageFlagBits2::eFragmentShader, vk::ImageAspectFlagBits::eColor, 1, 1);
+
+	VulkanUtils::endSingleTimeCommands(cmd, vulkanDevice);
+
+	return TextureHandle{static_cast<int>(textures.size() - 1)};
 }

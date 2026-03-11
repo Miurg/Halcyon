@@ -53,7 +53,7 @@ MaterialMaps GltfLoader::materialsParser(tinygltf::Model& model, TextureManager&
 	    tManager.isTextureLoaded("sys_default_mr")
 	        ? tManager.texturePaths["sys_default_mr"].id
 	        : tManager
-	              .generateTextureData("sys_default_mr", 1, 1, std::vector<unsigned char>{255, 128, 0, 255}.data(),
+	              .generateTextureData("sys_default_mr", 1, 1, std::vector<unsigned char>{255, 255, 0, 255}.data(),
 	                                   dSetComponent, dManager, vk::Format::eR8G8B8A8Unorm)
 	              .id;
 	int defaultEmissiveTexture =
@@ -148,6 +148,7 @@ MaterialMaps GltfLoader::materialsParser(tinygltf::Model& model, TextureManager&
 		{
 			material.normalMapIndex = defaultNormalTexture;
 		}
+
 		// Metallic-Roughness texture (packed: G=Roughness, B=Metallic)
 		auto mrTexIt = model.materials[i].values.find("metallicRoughnessTexture");
 		if (mrTexIt != model.materials[i].values.end())
@@ -185,6 +186,20 @@ MaterialMaps GltfLoader::materialsParser(tinygltf::Model& model, TextureManager&
 		{
 			material.metallicRoughnessIndex = defaultMRTexture;
 		}
+
+		// Metallic-Roughness factors (defaults are 1.0 as per GLTF spec)
+		auto roughnessFactorIt = model.materials[i].values.find("roughnessFactor");
+		if (roughnessFactorIt != model.materials[i].values.end())
+		{
+			material.roughnessFactor = static_cast<float>(roughnessFactorIt->second.number_value);
+		}
+
+		auto metallicFactorIt = model.materials[i].values.find("metallicFactor");
+		if (metallicFactorIt != model.materials[i].values.end())
+		{
+			material.metallicFactor = static_cast<float>(metallicFactorIt->second.number_value);
+		}
+
 		// Emissive texture
 		auto emissiveTexIt = model.materials[i].additionalValues.find("emissiveTexture");
 		if (emissiveTexIt != model.materials[i].additionalValues.end())

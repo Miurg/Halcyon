@@ -421,6 +421,31 @@ void GraphicsInit::initPipelines(GeneralManager& gm)
 	pipelineHandler->equirectToCubePipelineLayout = std::move(equirectLayout);
 	pipelineHandler->equirectToCubePipeline = std::move(equirectPipeline);
 
+	auto [irradianceLayout, irradiancePipeline] =
+	    PipelineFactory::build(dev, ComputePipelineDesc{
+	                                    .shaderPath = "shaders/irradiance_convolution.spv",
+	                                    .setLayouts = {*dManager->textureSetLayout},
+	                                    .pushConstants = {{vk::ShaderStageFlagBits::eCompute, 0, sizeof(float)}},
+	                                });
+	pipelineHandler->irradiancePipelineLayout = std::move(irradianceLayout);
+	pipelineHandler->irradiancePipeline = std::move(irradiancePipeline);
+
+	auto [prefilterLayout, prefilterPipeline] =
+	    PipelineFactory::build(dev, ComputePipelineDesc{
+	                                    .shaderPath = "shaders/prefilter_env_map.spv",
+	                                    .setLayouts = {*dManager->textureSetLayout},
+	                                    .pushConstants = {{vk::ShaderStageFlagBits::eCompute, 0, sizeof(float)}},
+	                                });
+	pipelineHandler->prefilterPipelineLayout = std::move(prefilterLayout);
+	pipelineHandler->prefilterPipeline = std::move(prefilterPipeline);
+
+	auto [brdfLutLayout, brdfLutPipeline] = PipelineFactory::build(dev, ComputePipelineDesc{
+	                                                                        .shaderPath = "shaders/brdf_lut.spv",
+	                                                                        .setLayouts = {*dManager->textureSetLayout},
+	                                                                    });
+	pipelineHandler->brdfLutPipelineLayout = std::move(brdfLutLayout);
+	pipelineHandler->brdfLutPipeline = std::move(brdfLutPipeline);
+
 	gm.addComponent<PipelineHandlerComponent>(signatureEntity, pipelineHandler);
 	gm.addComponent<NameComponent>(signatureEntity, "SYSTEM Pipeline Handler");
 #pragma endregion
@@ -470,9 +495,9 @@ void GraphicsInit::initScene(GeneralManager& gm)
 	glm::vec3 sunDir = glm::normalize(-sunPos);
 	glm::quat sunRot = glm::quatLookAt(sunDir, glm::vec3(0.0f, 1.0f, 0.0f));
 	glm::vec4 sunColor = glm::vec4(0.984f, 1.0f, 0.808f, 10.0f); // Slightly warm white light with high intensity
-	glm::vec4 sunAmbient = sunColor * 0.1f;                      // Ambient component is 10% of the main light color
+	glm::vec4 sunAmbient = sunColor * 0.05f;                      // Ambient component is 10% of the main light color
 	gm.addComponent<GlobalTransformComponent>(sunEntity, sunPos, sunRot);
-	gm.addComponent<LightComponent>(sunEntity, 8192, 8192, sunColor, sunAmbient);
+	gm.addComponent<LightComponent>(sunEntity, 4000, 4000, sunColor, sunAmbient);
 	gm.registerContext<SunContext>(sunEntity);
 	CameraComponent* sunCamera = gm.getContextComponent<SunContext, CameraComponent>();
 	LightComponent* sunLight = gm.getContextComponent<SunContext, LightComponent>();
@@ -529,7 +554,7 @@ void GraphicsInit::initScene(GeneralManager& gm)
 	tManager->generateTextureData(path, texWidth, texHeight, data, *bTextureDSetComponent, *dManager);
 
 	// HDR Skybox Texture
-	std::string hdrPath = "assets/textures/sunflowers_puresky_4k.hdr";
+	std::string hdrPath = "assets/textures/spree_bank_4k.hdr";
 	tManager->textures.push_back(Texture());
 	Texture& hdrTexture = tManager->textures.back();
 	TextureUploader::uploadHdrTextureFromFile(hdrPath.c_str(), hdrTexture, *tManager, allocator, *vulkanDevice);
@@ -542,7 +567,31 @@ void GraphicsInit::initScene(GeneralManager& gm)
 	TextureHandle cubemapHandle =
 	    tManager->generateCubemapFromHdr(hdrHandle, *pipelineHandler, *dManager, *bTextureDSetComponent);
 
+	// Generate IBL textures from the environment cubemap
+	TextureHandle irradianceHandle =
+	    tManager->generateIrradianceMap(cubemapHandle, *pipelineHandler, *dManager, *bTextureDSetComponent);
+	TextureHandle prefilteredHandle =
+	    tManager->generatePrefilteredEnvMap(cubemapHandle, *pipelineHandler, *dManager, *bTextureDSetComponent);
+	TextureHandle brdfLutHandle = tManager->generateBrdfLut(*pipelineHandler, *dManager, *bTextureDSetComponent);
+
+	// Restore cubemap descriptors to the actual environment cubemap (used by skybox)
+	dManager->updateCubemapDescriptors(*bTextureDSetComponent, tManager->textures[cubemapHandle.id].textureImageView,
+	                                   tManager->textures[cubemapHandle.id].textureSampler,
+	                                   tManager->textures[cubemapHandle.id].textureImageView);
+
+	// Bind IBL textures to descriptor set
+	dManager->updateIBLDescriptors(*bTextureDSetComponent, tManager->textures[irradianceHandle.id].textureImageView,
+	                               tManager->textures[irradianceHandle.id].textureSampler,
+	                               tManager->textures[prefilteredHandle.id].textureImageView,
+	                               tManager->textures[prefilteredHandle.id].textureSampler,
+	                               tManager->textures[brdfLutHandle.id].textureImageView,
+	                               tManager->textures[brdfLutHandle.id].textureSampler);
+
 	skybox->cubemapTexture = cubemapHandle;
+	skybox->irradianceMap = irradianceHandle;
+	skybox->prefilteredMap = prefilteredHandle;
+	skybox->brdfLut = brdfLutHandle;
+
 #pragma endregion
 
 #pragma region Model & Frustum Culling Buffers (Set 1)

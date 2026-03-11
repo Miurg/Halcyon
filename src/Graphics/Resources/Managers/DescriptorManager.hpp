@@ -24,6 +24,9 @@ public:
 	                              BindlessTextureDSetComponent& dSetComponent, int textureNumber);
 	void updateCubemapDescriptors(BindlessTextureDSetComponent& dSetComponent, vk::ImageView cubemapImageView,
 	                              vk::Sampler cubemapSampler, vk::ImageView storageImageView);
+	void updateIBLDescriptors(BindlessTextureDSetComponent& dSetComponent, vk::ImageView irradianceView,
+	                          vk::Sampler irradianceSampler, vk::ImageView prefilteredView,
+	                          vk::Sampler prefilteredSampler, vk::ImageView brdfLutView, vk::Sampler brdfLutSampler);
 	void updateSingleTextureDSet(DSetHandle dIndex, int binding, vk::ImageView imageView, vk::Sampler sampler);
 	DSetHandle allocateStorageBufferDSets(uint32_t count, vk::DescriptorSetLayout layout);
 	void updateStorageBufferDescriptors(BufferManager& bManager, BufferHandle bNumber, DSetHandle dSet,

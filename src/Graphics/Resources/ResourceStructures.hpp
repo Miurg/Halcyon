@@ -54,15 +54,18 @@ struct IndirectDrawStructure
 
 struct MaterialStructure
 {
-	uint32_t textureIndex = -1;
-	uint32_t normalMapIndex = -1;
-	uint32_t metallicRoughnessIndex = -1;
-	uint32_t emissiveIndex = -1;
+	uint32_t textureIndex = ~0u;
+	uint32_t normalMapIndex = ~0u;
+	uint32_t metallicRoughnessIndex = ~0u;
+	uint32_t emissiveIndex = ~0u;
 	float alphaCutoff = 0.5f;
 	uint32_t alphaMode = 0; // 0 = OPAQUE, 1 = MASK, 2 = BLEND
 	float emissiveStrength = 1.0f;
 	uint32_t doubleSided = 0; // 0 = single-sided, 1 = double-sided
-
 	alignas(16) glm::vec3 emissiveFactor = {1.0f, 1.0f, 1.0f};
+	float emissivePadding = 0.0f;
+	float roughnessFactor = 1.0f;
+	float metallicFactor = 1.0f;
 	float padding1 = 0.0f;
+	float padding2 = 0.0f;
 };

@@ -26,6 +26,15 @@ public:
 	vk::raii::Pipeline equirectToCubePipeline = nullptr;
 	vk::raii::PipelineLayout equirectToCubePipelineLayout = nullptr;
 
+	vk::raii::Pipeline irradiancePipeline = nullptr;
+	vk::raii::PipelineLayout irradiancePipelineLayout = nullptr;
+
+	vk::raii::Pipeline prefilterPipeline = nullptr;
+	vk::raii::PipelineLayout prefilterPipelineLayout = nullptr;
+
+	vk::raii::Pipeline brdfLutPipeline = nullptr;
+	vk::raii::PipelineLayout brdfLutPipelineLayout = nullptr;
+
 	vk::raii::Pipeline skyboxPipeline = nullptr;
 
 	vk::raii::Pipeline compactingCullPipeline = nullptr;

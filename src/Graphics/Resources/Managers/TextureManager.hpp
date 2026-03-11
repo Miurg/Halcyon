@@ -48,6 +48,12 @@ public:
 	TextureHandle createCubemapImage(uint32_t width, uint32_t height, vk::Format format, uint32_t mipLevels = 1);
 	TextureHandle generateCubemapFromHdr(TextureHandle hdrTexture, PipelineHandler& pHandler,
 	                                     DescriptorManager& dManager, BindlessTextureDSetComponent& dSetComponent);
+	TextureHandle generateIrradianceMap(TextureHandle envCubemap, PipelineHandler& pHandler, DescriptorManager& dManager,
+	                                    BindlessTextureDSetComponent& dSetComponent);
+	TextureHandle generatePrefilteredEnvMap(TextureHandle envCubemap, PipelineHandler& pHandler,
+	                                        DescriptorManager& dManager, BindlessTextureDSetComponent& dSetComponent);
+	TextureHandle generateBrdfLut(PipelineHandler& pHandler, DescriptorManager& dManager,
+	                              BindlessTextureDSetComponent& dSetComponent);
 	std::vector<Texture> textures;
 	std::unordered_map<std::string, TextureHandle> texturePaths;
 
