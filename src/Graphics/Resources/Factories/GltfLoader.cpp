@@ -8,7 +8,7 @@ int GltfLoader::loadModelFromFile(const char path[MAX_PATH_LEN], int vertexIndex
 	VertexIndexBuffer& vertexIndexBuffer = mManager.vertexIndexBuffers[vertexIndexBInt];
 	int32_t globalVertexOffset = static_cast<int32_t>(vertexIndexBuffer.vertices.size()); // To adjust indices
 
-	MaterialMaps materialMaps = materialsParser(model, tManager, dSetComponent, dManager, bManager);
+	MaterialMaps materialMaps = materialsParser(model, tManager, dSetComponent, dManager, bManager, path);
 
 	std::vector<MeshInfo> loadedMeshes;
 	loadedMeshes.resize(model.meshes.size());
@@ -29,7 +29,7 @@ int GltfLoader::loadModelFromFile(const char path[MAX_PATH_LEN], int vertexIndex
 
 MaterialMaps GltfLoader::materialsParser(tinygltf::Model& model, TextureManager& tManager,
                                          BindlessTextureDSetComponent& dSetComponent, DescriptorManager& dManager,
-                                         BufferManager& bManager)
+                                         BufferManager& bManager, const char* filePath)
 {
 	MaterialMaps maps;
 	glm::vec4 colorFactor = {1.0f, 1.0f, 1.0f, 1.0f}; // Default white
@@ -40,7 +40,6 @@ MaterialMaps GltfLoader::materialsParser(tinygltf::Model& model, TextureManager&
 	              .generateTextureData("sys_default_white", 1, 1, std::vector<unsigned char>{255, 255, 255, 255}.data(),
 	                                   dSetComponent, dManager)
 	              .id;
-
 	// Default flat normal map: (128,128,255,255) = tangent-space up (0,0,1), loaded as linear
 	int defaultNormalTexture =
 	    tManager.isTextureLoaded("sys_default_normal")
@@ -63,6 +62,22 @@ MaterialMaps GltfLoader::materialsParser(tinygltf::Model& model, TextureManager&
 	              .generateTextureData("sys_default_emissive", 1, 1, std::vector<unsigned char>{0, 0, 0, 255}.data(),
 	                                   dSetComponent, dManager)
 	              .id;
+
+	MaterialStructure defaultMaterial{};
+	defaultMaterial.textureIndex = whiteTexture;
+	defaultMaterial.normalMapIndex = defaultNormalTexture;
+	defaultMaterial.metallicRoughnessIndex = defaultMRTexture;
+	defaultMaterial.emissiveIndex = defaultEmissiveTexture;
+	defaultMaterial.roughnessFactor = 1.0f;
+	defaultMaterial.metallicFactor = 1.0f;
+	defaultMaterial.emissiveFactor = {0.0f, 0.0f, 0.0f};
+	defaultMaterial.alphaMode = 0;
+	defaultMaterial.alphaCutoff = 0.5f;
+	defaultMaterial.doubleSided = 0;
+
+	maps.materials.emplace(static_cast<uint32_t>(-1),
+	                       tManager.emplaceMaterials(dSetComponent, defaultMaterial, bManager));
+
 	for (size_t i = 0; i < model.materials.size(); i++)
 	{
 		MaterialStructure material{};
@@ -75,6 +90,7 @@ MaterialMaps GltfLoader::materialsParser(tinygltf::Model& model, TextureManager&
 			               static_cast<float>(colorVal[2]), static_cast<float>(colorVal[3])};
 		}
 
+		material.textureIndex = whiteTexture; // Default fallback
 		// Base color texture
 		auto texIt = model.materials[i].values.find("baseColorTexture");
 		if (texIt != model.materials[i].values.end())
@@ -89,29 +105,30 @@ MaterialMaps GltfLoader::materialsParser(tinygltf::Model& model, TextureManager&
 					tinygltf::Image& img = model.images[sourceImageIndex];
 					if (!img.image.empty() && img.width > 0 && img.height > 0)
 					{
-						auto newTex = std::make_shared<TextureData>();
-						if (!img.name.empty())
-							newTex->name = img.name;
-						else if (!img.uri.empty() && img.uri.find("data:") != 0)
-							newTex->name = img.uri;
-						else
-							newTex->name = "__embedded_img_" + std::to_string(sourceImageIndex);
-						int indexInSystem =
-						    tManager
-						        .generateTextureData(newTex->name.c_str(), img.width, img.height,
-						                             ImageConverter::convertToRGBA(img).data(), dSetComponent, dManager)
-						        .id;
-						material.textureIndex = indexInSystem;
+						auto rgbaPixels = ImageConverter::convertToRGBA(img);
+						if (!rgbaPixels.empty())
+						{
+							auto newTex = std::make_shared<TextureData>();
+							std::string prefix = "model_" + std::string(filePath) + "_basecolor_";
+							if (!img.name.empty())
+								newTex->name = prefix + img.name;
+							else if (!img.uri.empty() && img.uri.find("data:") != 0)
+								newTex->name = prefix + img.uri;
+							else
+								newTex->name = prefix + "__embedded_img_" + std::to_string(sourceImageIndex) +
+								               std::to_string(tManager.textures.size());
+							int indexInSystem = tManager
+							                        .generateTextureData(newTex->name.c_str(), img.width, img.height,
+							                                             rgbaPixels.data(), dSetComponent, dManager)
+							                        .id;
+							material.textureIndex = indexInSystem;
+						}
 					}
 				}
 			}
 		}
-		else
-		{
-			material.textureIndex = whiteTexture;
-		}
-
 		// Normal map texture
+		material.normalMapIndex = defaultNormalTexture; // Default fallback
 		auto normTexIt = model.materials[i].additionalValues.find("normalTexture");
 		if (normTexIt != model.materials[i].additionalValues.end())
 		{
@@ -125,31 +142,33 @@ MaterialMaps GltfLoader::materialsParser(tinygltf::Model& model, TextureManager&
 					tinygltf::Image& img = model.images[sourceImageIndex];
 					if (!img.image.empty() && img.width > 0 && img.height > 0)
 					{
-						std::string normalName;
-						if (!img.name.empty())
-							normalName = "normal_" + img.name;
-						else if (!img.uri.empty() && img.uri.find("data:") != 0)
-							normalName = "normal_" + img.uri;
-						else
-							normalName = "normal___embedded_img_" + std::to_string(sourceImageIndex);
+						auto rgbaPixels = ImageConverter::convertToRGBA(img);
+						if (!rgbaPixels.empty())
+						{
+							auto newTex = std::make_shared<TextureData>();
+							std::string prefix = "model_" + std::string(filePath) + "_normal_";
+							if (!img.name.empty())
+								newTex->name = prefix + img.name;
+							else if (!img.uri.empty() && img.uri.find("data:") != 0)
+								newTex->name = prefix + img.uri;
+							else
+								newTex->name = prefix + "__embedded_img_" + std::to_string(sourceImageIndex) +
+								               std::to_string(tManager.textures.size());
 
-						int indexInSystem =
-						    tManager
-						        .generateTextureData(normalName.c_str(), img.width, img.height,
-						                             ImageConverter::convertToRGBA(img).data(), dSetComponent, dManager,
-						                             vk::Format::eR8G8B8A8Unorm) // Linear format for normal maps
-						        .id;
-						material.normalMapIndex = indexInSystem;
+							int indexInSystem =
+							    tManager
+							        .generateTextureData(newTex->name.c_str(), img.width, img.height, rgbaPixels.data(),
+							                             dSetComponent, dManager,
+							                             vk::Format::eR8G8B8A8Unorm) // Linear format for normal maps
+							        .id;
+							material.normalMapIndex = indexInSystem;
+						}
 					}
 				}
 			}
 		}
-		else
-		{
-			material.normalMapIndex = defaultNormalTexture;
-		}
-
 		// Metallic-Roughness texture (packed: G=Roughness, B=Metallic)
+		material.metallicRoughnessIndex = defaultMRTexture; // Default fallback
 		auto mrTexIt = model.materials[i].values.find("metallicRoughnessTexture");
 		if (mrTexIt != model.materials[i].values.end())
 		{
@@ -163,30 +182,30 @@ MaterialMaps GltfLoader::materialsParser(tinygltf::Model& model, TextureManager&
 					tinygltf::Image& img = model.images[sourceImageIndex];
 					if (!img.image.empty() && img.width > 0 && img.height > 0)
 					{
-						std::string mrName;
-						if (!img.name.empty())
-							mrName = "mr_" + img.name;
-						else if (!img.uri.empty() && img.uri.find("data:") != 0)
-							mrName = "mr_" + img.uri;
-						else
-							mrName = "mr___embedded_img_" + std::to_string(sourceImageIndex);
+						auto rgbaPixels = ImageConverter::convertToRGBA(img);
+						if (!rgbaPixels.empty())
+						{
+							auto newTex = std::make_shared<TextureData>();
+							std::string prefix = "model_" + std::string(filePath) + "_mr_";
+							if (!img.name.empty())
+								newTex->name = prefix + img.name;
+							else if (!img.uri.empty() && img.uri.find("data:") != 0)
+								newTex->name = prefix + img.uri;
+							else
+								newTex->name = prefix + "__embedded_img_" + std::to_string(sourceImageIndex) + "_" +
+								               std::to_string(tManager.textures.size());
 
-						int indexInSystem =
-						    tManager
-						        .generateTextureData(mrName.c_str(), img.width, img.height,
-						                             ImageConverter::convertToRGBA(img).data(), dSetComponent, dManager,
-						                             vk::Format::eR8G8B8A8Unorm) // Linear
-						        .id;
-						material.metallicRoughnessIndex = indexInSystem;
+							int indexInSystem = tManager
+							                        .generateTextureData(newTex->name.c_str(), img.width, img.height,
+							                                             rgbaPixels.data(), dSetComponent, dManager,
+							                                             vk::Format::eR8G8B8A8Unorm) // Linear
+							                        .id;
+							material.metallicRoughnessIndex = indexInSystem;
+						}
 					}
 				}
 			}
 		}
-		else
-		{
-			material.metallicRoughnessIndex = defaultMRTexture;
-		}
-
 		// Metallic-Roughness factors (defaults are 1.0 as per GLTF spec)
 		auto roughnessFactorIt = model.materials[i].values.find("roughnessFactor");
 		if (roughnessFactorIt != model.materials[i].values.end())
@@ -201,6 +220,7 @@ MaterialMaps GltfLoader::materialsParser(tinygltf::Model& model, TextureManager&
 		}
 
 		// Emissive texture
+		material.emissiveIndex = defaultEmissiveTexture; // Default fallback
 		auto emissiveTexIt = model.materials[i].additionalValues.find("emissiveTexture");
 		if (emissiveTexIt != model.materials[i].additionalValues.end())
 		{
@@ -214,29 +234,30 @@ MaterialMaps GltfLoader::materialsParser(tinygltf::Model& model, TextureManager&
 					tinygltf::Image& img = model.images[sourceImageIndex];
 					if (!img.image.empty() && img.width > 0 && img.height > 0)
 					{
-						std::string emissiveName;
-						if (!img.name.empty())
-							emissiveName = "emissive_" + img.name;
-						else if (!img.uri.empty() && img.uri.find("data:") != 0)
-							emissiveName = "emissive_" + img.uri;
-						else
-							emissiveName = "emissive___embedded_img_" + std::to_string(sourceImageIndex);
+						auto rgbaPixels = ImageConverter::convertToRGBA(img);
+						if (!rgbaPixels.empty())
+						{
+							auto newTex = std::make_shared<TextureData>();
+							std::string prefix = "model_" + std::string(filePath) + "_emissive_";
+							if (!img.name.empty())
+								newTex->name = prefix + img.name;
+							else if (!img.uri.empty() && img.uri.find("data:") != 0)
+								newTex->name = prefix + img.uri;
+							else
+								newTex->name = prefix + "__embedded_img_" + std::to_string(sourceImageIndex) + "_" +
+								               std::to_string(tManager.textures.size());
 
-						int indexInSystem = tManager
-						                        .generateTextureData(emissiveName.c_str(), img.width, img.height,
-						                                             ImageConverter::convertToRGBA(img).data(), dSetComponent,
-						                                             dManager) // sRBG
-						                        .id;
-						material.emissiveIndex = indexInSystem;
+							int indexInSystem = tManager
+							                        .generateTextureData(newTex->name.c_str(), img.width, img.height,
+							                                             rgbaPixels.data(), dSetComponent,
+							                                             dManager) // sRBG
+							                        .id;
+							material.emissiveIndex = indexInSystem;
+						}
 					}
 				}
 			}
 		}
-		else
-		{
-			material.emissiveIndex = defaultEmissiveTexture;
-		}
-
 		// Emissive Factor
 		auto emissiveFactorIt = model.materials[i].additionalValues.find("emissiveFactor");
 		if (emissiveFactorIt != model.materials[i].additionalValues.end())
@@ -461,7 +482,16 @@ std::vector<PrimitivesInfo> GltfLoader::primitiveParser(tinygltf::Mesh& mesh, Ve
 
 		// Assign material
 		auto itBase = materialMaps.materials.find(materialIndex);
-		result.materialIndex = (itBase != materialMaps.materials.end()) ? itBase->second : 0;
+		if (itBase != materialMaps.materials.end())
+		{
+			result.materialIndex = itBase->second;
+		}
+		else
+		{
+			// Fallback to the default material we created at index -1
+			auto itDefault = materialMaps.materials.find(static_cast<uint32_t>(-1));
+			result.materialIndex = (itDefault != materialMaps.materials.end()) ? itDefault->second : 0;
+		}
 
 		loadedPrimitives.push_back(result);
 	}

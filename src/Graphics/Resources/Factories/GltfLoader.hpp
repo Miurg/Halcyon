@@ -3,6 +3,7 @@
 #include "../Managers/Texture.hpp"
 #include "../Components/MeshInfoComponent.hpp"
 #include <vk_mem_alloc.h>
+#include <memory>
 #include "../../VulkanDevice.hpp"
 #include "../Managers/PrimitivesInfo.hpp"
 #include <tiny_gltf.h>
@@ -39,7 +40,7 @@ public:
 	                             tinygltf::Model model, TextureManager& tManager, ModelManager& mManager);
 	static MaterialMaps materialsParser(tinygltf::Model& model, TextureManager& tManager,
 	                                    BindlessTextureDSetComponent& dSetComponent, DescriptorManager& dManager,
-	                                    BufferManager& bManager);
+	                                    BufferManager& bManager, const char* filePath);
 	static std::vector<PrimitivesInfo> primitiveParser(tinygltf::Mesh& mesh, VertexIndexBuffer& vertexIndexB,
 	                                                   tinygltf::Model& model, int32_t globalVertexOffset,
 	                                                   const MaterialMaps& materialMaps);
