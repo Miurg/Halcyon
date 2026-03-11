@@ -10,8 +10,6 @@ struct CameraData
 [[vk::binding(0, 0)]]
 StructuredBuffer<CameraData> camera;
 
-[[vk::binding(0, 2)]]
-Sampler2D textureArray[2048];
 [[vk::binding(3, 2)]]
 SamplerCube skyboxMap;
 

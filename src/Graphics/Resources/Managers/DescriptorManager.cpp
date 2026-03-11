@@ -174,8 +174,6 @@ void DescriptorManager::updateBindlessTextureSet(vk::ImageView textureImageView,
 	descriptorWrite.descriptorCount = 1;
 	descriptorWrite.pImageInfo = &imageInfo;
 
-	dSetComponent.bindlessTextureBuffer = TextureHandle{textureNumber};
-
 	vulkanDevice.device.updateDescriptorSets(descriptorWrite, {});
 }
 

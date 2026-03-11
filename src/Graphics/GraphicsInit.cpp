@@ -562,7 +562,7 @@ void GraphicsInit::initScene(GeneralManager& gm)
 	tManager->texturePaths[hdrPath] = TextureHandle{hdrIndex};
 	TextureHandle hdrHandle = tManager->texturePaths[hdrPath];
 
-	dManager->updateBindlessTextureSet(hdrTexture.textureImageView, hdrTexture.textureSampler, *bTextureDSetComponent,
+		dManager->updateBindlessTextureSet(hdrTexture.textureImageView, hdrTexture.textureSampler, *bTextureDSetComponent,
 	                                   hdrIndex);
 	TextureHandle cubemapHandle =
 	    tManager->generateCubemapFromHdr(hdrHandle, *pipelineHandler, *dManager, *bTextureDSetComponent);
