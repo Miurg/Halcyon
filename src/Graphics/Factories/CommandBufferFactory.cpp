@@ -553,6 +553,7 @@ void CommandBufferFactory::drawMainPass(vk::raii::CommandBuffer& cmd, SwapChain&
 
 	// Skybox pass
 	cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipelineHandler.skyboxPipeline);
+	cmd.setCullMode(vk::CullModeFlagBits::eNone);
 	cmd.draw(3, 1, 0, 0);
 }
 
@@ -577,7 +578,7 @@ void CommandBufferFactory::drawFxaaPass(vk::raii::CommandBuffer& cmd, SwapChain&
 	push.rcpFrame[1] = 1.0f / static_cast<float>(swapChain.swapChainExtent.height);
 
 	cmd.pushConstants<PushConstants>(*pipelineHandler.fxaaPipelineLayout, vk::ShaderStageFlagBits::eFragment, 0, push);
-
+	cmd.setCullMode(vk::CullModeFlagBits::eNone);
 	cmd.draw(3, 1, 0, 0);
 
 	// ImGui
@@ -631,7 +632,7 @@ void CommandBufferFactory::drawSsaoPass(vk::raii::CommandBuffer& cmd, SwapChain&
 
 	cmd.pushConstants<SsaoPushConstants>(*pipelineHandler.ssaoPipelineLayout, vk::ShaderStageFlagBits::eFragment, 0,
 	                                     push);
-
+	cmd.setCullMode(vk::CullModeFlagBits::eNone);
 	cmd.draw(3, 1, 0, 0);
 }
 
@@ -658,7 +659,7 @@ void CommandBufferFactory::drawSsaoBlurPass(vk::raii::CommandBuffer& cmd, SwapCh
 
 	cmd.pushConstants<BlurPushConstants>(*pipelineHandler.ssaoBlurPipelineLayout, vk::ShaderStageFlagBits::eFragment, 0,
 	                                     push);
-
+	cmd.setCullMode(vk::CullModeFlagBits::eNone);
 	cmd.draw(3, 1, 0, 0);
 }
 
