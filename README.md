@@ -2,6 +2,8 @@
 
 **Halcyon** is a custom game engine currently in early development. It is built from scratch using **C++** and **Vulkan**, featuring a bespoke Entity Component System (ECS) architecture designed for high performance and strict data control.
 
+![Image](https://github.com/user-attachments/assets/7f56ab3a-94a8-49e3-b51d-1e54397cefea)
+
 ## 🛠 Tech Stack
 
 * **Language:** C++
