@@ -27,7 +27,6 @@ struct ColorBlendAttachmentDesc
 
 struct GraphicsPipelineDesc
 {
-	// Шейдер
 	std::string shaderPath;
 	std::string vertEntry = "vertMain";
 	std::string fragEntry = "fragMain";         // empty - vertex-only

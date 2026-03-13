@@ -13,7 +13,7 @@
 #include "Graphics/Systems/ImGuiSystem.hpp"
 #include "Platform/Systems/DeltaTimeSystem.hpp"
 
-Orhescyon::GeneralManager;
+using Orhescyon::GeneralManager;
 class CoreInit
 {
 public:

@@ -16,7 +16,7 @@
 #include <exception>
 #include <Orhescyon/GeneralManager.hpp>
 App::App() {}
-Orhescyon::GeneralManager;
+using Orhescyon::GeneralManager;
 int App::run()
 {
 	GeneralManager gm;
