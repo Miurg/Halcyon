@@ -202,6 +202,41 @@ float3 ApplyFog(float3 color, float viewDepth)
 	return lerp(color, fogColor, factor);
 }
 
+float3 DiffuseLambert(float3 albedo)
+{
+    return albedo / PI;
+}
+
+float3 DiffuseOrenNayar(float3 albedo, float NdotL, float NdotV, float roughness,
+                        float3 L, float3 V, float3 N)
+{
+    float sigma2 = roughness * roughness;
+    float A = 1.0 - 0.5 * sigma2 / (sigma2 + 0.33);
+    float B = 0.45 * sigma2 / (sigma2 + 0.09);
+
+    float3 Lproj = normalize(L - N * NdotL);
+    float3 Vproj = normalize(V - N * NdotV);
+    float cosPhiDiff = max(dot(Lproj, Vproj), 0.0);
+
+    float sinThetaI = sqrt(max(1.0 - NdotL * NdotL, 0.0));
+    float sinThetaR = sqrt(max(1.0 - NdotV * NdotV, 0.0));
+
+    float s = (NdotL < NdotV)
+        ? sinThetaI / max(NdotV, 1e-4)
+        : sinThetaR / max(NdotL, 1e-4);
+
+    return albedo / PI * (A + B * cosPhiDiff * s);
+}
+
+float3 DiffuseDisney(float3 albedo, float NdotL, float NdotV, float HdotV, float roughness)
+{
+    float FL   = pow(1.0 - NdotL, 5.0);
+    float FV   = pow(1.0 - NdotV, 5.0);
+    float Fd90 = 0.5 + 2.0 * HdotV * HdotV * roughness;
+    float Fd   = lerp(1.0, Fd90, FL) * lerp(1.0, Fd90, FV);
+    return albedo / PI * Fd;
+}
+
 struct FragOutput
 {
 	float4 color : SV_Target0;
@@ -217,7 +252,7 @@ FragOutput fragMain(VSOutput input, bool isFrontFace: SV_IsFrontFace)
 	float2 dy = ddy(input.fragTexCoord);
 
 	// === MATERIAL SAMPLING ===
-	float4 albedo = textureArray[NonUniformResourceIndex(mat.textureIndex)].SampleGrad(input.fragTexCoord, dx, dy);
+	float4 albedo = textureArray[NonUniformResourceIndex(mat.textureIndex)].SampleGrad(input.fragTexCoord, dx, dy) * float4(input.fragColor.xyz, 1.0);
 
 	if (ALPHA_TEST_ENABLED == 1)
 	{
@@ -269,7 +304,7 @@ FragOutput fragMain(VSOutput input, bool isFrontFace: SV_IsFrontFace)
 	float3 specular = D * Vis * F;
 
 	float3 kD = (1.0 - F) * (1.0 - metallic);
-	float3 diffuse = kD * albedo.rgb / PI;
+	float3 diffuse = kD * DiffuseOrenNayar(albedo.rgb, NdotL, NdotV, roughness, L, V, N);
 
 	float3 sunRadiance = sun[0].sunColor.rgb * sun[0].sunColor.a;
 
@@ -291,7 +326,6 @@ FragOutput fragMain(VSOutput input, bool isFrontFace: SV_IsFrontFace)
     float3 ambient = (iblDiffuse + iblSpecular) * sun[0].sunAmbient.a;
 
 	float3 litColor = (diffuse + specular) * sunRadiance * NdotL * shadow + ambient + emissive;
-	litColor *= input.fragColor;
 
 	// === FINAL OUTPUT ===
 	float outAlpha = (mat.alphaMode == 2) ? albedo.a : 1.0;
