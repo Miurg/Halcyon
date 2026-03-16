@@ -1,22 +1,36 @@
 # Halcyon
 
-**Halcyon** is a custom game engine currently in early development. It is built from scratch using **C++** and **Vulkan**, featuring a bespoke Entity Component System (ECS) architecture designed for high performance and strict data control.
+**Halcyon** is a custom game engine currently in early development. It is built from scratch using **C++** and **Vulkan**.
+
+![Image](https://github.com/user-attachments/assets/7f56ab3a-94a8-49e3-b51d-1e54397cefea)
+
+![Image](https://github.com/user-attachments/assets/d2c4ad00-2d68-4bc0-abc0-60c7defaabb7)
 
 ## 🛠 Tech Stack
 
 * **Language:** C++
 * **Graphics API:** Vulkan
 * **Build System:** CMake
-* **Architecture:** Custom ECS
 
-## ✨ Key Features
+## Features
 
-### 1. Custom ECS Architecture
-Unlike generic ECS implementations, Halcyon uses a strict data-oriented approach:
-* **Explicit System Subscription:** Systems explicitly subscribe to relevant component combinations, avoiding implicit overhead.
+### Rendering
+- **Forward rendering** pipeline
+- **PBR (Cook-Torrance BRDF)** — metallic-roughness workflow with GGX distribution, correlated Smith-GGX visibility, Schlick Fresnel
+- **Image Based Lighting (IBL)** — irradiance maps, prefiltered environment maps, BRDF LUT (split-sum)
+- **GPU Driven Rendering** with bindless textures
+- **Render Graph**
+- **HBAO**
+- **FXAA**
+- **Directional shadows** with PCF 3×3 filtering
 
-### 2. Vulkan Rendering
-The engine has transitioned from OpenGL to Vulkan to leverage modern GPU capabilities and explicit resource management.
+### Architecture
+- **ECS core** — POD components, explicit system subscriptions, zero overhead
+- **VMA** — Vulkan Memory Allocator for GPU memory management
+
+### Assets & Tooling
+- **glTF 2.0** model loading
+- **Dear ImGui** debug UI
 
 ## Getting Started
 
@@ -48,12 +62,7 @@ cmake --build out/build/x64-debug
 For release build replace `x64-debug` with `x64-release`.
 
 > **Note:** The debug preset builds single-threaded for cleaner error output.
+
 ## 🎯 Project Goals
 
-The primary goal of Halcyon is to explore advanced graphics programming and engine architecture.
-* Mastering **Vulkan** API nuances.
-* Refining a high-performance **ECS** with explicit control flow.
-* Creating a robust foundation for future game prototypes.
-
----
-*Note: This project is a work in progress.*
+The main goal of the project is to create a forward rendering engine capable of displaying excellent images without temporal techniques.
