@@ -211,19 +211,21 @@ float3 DiffuseOrenNayar(float3 albedo, float NdotL, float NdotV, float roughness
                         float3 L, float3 V, float3 N)
 {
     float sigma2 = roughness * roughness;
-    float A = 1.0 - 0.5 * sigma2 / (sigma2 + 0.33);
+    float A = 1.0 - 0.5 * sigma2 / (sigma2 + 0.57);
     float B = 0.45 * sigma2 / (sigma2 + 0.09);
 
-    float3 Lproj = normalize(L - N * NdotL);
-    float3 Vproj = normalize(V - N * NdotV);
-    float cosPhiDiff = max(dot(Lproj, Vproj), 0.0);
+    float3 Lperp = L - N * NdotL;
+    float3 Vperp = V - N * NdotV;
+    float LperpLen = length(Lperp);
+    float VperpLen = length(Vperp);
+
+    float cosPhiDiff = (LperpLen > 1e-4 && VperpLen > 1e-4)
+        ? saturate(dot(Lperp / LperpLen, Vperp / VperpLen))
+        : 0.0;
 
     float sinThetaI = sqrt(max(1.0 - NdotL * NdotL, 0.0));
     float sinThetaR = sqrt(max(1.0 - NdotV * NdotV, 0.0));
-
-    float s = (NdotL < NdotV)
-        ? sinThetaI / max(NdotV, 1e-4)
-        : sinThetaR / max(NdotL, 1e-4);
+    float s = sinThetaI * sinThetaR / max(max(NdotL, NdotV), 1e-4);
 
     return albedo / PI * (A + B * cosPhiDiff * s);
 }
@@ -304,7 +306,7 @@ FragOutput fragMain(VSOutput input, bool isFrontFace: SV_IsFrontFace)
 	float3 specular = D * Vis * F;
 
 	float3 kD = (1.0 - F) * (1.0 - metallic);
-	float3 diffuse = kD * DiffuseOrenNayar(albedo.rgb, NdotL, NdotV, roughness, L, V, N);
+	float3 diffuse = kD * DiffuseOrenNayar(albedo.rgb, NdotL, NdotV, roughness, L, V, finalNormal);
 
 	float3 sunRadiance = sun[0].sunColor.rgb * sun[0].sunColor.a;
 
