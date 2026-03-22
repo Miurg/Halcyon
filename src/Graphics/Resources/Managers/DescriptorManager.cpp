@@ -141,7 +141,7 @@ DescriptorManager::DescriptorManager(VulkanDevice& vulkanDevice) : vulkanDevice(
 	layoutInfo.pBindings = screenSpaceBindings.data();
 
 	screenSpaceSetLayout = vk::raii::DescriptorSetLayout(vulkanDevice.device, layoutInfo);
-}
+} // All this staff need to be refactored, it's just a mess of hardcoded bindings and stuff, but it works for now
 
 DescriptorManager::~DescriptorManager()
 {
@@ -254,7 +254,7 @@ void DescriptorManager::updateIBLDescriptors(BindlessTextureDSetComponent& dSetC
 	descriptorWrites[2].pImageInfo = &brdfLutInfo;
 
 	vulkanDevice.device.updateDescriptorSets(descriptorWrites, {});
-}
+} 
 
 void DescriptorManager::updateSingleTextureDSet(DSetHandle dIndex, int binding, vk::ImageView imageView,
                                                 vk::Sampler sampler)

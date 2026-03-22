@@ -19,6 +19,7 @@
 #include "../../Platform/PlatformContexts.hpp"
 #include "../../Platform/Components/DeltaTimeComponent.hpp"
 #include "../Components/SsaoSettingsComponent.hpp"
+#include "../Components/GraphicsSettingsComponent.hpp"
 
 void ImGuiSystem::onRegistered(GeneralManager& gm)
 {
@@ -323,6 +324,15 @@ void ImGuiSystem::update(GeneralManager& gm)
 				ImGui::DragFloat("Max Screen Radius", &ssao->maxScreenRadius, 0.01f, 0.01f, 1.0f);
 				ImGui::DragFloat("Fade start", &ssao->fadeStart, 10.0f, 1000.0f);
 				ImGui::DragFloat("Fade end", &ssao->fadeEnd, 10.0f, 1000.0f);
+			}
+		}
+
+		if (auto* settings = gm.getComponent<GraphicsSettingsComponent>(selectedEntity))
+		{
+			if (ImGui::CollapsingHeader("Graphics Settings", ImGuiTreeNodeFlags_DefaultOpen))
+			{
+				ImGui::Checkbox("Enable SSAO", &settings->enableSsao);
+				ImGui::Checkbox("Enable FXAA", &settings->enableFxaa);
 			}
 		}
 	}

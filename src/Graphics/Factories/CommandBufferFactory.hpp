@@ -56,6 +56,13 @@ public:
 
 	static void drawSsaoBlurPass(vk::raii::CommandBuffer& cmd, SwapChain& swapChain, PipelineHandler& pipelineHandler,
 	                             DescriptorManagerComponent& dManager, DSetHandle ssaoBlurDescriptorSetIndex);
+	static void drawSSAOApplyPass(vk::raii::CommandBuffer& cmd, SwapChain& swapChain, PipelineHandler& pipelineHandler,
+	                              DescriptorManagerComponent& dManager, DSetHandle fxaaDescriptorSetIndex);
+
+	static void drawToneMappingPass(vk::raii::CommandBuffer& cmd, SwapChain& swapChain, PipelineHandler& pipelineHandler,
+	                                DescriptorManagerComponent& dManager, DSetHandle toneMappingDescriptorSetIndex);
+
+	static void drawImGui(vk::raii::CommandBuffer& cmd);
 
 	static void transitionImageLayout(vk::raii::CommandBuffer& commandBuffer, vk::Image image, vk::ImageLayout oldLayout,
 	                                  vk::ImageLayout newLayout, vk::AccessFlags2 srcAccessMask,

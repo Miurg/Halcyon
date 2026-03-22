@@ -57,3 +57,6 @@ class SkyBoxContext
 class RenderGraphContext
 {
 };
+class GraphicsSettingsContext
+{
+};

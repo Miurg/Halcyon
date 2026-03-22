@@ -120,7 +120,7 @@ void CameraMatrixSystem::update(GeneralManager& gm)
 		radius = glm::max(radius, distance);
 	}
 
-	constexpr float RADIUS_ROUNDING_STEP = 16.0f;
+	constexpr float RADIUS_ROUNDING_STEP = 4.0f; // Why do we need this again?
 	radius = std::ceil(radius * RADIUS_ROUNDING_STEP) / RADIUS_ROUNDING_STEP; // Round radius to stabilize size slightly
 
 	sunCamera->orthoSize = radius;
@@ -134,7 +134,7 @@ void CameraMatrixSystem::update(GeneralManager& gm)
 	// Texel snapping
 	float zFarRange = zOffset + radius;
 
-	glm::mat4 lightProj = glm::orthoRH_ZO(-radius, radius, -radius, radius, zFarRange, 0.0f);
+	glm::mat4 lightProj = glm::orthoRH_ZO(-radius, radius, -radius, radius, zFarRange, 0.0f); 
 	lightProj[1][1] *= -1; // Y-flip
 
 	glm::mat4 shadowMatrix = lightProj * lightView;
@@ -195,5 +195,5 @@ void CameraMatrixSystem::update(GeneralManager& gm)
 	    glm::vec4(lsMin.x - epsilon, lsMax.x + epsilon, lsMin.y - epsilon, lsMax.y + epsilon);
 	
 	memcpy(bufferManager.buffers[globalDSetComponent->sunCameraBuffers.id].bufferMapped[currentFrame], &sunUbo,
-	       sizeof(sunUbo));
+	       sizeof(sunUbo));  
 }

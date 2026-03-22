@@ -17,6 +17,7 @@
 #include "../Resources/Components/GlobalDSetComponent.hpp"
 #include "../Components/RenderGraphComponent.hpp"
 #include "../RenderGraph/RenderGraph.hpp"
+#include "../Components/GraphicsSettingsComponent.hpp"
 
 void FrameBeginSystem::onRegistered(GeneralManager& gm)
 {
@@ -42,13 +43,16 @@ void FrameBeginSystem::update(GeneralManager& gm)
 	    gm.getContextComponent<DescriptorManagerContext, DescriptorManagerComponent>()->descriptorManager;
 	GlobalDSetComponent* globalDSetComponent = gm.getContextComponent<MainDSetsContext, GlobalDSetComponent>();
 	RenderGraph* rg = gm.getContextComponent<RenderGraphContext, RenderGraphComponent>()->renderGraph;
+	GraphicsSettingsComponent* settings =
+	    gm.getContextComponent<GraphicsSettingsContext, GraphicsSettingsComponent>();
 
 	vulkanDevice.device.waitForFences(*frameManager->frames[currentFrameComp->currentFrame].inFlightFence, vk::True,
 	                                  UINT64_MAX);
 	// Handle window resize
 	if (window.framebufferResized)
 	{
-		SwapChainFactory::recreateSwapChain(swapChain, vulkanDevice, window, *rg, *dManager, *globalDSetComponent);
+		SwapChainFactory::recreateSwapChain(swapChain, vulkanDevice, window, *rg, *dManager, *globalDSetComponent,
+		                                    *settings);
 		window.framebufferResized = false;
 		return;
 	}
@@ -61,13 +65,15 @@ void FrameBeginSystem::update(GeneralManager& gm)
 		if (result == vk::Result::eErrorOutOfDateKHR)
 		{
 			window.framebufferResized = false;
-			SwapChainFactory::recreateSwapChain(swapChain, vulkanDevice, window, *rg, *dManager, *globalDSetComponent);
+			SwapChainFactory::recreateSwapChain(swapChain, vulkanDevice, window, *rg, *dManager, *globalDSetComponent,
+			                                    *settings);
 			return;
 		}
 	}
 	catch (vk::OutOfDateKHRError&)
 	{
-		SwapChainFactory::recreateSwapChain(swapChain, vulkanDevice, window, *rg, *dManager, *globalDSetComponent);
+		SwapChainFactory::recreateSwapChain(swapChain, vulkanDevice, window, *rg, *dManager, *globalDSetComponent,
+		                                    *settings);
 		return;
 	}
 	catch (vk::SystemError& e)

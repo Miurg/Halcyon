@@ -5,6 +5,7 @@
 #include <optional>
 #include <string>
 #include <vector>
+#include <unordered_map>
 
 // Describes a single attachment (color or depth) for a render pass.
 // handle   — RG resource to bind as attachment.
@@ -13,7 +14,7 @@
 // clearValue — clear color/depth if loadOp == eClear.
 struct RGAttachmentConfig
 {
-	RGResourceHandle handle = RG_INVALID_HANDLE;
+	std::string name;
 	vk::AttachmentLoadOp loadOp = vk::AttachmentLoadOp::eClear;
 	vk::AttachmentStoreOp storeOp = vk::AttachmentStoreOp::eStore;
 	vk::ClearValue clearValue = {};
@@ -33,6 +34,8 @@ struct RGPassDesc
 	bool isCompute = false;
 };
 
+class RenderGraph;
+
 struct RGPass
 {
 	std::string name;
@@ -40,4 +43,20 @@ struct RGPass
 	std::vector<RGResourceAccess> reads;
 	std::vector<RGResourceAccess> writes;
 	std::function<void(vk::raii::CommandBuffer& cmd)> execute;
+	std::function<void(const RenderGraph& rg, const RGPass& pass)> updateDescriptors;
+
+	// Internal mapping populated by RenderGraph during compilation
+	std::unordered_map<std::string, RGResourceHandle> resolvedReads;
+	std::unordered_map<std::string, RGResourceHandle> resolvedWrites;
+
+	RGResourceHandle getPhysicalRead(const std::string& logicalName) const
+	{
+		auto it = resolvedReads.find(logicalName);
+		return it != resolvedReads.end() ? it->second : RG_INVALID_HANDLE;
+	}
+	RGResourceHandle getPhysicalWrite(const std::string& logicalName) const
+	{
+		auto it = resolvedWrites.find(logicalName);
+		return it != resolvedWrites.end() ? it->second : RG_INVALID_HANDLE;
+	}
 };

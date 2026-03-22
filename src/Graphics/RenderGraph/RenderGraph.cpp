@@ -1,8 +1,9 @@
-#include "RenderGraph.hpp"
+﻿#include "RenderGraph.hpp"
 #include "../VulkanDevice.hpp"
 #include "../Resources/Managers/DescriptorManager.hpp"
 #include "../Resources/Components/GlobalDSetComponent.hpp"
 #include "../Resources/Managers/Bindings.hpp"
+#include "../Components/GraphicsSettingsComponent.hpp"
 
 RenderGraph::RenderGraph(VulkanDevice& device, VmaAllocator alloc) : vulkanDevice(device), allocator(alloc) {}
 
@@ -20,24 +21,6 @@ RenderGraph::~RenderGraph()
 			}
 		}
 	}
-}
-
-RGResourceHandle RenderGraph::createResource(const RGImageDesc& desc, const std::string& name)
-{
-	// Check if resource already exists by name
-	for (uint32_t i = 0; i < resources.size(); ++i)
-	{
-		if (resources[i].name == name) return i;
-	}
-
-	RGResourceHandle handle = static_cast<RGResourceHandle>(resources.size());
-	RGResourceEntry entry;
-	entry.name = name;
-	entry.aspectFlags = desc.aspectFlags;
-	entry.isTransient = true;
-	entry.desc = desc;
-	resources.push_back(std::move(entry));
-	return handle;
 }
 
 RGResourceHandle RenderGraph::importImage(const std::string& name, vk::Image image, vk::ImageView imageView,
@@ -102,110 +85,206 @@ void RenderGraph::handleResize(uint32_t newWidth, uint32_t newHeight)
 	needsDescriptorUpdate = true;
 }
 
-void RenderGraph::updateDescriptors(DescriptorManager& dManager, GlobalDSetComponent& globalDSets)
+void RenderGraph::declareLogicalStream(const std::string& name, const RGImageDesc& desc)
 {
-	if (!needsDescriptorUpdate) return;
+	logicalStreams[name] = desc;
+}
 
-	// Build a name→handle lookup for convenience.
-	auto findRes = [&](const std::string& name) -> const RGResourceEntry*
-	{
-		for (const auto& r : resources)
-		{
-			if (r.name == name) return &r;
-		}
-		return nullptr;
-	};
-
-	const auto* offscreen = findRes("offscreen");
-	const auto* ssaoBlur = findRes("ssaoBlur");
-	const auto* depth = findRes("depth");
-	const auto* viewNormals = findRes("viewNormals");
-	const auto* ssao = findRes("ssao");
-
-	// FXAA descriptor set
-	if (offscreen && ssaoBlur)
-	{
-		dManager.updateSingleTextureDSet(globalDSets.fxaaDSets, Bindings::FXAA::ColorInput, offscreen->imageView,
-		                                 offscreen->sampler);
-		dManager.updateSingleTextureDSet(globalDSets.fxaaDSets, Bindings::FXAA::SsaoInput, ssaoBlur->imageView,
-		                                 ssaoBlur->sampler);
-		dManager.updateSingleTextureDSet(globalDSets.fxaaDSets, Bindings::FXAA::ColorInput2, offscreen->imageView,
-		                                 offscreen->sampler);
-	}
-
-	// SSAO descriptor set
-	if (depth && viewNormals)
-	{
-		dManager.updateSingleTextureDSet(globalDSets.ssaoDSets, Bindings::SSAO::DepthInput, depth->imageView,
-		                                 depth->sampler);
-		dManager.updateSingleTextureDSet(globalDSets.ssaoDSets, Bindings::SSAO::NormalsInput, viewNormals->imageView,
-		                                 viewNormals->sampler);
-		// Note: SSAO noise is NOT managed by RG (static texture from TextureManager)
-	}
-
-	// SSAO Blur descriptor set
-	if (ssao && depth && viewNormals)
-	{
-		dManager.updateSingleTextureDSet(globalDSets.ssaoBlurDSets, Bindings::SSAOBlur::SsaoInput, ssao->imageView,
-		                                 ssao->sampler);
-		dManager.updateSingleTextureDSet(globalDSets.ssaoBlurDSets, Bindings::SSAOBlur::DepthInput, depth->imageView,
-		                                 depth->sampler);
-		dManager.updateSingleTextureDSet(globalDSets.ssaoBlurDSets, Bindings::SSAOBlur::NormalsInput,
-		                                 viewNormals->imageView, viewNormals->sampler);
-	}
-
-	needsDescriptorUpdate = false;
+void RenderGraph::setTerminalOutput(const std::string& logicalName, const std::string& physicalName)
+{
+	terminalOutputs[logicalName] = physicalName;
 }
 
 void RenderGraph::addPass(const std::string& name, const RGPassDesc& desc, std::vector<RGResourceAccess> reads,
                           std::vector<RGResourceAccess> writes,
-                          std::function<void(vk::raii::CommandBuffer& cmd)> executeFn)
+                          std::function<void(vk::raii::CommandBuffer& cmd)> executeFn,
+                          std::function<void(const RenderGraph& rg, const RGPass& pass)> updateDescriptorsFn)
 {
-	passes.push_back({name, desc, std::move(reads), std::move(writes), std::move(executeFn)});
+	passes.push_back(
+	    {name, desc, std::move(reads), std::move(writes), std::move(executeFn), std::move(updateDescriptorsFn)});
 }
 
 void RenderGraph::compile()
 {
 	compiledPasses.clear();
+
+	// Calculate a simple hash based on passes to detect topology changes
+	size_t currentHash = 0;
+	auto hash_combine = [&currentHash](const std::string& v)
+	{ currentHash ^= std::hash<std::string>{}(v) + 0x9e3779b9 + (currentHash << 6) + (currentHash >> 2); };
+	for (const auto& pass : passes)
+	{
+		hash_combine(pass.name);
+		for (const auto& r : pass.reads) hash_combine(r.name);
+		for (const auto& w : pass.writes) hash_combine(w.name);
+	}
+
+	// If the hash differs from the last compiled version, we need to update descriptors (bindings might have changed)
+	if (currentHash != lastPassHash)
+	{
+		lastPassHash = currentHash;
+		needsDescriptorUpdate = true;
+	}
+
+	// Helper to get or create transient resource
+	auto getOrCreateResourceHnd = [&](const std::string& physicalName,
+	                                  const std::string& logicalName) -> RGResourceHandle
+	{
+		for (uint32_t i = 0; i < resources.size(); ++i)
+		{
+			if (resources[i].name == physicalName) return i;
+		}
+
+		auto it = logicalStreams.find(logicalName);
+		if (it == logicalStreams.end() && physicalName != logicalName)
+		{
+			throw std::runtime_error("RenderGraph: Logical stream not declared: " + logicalName);
+		}
+		RGImageDesc desc = (it != logicalStreams.end()) ? it->second : RGImageDesc{};
+
+		RGResourceHandle handle = static_cast<RGResourceHandle>(resources.size());
+		RGResourceEntry entry;
+		entry.name = physicalName;
+		entry.aspectFlags = desc.aspectFlags;
+		entry.isTransient = true;
+		entry.desc = desc;
+		entry.currentWidth = currentWidth;
+		entry.currentHeight = currentHeight;
+		if (desc.sizeMode == RGSizeMode::HalfExtent)
+		{
+			entry.currentWidth /= 2;
+			entry.currentHeight /= 2;
+		}
+		resources.push_back(std::move(entry));
+		allocateTransientImage(resources.back());
+		createSampler(resources.back());
+		return handle;
+	};
+
+	// === 1. Reverse Pass ===
+	std::unordered_map<std::string, std::string> requiredOut = terminalOutputs;
+	std::unordered_map<std::string, uint32_t> versionCounter;
+	std::vector<std::unordered_map<std::string, std::string>> passLogicalToPhysicalWrites(passes.size());
+	std::vector<std::unordered_map<std::string, std::string>> passLogicalToPhysicalReads(passes.size());
+
+	for (int i = static_cast<int>(passes.size()) - 1; i >= 0; --i)
+	{
+		auto& pass = passes[i];
+
+		// Check what this pass writes
+		for (const auto& write : pass.writes)
+		{
+			if (!requiredOut.count(write.name))
+			{
+				requiredOut[write.name] = write.name + "_V" + std::to_string(versionCounter[write.name]++);
+			}
+			passLogicalToPhysicalWrites[i][write.name] = requiredOut[write.name];
+		}
+
+		// Handle reads: if a pass READS what it WRITES (ping-pong), the preceding pass MUST output a different physical
+		// version! Also, register what physical version the pass expects to read.
+		for (const auto& read : pass.reads)
+		{
+			bool isPingPong = false;
+			for (const auto& write : pass.writes)
+			{
+				if (write.name == read.name)
+				{
+					isPingPong = true;
+					break;
+				}
+			}
+
+			if (isPingPong || !requiredOut.count(read.name))
+			{
+				requiredOut[read.name] = read.name + "_V" + std::to_string(versionCounter[read.name]++);
+			}
+			passLogicalToPhysicalReads[i][read.name] = requiredOut[read.name];
+		}
+	}
+
+	// === 2. Forward Pass ===
+	std::unordered_map<std::string, std::string> currentState;
+	for (uint32_t i = 0; i < resources.size(); ++i)
+	{
+		currentState[resources[i].name] = resources[i].name; // identity mapping for imported resources
+	}
+
+	for (size_t i = 0; i < passes.size(); ++i)
+	{
+		auto& pass = passes[i];
+		pass.resolvedReads.clear();
+		pass.resolvedWrites.clear();
+
+		for (const auto& read : pass.reads)
+		{
+			std::string physical =
+			    currentState.count(read.name) ? currentState[read.name] : read.name; // fallback to identity
+			pass.resolvedReads[read.name] = getOrCreateResourceHnd(physical, read.name);
+		}
+		for (const auto& write : pass.writes)
+		{
+			std::string physical = passLogicalToPhysicalWrites[i][write.name];
+			RGResourceHandle handle = getOrCreateResourceHnd(physical, write.name);
+			pass.resolvedWrites[write.name] = handle;
+			currentState[write.name] = physical;
+		}
+	}
+
 	resourceStates.assign(resources.size(), RGResourceState{});
 
-	for (const auto& pass : passes)
+	// With all logical names resolved to physical ones, we can determine barriers and final layouts for each pass.
+	for (auto& pass : passes)
 	{
 		RGCompiledPass compiled;
 		compiled.pass = &pass;
 
-		auto processAccess = [&](const RGResourceAccess& access)
+		auto processAccess = [&](RGResourceHandle handle, RGResourceUsage usage)
 		{
-			if (access.handle >= resources.size()) return;
+			if (handle >= resources.size() || handle == RG_INVALID_HANDLE) return;
 
-			RGResourceState& state = resourceStates[access.handle];
-			vk::ImageLayout requiredLayout = usageToLayout(access.usage);
-			vk::AccessFlags2 requiredAccess = usageToAccessMask(access.usage);
-			vk::PipelineStageFlags2 dstStage = usageToDstStageMask(access.usage);
+			RGResourceState& state = resourceStates[handle];
+			vk::ImageLayout requiredLayout = usageToLayout(usage);
+			vk::AccessFlags2 requiredAccess = usageToAccessMask(usage);
+			vk::PipelineStageFlags2 dstStage = usageToDstStageMask(usage);
 
-			if (state.layout != requiredLayout || state.accessMask != vk::AccessFlags2{})
+			if (state.layout != requiredLayout || state.accessMask != requiredAccess)
 			{
 				RGBarrier barrier;
-				barrier.image = resources[access.handle].image;
+				barrier.image = resources[handle].image;
 				barrier.oldLayout = state.layout;
 				barrier.newLayout = requiredLayout;
 				barrier.srcAccessMask = state.accessMask;
 				barrier.dstAccessMask = requiredAccess;
 				barrier.srcStageMask = state.stageMask;
 				barrier.dstStageMask = dstStage;
-				barrier.aspectFlags = resources[access.handle].aspectFlags;
+				barrier.aspectFlags = resources[handle].aspectFlags;
 				compiled.barriers.push_back(barrier);
 			}
 
 			state.layout = requiredLayout;
 			state.accessMask = requiredAccess;
-			state.stageMask = usageToCompleteStageMask(access.usage);
+			state.stageMask = usageToCompleteStageMask(usage);
 		};
 
-		for (const auto& read : pass.reads) processAccess(read);
-		for (const auto& write : pass.writes) processAccess(write);
+		for (const auto& read : pass.reads) processAccess(pass.resolvedReads[read.name], read.usage);
+		for (const auto& write : pass.writes) processAccess(pass.resolvedWrites[write.name], write.usage);
 
 		compiledPasses.push_back(std::move(compiled));
+	}
+
+	// Now that everything is mapped, update descriptors if necessary
+	if (needsDescriptorUpdate)
+	{
+		(*vulkanDevice.device).waitIdle();
+		for (const auto& pass : passes)
+		{
+			if (pass.updateDescriptors)
+			{
+				pass.updateDescriptors(*this, pass);
+			}
+		}
+		needsDescriptorUpdate = false;
 	}
 }
 
@@ -249,13 +328,18 @@ void RenderGraph::execute(vk::raii::CommandBuffer& cmd)
 		const auto& desc = compiled.pass->desc;
 		bool didBeginRendering = false;
 
+		// If this pass has rendering attachments, begin a dynamic render pass. Otherwise, it's a compute/dispatch-only
+		// pass.
 		if (!desc.isCompute && (!desc.colorAttachments.empty() || desc.depthAttachment.has_value()))
 		{
 			std::vector<vk::RenderingAttachmentInfo> colorInfos;
 			for (const auto& att : desc.colorAttachments)
 			{
+				RGResourceHandle handle = compiled.pass->getPhysicalWrite(att.name);
+				if (handle == RG_INVALID_HANDLE) continue;
+
 				vk::RenderingAttachmentInfo info;
-				info.imageView = resources[att.handle].imageView;
+				info.imageView = resources[handle].imageView;
 				info.imageLayout = vk::ImageLayout::eColorAttachmentOptimal;
 				info.loadOp = att.loadOp;
 				info.storeOp = att.storeOp;
@@ -267,11 +351,16 @@ void RenderGraph::execute(vk::raii::CommandBuffer& cmd)
 			if (desc.depthAttachment.has_value())
 			{
 				const auto& da = desc.depthAttachment.value();
-				depthInfo.imageView = resources[da.handle].imageView;
-				depthInfo.imageLayout = vk::ImageLayout::eDepthAttachmentOptimal;
-				depthInfo.loadOp = da.loadOp;
-				depthInfo.storeOp = da.storeOp;
-				depthInfo.clearValue = da.clearValue;
+				RGResourceHandle handle = compiled.pass->getPhysicalWrite(da.name);
+				if (handle == RG_INVALID_HANDLE) handle = compiled.pass->getPhysicalRead(da.name); // try read
+				if (handle != RG_INVALID_HANDLE)
+				{
+					depthInfo.imageView = resources[handle].imageView;
+					depthInfo.imageLayout = vk::ImageLayout::eDepthAttachmentOptimal;
+					depthInfo.loadOp = da.loadOp;
+					depthInfo.storeOp = da.storeOp;
+					depthInfo.clearValue = da.clearValue;
+				}
 			}
 
 			// Auto-derive extent from first attachment dimensions if not explicitly set.
@@ -285,15 +374,26 @@ void RenderGraph::execute(vk::raii::CommandBuffer& cmd)
 				// Use first attachment's actual dimensions.
 				RGResourceHandle firstHandle = RG_INVALID_HANDLE;
 				if (!desc.colorAttachments.empty())
-					firstHandle = desc.colorAttachments[0].handle;
+					firstHandle = compiled.pass->getPhysicalWrite(desc.colorAttachments[0].name);
 				else if (desc.depthAttachment.has_value())
-					firstHandle = desc.depthAttachment->handle;
+				{
+					firstHandle = compiled.pass->getPhysicalWrite(desc.depthAttachment->name);
+					if (firstHandle == RG_INVALID_HANDLE)
+						firstHandle = compiled.pass->getPhysicalRead(desc.depthAttachment->name);
+				}
 
-				const auto& res = resources[firstHandle];
-				if (res.isTransient && res.currentWidth > 0)
-					extent = vk::Extent2D{res.currentWidth, res.currentHeight};
+				if (firstHandle != RG_INVALID_HANDLE)
+				{
+					const auto& res = resources[firstHandle];
+					if (res.isTransient && res.currentWidth > 0)
+						extent = vk::Extent2D{res.currentWidth, res.currentHeight};
+					else
+						extent = vk::Extent2D{currentWidth, currentHeight};
+				}
 				else
+				{
 					extent = vk::Extent2D{currentWidth, currentHeight};
+				}
 			}
 
 			vk::RenderingInfo renderingInfo;
@@ -442,6 +542,7 @@ void RenderGraph::createSampler(RGResourceEntry& res)
 		samplerInfo.anisotropyEnable = vk::True;
 		samplerInfo.maxAnisotropy = properties.limits.maxSamplerAnisotropy;
 		samplerInfo.compareOp = vk::CompareOp::eAlways;
+		samplerInfo.compareEnable = vk::True;
 		samplerInfo.borderColor = vk::BorderColor::eIntOpaqueBlack;
 	}
 	else
@@ -451,8 +552,6 @@ void RenderGraph::createSampler(RGResourceEntry& res)
 		samplerInfo.addressModeV = vk::SamplerAddressMode::eClampToBorder;
 		samplerInfo.addressModeW = vk::SamplerAddressMode::eClampToBorder;
 		samplerInfo.borderColor = vk::BorderColor::eFloatOpaqueBlack;
-		samplerInfo.compareEnable = vk::True;
-		samplerInfo.compareOp = vk::CompareOp::eGreater;
 	}
 
 	res.sampler = (*vulkanDevice.device).createSampler(samplerInfo);

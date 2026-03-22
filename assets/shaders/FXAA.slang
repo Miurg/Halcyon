@@ -228,8 +228,6 @@ float4 FxaaPixelShader(float2 pos,      // Normalized UV coordinates of the curr
 
 [vk::binding(0, 0)]
 Sampler2D sourceTexture;
-[vk::binding(1, 0)]
-Sampler2D ssaoTexture;
 
 struct VSOutput
 {
@@ -268,12 +266,8 @@ float3 ACESFilm(float3 x)
 [shader("fragment")]
 float4 fragMain(VSOutput input) : SV_Target
 {
-	float4 result = FxaaPixelShader(input.uv, pushConsts.rcpFrame, sourceTexture);
-	float3 mapped = ACESFilm(result.rgb);
+    FxaaConfig FxaaConfig = { 0.75, 0.063, 0.0312 };
+    float4 result = FxaaPixelShader(input.uv, pushConsts.rcpFrame, sourceTexture, FxaaConfig);
 
-	// Apply SSAO
-	float ao = ssaoTexture.SampleLevel(input.uv, 0).r;
-	mapped *= ao;
-
-	return float4(mapped, 1.0);
+    return result;
 }

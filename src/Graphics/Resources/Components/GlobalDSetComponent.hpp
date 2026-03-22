@@ -9,4 +9,6 @@ struct GlobalDSetComponent
 	DSetHandle fxaaDSets;
 	DSetHandle ssaoDSets;
 	DSetHandle ssaoBlurDSets;
+	DSetHandle ssaoApplyDSets;
+	DSetHandle toneMappingDSets;
 };

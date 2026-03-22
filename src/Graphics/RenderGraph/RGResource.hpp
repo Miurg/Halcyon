@@ -22,7 +22,7 @@ enum class RGResourceUsage
 // A single read or write declaration for a resource in a pass
 struct RGResourceAccess
 {
-	RGResourceHandle handle = RG_INVALID_HANDLE;
+	std::string name;
 	RGResourceUsage usage = RGResourceUsage::ShaderRead;
 };
 

@@ -3,9 +3,11 @@
 #include "RGPass.hpp"
 #include "RGResource.hpp"
 #include <vector>
+#include <unordered_map>
 
 struct VulkanDevice;
 struct GlobalDSetComponent;
+struct GraphicsSettingsComponent;
 class DescriptorManager;
 
 // Tracks the last known state of each resource for barrier computation.
@@ -43,31 +45,43 @@ public:
 	~RenderGraph();
 
 	// Resource API
-	RGResourceHandle createResource(const RGImageDesc& desc, const std::string& name);
 	RGResourceHandle importImage(const std::string& name, vk::Image image, vk::ImageView imageView,
 	                             vk::ImageAspectFlags aspect);
 	void handleResize(uint32_t newWidth, uint32_t newHeight);
-	void updateDescriptors(DescriptorManager& dManager, GlobalDSetComponent& globalDSets);
 
-	// Per frame API
+	void declareLogicalStream(const std::string& name, const RGImageDesc& desc);
+	void setTerminalOutput(const std::string& logicalName, const std::string& physicalName);
+
+	// === Per frame API === 
 
 	// Register a render/compute pass in the graph.
-	// name      — debug label for the pass.
-	// desc      — rendering setup: color/depth attachments, load/store ops, clear values (see RGPassDesc).
+	// name      - debug label for the pass.
+	// desc      - rendering setup: color/depth attachments, load/store ops, clear values (see RGPassDesc).
 	//             RG auto-calls beginRendering/endRendering based on this.
 	//             Render area extent is auto-derived from first attachment.
 	//             Set isCompute = true for dispatch-only passes (no rendering setup).
-	// reads     — resources this pass samples from (triggers layout transitions).
-	// writes    — resources this pass renders into (triggers layout transitions).
-	// executeFn — lambda with draw/dispatch commands. Receives primary cmd buffer.
+	// reads     - resources this pass samples from (triggers layout transitions).
+	// writes    - resources this pass renders into (triggers layout transitions).
+	// executeFn - lambda with draw/dispatch commands. Receives primary cmd buffer.
 	//             Do NOT call beginRendering/endRendering inside — RG handles that.
+	// updateDescriptorsFn - optional lambda to update descriptor sets before execution. Receives the entire graph and
+	// the pass.
 	void addPass(const std::string& name, const RGPassDesc& desc, std::vector<RGResourceAccess> reads,
-	             std::vector<RGResourceAccess> writes, std::function<void(vk::raii::CommandBuffer& cmd)> executeFn);
+	             std::vector<RGResourceAccess> writes, std::function<void(vk::raii::CommandBuffer& cmd)> executeFn,
+	             std::function<void(const RenderGraph& rg, const RGPass& pass)> updateDescriptorsFn = nullptr);
+	
+	// Compiles the render graph. 
+	// Call after adding all passes and before execution. 
+	// Computes resource lifetimes, inserts barriers, etc.
 	void compile();
+
+	// Executes the compiled graph. Call after compile() and before clearFrame().
 	void execute(vk::raii::CommandBuffer& cmd);
+
+	// Clears per-frame data. Call after execute() to prepare for the next frame.
 	void clearFrame();
 
-	// Accessors
+	// === Accessors ===
 	vk::Image getImage(RGResourceHandle handle) const;
 	vk::ImageView getImageView(RGResourceHandle handle) const;
 	vk::Sampler getSampler(RGResourceHandle handle) const;
@@ -90,8 +104,12 @@ private:
 	uint32_t currentWidth = 0;
 	uint32_t currentHeight = 0;
 
+	std::unordered_map<std::string, RGImageDesc> logicalStreams;
+	std::unordered_map<std::string, std::string> terminalOutputs;
+
 	std::vector<RGResourceEntry> resources;
 	std::vector<RGPass> passes;
 	std::vector<RGCompiledPass> compiledPasses;
 	std::vector<RGResourceState> resourceStates;
+	size_t lastPassHash = 0;
 };

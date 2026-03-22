@@ -9,5 +9,5 @@ void MainLoop::startLoop(GeneralManager& gm)
 	{
 		window->pollEvents();
 		gm.update();
-	}
+	} 
 }

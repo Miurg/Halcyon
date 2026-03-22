@@ -6,6 +6,7 @@
 #include "../SwapChain.hpp"
 #include "../Resources/Managers/BufferManager.hpp"
 #include "../Resources/Components/GlobalDSetComponent.hpp"
+#include "../Components/GraphicsSettingsComponent.hpp"
 
 class RenderGraph;
 class DescriptorManager;
@@ -20,7 +21,7 @@ public:
 	static void createImageViews(SwapChain& swapChain, VulkanDevice& device, Window& window);
 	static void cleanupSwapChain(SwapChain& swapChain);
 	static void recreateSwapChain(SwapChain& swapChain, VulkanDevice& device, Window& window, RenderGraph& rg,
-	                              DescriptorManager& dManager, GlobalDSetComponent& globalDSetComponent);
+	                              DescriptorManager& dManager, GlobalDSetComponent& globalDSetComponent, GraphicsSettingsComponent settings);
 
 	static vk::SurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<vk::SurfaceFormatKHR>& availableFormats);
 	static vk::PresentModeKHR chooseSwapPresentMode(const std::vector<vk::PresentModeKHR>& availablePresentModes);

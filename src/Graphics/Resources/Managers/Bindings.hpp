@@ -51,4 +51,13 @@ constexpr uint32_t SsaoInput = 0;
 constexpr uint32_t DepthInput = 1;
 constexpr uint32_t NormalsInput = 2;
 } // namespace SSAOBlur
+namespace SSAOApply
+{
+constexpr uint32_t ColorInput = 0;
+constexpr uint32_t SsaoInput = 1;
+} // namespace SSAOApply
+namespace ToneMapping
+{
+constexpr uint32_t OffscreenInput = 0;
+}
 } // namespace Bindings

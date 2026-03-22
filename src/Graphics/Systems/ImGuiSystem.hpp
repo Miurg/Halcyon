@@ -1,5 +1,4 @@
 #pragma once
-
 #include <Orhescyon/GeneralManager.hpp>
 #include <Orhescyon/Systems/SystemCore.hpp>
 #include <vector>

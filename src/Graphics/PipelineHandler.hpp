@@ -20,6 +20,9 @@ public:
 	vk::raii::Pipeline ssaoBlurPipeline = nullptr;
 	vk::raii::PipelineLayout ssaoBlurPipelineLayout = nullptr;
 
+	vk::raii::Pipeline ssaoApplyPipeline = nullptr;
+	vk::raii::PipelineLayout ssaoApplyPipelineLayout = nullptr;
+
 	vk::raii::Pipeline cullingPipeline = nullptr;
 	vk::raii::PipelineLayout cullingPipelineLayout = nullptr;
 
@@ -45,4 +48,7 @@ public:
 
 	vk::raii::Pipeline resetInstancePipeline = nullptr;
 	vk::raii::PipelineLayout resetInstancePipelineLayout = nullptr;
+
+	vk::raii::Pipeline toneMappingPipeline = nullptr;
+	vk::raii::PipelineLayout toneMappingPipelineLayout = nullptr;
 };

@@ -19,6 +19,7 @@
 #include "Components/FrameManagerComponent.hpp"
 #include "Components/FrameDataComponent.hpp"
 #include "Components/CurrentFrameComponent.hpp"
+#include "Components/GraphicsSettingsComponent.hpp"
 #include "Components/FrameImageComponent.hpp"
 #include "Components/PipelineHandlerComponent.hpp"
 #include "Resources/Components/GlobalDSetComponent.hpp"
@@ -227,13 +228,20 @@ void GraphicsInit::initPipelines(GeneralManager& gm)
 	Entity rgEntity = gm.createEntity();
 	RenderGraph* rg = new RenderGraph(*vulkanDevice, vmaAlloc);
 	gm.registerContext<RenderGraphContext>(rgEntity);
-	rg->createResource({tManager->findBestFormat(), RGSizeMode::FullExtent, vk::ImageAspectFlagBits::eDepth}, "depth");
-	rg->createResource({swapChain->hdrFormat, RGSizeMode::FullExtent, vk::ImageAspectFlagBits::eColor}, "offscreen");
-	rg->createResource({vk::Format::eR16G16B16A16Sfloat, RGSizeMode::FullExtent, vk::ImageAspectFlagBits::eColor},
-	                   "viewNormals");
-	rg->createResource({vk::Format::eR8Unorm, RGSizeMode::HalfExtent, vk::ImageAspectFlagBits::eColor}, "ssao");
-	rg->createResource({vk::Format::eR8Unorm, RGSizeMode::HalfExtent, vk::ImageAspectFlagBits::eColor}, "ssaoBlur");
 	rg->handleResize(swapChain->swapChainExtent.width, swapChain->swapChainExtent.height);
+
+	// Logical Streams
+	rg->declareLogicalStream("Depth",
+	                         {tManager->findBestFormat(), RGSizeMode::FullExtent, vk::ImageAspectFlagBits::eDepth});
+	rg->declareLogicalStream("MainColor", {swapChain->hdrFormat, RGSizeMode::FullExtent, vk::ImageAspectFlagBits::eColor});
+	rg->declareLogicalStream("ViewNormals",
+	                        {vk::Format::eR16G16B16A16Sfloat, RGSizeMode::FullExtent, vk::ImageAspectFlagBits::eColor});
+	rg->declareLogicalStream("SSAOTexture",
+	                        {vk::Format::eR8Unorm, RGSizeMode::HalfExtent, vk::ImageAspectFlagBits::eColor});
+	rg->declareLogicalStream("SSAOBlurTexture",
+	                        {vk::Format::eR8Unorm, RGSizeMode::HalfExtent, vk::ImageAspectFlagBits::eColor});
+	rg->declareLogicalStream("PostProcessColor",
+	                        {swapChain->swapChainImageFormat, RGSizeMode::FullExtent, vk::ImageAspectFlagBits::eColor});
 	gm.addComponent<RenderGraphComponent>(rgEntity, rg);
 	gm.addComponent<NameComponent>(rgEntity, "SYSTEM Render Graph");
 #pragma endregion
@@ -339,6 +347,17 @@ void GraphicsInit::initPipelines(GeneralManager& gm)
 	        .pipeline;
 
 	// === Fullscreen passes ===
+	auto [toneMappingPipelineLayout, toneMappingPipeline] =
+	    PipelineFactory::build(dev, GraphicsPipelineDesc{
+	                                    .shaderPath = "shaders/tonemapping.spv",
+	                                    .cullMode = vk::CullModeFlagBits::eNone,
+	                                    .colorAttachments = {PipelineFactory::opaqueAttachment()},
+	                                    .colorFormats = {swapChain->swapChainImageFormat},
+	                                    .setLayouts = {*dManager->screenSpaceSetLayout},
+	                                });
+	pipelineHandler->toneMappingPipelineLayout = std::move(toneMappingPipelineLayout);
+	pipelineHandler->toneMappingPipeline = std::move(toneMappingPipeline);
+
 	auto [fxaaLayout, fxaaPipeline] =
 	    PipelineFactory::build(dev, GraphicsPipelineDesc{
 	                                    .shaderPath = "shaders/fxaa.spv",
@@ -374,6 +393,18 @@ void GraphicsInit::initPipelines(GeneralManager& gm)
 	                                });
 	pipelineHandler->ssaoBlurPipelineLayout = std::move(ssaoBlurLayout);
 	pipelineHandler->ssaoBlurPipeline = std::move(ssaoBlurPipeline);
+
+	auto [ssaoApplyLayout, ssaoApplyPipeline] =
+	 PipelineFactory::build(dev, GraphicsPipelineDesc{
+												.shaderPath = "shaders/ssaoapply.spv",
+												.cullMode = vk::CullModeFlagBits::eNone,
+												.colorAttachments = {PipelineFactory::opaqueAttachment()},
+												.colorFormats = {swapChain->hdrFormat},
+												.setLayouts = {*dManager->screenSpaceSetLayout},
+												.pushConstants = {{vk::ShaderStageFlagBits::eFragment, 0, sizeof(float) * 2}},
+										  });
+	pipelineHandler->ssaoApplyPipelineLayout = std::move(ssaoApplyLayout);
+	pipelineHandler->ssaoApplyPipeline = std::move(ssaoApplyPipeline);
 
 	// === Compute pipelines ===
 	auto [cullLayout, cullPipeline] =
@@ -447,7 +478,7 @@ void GraphicsInit::initPipelines(GeneralManager& gm)
 	pipelineHandler->brdfLutPipeline = std::move(brdfLutPipeline);
 
 	gm.addComponent<PipelineHandlerComponent>(signatureEntity, pipelineHandler);
-	gm.addComponent<NameComponent>(signatureEntity, "SYSTEM Pipeline Handler");
+	gm.addComponent<NameComponent>(signatureEntity, "SYSTEM Pipeline Handler");  
 #pragma endregion
 
 #ifdef _DEBUG
@@ -460,7 +491,7 @@ void GraphicsInit::initPipelines(GeneralManager& gm)
 void GraphicsInit::initScene(GeneralManager& gm)
 {
 #ifdef _DEBUG
-	std::cout << "GRAPHICSINIT::PLACEHOLDERENTITYS::Start creating placeholder entities" << std::endl;
+	std::cout << "GRAPHICSINIT::PLACEHOLDERENTITYS::Start creating placeholder entities" << std::endl;  
 #endif //_DEBUG
 #pragma region Fetch Contexts
 	DescriptorManager* dManager =
@@ -510,6 +541,11 @@ void GraphicsInit::initScene(GeneralManager& gm)
 	gm.registerContext<SkyBoxContext>(skyboxEntity);
 	SkyboxComponent* skybox = gm.getContextComponent<SkyBoxContext, SkyboxComponent>();
 #pragma endregion
+	// === Graphics Settings ===
+	Entity settingsEntity = gm.createEntity();
+	gm.addComponent<NameComponent>(settingsEntity, "Graphics Settings");
+	gm.addComponent<GraphicsSettingsComponent>(settingsEntity);
+	gm.registerContext<GraphicsSettingsContext>(settingsEntity); 
 
 #pragma region Global Descriptor Set (Set 0)
 	globalDSetComponent->globalDSets =
@@ -647,14 +683,17 @@ void GraphicsInit::initScene(GeneralManager& gm)
 	globalDSetComponent->fxaaDSets = dManager->allocateOffscreenDescriptorSet(*dManager->screenSpaceSetLayout);
 	globalDSetComponent->ssaoDSets = dManager->allocateOffscreenDescriptorSet(*dManager->screenSpaceSetLayout);
 	globalDSetComponent->ssaoBlurDSets = dManager->allocateOffscreenDescriptorSet(*dManager->screenSpaceSetLayout);
+	globalDSetComponent->ssaoApplyDSets = dManager->allocateOffscreenDescriptorSet(*dManager->screenSpaceSetLayout);
+	globalDSetComponent->toneMappingDSets = dManager->allocateOffscreenDescriptorSet(*dManager->screenSpaceSetLayout);
 
 	// SSAO NoiseInput is a static texture — write it manually.
 	dManager->updateSingleTextureDSet(globalDSetComponent->ssaoDSets, Bindings::SSAO::NoiseInput,
 	                                  tManager->textures[swap->ssaoNoiseTextureHandle.id].textureImageView,
 	                                  tManager->textures[swap->ssaoNoiseTextureHandle.id].textureSampler);
 
-	// All other bindings are managed by RG.
-	rg->updateDescriptors(*dManager, *globalDSetComponent);
+
+	GraphicsSettingsComponent* graphicsSettings =
+	    gm.getContextComponent<GraphicsSettingsContext, GraphicsSettingsComponent>();
 #pragma endregion
 
 #pragma region SSAO Settings

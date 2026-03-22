@@ -146,7 +146,7 @@ void BufferUpdateSystem::update(GeneralManager& gm)
 				globalPrimitiveIndex++;
 			}
 		}
-	};
+	}; 
 
 	// Opaque Single-Sided
 	writePrimitivesForPass(true, false);

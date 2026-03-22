@@ -580,13 +580,6 @@ void CommandBufferFactory::drawFxaaPass(vk::raii::CommandBuffer& cmd, SwapChain&
 	cmd.pushConstants<PushConstants>(*pipelineHandler.fxaaPipelineLayout, vk::ShaderStageFlagBits::eFragment, 0, push);
 	cmd.setCullMode(vk::CullModeFlagBits::eNone);
 	cmd.draw(3, 1, 0, 0);
-
-	// ImGui
-	ImDrawData* draw_data = ImGui::GetDrawData();
-	if (draw_data)
-	{
-		ImGui_ImplVulkan_RenderDrawData(draw_data, *cmd);
-	}
 }
 
 void CommandBufferFactory::drawSsaoPass(vk::raii::CommandBuffer& cmd, SwapChain& swapChain,
@@ -662,6 +655,51 @@ void CommandBufferFactory::drawSsaoBlurPass(vk::raii::CommandBuffer& cmd, SwapCh
 	cmd.setCullMode(vk::CullModeFlagBits::eNone);
 	cmd.draw(3, 1, 0, 0);
 }
+
+void CommandBufferFactory::drawSSAOApplyPass(vk::raii::CommandBuffer& cmd, SwapChain& swapChain,
+													 PipelineHandler& pipelineHandler, DescriptorManagerComponent& dManager,
+													DSetHandle ssaoApplyDescriptorSetIndex)
+{
+	cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipelineHandler.ssaoApplyPipeline);
+
+	cmd.setViewport(0, vk::Viewport(0.0f, 0.0f, static_cast<float>(swapChain.swapChainExtent.width),
+											  static_cast<float>(swapChain.swapChainExtent.height), 0.0f, 1.0f));
+	cmd.setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), swapChain.swapChainExtent));
+
+	cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineHandler.ssaoApplyPipelineLayout, 0,
+	                       dManager.descriptorManager->descriptorSets[ssaoApplyDescriptorSetIndex.id][0], nullptr);
+
+	cmd.setCullMode(vk::CullModeFlagBits::eNone);
+	cmd.draw(3, 1, 0, 0);
+}
+
+void CommandBufferFactory::drawToneMappingPass(vk::raii::CommandBuffer& cmd, SwapChain& swapChain,
+                                             PipelineHandler& pipelineHandler, DescriptorManagerComponent& dManager,
+                                               DSetHandle toneMappingDescriptorSetIndex)
+{
+	cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipelineHandler.toneMappingPipeline);
+
+	cmd.setViewport(0, vk::Viewport(0.0f, 0.0f, static_cast<float>(swapChain.swapChainExtent.width),
+	                                static_cast<float>(swapChain.swapChainExtent.height), 0.0f, 1.0f));
+	cmd.setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), swapChain.swapChainExtent));
+
+	cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineHandler.toneMappingPipelineLayout, 0,
+	                       dManager.descriptorManager->descriptorSets[toneMappingDescriptorSetIndex.id][0], nullptr);
+
+	cmd.setCullMode(vk::CullModeFlagBits::eNone);
+	cmd.draw(3, 1, 0, 0);
+}
+
+void CommandBufferFactory::drawImGui(vk::raii::CommandBuffer& cmd)
+{
+	// ImGui
+	ImDrawData* draw_data = ImGui::GetDrawData();
+	if (draw_data)
+	{
+		ImGui_ImplVulkan_RenderDrawData(draw_data, *cmd);
+	}
+}
+
 
 void CommandBufferFactory::transitionImageLayout(vk::raii::CommandBuffer& commandBuffer, vk::Image image,
                                                  vk::ImageLayout oldLayout, vk::ImageLayout newLayout,
