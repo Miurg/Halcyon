@@ -117,6 +117,7 @@ float4 fragMain(VSOutput input) : SV_Target
 
 	for (int d = 0; d < NUM_DIRECTIONS; d++)
 	{
+
 		float angle = float(d) * directionStepAngle;
 		float2 baseDir = float2(cos(angle), sin(angle));
 
@@ -134,6 +135,14 @@ float4 fragMain(VSOutput input) : SV_Target
 			if (any(saturate(sampleUV) != sampleUV)) break;
 
 			float depthS = depthTexture.SampleLevel(sampleUV, 0).r;
+
+            float3 S = reconstructViewPos(sampleUV, depthS);
+            float depthDiff = abs(S.z - P.z);
+            if (depthDiff > pc.radius * 1.5) // TODO: add 1.5 to ssao settings?
+            {
+                sampleUV += stepVec;
+                continue;
+            }
 
 			if (depthS > 0.0)
 			{
