@@ -31,7 +31,7 @@
 
 #include "Components/NameComponent.hpp"
 #include "Components/CameraComponent.hpp"
-#include "Components/LightComponent.hpp"
+#include "Components/DirectLightComponent.hpp"
 #include "Components/LocalTransformComponent.hpp"
 #include "Components/GlobalTransformComponent.hpp"
 #include "Components/RelationshipComponent.hpp"
@@ -348,7 +348,7 @@ void GraphicsInit::initPipelines(GeneralManager& gm)
 	        })
 	        .pipeline;
 
-	// === Shadow (direct\sun) ===
+	// === Shadow (direct) ===
 	pipelineHandler->shadowPipeline =
 	    PipelineFactory::build(dev, depthOnlyDesc("shaders/shadow.spv", vk::SampleCountFlagBits::e1)).pipeline;
 
@@ -537,7 +537,7 @@ void GraphicsInit::initScene(GeneralManager& gm)
 	    gm.getContextComponent<MainSignatureContext, PipelineHandlerComponent>()->pipelineHandler;
 #pragma endregion
 
-#pragma region Scene Entities (Camera, Sun, Skybox)
+#pragma region Scene Entities (Camera, DirectLight, Skybox)
 	// === Camera ===
 	Entity cameraEntity = gm.createEntity();
 	gm.addComponent<NameComponent>(cameraEntity, "Main Camera");
@@ -546,21 +546,21 @@ void GraphicsInit::initScene(GeneralManager& gm)
 	gm.registerContext<MainCameraContext>(cameraEntity);
 	CameraComponent* camera = gm.getContextComponent<MainCameraContext, CameraComponent>();
 
-	// === Sun ===
-	Entity sunEntity = gm.createEntity();
-	gm.addComponent<NameComponent>(sunEntity, "Directional Light (Sun)");
-	gm.addComponent<CameraComponent>(sunEntity);
-	glm::vec3 sunPos = glm::vec3(10.0f, 20.0f, 10.0f);
-	glm::vec3 sunDir = glm::normalize(-sunPos);
-	glm::quat sunRot = glm::quatLookAt(sunDir, glm::vec3(0.0f, 1.0f, 0.0f));
-	glm::vec4 sunColor = glm::vec4(0.984f, 1.0f, 0.808f, 10.0f); // Slightly warm white light with high intensity
-	glm::vec4 sunAmbient = sunColor * 0.05f;                     // Ambient component is 10% of the main light color
-	gm.addComponent<GlobalTransformComponent>(sunEntity, sunPos, sunRot);
-	gm.addComponent<LightComponent>(sunEntity, 4000, 4000, sunColor, sunAmbient);
-	gm.registerContext<SunContext>(sunEntity);
-	CameraComponent* sunCamera = gm.getContextComponent<SunContext, CameraComponent>();
-	LightComponent* sunLight = gm.getContextComponent<SunContext, LightComponent>();
-	sunLight->textureShadowImage = tManager->createShadowMap(sunLight->sizeX, sunLight->sizeY);
+	// === DirectLight ===
+	Entity directLightEntity = gm.createEntity();
+	gm.addComponent<NameComponent>(directLightEntity, "Directional Light (Sun)");
+	gm.addComponent<CameraComponent>(directLightEntity);
+	glm::vec3 directLightPos = glm::vec3(10.0f, 20.0f, 10.0f);
+	glm::vec3 directLightDir = glm::normalize(-directLightPos);
+	glm::quat directLightRot = glm::quatLookAt(directLightDir, glm::vec3(0.0f, 1.0f, 0.0f));
+	glm::vec4 directLightColor = glm::vec4(0.984f, 1.0f, 0.808f, 10.0f); // Slightly warm white light with high intensity
+	glm::vec4 directLightAmbient = directLightColor * 0.05f;                     // Ambient component is 10% of the main light color
+	gm.addComponent<GlobalTransformComponent>(directLightEntity, directLightPos, directLightRot);
+	gm.addComponent<DirectLightComponent>(directLightEntity, 4000, 4000, directLightColor, directLightAmbient);
+	gm.registerContext<SunContext>(directLightEntity);
+	CameraComponent* directLightCamera = gm.getContextComponent<SunContext, CameraComponent>();
+	DirectLightComponent* directLight = gm.getContextComponent<SunContext, DirectLightComponent>();
+	directLight->textureShadowImage = tManager->createShadowMap(directLight->sizeX, directLight->sizeY);
 
 #pragma endregion
 	// === Graphics Settings ===
@@ -593,14 +593,25 @@ void GraphicsInit::initScene(GeneralManager& gm)
 	    bManager->createBuffer((vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal),
 	                           sizeof(CameraStructure), MAX_FRAMES_IN_FLIGHT, vk::BufferUsageFlagBits::eStorageBuffer);
 	dManager->updateStorageBufferDescriptors(*bManager, globalDSetComponent->cameraBuffers,
-	                                         globalDSetComponent->globalDSets, 0);
+	                                         globalDSetComponent->globalDSets, Bindings::Global::Camera);
 
 	// Sun buffer
 	globalDSetComponent->sunCameraBuffers =
 	    bManager->createBuffer((vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal),
-	                           sizeof(SunStructure), MAX_FRAMES_IN_FLIGHT, vk::BufferUsageFlagBits::eStorageBuffer);
+	                           sizeof(DirectLightStructure), MAX_FRAMES_IN_FLIGHT, vk::BufferUsageFlagBits::eStorageBuffer);
 	dManager->updateStorageBufferDescriptors(*bManager, globalDSetComponent->sunCameraBuffers,
-	                                         globalDSetComponent->globalDSets, 1);
+	                                         globalDSetComponent->globalDSets, Bindings::Global::Sun);
+	// Point light buffer
+	globalDSetComponent->pointLightBuffers = bManager->createBuffer(
+	    (vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal),
+	    sizeof(PointLightStructure) * 100, MAX_FRAMES_IN_FLIGHT, vk::BufferUsageFlagBits::eStorageBuffer);
+	dManager->updateStorageBufferDescriptors(*bManager, globalDSetComponent->pointLightBuffers,
+	                                         globalDSetComponent->globalDSets, Bindings::Global::PointLights);
+	globalDSetComponent->pointLightCountBuffer =
+	    bManager->createBuffer((vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal),
+	                           sizeof(uint32_t), MAX_FRAMES_IN_FLIGHT, vk::BufferUsageFlagBits::eStorageBuffer);
+	dManager->updateStorageBufferDescriptors(*bManager, globalDSetComponent->pointLightCountBuffer,
+	                                         globalDSetComponent->globalDSets, Bindings::Global::PointLightCount);
 #pragma endregion
 
 #pragma region Material & Texture System (Set 2)
@@ -615,8 +626,8 @@ void GraphicsInit::initScene(GeneralManager& gm)
 
 	// Shadow Map Texture Set (binding 1)
 	dManager->updateSingleTextureDSet(bTextureDSetComponent->bindlessTextureSet, 1,
-	                                  tManager->textures[sunLight->textureShadowImage.id].textureImageView,
-	                                  tManager->textures[sunLight->textureShadowImage.id].textureSampler);
+	                                  tManager->textures[directLight->textureShadowImage.id].textureImageView,
+	                                  tManager->textures[directLight->textureShadowImage.id].textureSampler);
 
 	// Default White Texture
 	auto texturePtr = GltfLoader::createDefaultWhiteTexture();

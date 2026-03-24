@@ -46,7 +46,7 @@ void RenderSystem::update(GeneralManager& gm)
 	ModelManager& modelManager = *gm.getContextComponent<ModelManagerContext, ModelManagerComponent>()->modelManager;
 	FrameManager* frameManager = gm.getContextComponent<FrameManagerContext, FrameManagerComponent>()->frameManager;
 	CurrentFrameComponent* currentFrameComp = gm.getContextComponent<CurrentFrameContext, CurrentFrameComponent>();
-	LightComponent* lightTexture = gm.getContextComponent<SunContext, LightComponent>();
+	DirectLightComponent* lightTexture = gm.getContextComponent<SunContext, DirectLightComponent>();
 	BindlessTextureDSetComponent* materialDSetComponent =
 	    gm.getContextComponent<MainDSetsContext, BindlessTextureDSetComponent>();
 	DescriptorManagerComponent* dManager =

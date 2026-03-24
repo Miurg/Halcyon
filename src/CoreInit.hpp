@@ -12,6 +12,7 @@
 #include "Game/Systems/SpawnSystem.hpp"
 #include "Graphics/Systems/ImGuiSystem.hpp"
 #include "Platform/Systems/DeltaTimeSystem.hpp"
+#include "Graphics/Systems/LightUpdateSystem.hpp"
 
 using Orhescyon::GeneralManager;
 class CoreInit
@@ -34,6 +35,7 @@ public:
 		gm.registerSystem<ImGuiSystem>();
 		gm.registerSystem<CameraMatrixSystem>();
 		gm.registerSystem<BufferUpdateSystem>();
+		gm.registerSystem<LightUpdateSystem>();
 		gm.registerSystem<RenderSystem>();
 		gm.registerSystem<FrameEndSystem>();
 

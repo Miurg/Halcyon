@@ -38,7 +38,7 @@ DescriptorManager::DescriptorManager(VulkanDevice& vulkanDevice) : vulkanDevice(
 
 	imguiPool = vk::raii::DescriptorPool(vulkanDevice.device, imguiPoolInfo);
 
-	//===Global (Set 0): camera + sun===
+	//===Global (Set 0): camera + sun + spot light + spot light count===
 	vk::DescriptorSetLayoutBinding cameraBinding(Bindings::Global::Camera, vk::DescriptorType::eStorageBuffer, 1,
 	                                             vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eCompute |
 	                                                 vk::ShaderStageFlagBits::eFragment,
@@ -47,7 +47,16 @@ DescriptorManager::DescriptorManager(VulkanDevice& vulkanDevice) : vulkanDevice(
 	                                          vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment |
 	                                              vk::ShaderStageFlagBits::eCompute,
 	                                          nullptr);
-	std::array<vk::DescriptorSetLayoutBinding, 2> globalBindings = {cameraBinding, sunBinding};
+	vk::DescriptorSetLayoutBinding spotLightBinding(
+	    Bindings::Global::PointLights, vk::DescriptorType::eStorageBuffer, 1,
+	    vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment | vk::ShaderStageFlagBits::eCompute,
+	    nullptr);
+	vk::DescriptorSetLayoutBinding spotLightCountBinding(
+	    Bindings::Global::PointLightCount, vk::DescriptorType::eStorageBuffer, 1,
+	    vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment | vk::ShaderStageFlagBits::eCompute,
+	    nullptr);
+	std::array<vk::DescriptorSetLayoutBinding, 4> globalBindings = {cameraBinding, sunBinding, spotLightBinding,
+	                                                                spotLightCountBinding};
 
 	vk::DescriptorSetLayoutCreateInfo globalInfo({}, static_cast<uint32_t>(globalBindings.size()),
 	                                             globalBindings.data());
@@ -254,7 +263,7 @@ void DescriptorManager::updateIBLDescriptors(BindlessTextureDSetComponent& dSetC
 	descriptorWrites[2].pImageInfo = &brdfLutInfo;
 
 	vulkanDevice.device.updateDescriptorSets(descriptorWrites, {});
-} 
+}
 
 void DescriptorManager::updateSingleTextureDSet(DSetHandle dIndex, int binding, vk::ImageView imageView,
                                                 vk::Sampler sampler)

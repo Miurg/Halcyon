@@ -10,7 +10,7 @@ struct CameraStructure
 	alignas(16) glm::vec4 frustumPlanes[6];
 };
 
-struct SunStructure
+struct DirectLightStructure
 {
 	alignas(16) glm::mat4 lightSpaceMatrix;
 	alignas(16) glm::vec4 direction; // xyz: direction, w: padding
@@ -68,4 +68,18 @@ struct MaterialStructure
 	float metallicFactor = 1.0f;
 	float padding1 = 0.0f;
 	float padding2 = 0.0f;
+};
+
+struct PointLightStructure
+{
+	alignas(16) glm::vec3 position;
+	float radius;
+	alignas(16) glm::vec3 color;
+	float intensity;
+	alignas(16) glm::vec3 direction; 
+	float innerConeAngle;
+	float outerConeAngle;
+	uint32_t type;        // 0 = point, 1 = spot
+	uint32_t _pad1;
+	uint32_t _pad2;
 };

@@ -144,7 +144,7 @@ void CommandBufferFactory::drawShadowCullPass(vk::raii::CommandBuffer& cmd, Pipe
 }
 
 void CommandBufferFactory::drawShadowPass(vk::raii::CommandBuffer& cmd, PipelineHandler& pipelineHandler,
-                                          uint32_t currentFrame, LightComponent& lightTexture,
+                                          uint32_t currentFrame, DirectLightComponent& lightTexture,
                                           DescriptorManagerComponent& dManager,
                                           GlobalDSetComponent* globalDSetComponent,
                                           ModelDSetComponent* objectDSetComponent, TextureManager& tManager,

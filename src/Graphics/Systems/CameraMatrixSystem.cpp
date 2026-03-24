@@ -12,7 +12,7 @@
 #include "../Resources/Components/GlobalDSetComponent.hpp"
 #include "../Components/CameraComponent.hpp"
 #include "../Components/GlobalTransformComponent.hpp"
-#include "../Components/LightComponent.hpp"
+#include "../Components/DirectLightComponent.hpp"
 #include "../Resources/ResourceStructures.hpp"
 
 void CameraMatrixSystem::onRegistered(GeneralManager& gm)
@@ -38,7 +38,7 @@ void CameraMatrixSystem::update(GeneralManager& gm)
 	CameraComponent* sunCamera = gm.getContextComponent<SunContext, CameraComponent>();
 	GlobalTransformComponent* sunCameraTransform = gm.getContextComponent<SunContext, GlobalTransformComponent>();
 	GlobalDSetComponent* globalDSetComponent = gm.getContextComponent<MainDSetsContext, GlobalDSetComponent>();
-	LightComponent* lightComponent = gm.getContextComponent<SunContext, LightComponent>();
+	DirectLightComponent* lightComponent = gm.getContextComponent<SunContext, DirectLightComponent>();
 
 	// === Camera ===
 	glm::mat4 view = mainCameraTransform->getViewMatrix();
@@ -168,7 +168,7 @@ void CameraMatrixSystem::update(GeneralManager& gm)
 		sunFrustumPlanes[i] /= length;
 	}
 
-	SunStructure sunUbo{.lightSpaceMatrix = lightSpaceMatrix,
+	DirectLightStructure sunUbo{.lightSpaceMatrix = lightSpaceMatrix,
 	                    .direction = glm::vec4(-lightDir, 1.0f),
 	                    .color = lightComponent->color,
 	                    .ambient = lightComponent->ambient,

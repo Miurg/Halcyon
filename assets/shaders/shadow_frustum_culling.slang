@@ -12,20 +12,20 @@ struct CameraData
 [[vk::binding(0, 0)]]
 StructuredBuffer<CameraData> camera;
 
-struct SunUBO
+struct DirectionalLightData
 {
-	float4x4 lightSpaceMatrix;
-	float4 sunDirection;
-	float4 sunColor;
-	float4 sunAmbient;
-	float4 shadowMapSize;
-	float4 frustumPlanes[6];
-	float shadowCasterRange;
-	float3 _pad;
-	float4 cameraFrustumLightSpaceBounds;
+    float4x4 lightSpaceMatrix;
+    float4 direction;
+    float4 color;
+    float4 ambient;
+    float4 shadowMapSize;
+    float4 frustumPlanes[6];
+    float shadowCasterRange;
+    float3 _pad;
+    float4 cameraFrustumLightSpaceBounds;
 };
 [[vk::binding(1, 0)]]
-StructuredBuffer<SunUBO> sun;
+StructuredBuffer<DirectionalLightData> directionalLight;
 
 // === SET 1 ===
 
@@ -211,7 +211,7 @@ void computeMain(uint3 id: SV_DispatchThreadID)
 	float3 worldMin = worldCenter - worldExtents;
 	float3 worldMax = worldCenter + worldExtents;
 
-    if (!IsAABBVisible(sun[0].frustumPlanes, worldMin, worldMax)) return;
+    if (!IsAABBVisible(directionalLight[0].frustumPlanes, worldMin, worldMax)) return;
 
     bool castsShadowIntoView = false;
     
@@ -223,8 +223,8 @@ void computeMain(uint3 id: SV_DispatchThreadID)
     {
         float3 frustumCorners[8];
         GetFrustumCorners(camera[0].invViewProj, frustumCorners);
-        
-        float3 lightDir = -sun[0].sunDirection.xyz;
+
+        float3 lightDir = -directionalLight[0].direction.xyz;
         Ray ray;
         ray.direction = lightDir;
         

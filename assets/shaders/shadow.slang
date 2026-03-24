@@ -1,19 +1,19 @@
 // === SET 0 ===
 
-struct SunUBO
+struct DirectionalLightData
 {
-	float4x4 lightSpaceMatrix;
-	float4 sunDirection;
-	float4 sunColor;   // .rgb = color, .a = intensity
-	float4 sunAmbient; // .rgb = color, .a = intensity
-	float4 shadowMapSize;
+    float4x4 lightSpaceMatrix;
+    float4 direction;
+    float4 color;
+    float4 ambient;
+    float4 shadowMapSize;
     float4 frustumPlanes[6];
     float shadowCasterRange;
     float3 _pad;
     float4 cameraFrustumLightSpaceBounds;
 };
 [[vk::binding(1, 0)]]
-StructuredBuffer<SunUBO> sun;
+StructuredBuffer<DirectionalLightData> directionalLight;
 
 // === SET 1 ===
 
@@ -59,7 +59,7 @@ VSOutput vertMain(VSInput input, uint instanceID: SV_InstanceID, uint baseInstan
 
 	float4 worldPos = mul(modelMatrix, float4(input.inPosition, 1.0));
 
-	VSOutput output;
-	output.pos = mul(sun[0].lightSpaceMatrix, worldPos);
+    VSOutput output;
+    output.pos = mul(directionalLight[0].lightSpaceMatrix, worldPos);
 	return output;
 }

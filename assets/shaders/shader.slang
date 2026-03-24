@@ -11,12 +11,12 @@ struct CameraData
 [[vk::binding(0, 0)]]
 StructuredBuffer<CameraData> camera;
 
-struct SunData
+struct DirectionalLightData
 {
 	float4x4 lightSpaceMatrix;
-	float4 sunDirection;
-	float4 sunColor;
-	float4 sunAmbient;
+	float4 direction;
+	float4 color;
+	float4 ambient;
 	float4 shadowMapSize; // x: width, y: height, z: 1.0/width, w: 1.0/height
     float4 frustumPlanes[6];
     float shadowCasterRange;
@@ -24,7 +24,26 @@ struct SunData
     float4 cameraFrustumLightSpaceBounds;
 };
 [[vk::binding(1, 0)]]
-StructuredBuffer<SunData> sun;
+StructuredBuffer<DirectionalLightData> directionalLight;
+
+struct PointLightData
+{
+    float3 position;
+    float radius;
+    float3 color;
+    float intensity;
+    float3 direction; // for spot = normalized direction, for point ignored
+    float innerConeAngle; // for point = -1.0
+    float outerConeAngle; // for point = -1.0
+    uint type;            // 0 = point, 1 = spot
+    float2 _pad;
+};
+
+[[vk::binding(2, 0)]]
+StructuredBuffer<PointLightData> lights;
+
+[[vk::binding(3, 0)]]
+StructuredBuffer<uint> lightCount;
 
 // === SET 1 ===
 struct ModelData
@@ -132,8 +151,8 @@ VSOutput vertMain(VSInput input, uint instanceID: SV_InstanceID, uint baseInstan
 
 	VSOutput output;
 	output.pos = mul(camera[0].cameraSpaceMatrix, worldPos);
-	output.viewDepth = output.pos.w;
-	output.shadowCoord = mul(sun[0].lightSpaceMatrix, worldPos);
+    output.viewDepth = output.pos.w;
+    output.shadowCoord = mul(directionalLight[0].lightSpaceMatrix, worldPos);
 	output.fragColor = input.inColor;
 	output.fragTexCoord = input.inTexCoord;
 	output.fragNormal = N;
@@ -239,6 +258,12 @@ float3 DiffuseDisney(float3 albedo, float NdotL, float NdotV, float HdotV, float
     return albedo / PI * Fd;
 }
 
+float PointLightAttenuation(float dist, float radius)
+{
+    float x = saturate(1.0 - pow(dist / radius, 4.0));
+    return x * x / (dist * dist + 1.0);
+}
+
 struct FragOutput
 {
 	float4 color : SV_Target0;
@@ -279,8 +304,8 @@ FragOutput fragMain(VSOutput input, bool isFrontFace: SV_IsFrontFace)
 	float3 mapNormal = SampleNormalMap(mat.normalMapIndex, input.fragTexCoord, dx, dy);
 	float3 finalNormal = normalize(mapNormal.x * T + mapNormal.y * B + mapNormal.z * N);
 
-	// === LIGHTING SETUP ===
-	float3 L = normalize(sun[0].sunDirection.xyz);
+    // === LIGHTING SETUP ===
+    float3 L = normalize(directionalLight[0].direction.xyz);
 	float3 V = normalize(camera[0].cameraPositionAndPadding.xyz - input.fragWorldPos);
 	float3 H = normalize(L + V);
 
@@ -289,8 +314,8 @@ FragOutput fragMain(VSOutput input, bool isFrontFace: SV_IsFrontFace)
 	float NdotH = max(dot(finalNormal, H), 0.0);
     float HdotV = max(dot(H, V), 0.0);
 
-	// === SHADOW (PCF 3x3) ===
-	float2 shadowTexelSize = sun[0].shadowMapSize.zw;
+    // === SHADOW (PCF 3x3) ===
+    float2 shadowTexelSize = directionalLight[0].shadowMapSize.zw;
 
 	float3 projCoords = input.shadowCoord.xyz / input.shadowCoord.w;
 	projCoords.xy = projCoords.xy * 0.5 + 0.5;
@@ -308,8 +333,45 @@ FragOutput fragMain(VSOutput input, bool isFrontFace: SV_IsFrontFace)
 	float3 kD = (1.0 - F) * (1.0 - metallic);
 	float3 diffuse = kD * DiffuseOrenNayar(albedo.rgb, NdotL, NdotV, roughness, L, V, finalNormal);
 
-	float3 sunRadiance = sun[0].sunColor.rgb * sun[0].sunColor.a;
+    float3 directionalLightRadiance = directionalLight[0].color.rgb * directionalLight[0].color.a;
 
+    // === LIGHTS ===
+    float3 litColorFromLights = float3(0.0, 0.0, 0.0);
+    for (uint i = 0; i < lightCount[0]; i++)
+    {
+        float3 Lp = lights[i].position - input.fragWorldPos;
+        float dist = length(Lp);
+        if (dist >= lights[i].radius) continue;
+
+        float3 Ldir = Lp / dist;
+        float3 Hp = normalize(Ldir + V);
+
+        float NdotLp = max(dot(finalNormal, Ldir), 1e-4);
+        float NdotHp = max(dot(finalNormal, Hp), 0.0);
+        float HdotVp = max(dot(Hp, V), 0.0);
+
+        float attenuation = PointLightAttenuation(dist, lights[i].radius);
+
+        float spotAttenuation = 1.0;
+        if (lights[i].type == 1)
+        {
+            float cosAngle = dot(-Ldir, lights[i].direction);
+            spotAttenuation = smoothstep(lights[i].outerConeAngle, lights[i].innerConeAngle, cosAngle);
+            if (spotAttenuation <= 0.0) continue;
+        }
+
+        float ap = roughness * roughness;
+        float Dp = D_GGX(NdotHp, ap);
+        float Vp = V_SmithGGXCorrelated(NdotV, NdotLp, ap);
+        float3 Fp = F_Schlick(HdotVp, F0);
+        float3 specp = Dp * Vp * Fp;
+
+        float3 kDp = (1.0 - Fp) * (1.0 - metallic);
+        float3 diffp = kDp * DiffuseOrenNayar(albedo.rgb, NdotLp, NdotV, roughness, Ldir, V, finalNormal);
+
+        float3 radiance = lights[i].color * lights[i].intensity;
+        litColorFromLights += (diffp + specp) * radiance * NdotLp * attenuation * spotAttenuation;
+    }
     // === IBL ===
     float3 F_ibl = F0 + (max(float3(1.0 - roughness, 1.0 - roughness, 1.0 - roughness), F0) - F0) * pow(1.0 - NdotV, 5.0);
 
@@ -325,9 +387,9 @@ FragOutput fragMain(VSOutput input, bool isFrontFace: SV_IsFrontFace)
         iblSpecular = prefilteredColor * (F_ibl * brdf.x + brdf.y);
     }
 
-    float3 ambient = (iblDiffuse + iblSpecular) * sun[0].sunAmbient.a;
+    float3 ambient = (iblDiffuse + iblSpecular) * directionalLight[0].ambient.a;
 
-	float3 litColor = (diffuse + specular) * sunRadiance * NdotL * shadow + ambient + emissive;
+    float3 litColor = (diffuse + specular) * directionalLightRadiance * NdotL * shadow + litColorFromLights + ambient + emissive;
 
 	// === FINAL OUTPUT ===
 	float outAlpha = (mat.alphaMode == 2) ? albedo.a : 1.0;

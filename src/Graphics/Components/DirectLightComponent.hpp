@@ -1,7 +1,7 @@
 #pragma once
 #include "../Resources/Managers/ResourceHandles.hpp"
 
-struct LightComponent
+struct DirectLightComponent
 {
 	float sizeX = 4096;
 	float sizeY = 4096;
@@ -11,9 +11,9 @@ struct LightComponent
 	float shadowDistance = 40.0f;      // Distance at which shadows start to fade out
 	float shadowCasterRange = 300.0f;  // Distance at which sun can cast shadows
 
-	LightComponent() = default;
+	DirectLightComponent() = default;
 
-	LightComponent(int sizeX, int sizeY) : sizeX(sizeX), sizeY(sizeY) {};
-	LightComponent(int sizeX, int sizeY, glm::vec4 color, glm::vec4 ambient)
+	DirectLightComponent(int sizeX, int sizeY) : sizeX(sizeX), sizeY(sizeY) {};
+	DirectLightComponent(int sizeX, int sizeY, glm::vec4 color, glm::vec4 ambient)
 	    : sizeX(sizeX), sizeY(sizeY), color(color), ambient(ambient) {};
 };

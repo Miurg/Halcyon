@@ -20,6 +20,8 @@
 #include "Components/ControlComponent.hpp"
 #include "../Graphics/Components/NameComponent.hpp"
 #include "../Platform/PlatformContexts.hpp"
+#include "../Graphics/Components/PointLightComponent.hpp"
+#include "../Graphics/Systems/LightUpdateSystem.hpp"
 
 void GameInit::gameInitStart(GeneralManager& gm)
 {
@@ -49,6 +51,17 @@ void GameInit::gameInitStart(GeneralManager& gm)
 
 	RelationshipComponent* real = gm.getComponent<RelationshipComponent>(gameObjectEntity1);
 	real->addChild(gameObjectEntity1, dautherEntity, gm);
+
+	Entity pontLightEntity = gm.createEntity();
+	gm.addComponent<PointLightComponent>(pontLightEntity);
+	gm.addComponent<GlobalTransformComponent>(pontLightEntity, -5.0f, 5.0f, 10.0f);
+	PointLightComponent* pointLightInst = gm.getComponent<PointLightComponent>(pontLightEntity);
+	pointLightInst->color = glm::vec3(1.0f, 0.0f, 0.0f);
+	pointLightInst->direction = glm::vec3(0.0f, -1.0f, 0.0f);
+	pointLightInst->intensity = 100.0f;
+	pointLightInst->radius = 40.0f;
+	pointLightInst->type = 0; // Point light
+	gm.subscribeEntity<LightUpdateSystem>(pontLightEntity);
 
 	//Entity gameObjectEntity2 = gm.createEntity();
 	//gm.addComponent<NameComponent>(gameObjectEntity2, "Emissive Model");

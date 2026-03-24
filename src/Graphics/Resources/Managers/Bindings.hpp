@@ -7,6 +7,8 @@ namespace Global
 {
 constexpr uint32_t Camera = 0;
 constexpr uint32_t Sun = 1;
+constexpr uint32_t PointLights = 2;
+constexpr uint32_t PointLightCount = 3;
 } // namespace Global
 
 namespace Model

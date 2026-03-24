@@ -4,7 +4,7 @@
 #include "../SwapChain.hpp"
 #include "../PipelineHandler.hpp"
 #include "../Resources/Managers/BufferManager.hpp"
-#include "../Components/LightComponent.hpp"
+#include "../Components/DirectLightComponent.hpp"
 #include "../Components/DescriptorManagerComponent.hpp"
 #include "../Resources/Components/ModelDSetComponent.hpp"
 #include "../Resources/Components/GlobalDSetComponent.hpp"
@@ -21,7 +21,7 @@ public:
 	                               ModelDSetComponent* objectDSetComponent, ModelManager& mManager,
 	                               BufferManager& bManager, const DrawInfoComponent& drawInfo);
 	static void drawShadowPass(vk::raii::CommandBuffer& cmd, PipelineHandler& pipelineHandler, uint32_t currentFrame,
-	                           LightComponent& lightTexture, DescriptorManagerComponent& dManager,
+	                           DirectLightComponent& lightTexture, DescriptorManagerComponent& dManager,
 	                           GlobalDSetComponent* globalDSetComponent, ModelDSetComponent* objectDSetComponent,
 	                           TextureManager& tManager, ModelManager& mManager, BufferManager& bManager,
 	                           const DrawInfoComponent& drawInfo);

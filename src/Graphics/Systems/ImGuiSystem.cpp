@@ -8,7 +8,7 @@
 #include "../GraphicsContexts.hpp"
 #include "../Components/GlobalTransformComponent.hpp"
 #include "../Components/CameraComponent.hpp"
-#include "../Components/LightComponent.hpp"
+#include "../Components/DirectLightComponent.hpp"
 #include "../Components/LocalTransformComponent.hpp"
 #include "../Components/RelationshipComponent.hpp"
 #include "../../Game/Components/ControlComponent.hpp"
@@ -22,6 +22,7 @@
 #include "../Components/GraphicsSettingsComponent.hpp"
 #include "../Components/VulkanDeviceComponent.hpp"
 #include "../VulkanDevice.hpp"
+#include "../Components/PointLightComponent.hpp"
 
 void ImGuiSystem::onRegistered(GeneralManager& gm)
 {
@@ -273,7 +274,7 @@ void ImGuiSystem::update(GeneralManager& gm)
 		}
 
 		// Light Component
-		if (auto* light = gm.getComponent<LightComponent>(selectedEntity))
+		if (auto* light = gm.getComponent<DirectLightComponent>(selectedEntity))
 		{
 			if (ImGui::CollapsingHeader("Light Component", ImGuiTreeNodeFlags_DefaultOpen))
 			{
@@ -329,6 +330,7 @@ void ImGuiSystem::update(GeneralManager& gm)
 			}
 		}
 
+		// Graphics Settings Component
 		if (auto* settings = gm.getComponent<GraphicsSettingsComponent>(selectedEntity))
 		{
 			if (ImGui::CollapsingHeader("Graphics Settings", ImGuiTreeNodeFlags_DefaultOpen))
@@ -390,6 +392,26 @@ void ImGuiSystem::update(GeneralManager& gm)
 							case 6: settings->msaaSamples = vk::SampleCountFlagBits::e64; break;
 						}
 					}
+				}
+			}
+		}
+
+		// Point Light Component
+		if (auto* settings = gm.getComponent<PointLightComponent>(selectedEntity))
+		{
+			if (ImGui::CollapsingHeader("Point Light Component", ImGuiTreeNodeFlags_DefaultOpen))
+			{
+				ImGui::ColorEdit3("Color", glm::value_ptr(settings->color));
+				ImGui::DragFloat("Intensity", &settings->intensity, 1.0f, 0.0f, 1000.0f);
+				ImGui::DragFloat("Radius", &settings->radius, 0.1f, 0.1f, 100.0f);
+				ImGui::DragFloat3("Direction", glm::value_ptr(settings->direction), 0.1f);
+				ImGui::DragFloat("Inner Cone Angle", &settings->innerConeAngle, 0.1f, 0.0f, 180.0f);
+				ImGui::DragFloat("Outer Cone Angle", &settings->outerConeAngle, 0.1f, 0.0f, 180.0f);
+				const char* typeItems[] = { "Point Light", "Spot Light" };
+				int typeCurrent = settings->type;
+				if (ImGui::Combo("Type", &typeCurrent, typeItems, IM_ARRAYSIZE(typeItems)))
+				{
+					settings->type = typeCurrent;
 				}
 			}
 		}
