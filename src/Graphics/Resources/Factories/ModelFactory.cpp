@@ -10,6 +10,8 @@
 #include "../../Systems/RenderSystem.hpp"
 #include "../../Components/NameComponent.hpp"
 #include <string>
+#include "../../Components/PointLightComponent.hpp"
+#include "../../Systems/LightUpdateSystem.hpp"
 
 glm::mat4 convertGLTFMatrix(const std::vector<double>& matrix)
 {
@@ -77,6 +79,62 @@ Entity ModelFactory::createEntityHierarchy(int parentEntity, tinygltf::Model& mo
 		relationship.addChild(parentEntity, entity, gm);
 	}
 
+	auto nodeLightIt = node.extensions.find("KHR_lights_punctual");
+	if (nodeLightIt != node.extensions.end())
+	{
+		auto extIt = model.extensions.find("KHR_lights_punctual");
+		if (extIt != model.extensions.end())
+		{
+			int lightIndex = nodeLightIt->second.Get("light").GetNumberAsInt();
+			auto& lightsArr = extIt->second.Get("lights");
+
+			if (lightIndex >= 0 && lightIndex < (int)lightsArr.ArrayLen())
+			{
+				auto& lightDef = lightsArr.Get(lightIndex);
+				auto* comp = gm.addComponent<PointLightComponent>(entity);
+				gm.subscribeEntity<LightUpdateSystem>(entity);
+
+				comp->intensity = comp->intensity =
+				    (lightDef.Has("intensity") ? (float)lightDef.Get("intensity").GetNumberAsDouble() : 1.0f) /
+				    683.0f; // Convert from lumens to nits for a point light with 1m radius
+				comp->radius = lightDef.Has("range") ? (float)lightDef.Get("range").GetNumberAsDouble() : 10.0f;
+				comp->innerConeAngle = glm::cos(glm::radians(15.0f));
+				comp->outerConeAngle = glm::cos(glm::radians(30.0f));
+
+				if (lightDef.Has("color"))
+				{
+					auto& c = lightDef.Get("color");
+					comp->color = glm::vec3((float)c.Get(0).GetNumberAsDouble(), (float)c.Get(1).GetNumberAsDouble(),
+					                        (float)c.Get(2).GetNumberAsDouble());
+				}
+
+				std::string typeStr = lightDef.Has("type") ? lightDef.Get("type").Get<std::string>() : "point";
+				if (typeStr == "spot")
+				{
+					comp->type = 1;
+					if (lightDef.Has("spot"))
+					{
+						auto& spot = lightDef.Get("spot");
+						if (spot.Has("innerConeAngle"))
+							comp->innerConeAngle = glm::cos((float)spot.Get("innerConeAngle").GetNumberAsDouble());
+						if (spot.Has("outerConeAngle"))
+							comp->outerConeAngle = glm::cos((float)spot.Get("outerConeAngle").GetNumberAsDouble());
+					}
+				}
+				else
+					comp->type = 0;
+
+				// Направление из ротации ноды
+				if (node.rotation.size() == 4)
+				{
+					glm::quat rot((float)node.rotation[3], (float)node.rotation[0], (float)node.rotation[1],
+					              (float)node.rotation[2]);
+					comp->direction = glm::normalize(rot * glm::vec3(0.0f, 0.0f, -1.0f));
+				}
+			}
+		}
+	}
+
 	for (int childIndex : node.children)
 	{
 		createEntityHierarchy(entity, model, gm, offset, bManager, childIndex);
@@ -136,7 +194,6 @@ Entity ModelFactory::loadModel(const char path[MAX_PATH_LEN], int vertexIndexBIn
 	{
 		createEntityHierarchy(modelRootEntity, model, gm, offset, bManager, rootNodeIndex);
 	}
-
 	std::cout << "Loaded model: " << path << " with offset: " << offset << std::endl;
 	return modelRootEntity;
 }
