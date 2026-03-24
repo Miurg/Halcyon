@@ -15,4 +15,5 @@ public:
 	vk::raii::Queue presentQueue = nullptr;
 	vk::raii::SurfaceKHR surface = nullptr;
 	vk::raii::CommandPool commandPool = nullptr;
+	vk::SampleCountFlagBits maxMsaaSamples = vk::SampleCountFlagBits::e1;
 };

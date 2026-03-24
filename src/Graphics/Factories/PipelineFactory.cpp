@@ -1,4 +1,4 @@
-﻿#include "PipelineFactory.hpp"
+#include "PipelineFactory.hpp"
 #include "../VulkanUtils.hpp"
 #include "../Resources/Managers/Vertex.hpp"
 #include "PipelineBuilder.hpp"
@@ -84,7 +84,7 @@ BuiltPipeline PipelineFactory::build(vk::raii::Device& device, const GraphicsPip
 	    .addDynamicState(vk::DynamicState::eScissor)
 	    .addDynamicState(vk::DynamicState::eCullMode)
 	    .setRasterizer(vk::PolygonMode::eFill, desc.cullMode, desc.frontFace)
-	    .setMultisampling(vk::SampleCountFlagBits::e1);
+	    .setMultisampling(desc.rasterizationSamples);
 
 	for (const auto& att : desc.colorAttachments)
 	{

@@ -77,45 +77,73 @@ void VulkanDeviceFactory::createInstance(Window& window, VulkanDevice& vulkanDev
 void VulkanDeviceFactory::pickPhysicalDevice(VulkanDevice& vulkanDevice)
 {
 	auto devices = vulkanDevice.instance.enumeratePhysicalDevices();
-	const auto devIter = std::ranges::find_if(
-	    devices,
-	    [&](auto const& device)
-	    {
-		    auto queueFamilies = device.getQueueFamilyProperties();
-		    bool isSuitable = device.getProperties().apiVersion >= VK_API_VERSION_1_3;
 
-		    // Check for graphics queue support
-		    const auto qfpIter =
-		        std::ranges::find_if(queueFamilies, [](vk::QueueFamilyProperties const& qfp)
-		                             { return (qfp.queueFlags & vk::QueueFlagBits::eGraphics) != vk::QueueFlags{}; });
-		    isSuitable = isSuitable && (qfpIter != queueFamilies.end());
+	// Check if a physical device meets the requirements for our application
+	auto isDeviceSuitable = [&](vk::raii::PhysicalDevice const& device) -> bool
+	{
+		if (device.getProperties().apiVersion < VK_API_VERSION_1_3) return false;
 
-		    // Check for required device extensions
-		    auto extensions = device.enumerateDeviceExtensionProperties();
-		    bool found = true;
-		    for (auto const& extension : deviceExtensions)
-		    {
-			    auto extensionIter = std::ranges::find_if(extensions, [extension](auto const& ext)
-			                                              { return std::strcmp(ext.extensionName, extension) == 0; });
-			    found = found && (extensionIter != extensions.end());
-		    }
-		    isSuitable = isSuitable && found;
+		auto queueFamilies = device.getQueueFamilyProperties();
+		bool hasGraphicsQueue =
+		    std::ranges::any_of(queueFamilies, [](vk::QueueFamilyProperties const& qfp)
+		                        { return (qfp.queueFlags & vk::QueueFlagBits::eGraphics) != vk::QueueFlags{}; });
+		if (!hasGraphicsQueue) return false;
 
-		    // Check for sampler anisotropy support
-		    vk::PhysicalDeviceFeatures supportedFeatures = device.getFeatures();
-		    isSuitable = isSuitable && (supportedFeatures.samplerAnisotropy == VK_TRUE);
+		auto extensions = device.enumerateDeviceExtensionProperties();
+		bool hasAllExtensions =
+		    std::ranges::all_of(deviceExtensions,
+		                        [&](char const* required)
+		                        {
+			                        return std::ranges::any_of(extensions, [required](vk::ExtensionProperties const& ext)
+			                                                   { return std::strcmp(ext.extensionName, required) == 0; });
+		                        });
+		if (!hasAllExtensions) return false;
 
-		    if (isSuitable)
-		    {
-			    vulkanDevice.physicalDevice = device;
-		    }
-		    return isSuitable;
-	    });
+		return device.getFeatures().samplerAnisotropy == VK_TRUE;
+	};
 
+	// Determine the maximum supported MSAA sample count for the device
+	auto setMsaaSamples = [&](vk::raii::PhysicalDevice const& device)
+	{
+		vk::PhysicalDeviceProperties props = device.getProperties();
+		vk::SampleCountFlags counts =
+		    props.limits.framebufferColorSampleCounts & props.limits.framebufferDepthSampleCounts;
+
+		if (counts & vk::SampleCountFlagBits::e64)
+			vulkanDevice.maxMsaaSamples = vk::SampleCountFlagBits::e64;
+		else if (counts & vk::SampleCountFlagBits::e32)
+			vulkanDevice.maxMsaaSamples = vk::SampleCountFlagBits::e32;
+		else if (counts & vk::SampleCountFlagBits::e16)
+			vulkanDevice.maxMsaaSamples = vk::SampleCountFlagBits::e16;
+		else if (counts & vk::SampleCountFlagBits::e8)
+			vulkanDevice.maxMsaaSamples = vk::SampleCountFlagBits::e8;
+		else if (counts & vk::SampleCountFlagBits::e4)
+			vulkanDevice.maxMsaaSamples = vk::SampleCountFlagBits::e4;
+		else if (counts & vk::SampleCountFlagBits::e2)
+			vulkanDevice.maxMsaaSamples = vk::SampleCountFlagBits::e2;
+		else
+			vulkanDevice.maxMsaaSamples = vk::SampleCountFlagBits::e1;
+	};
+
+	// First, try to find a discrete GPU that meets the requirements
+	auto devIter = std::ranges::find_if(devices,
+	                                    [&](vk::raii::PhysicalDevice const& device)
+	                                    {
+		                                    return isDeviceSuitable(device) && device.getProperties().deviceType ==
+		                                                                           vk::PhysicalDeviceType::eDiscreteGpu;
+	                                    });
+
+	// If no discrete GPU is found, look for any suitable GPU
 	if (devIter == devices.end())
 	{
-		throw std::runtime_error("failed to find a suitable GPU!");
+		devIter = std::ranges::find_if(devices,
+		                               [&](vk::raii::PhysicalDevice const& device) { return isDeviceSuitable(device); });
 	}
+
+	if (devIter == devices.end()) throw std::runtime_error("failed to find a suitable GPU!");
+
+	vulkanDevice.physicalDevice = *devIter;
+	setMsaaSamples(*devIter);
 }
 
 void VulkanDeviceFactory::createLogicalDevice(VulkanDevice& vulkanDevice)

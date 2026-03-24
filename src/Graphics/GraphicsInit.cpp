@@ -230,7 +230,22 @@ void GraphicsInit::initPipelines(GeneralManager& gm)
 	gm.registerContext<RenderGraphContext>(rgEntity);
 	rg->handleResize(swapChain->swapChainExtent.width, swapChain->swapChainExtent.height);
 
+	vk::SampleCountFlags counts = static_cast<vk::SampleCountFlags>(vulkanDevice->maxMsaaSamples);
+	vk::SampleCountFlagBits msaaSamples = vk::SampleCountFlagBits::e1;
+	if (counts & vk::SampleCountFlagBits::e64) msaaSamples = vk::SampleCountFlagBits::e4;
+	else if (counts & vk::SampleCountFlagBits::e32) msaaSamples = vk::SampleCountFlagBits::e4;
+	else if (counts & vk::SampleCountFlagBits::e16) msaaSamples = vk::SampleCountFlagBits::e4;
+	else if (counts & vk::SampleCountFlagBits::e8) msaaSamples = vk::SampleCountFlagBits::e4;
+	else if (counts & vk::SampleCountFlagBits::e4) msaaSamples = vk::SampleCountFlagBits::e4;
+	else if (counts & vk::SampleCountFlagBits::e2) msaaSamples = vk::SampleCountFlagBits::e2;
+
 	// Logical Streams
+	rg->declareLogicalStream("DepthMSAA",
+	                         {tManager->findBestFormat(), RGSizeMode::FullExtent, vk::ImageAspectFlagBits::eDepth, msaaSamples});
+	rg->declareLogicalStream("MainColorMSAA", {swapChain->hdrFormat, RGSizeMode::FullExtent, vk::ImageAspectFlagBits::eColor, msaaSamples});
+	rg->declareLogicalStream("ViewNormalsMSAA",
+	                        {vk::Format::eR16G16B16A16Sfloat, RGSizeMode::FullExtent, vk::ImageAspectFlagBits::eColor, msaaSamples});
+
 	rg->declareLogicalStream("Depth",
 	                         {tManager->findBestFormat(), RGSizeMode::FullExtent, vk::ImageAspectFlagBits::eDepth});
 	rg->declareLogicalStream("MainColor", {swapChain->hdrFormat, RGSizeMode::FullExtent, vk::ImageAspectFlagBits::eColor});
@@ -251,6 +266,7 @@ void GraphicsInit::initPipelines(GeneralManager& gm)
 	Entity signatureEntity = gm.createEntity();
 	gm.registerContext<MainSignatureContext>(signatureEntity);
 	PipelineHandler* pipelineHandler = new PipelineHandler();
+
 	auto& dev = vulkanDevice->device;
 
 	auto bindingDesc = Vertex::getBindingDescription();
@@ -263,7 +279,7 @@ void GraphicsInit::initPipelines(GeneralManager& gm)
 	                                                    *dManager->textureSetLayout};
 
 	// === General depth-only settings ===
-	auto depthOnlyDesc = [&](const std::string& shaderPath) -> GraphicsPipelineDesc
+	auto depthOnlyDesc = [&](const std::string& shaderPath, vk::SampleCountFlagBits samples = vk::SampleCountFlagBits::e1) -> GraphicsPipelineDesc
 	{
 		return GraphicsPipelineDesc{
 		    .shaderPath = shaderPath,
@@ -277,6 +293,7 @@ void GraphicsInit::initPipelines(GeneralManager& gm)
 		    .depthOp = vk::CompareOp::eGreater,
 		    .colorFormats = {},
 		    .depthFormat = depthFmt,
+		    .rasterizationSamples = samples,
 		    .setLayouts = mainLayouts,
 		};
 	};
@@ -296,6 +313,7 @@ void GraphicsInit::initPipelines(GeneralManager& gm)
 	             .colorAttachments = {PipelineFactory::blendedAttachment(), PipelineFactory::blendedAttachment()},
 	             .colorFormats = hdrFormats,
 	             .depthFormat = depthFmt,
+	             .rasterizationSamples = msaaSamples,
 	             .setLayouts = mainLayouts,
 	         });
 	pipelineHandler->pipelineLayout = std::move(mainLayout);
@@ -318,16 +336,17 @@ void GraphicsInit::initPipelines(GeneralManager& gm)
 	            .colorAttachments = {PipelineFactory::blendedAttachment(), PipelineFactory::blendedAttachment()},
 	            .colorFormats = hdrFormats,
 	            .depthFormat = depthFmt,
+	            .rasterizationSamples = msaaSamples,
 	            .setLayouts = mainLayouts,
 	        })
 	        .pipeline;
 
 	// === Shadow (direct\sun) ===
-	pipelineHandler->shadowPipeline = PipelineFactory::build(dev, depthOnlyDesc("shaders/shadow.spv")).pipeline;
+	pipelineHandler->shadowPipeline = PipelineFactory::build(dev, depthOnlyDesc("shaders/shadow.spv", vk::SampleCountFlagBits::e1)).pipeline;
 
 	// === Depth prepass ===
 	pipelineHandler->depthPrepassPipeline =
-	    PipelineFactory::build(dev, depthOnlyDesc("shaders/depth_prepass.spv")).pipeline;
+	    PipelineFactory::build(dev, depthOnlyDesc("shaders/depth_prepass.spv", msaaSamples)).pipeline;
 
 	// === Skybox ===
 	pipelineHandler->skyboxPipeline =
@@ -342,6 +361,7 @@ void GraphicsInit::initPipelines(GeneralManager& gm)
 	            .colorAttachments = {PipelineFactory::blendedAttachment(), PipelineFactory::blendedAttachment()},
 	            .colorFormats = hdrFormats,
 	            .depthFormat = depthFmt,
+	            .rasterizationSamples = msaaSamples,
 	            .setLayouts = mainLayouts,
 	        })
 	        .pipeline;
@@ -546,6 +566,17 @@ void GraphicsInit::initScene(GeneralManager& gm)
 	gm.addComponent<NameComponent>(settingsEntity, "Graphics Settings");
 	gm.addComponent<GraphicsSettingsComponent>(settingsEntity);
 	gm.registerContext<GraphicsSettingsContext>(settingsEntity); 
+	
+	GraphicsSettingsComponent* settings = gm.getContextComponent<GraphicsSettingsContext, GraphicsSettingsComponent>();
+	vk::SampleCountFlags counts = static_cast<vk::SampleCountFlags>(vulkanDevice->maxMsaaSamples);
+	if (counts & vk::SampleCountFlagBits::e64) settings->msaaSamples = vk::SampleCountFlagBits::e4;
+	else if (counts & vk::SampleCountFlagBits::e32) settings->msaaSamples = vk::SampleCountFlagBits::e4;
+	else if (counts & vk::SampleCountFlagBits::e16) settings->msaaSamples = vk::SampleCountFlagBits::e4;
+	else if (counts & vk::SampleCountFlagBits::e8) settings->msaaSamples = vk::SampleCountFlagBits::e4;
+	else if (counts & vk::SampleCountFlagBits::e4) settings->msaaSamples = vk::SampleCountFlagBits::e4;
+	else if (counts & vk::SampleCountFlagBits::e2) settings->msaaSamples = vk::SampleCountFlagBits::e2;
+	else settings->msaaSamples = vk::SampleCountFlagBits::e1; 
+	settings->appliedMsaaSamples = settings->msaaSamples; 
 
 #pragma region Global Descriptor Set (Set 0)
 	globalDSetComponent->globalDSets =
@@ -768,3 +799,119 @@ void GraphicsInit::initImGui(GeneralManager& gm)
 #endif //_DEBUG
 }
 #pragma endregion
+
+
+// Its so bad, its not even a joke anymore. 
+// TODO: Refactor this entire function to be more modular and less copy-pastey.
+// Move pipeline creation to its own class or something.
+void GraphicsInit::recreateMsaaPipelines(GeneralManager& gm, vk::SampleCountFlagBits msaaSamples)
+{
+	auto* pipelineHandler = gm.getContextComponent<MainSignatureContext, PipelineHandlerComponent>()->pipelineHandler;
+	VulkanDevice* vulkanDevice = gm.getContextComponent<MainVulkanDeviceContext, VulkanDeviceComponent>()->vulkanDeviceInstance;
+	auto* rg = gm.getContextComponent<RenderGraphContext, RenderGraphComponent>()->renderGraph;
+	auto* tManager = gm.getContextComponent<TextureManagerContext, TextureManagerComponent>()->textureManager;
+	auto* swapChain = gm.getContextComponent<MainSwapChainContext, SwapChainComponent>()->swapChainInstance;
+	DescriptorManager* dManager = gm.getContextComponent<DescriptorManagerContext, DescriptorManagerComponent>()->descriptorManager;
+
+	vulkanDevice->device.waitIdle();
+
+	rg->declareLogicalStream(
+	    "DepthMSAA", {tManager->findBestFormat(), RGSizeMode::FullExtent, vk::ImageAspectFlagBits::eDepth, msaaSamples});
+	rg->declareLogicalStream(
+	    "MainColorMSAA", {swapChain->hdrFormat, RGSizeMode::FullExtent, vk::ImageAspectFlagBits::eColor, msaaSamples});
+	rg->declareLogicalStream("ViewNormalsMSAA", {vk::Format::eR16G16B16A16Sfloat, RGSizeMode::FullExtent,
+	                                             vk::ImageAspectFlagBits::eColor, msaaSamples});
+
+	rg->handleResize(swapChain->swapChainExtent.width, swapChain->swapChainExtent.height);
+
+	auto bindingDesc = Vertex::getBindingDescription();
+	auto attrDescs = Vertex::getAttributeDescriptions();
+	auto depthFmt = tManager->findBestFormat();
+
+	std::vector<vk::Format> hdrFormats = {swapChain->hdrFormat, vk::Format::eR16G16B16A16Sfloat};
+
+	std::vector<vk::DescriptorSetLayout> mainLayouts = {*dManager->globalSetLayout, *dManager->modelSetLayout,
+	                                                    *dManager->textureSetLayout};
+
+	auto depthOnlyDesc = [&](const std::string& shaderPath,
+	                         vk::SampleCountFlagBits samples = vk::SampleCountFlagBits::e1) -> GraphicsPipelineDesc
+	{
+		return GraphicsPipelineDesc{
+		    .shaderPath = shaderPath,
+		    .fragEntry = "", // vertex only
+		    .vertexBinding = &bindingDesc,
+		    .vertexAttributes = attrDescs.data(),
+		    .attributeCount = static_cast<uint32_t>(attrDescs.size()),
+		    .cullMode = vk::CullModeFlagBits::eBack,
+		    .depthTest = true,
+		    .depthWrite = true,
+		    .depthOp = vk::CompareOp::eGreater,
+		    .colorFormats = {},
+		    .depthFormat = depthFmt,
+		    .rasterizationSamples = samples,
+		    .setLayouts = mainLayouts,
+		};
+	};
+
+	auto [mainLayout, mainPipeline] = PipelineFactory::build(
+	    vulkanDevice->device,
+	    GraphicsPipelineDesc{
+	        .shaderPath = "shaders/shader.spv",
+	        .specializationValue = 0,
+	        .vertexBinding = &bindingDesc,
+	        .vertexAttributes = attrDescs.data(),
+	        .attributeCount = static_cast<uint32_t>(attrDescs.size()),
+	        .cullMode = vk::CullModeFlagBits::eBack,
+	        .depthTest = true,
+	        .depthWrite = false,
+	        .depthOp = vk::CompareOp::eEqual,
+	        .colorAttachments = {PipelineFactory::blendedAttachment(), PipelineFactory::blendedAttachment()},
+	        .colorFormats = hdrFormats,
+	        .depthFormat = depthFmt,
+	        .rasterizationSamples = msaaSamples,
+	        .setLayouts = mainLayouts,
+	    });
+	pipelineHandler->pipelineLayout = std::move(mainLayout);
+	pipelineHandler->graphicsPipeline = std::move(mainPipeline);
+
+	pipelineHandler->alphaTestPipeline =
+	    PipelineFactory::build(vulkanDevice->device,
+	                           GraphicsPipelineDesc{
+	                               .shaderPath = "shaders/shader.spv",
+	                               .specializationValue = 1,
+	                               .vertexBinding = &bindingDesc,
+	                               .vertexAttributes = attrDescs.data(),
+	                               .attributeCount = static_cast<uint32_t>(attrDescs.size()),
+	                               .cullMode = vk::CullModeFlagBits::eBack,
+	                               .depthTest = true,
+	                               .depthWrite = true,
+	                               .depthOp = vk::CompareOp::eGreater,
+	                               .colorAttachments = {PipelineFactory::blendedAttachment(),
+	                                                    PipelineFactory::blendedAttachment()},
+	                               .colorFormats = hdrFormats,
+	                               .depthFormat = depthFmt,
+	                               .rasterizationSamples = msaaSamples,
+	                               .setLayouts = mainLayouts,
+	                           })
+	        .pipeline;
+
+	pipelineHandler->depthPrepassPipeline =
+	    PipelineFactory::build(vulkanDevice->device, depthOnlyDesc("shaders/depth_prepass.spv", msaaSamples)).pipeline;
+
+	pipelineHandler->skyboxPipeline =
+	    PipelineFactory::build(vulkanDevice->device,
+	                           GraphicsPipelineDesc{
+	                               .shaderPath = "shaders/skybox.spv",
+	                               .cullMode = vk::CullModeFlagBits::eNone,
+	                               .depthTest = true,
+	                               .depthWrite = false,
+	                               .depthOp = vk::CompareOp::eEqual,
+	                               .colorAttachments = {PipelineFactory::blendedAttachment(),
+	                                                    PipelineFactory::blendedAttachment()},
+	                               .colorFormats = hdrFormats,
+	                               .depthFormat = depthFmt,
+	                               .rasterizationSamples = msaaSamples,
+	                               .setLayouts = mainLayouts,
+	                           })
+	        .pipeline;
+}

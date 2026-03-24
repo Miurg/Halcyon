@@ -8,6 +8,7 @@ class GraphicsInit
 {
 public:
 	static void Run(GeneralManager& gm);
+	static void recreateMsaaPipelines(GeneralManager& gm, vk::SampleCountFlagBits msaaSamples);
 
 private:
 	static void initVulkanCore(GeneralManager& gm);

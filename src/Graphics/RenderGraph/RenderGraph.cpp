@@ -1,4 +1,4 @@
-﻿#include "RenderGraph.hpp"
+#include "RenderGraph.hpp"
 #include "../VulkanDevice.hpp"
 #include "../Resources/Managers/DescriptorManager.hpp"
 #include "../Resources/Components/GlobalDSetComponent.hpp"
@@ -88,6 +88,16 @@ void RenderGraph::handleResize(uint32_t newWidth, uint32_t newHeight)
 void RenderGraph::declareLogicalStream(const std::string& name, const RGImageDesc& desc)
 {
 	logicalStreams[name] = desc;
+	for (auto& res : resources)
+	{
+		// Match exact logical name or versioned physical name (e.g. "MainColor_V0")
+		if ((res.name == name || res.name.find(name + "_V") == 0) && res.isTransient)
+		{
+			res.desc = desc;
+			destroyTransientImage(res);   // Force destruction immediately
+			res.currentWidth = 0;         // Force recreation during next handleResize
+		}
+	}
 }
 
 void RenderGraph::setTerminalOutput(const std::string& logicalName, const std::string& physicalName)
@@ -344,6 +354,18 @@ void RenderGraph::execute(vk::raii::CommandBuffer& cmd)
 				info.loadOp = att.loadOp;
 				info.storeOp = att.storeOp;
 				info.clearValue = att.clearValue;
+
+				if (!att.resolveTarget.empty())
+				{
+					RGResourceHandle resolveHnd = compiled.pass->getPhysicalWrite(att.resolveTarget);
+					if (resolveHnd != RG_INVALID_HANDLE)
+					{
+						info.resolveMode = att.resolveMode == vk::ResolveModeFlagBits::eNone ? vk::ResolveModeFlagBits::eAverage : att.resolveMode;
+						info.resolveImageView = resources[resolveHnd].imageView;
+						info.resolveImageLayout = vk::ImageLayout::eColorAttachmentOptimal;
+					}
+				}
+
 				colorInfos.push_back(info);
 			}
 
@@ -360,6 +382,17 @@ void RenderGraph::execute(vk::raii::CommandBuffer& cmd)
 					depthInfo.loadOp = da.loadOp;
 					depthInfo.storeOp = da.storeOp;
 					depthInfo.clearValue = da.clearValue;
+
+					if (!da.resolveTarget.empty())
+					{
+						RGResourceHandle resolveHnd = compiled.pass->getPhysicalWrite(da.resolveTarget);
+						if (resolveHnd != RG_INVALID_HANDLE)
+						{
+							depthInfo.resolveMode = da.resolveMode == vk::ResolveModeFlagBits::eNone ? vk::ResolveModeFlagBits::eSampleZero : da.resolveMode;
+							depthInfo.resolveImageView = resources[resolveHnd].imageView;
+							depthInfo.resolveImageLayout = vk::ImageLayout::eDepthAttachmentOptimal;
+						}
+					}
 				}
 			}
 
@@ -487,7 +520,7 @@ void RenderGraph::allocateTransientImage(RGResourceEntry& res)
 	imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 	imageInfo.usage = static_cast<VkImageUsageFlags>(usage);
 	imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-	imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+	imageInfo.samples = static_cast<VkSampleCountFlagBits>(res.desc.samples);
 
 	VmaAllocationCreateInfo allocInfo = {};
 	allocInfo.usage = VMA_MEMORY_USAGE_AUTO;

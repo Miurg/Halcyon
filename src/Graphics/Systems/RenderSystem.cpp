@@ -22,6 +22,7 @@
 #include "../RenderGraph/RenderGraph.hpp"
 #include "../Components/GraphicsSettingsComponent.hpp"
 #include "../Resources/Managers/Bindings.hpp"
+#include "../GraphicsInit.hpp"
 
 void RenderSystem::onRegistered(GeneralManager& gm)
 {
@@ -73,6 +74,13 @@ void RenderSystem::update(GeneralManager& gm)
 	    textureManager.textures[lightTexture->textureShadowImage.id].textureImageView, vk::ImageAspectFlagBits::eDepth);
 	auto swapChainHandle = rg.importImage("swapChainImage", swapChain.swapChainImages[imageIndex],
 	                                      swapChain.swapChainImageViews[imageIndex], vk::ImageAspectFlagBits::eColor);
+
+	if (graphicsSettings->msaaSamples != graphicsSettings->appliedMsaaSamples)
+	{
+		GraphicsInit::recreateMsaaPipelines(gm, graphicsSettings->msaaSamples);
+		graphicsSettings->appliedMsaaSamples = graphicsSettings->msaaSamples;
+	}
+
 	rg.setTerminalOutput("PostProcessColor", "swapChainImage"); // The final target for post-process chains
 	rg.setTerminalOutput("shadowMap",
 	                     "shadowMap"); // The shadow pass writes directly to the imported physical shadow map
@@ -80,7 +88,6 @@ void RenderSystem::update(GeneralManager& gm)
 	vk::ClearValue clearSky = vk::ClearColorValue(0.0f, 0.637f, 1.0f, 1.0f);
 	vk::ClearValue clearBlack = vk::ClearColorValue(0.0f, 0.0f, 0.0f, 0.0f);
 	vk::ClearValue clearWhite = vk::ClearColorValue(1.0f, 1.0f, 1.0f, 1.0f);
-	vk::ClearValue clearDepth1 = vk::ClearDepthStencilValue(1.0f, 0);
 	vk::ClearValue clearDepth0 = vk::ClearDepthStencilValue(0.0f, 0);
 
 	rg.addPass("ShadowCull", {.isCompute = true}, {}, {},
@@ -118,33 +125,76 @@ void RenderSystem::update(GeneralManager& gm)
 		                                              objectDSetComponent, modelManager, bufferManager, *drawInfo);
 	           });
 
-	rg.addPass("DepthPrepass",
-	           {.depthAttachment = RGAttachmentConfig{"Depth", vk::AttachmentLoadOp::eClear,
-	                                                  vk::AttachmentStoreOp::eStore, clearDepth0}},
-	           {}, {{"Depth", RGResourceUsage::DepthAttachmentWrite}},
-	           [&](vk::raii::CommandBuffer& cmd)
-	           {
-		           CommandBufferFactory::drawDepthPrepass(cmd, swapChain, pipelineHandler, currentFrame,
-		                                                  *materialDSetComponent, *dManager, globalDSetComponent,
-		                                                  bufferManager, objectDSetComponent, modelManager, *drawInfo);
-	           });
+	if (graphicsSettings->msaaSamples & vk::SampleCountFlagBits::e1) // What a mess
+	{
+		rg.addPass("DepthPrepass",
+		           {.depthAttachment = RGAttachmentConfig{"Depth", vk::AttachmentLoadOp::eClear,
+		                                                  vk::AttachmentStoreOp::eStore, clearDepth0}},
+		           {}, {{"Depth", RGResourceUsage::DepthAttachmentWrite}},
+		           [&](vk::raii::CommandBuffer& cmd)
+		           {
+			           CommandBufferFactory::drawDepthPrepass(cmd, swapChain, pipelineHandler, currentFrame,
+			                                                  *materialDSetComponent, *dManager, globalDSetComponent,
+			                                                  bufferManager, objectDSetComponent, modelManager, *drawInfo);
+		           });
 
-	rg.addPass(
-	    "Main",
-	    {.colorAttachments = {{"MainColor", vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore, clearSky},
-	                          {"ViewNormals", vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore, clearBlack}},
-	     .depthAttachment =
-	         RGAttachmentConfig{"Depth", vk::AttachmentLoadOp::eLoad, vk::AttachmentStoreOp::eStore, clearDepth1}},
-	    {{"shadowMap", RGResourceUsage::ShaderRead}},
-	    {{"MainColor", RGResourceUsage::ColorAttachmentWrite},
-	     {"ViewNormals", RGResourceUsage::ColorAttachmentWrite},
-	     {"Depth", RGResourceUsage::DepthAttachmentWrite}},
-	    [&](vk::raii::CommandBuffer& cmd)
-	    {
-		    CommandBufferFactory::drawMainPass(cmd, swapChain, pipelineHandler, currentFrame, *materialDSetComponent,
-		                                       *dManager, globalDSetComponent, bufferManager, objectDSetComponent,
-		                                       modelManager, *drawInfo);
-	    });
+		std::vector<RGResourceAccess> mainWrites = {{"MainColor", RGResourceUsage::ColorAttachmentWrite},
+		                                            {"ViewNormals", RGResourceUsage::ColorAttachmentWrite},
+		                                            {"Depth", RGResourceUsage::DepthAttachmentWrite}};
+		rg.addPass(
+		    "Main",
+		    {.colorAttachments = {{"MainColor", vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore, clearSky},
+		                          {"ViewNormals", vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore,
+		                           clearBlack}},
+		     .depthAttachment =
+		         RGAttachmentConfig{"Depth", vk::AttachmentLoadOp::eLoad, vk::AttachmentStoreOp::eStore, clearDepth0}},
+		    {{"shadowMap", RGResourceUsage::ShaderRead}}, std::move(mainWrites),
+		    [&](vk::raii::CommandBuffer& cmd)
+		    {
+			    CommandBufferFactory::drawMainPass(cmd, swapChain, pipelineHandler, currentFrame, *materialDSetComponent,
+			                                       *dManager, globalDSetComponent, bufferManager, objectDSetComponent,
+			                                       modelManager, *drawInfo);
+		    });
+	}
+	else
+	{
+		rg.addPass("DepthPrepass",
+		           {.depthAttachment = RGAttachmentConfig{"DepthMSAA", vk::AttachmentLoadOp::eClear,
+		                                                  vk::AttachmentStoreOp::eStore, clearDepth0}},
+		           {}, {{"DepthMSAA", RGResourceUsage::DepthAttachmentWrite}},
+		           [&](vk::raii::CommandBuffer& cmd)
+		           {
+			           CommandBufferFactory::drawDepthPrepass(cmd, swapChain, pipelineHandler, currentFrame,
+			                                                  *materialDSetComponent, *dManager, globalDSetComponent,
+			                                                  bufferManager, objectDSetComponent, modelManager, *drawInfo);
+		           });
+
+		std::vector<RGResourceAccess> mainWrites = {{"MainColorMSAA", RGResourceUsage::ColorAttachmentWrite},
+		                                            {"ViewNormalsMSAA", RGResourceUsage::ColorAttachmentWrite},
+		                                            {"DepthMSAA", RGResourceUsage::DepthAttachmentWrite},
+		                                            {"MainColor", RGResourceUsage::ColorAttachmentWrite},
+		                                            {"ViewNormals", RGResourceUsage::ColorAttachmentWrite},
+		                                            {"Depth", RGResourceUsage::DepthAttachmentWrite}};
+
+		vk::ResolveModeFlagBits colorResolve = vk::ResolveModeFlagBits::eAverage;
+		vk::ResolveModeFlagBits depthResolve = vk::ResolveModeFlagBits::eSampleZero;
+		rg.addPass(
+		    "Main",
+		    {.colorAttachments = {{"MainColorMSAA", vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore, clearSky,
+		                           "MainColor", colorResolve},
+		                          {"ViewNormalsMSAA", vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore,
+		                           clearBlack, "ViewNormals", colorResolve}},
+		     .depthAttachment = RGAttachmentConfig{"DepthMSAA", vk::AttachmentLoadOp::eLoad,
+		                                           vk::AttachmentStoreOp::eStore, clearDepth0, "Depth", depthResolve}},
+		    {{"shadowMap", RGResourceUsage::ShaderRead}}, std::move(mainWrites),
+		    [&](vk::raii::CommandBuffer& cmd)
+		    {
+			    CommandBufferFactory::drawMainPass(cmd, swapChain, pipelineHandler, currentFrame, *materialDSetComponent,
+			                                       *dManager, globalDSetComponent, bufferManager, objectDSetComponent,
+			                                       modelManager, *drawInfo);
+		    });
+	}
+	
 
 	if (graphicsSettings->enableSsao)
 	{
@@ -268,7 +318,7 @@ void RenderSystem::update(GeneralManager& gm)
 	           {.colorAttachments = {{"PostProcessColor", vk::AttachmentLoadOp::eLoad, vk::AttachmentStoreOp::eStore}}},
 	           {}, // Keep it empty, we dont read PostProcessColor in the shader, we just bind it as a render target. The
 	               // ImGui writes to it directly.
-	           {{"PostProcessColor", RGResourceUsage::ColorAttachmentWrite}}, 
+	           {{"PostProcessColor", RGResourceUsage::ColorAttachmentWrite}},
 	           [&](vk::raii::CommandBuffer& cmd) { CommandBufferFactory::drawImGui(cmd); });
 
 	// Present barrier

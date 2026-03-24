@@ -39,6 +39,7 @@ struct RGImageDesc
 	vk::Format format = vk::Format::eUndefined;
 	RGSizeMode sizeMode = RGSizeMode::FullExtent;
 	vk::ImageAspectFlags aspectFlags = vk::ImageAspectFlagBits::eColor;
+	vk::SampleCountFlagBits samples = vk::SampleCountFlagBits::e1;
 };
 
 // Unified resource entry — covers both imported and transient resources

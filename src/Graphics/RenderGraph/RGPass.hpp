@@ -18,6 +18,8 @@ struct RGAttachmentConfig
 	vk::AttachmentLoadOp loadOp = vk::AttachmentLoadOp::eClear;
 	vk::AttachmentStoreOp storeOp = vk::AttachmentStoreOp::eStore;
 	vk::ClearValue clearValue = {};
+	std::string resolveTarget = "";
+	vk::ResolveModeFlagBits resolveMode = vk::ResolveModeFlagBits::eNone;
 };
 
 // Describes the rendering setup for a pass. RG uses this to auto-call beginRendering/endRendering.

@@ -20,6 +20,8 @@
 #include "../../Platform/Components/DeltaTimeComponent.hpp"
 #include "../Components/SsaoSettingsComponent.hpp"
 #include "../Components/GraphicsSettingsComponent.hpp"
+#include "../Components/VulkanDeviceComponent.hpp"
+#include "../VulkanDevice.hpp"
 
 void ImGuiSystem::onRegistered(GeneralManager& gm)
 {
@@ -333,6 +335,62 @@ void ImGuiSystem::update(GeneralManager& gm)
 			{
 				ImGui::Checkbox("Enable SSAO", &settings->enableSsao);
 				ImGui::Checkbox("Enable FXAA", &settings->enableFxaa);
+
+				auto* vulkanDeviceComponent = gm.getContextComponent<MainVulkanDeviceContext, VulkanDeviceComponent>();
+				if (vulkanDeviceComponent && vulkanDeviceComponent->vulkanDeviceInstance)
+				{
+					vk::SampleCountFlagBits maxSamples = vulkanDeviceComponent->vulkanDeviceInstance->maxMsaaSamples;
+					int maxIndex = 0;
+					if (maxSamples >= vk::SampleCountFlagBits::e64) maxIndex = 6;
+					else if (maxSamples >= vk::SampleCountFlagBits::e32) maxIndex = 5;
+					else if (maxSamples >= vk::SampleCountFlagBits::e16) maxIndex = 4;
+					else if (maxSamples >= vk::SampleCountFlagBits::e8) maxIndex = 3;
+					else if (maxSamples >= vk::SampleCountFlagBits::e4) maxIndex = 2;
+					else if (maxSamples >= vk::SampleCountFlagBits::e2) maxIndex = 1;
+
+					const char* allItems[] = { "Off (1x)", "2x", "4x", "8x", "16x", "32x", "64x" };
+					
+					int item_current = 0;
+					switch(settings->msaaSamples) {
+						case vk::SampleCountFlagBits::e1: item_current = 0; break;
+						case vk::SampleCountFlagBits::e2: item_current = 1; break;
+						case vk::SampleCountFlagBits::e4: item_current = 2; break;
+						case vk::SampleCountFlagBits::e8: item_current = 3; break;
+						case vk::SampleCountFlagBits::e16: item_current = 4; break;
+						case vk::SampleCountFlagBits::e32: item_current = 5; break;
+						case vk::SampleCountFlagBits::e64: item_current = 6; break;
+						default: break;
+					}
+					
+					// Clamp current item to max supported just in case
+					if (item_current > maxIndex) 
+					{
+						item_current = maxIndex;
+						// Force update the setting itself so the user doesn't crash on boot if they somehow saved a bad setting
+						switch(maxIndex) {
+							case 0: settings->msaaSamples = vk::SampleCountFlagBits::e1; break;
+							case 1: settings->msaaSamples = vk::SampleCountFlagBits::e2; break;
+							case 2: settings->msaaSamples = vk::SampleCountFlagBits::e4; break;
+							case 3: settings->msaaSamples = vk::SampleCountFlagBits::e8; break;
+							case 4: settings->msaaSamples = vk::SampleCountFlagBits::e16; break;
+							case 5: settings->msaaSamples = vk::SampleCountFlagBits::e32; break;
+							case 6: settings->msaaSamples = vk::SampleCountFlagBits::e64; break;
+						}
+					}
+
+					if (ImGui::Combo("MSAA", &item_current, allItems, maxIndex + 1))
+					{
+						switch(item_current) {
+							case 0: settings->msaaSamples = vk::SampleCountFlagBits::e1; break;
+							case 1: settings->msaaSamples = vk::SampleCountFlagBits::e2; break;
+							case 2: settings->msaaSamples = vk::SampleCountFlagBits::e4; break;
+							case 3: settings->msaaSamples = vk::SampleCountFlagBits::e8; break;
+							case 4: settings->msaaSamples = vk::SampleCountFlagBits::e16; break;
+							case 5: settings->msaaSamples = vk::SampleCountFlagBits::e32; break;
+							case 6: settings->msaaSamples = vk::SampleCountFlagBits::e64; break;
+						}
+					}
+				}
 			}
 		}
 	}

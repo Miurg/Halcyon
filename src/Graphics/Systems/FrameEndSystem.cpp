@@ -47,13 +47,13 @@ void FrameEndSystem::update(GeneralManager& gm)
 	const vk::SubmitInfo submitInfo(*frameManager->frames[currentFrameComp->currentFrame].presentCompleteSemaphore,
 	                                waitDestinationStageMask,
 	                                *frameManager->frames[currentFrameComp->currentFrame].commandBuffer,
-	                                *frameManager->frames[currentFrameComp->currentFrame].renderFinishedSemaphore);
+	                                *frameManager->frames[imageIndex].renderFinishedSemaphore);
 
 	vulkanDevice.graphicsQueue.submit(submitInfo, *frameManager->frames[currentFrameComp->currentFrame].inFlightFence);
 
 	// Present the image
-	const vk::PresentInfoKHR presentInfoKHR(
-	    *frameManager->frames[currentFrameComp->currentFrame].renderFinishedSemaphore, *swapChain.swapChainHandle,
+	const vk::PresentInfoKHR presentInfoKHR(*frameManager->frames[imageIndex].renderFinishedSemaphore,
+	                                        *swapChain.swapChainHandle,
 	    imageIndex);
 	vk::Result presentResult;
 	try

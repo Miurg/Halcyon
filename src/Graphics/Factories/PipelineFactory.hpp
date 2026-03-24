@@ -50,6 +50,8 @@ struct GraphicsPipelineDesc
 	vk::Format depthFormat = vk::Format::eUndefined;
 	vk::Format stencilFormat = vk::Format::eUndefined;
 
+	vk::SampleCountFlagBits rasterizationSamples = vk::SampleCountFlagBits::e1;
+
 	// Layout - if now set, will use pipelineHandler.pipelineLayout
 	std::vector<vk::DescriptorSetLayout> setLayouts;
 	std::vector<vk::PushConstantRange> pushConstants;
