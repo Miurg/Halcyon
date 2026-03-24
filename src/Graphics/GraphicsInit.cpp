@@ -49,6 +49,7 @@
 #include "Resources/Managers/DescriptorManager.hpp"
 #include "Managers/FrameManager.hpp"
 #include "Resources/Factories/TextureUploader.hpp"
+#include "VulkanUtils.hpp"
 // Contexts
 #include "GraphicsContexts.hpp"
 #include "Resources/ResourceStructures.hpp"
@@ -620,43 +621,35 @@ void GraphicsInit::initScene(GeneralManager& gm)
 	auto path = texturePtr.get()->name.c_str();
 	tManager->generateTextureData(path, texWidth, texHeight, data, *bTextureDSetComponent, *dManager);
 
-	// HDR Skybox Texture
-	std::string hdrPath = "assets/textures/spree_bank_4k.hdr";
-	tManager->textures.push_back(Texture());
-	Texture& hdrTexture = tManager->textures.back();
-	TextureUploader::uploadHdrTextureFromFile(hdrPath.c_str(), hdrTexture, *tManager, allocator, *vulkanDevice);
-	int hdrIndex = static_cast<int>(tManager->textures.size() - 1);
-	tManager->texturePaths[hdrPath] = TextureHandle{hdrIndex};
-	TextureHandle hdrHandle = tManager->texturePaths[hdrPath];
+	// White placeholder cubemap (can be replaced by SkyboxFactory::loadSkybox)
+	TextureHandle whiteCubemapHandle = tManager->createCubemapImage(1, 1, vk::Format::eR32G32B32A32Sfloat);
+	Texture& whiteCubemap = tManager->textures[whiteCubemapHandle.id];
+	tManager->createCubemapImageView(whiteCubemap, vk::Format::eR32G32B32A32Sfloat, vk::ImageAspectFlagBits::eColor);
+	tManager->createCubemapSampler(whiteCubemap);
 
-		dManager->updateBindlessTextureSet(hdrTexture.textureImageView, hdrTexture.textureSampler, *bTextureDSetComponent,
-	                                   hdrIndex);
-	TextureHandle cubemapHandle =
-	    tManager->generateCubemapFromHdr(hdrHandle, *pipelineHandler, *dManager, *bTextureDSetComponent);
+	// Transition cubemap to shader-read layout so it's valid for sampling
+	{
+		auto cmd = VulkanUtils::beginSingleTimeCommands(*vulkanDevice);
+		VulkanUtils::transitionImageLayout(
+		    cmd, whiteCubemap.textureImage, vk::ImageLayout::eUndefined, vk::ImageLayout::eShaderReadOnlyOptimal, {},
+		    vk::AccessFlagBits2::eShaderRead, vk::PipelineStageFlagBits2::eTopOfPipe,
+		    vk::PipelineStageFlagBits2::eFragmentShader, vk::ImageAspectFlagBits::eColor, 6, 1);
+		VulkanUtils::endSingleTimeCommands(cmd, *vulkanDevice);
+	}
 
-	// Generate IBL textures from the environment cubemap
-	TextureHandle irradianceHandle =
-	    tManager->generateIrradianceMap(cubemapHandle, *pipelineHandler, *dManager, *bTextureDSetComponent);
-	TextureHandle prefilteredHandle =
-	    tManager->generatePrefilteredEnvMap(cubemapHandle, *pipelineHandler, *dManager, *bTextureDSetComponent);
+	dManager->updateCubemapDescriptors(*bTextureDSetComponent, whiteCubemap.textureImageView,
+	                                   whiteCubemap.textureSampler, whiteCubemap.textureImageView);
+
+	dManager->updateIBLDescriptors(*bTextureDSetComponent, whiteCubemap.textureImageView, whiteCubemap.textureSampler,
+	                               whiteCubemap.textureImageView, whiteCubemap.textureSampler,
+	                               whiteCubemap.textureImageView, whiteCubemap.textureSampler);
+
+	// BRDF LUT - generated once, reused across all skybox changes
 	TextureHandle brdfLutHandle = tManager->generateBrdfLut(*pipelineHandler, *dManager, *bTextureDSetComponent);
 
-	// Restore cubemap descriptors to the actual environment cubemap (used by skybox)
-	dManager->updateCubemapDescriptors(*bTextureDSetComponent, tManager->textures[cubemapHandle.id].textureImageView,
-	                                   tManager->textures[cubemapHandle.id].textureSampler,
-	                                   tManager->textures[cubemapHandle.id].textureImageView);
-
-	// Bind IBL textures to descriptor set
-	dManager->updateIBLDescriptors(*bTextureDSetComponent, tManager->textures[irradianceHandle.id].textureImageView,
-	                               tManager->textures[irradianceHandle.id].textureSampler,
-	                               tManager->textures[prefilteredHandle.id].textureImageView,
-	                               tManager->textures[prefilteredHandle.id].textureSampler,
-	                               tManager->textures[brdfLutHandle.id].textureImageView,
-	                               tManager->textures[brdfLutHandle.id].textureSampler);
-
-	skybox->cubemapTexture = cubemapHandle;
-	skybox->irradianceMap = irradianceHandle;
-	skybox->prefilteredMap = prefilteredHandle;
+	skybox->cubemapTexture = whiteCubemapHandle;
+	skybox->irradianceMap = whiteCubemapHandle;
+	skybox->prefilteredMap = whiteCubemapHandle;
 	skybox->brdfLut = brdfLutHandle;
 
 #pragma endregion

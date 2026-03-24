@@ -1,4 +1,5 @@
 #include "GameInit.hpp"
+#include "../Graphics/Resources/Factories/SkyboxFactory.hpp"
 #include "../Graphics/Resources/Components/MeshInfoComponent.hpp"
 #include "../Graphics/Resources/Managers/BufferManager.hpp"
 #include "../Graphics/Resources/Components/TextureInfoComponent.hpp"
@@ -33,13 +34,15 @@ void GameInit::gameInitStart(GeneralManager& gm)
 
 	gm.addComponent<ControlComponent>(gm.getContext<MainCameraContext>());
 
+	SkyboxFactory::loadSkybox("assets/textures/spree_bank_4k.hdr", gm);
+
 	Entity gameObjectEntity1 = gm.createEntity();
 	gm.addComponent<NameComponent>(gameObjectEntity1, "Bistro Model");
 	gm.addComponent<GlobalTransformComponent>(gameObjectEntity1);
-	gm.addComponent<LocalTransformComponent>(gameObjectEntity1);
+	gm.addComponent<LocalTransformComponent>(gameObjectEntity1, -5.0f, 0.0f, 0.0f);
 	gm.addComponent<RelationshipComponent>(gameObjectEntity1);
 
-	Entity dautherEntity = ModelFactory::loadModel("assets/models/Bistro_Godot.glb", 0, *bufferManager, *dSetComponent,
+	Entity dautherEntity = ModelFactory::loadModel("assets/models/SunTemple.glb", 0, *bufferManager, *dSetComponent,
 	                                               *dManager, gm, *textureManager, *modelManager);
 
 	gm.subscribeEntity<TransformSystem>(gameObjectEntity1);
@@ -47,17 +50,31 @@ void GameInit::gameInitStart(GeneralManager& gm)
 	RelationshipComponent* real = gm.getComponent<RelationshipComponent>(gameObjectEntity1);
 	real->addChild(gameObjectEntity1, dautherEntity, gm);
 
-	Entity gameObjectEntity2 = gm.createEntity();
-	gm.addComponent<NameComponent>(gameObjectEntity2, "Emissive Model");
-	gm.addComponent<GlobalTransformComponent>(gameObjectEntity2);
-	gm.addComponent<LocalTransformComponent>(gameObjectEntity2, -5.0f, 5.0f, 5.0f);
-	gm.addComponent<RelationshipComponent>(gameObjectEntity2);
+	//Entity gameObjectEntity2 = gm.createEntity();
+	//gm.addComponent<NameComponent>(gameObjectEntity2, "Emissive Model");
+	//gm.addComponent<GlobalTransformComponent>(gameObjectEntity2);
+	//gm.addComponent<LocalTransformComponent>(gameObjectEntity2, -5.0f, 5.0f, 3.0f);
+	//gm.addComponent<RelationshipComponent>(gameObjectEntity2);
 
-	Entity dautherEntity2 = ModelFactory::loadModel("assets/models/CompareEmissiveStrength.glb", 0, *bufferManager,
-	                                                *dSetComponent, *dManager, gm, *textureManager, *modelManager);
+	//Entity dautherEntity2 = ModelFactory::loadModel("assets/models/DamagedHelmet.glb", 0, *bufferManager,
+	//                                                *dSetComponent, *dManager, gm, *textureManager, *modelManager);
 
-	gm.subscribeEntity<TransformSystem>(gameObjectEntity2);
-	gm.subscribeEntity<RotationSystem>(gameObjectEntity2);
-	RelationshipComponent* real2 = gm.getComponent<RelationshipComponent>(gameObjectEntity2);
-	real2->addChild(gameObjectEntity2, dautherEntity2, gm);
+	//gm.subscribeEntity<TransformSystem>(gameObjectEntity2);
+	////gm.subscribeEntity<RotationSystem>(gameObjectEntity2);
+	//RelationshipComponent* real2 = gm.getComponent<RelationshipComponent>(gameObjectEntity2);
+	//real2->addChild(gameObjectEntity2, dautherEntity2, gm);
+
+	//Entity gameObjectEntity3 = gm.createEntity();
+	//gm.addComponent<NameComponent>(gameObjectEntity3, "Emissive Model");
+	//gm.addComponent<GlobalTransformComponent>(gameObjectEntity3);
+	//gm.addComponent<LocalTransformComponent>(gameObjectEntity3, 0.0f, 5.0f, 0.0f);
+	//gm.addComponent<RelationshipComponent>(gameObjectEntity3);
+
+	//Entity dautherEntity3 = ModelFactory::loadModel("assets/models/CompareRoughness.glb", 0, *bufferManager,
+	//                                                *dSetComponent, *dManager, gm, *textureManager, *modelManager);
+
+	//gm.subscribeEntity<TransformSystem>(gameObjectEntity3);
+	//gm.subscribeEntity<RotationSystem>(gameObjectEntity3);
+	//RelationshipComponent* real3 = gm.getComponent<RelationshipComponent>(gameObjectEntity3);
+	//real3->addChild(gameObjectEntity3, dautherEntity3, gm);
 }
