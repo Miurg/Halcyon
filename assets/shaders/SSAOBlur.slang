@@ -30,47 +30,45 @@ VSOutput vertMain(uint vertexID: SV_VertexID)
 [shader("fragment")]
 float4 fragMain(VSOutput input) : SV_Target
 {
-	float result = 0.0;
-	float totalWeight = 0.0;
+    float centerSsao = ssaoTexture.SampleLevel(input.uv, 0).r;
+    float centerDepth = depthTexture.SampleLevel(input.uv, 0).r;
 
-	// Center pixel data for bilateral blur
-	float centerDepth = depthTexture.SampleLevel(input.uv, 0).r;
-	if (centerDepth <= 0.0) return float4(1.0, 1.0, 1.0, 1.0);
-	float3 centerNormal = normalsTexture.SampleLevel(input.uv, 0).xyz;
+    // Dont blur background
+    if (centerDepth <= 0.0) return 1.0;
 
-	const float weights[7] = { 0.006, 0.061, 0.242, 0.383, 0.242, 0.061, 0.006 };
+    float3 centerNormal = normalsTexture.SampleLevel(input.uv, 0).xyz;
 
-	[unroll]
-	for (int x = -3; x <= 3; x++)
-	{
-		[unroll]
-		for (int y = -3; y <= 3; y++)
-		{
-			float2 offset = float2(float(x), float(y)) * pc.texelSize;
-			float2 sampleUV = input.uv + offset;
+    float combinedSsao = 0.0;
+    float totalWeight = 0.0;
 
-			float sampleDepth = depthTexture.SampleLevel(sampleUV, 0).r;
-			float3 sampleNormal = normalsTexture.SampleLevel(sampleUV, 0).xyz;
-			float sampleSsao = ssaoTexture.SampleLevel(sampleUV, 0).r;
+    const float weights[7] = { 0.006, 0.061, 0.242, 0.383, 0.242, 0.061, 0.006 };
 
-			// Bilateral weights: Depth and Normal difference
-			// Tuning parameters to reject samples that are on different surfaces
-			float depthDiff = abs(centerDepth - sampleDepth);
-			float depthWeight = exp(-depthDiff * 1000.0); // Sensitive to small depth changes 
+    for (int x = -3; x <= 3; x++)
+    {
+        for (int y = -3; y <= 3; y++)
+        {
+            float2 offset = float2(x, y) * pc.texelSize;
+            float2 sampleUV = input.uv + offset;
 
-			float normalDiff = 1.0 - max(dot(centerNormal, sampleNormal), 0.0);
-			float normalWeight = exp(-normalDiff * 10.0);
+            float sampleDepth = depthTexture.SampleLevel(sampleUV, 0).r;
+            float3 sampleNormal = normalsTexture.SampleLevel(sampleUV, 0).xyz;
+            float sampleSsao = ssaoTexture.SampleLevel(sampleUV, 0).r;
 
-			float spatialWeight = weights[x + 3] * weights[y + 3];
+            float depthDiff = abs(centerDepth - sampleDepth);
+            float depthWeight = exp(-depthDiff * 100.0);
 
-			float finalWeight = spatialWeight * depthWeight * normalWeight;
+            float normalDiff = max(dot(centerNormal, sampleNormal), 0.0);
+            float normalWeight = pow(normalDiff, 16.0); 
 
-			result += sampleSsao * finalWeight;
-			totalWeight += finalWeight;
-		}
-	}
+            float spatialWeight = weights[x + 3] * weights[y + 3];
+            float finalWeight = spatialWeight * depthWeight * normalWeight;
 
-	result /= max(totalWeight, 0.001); // Prevent division by zero
+            combinedSsao += sampleSsao * finalWeight;
+            totalWeight += finalWeight;
+        }
+    }
 
-	return float4(result, result, result, 1.0);
+    float result = (totalWeight > 0.0001) ? (combinedSsao / totalWeight) : centerSsao;
+
+    return float4(result.xxx, 1.0);
 }

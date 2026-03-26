@@ -2,6 +2,8 @@
 Sampler2D depthTexture;
 [vk::binding(1, 0)]
 Sampler2D normalsTexture;
+[vk::binding(2, 0)]
+Sampler2D noiseTexture;
 
 struct CameraData
 {
@@ -67,12 +69,6 @@ float falloff(float distSq, float RrSq)
 	return saturate(1.0 - factor * factor);
 }
 
-float GetIGN(float2 pixelPos)
-{
-	float3 magic = float3(0.06711056f, 0.00583715f, 52.9829189f);
-	return frac(magic.z * frac(dot(pixelPos, magic.xy)));
-}
-
 [shader("fragment")]
 float4 fragMain(VSOutput input) : SV_Target
 {
@@ -81,11 +77,11 @@ float4 fragMain(VSOutput input) : SV_Target
 	if (depth <= 0.0) return float4(1.0, 1.0, 1.0, 1.0);
 
 	float3 P = reconstructViewPos(input.uv, depth);
-	
+
 	// Distance fade check
 	float fade = smoothstep(-pc.fadeEnd, -pc.fadeStart, P.z);
 	if (fade <= 0.001) return float4(1.0, 1.0, 1.0, 1.0);
-	
+
 	float3 N = normalize(normalsTexture.SampleLevel(input.uv, 0).xyz);
 
 	float4x4 proj = camera[0].projMatrix;
@@ -96,19 +92,19 @@ float4 fragMain(VSOutput input) : SV_Target
 
 	float RrSq = 1.0 / (pc.radius * pc.radius);
 
-	float ign = GetIGN(input.pos.xy);
+	float2 noiseUV = input.pos.xy / 64.0;
+	float2 blueNoise = noiseTexture.SampleLevel(noiseUV, 0).rg;
 
-	float randomAngle = ign * 6.28318530718;
+	float randomAngle = blueNoise.r * 6.28318530718;
 	float2 randDir = float2(cos(randomAngle), sin(randomAngle));
 
-	float jitter = ign;
+	float jitter = blueNoise.g;
 
 	int NUM_DIRECTIONS = pc.numDirections;
 	int numSteps = pc.kernelSize;
 
 	float stepUV = screenRadius / (float(numSteps) + 1.0);
-	
-	// CLAMP: Prevent sub-pixel sampling. Step must be at least 1 pixel wide.
+
 	float minStepTarget = length(pc.texelSize);
 	stepUV = max(stepUV, minStepTarget);
 
@@ -117,7 +113,6 @@ float4 fragMain(VSOutput input) : SV_Target
 
 	for (int d = 0; d < NUM_DIRECTIONS; d++)
 	{
-
 		float angle = float(d) * directionStepAngle;
 		float2 baseDir = float2(cos(angle), sin(angle));
 
@@ -136,13 +131,13 @@ float4 fragMain(VSOutput input) : SV_Target
 
 			float depthS = depthTexture.SampleLevel(sampleUV, 0).r;
 
-            float3 S = reconstructViewPos(sampleUV, depthS);
-            float depthDiff = abs(S.z - P.z);
-            if (depthDiff > pc.radius * 1.5) // TODO: add 1.5 to ssao settings?
-            {
-                sampleUV += stepVec;
-                continue;
-            }
+			float3 S = reconstructViewPos(sampleUV, depthS);
+			float depthDiff = abs(S.z - P.z);
+			if (depthDiff > pc.radius * 1.5) // TODO: add 1.5 to ssao settings?
+			{
+				sampleUV += stepVec;
+				continue;
+			}
 
 			if (depthS > 0.0)
 			{
@@ -175,3 +170,14 @@ float4 fragMain(VSOutput input) : SV_Target
 
 	return float4(occlusion, occlusion, occlusion, 1.0);
 }
+// ========================================================================================
+// Method: HBAO (Horizon-Based Ambient Occlusion)
+// Author: Louis Bavoil & Miguel Sainz (NVIDIA)
+// First notable use: Battlefield: Bad Company 2 (2010) / NVIDIA SIGGRAPH 2008
+//
+// Why this approach: Unlike early SSAO that randomly sampled a 3D sphere around a pixel
+// (which caused unrealistic "dark halos" and noise), HBAO marches along 2D rays in screen
+// space. For each direction, it finds the highest "horizon" angle (the tallest geometry
+// blocking the light). This mimics how real ambient light is occluded by surroundings,
+// resulting in much more physically accurate and grounded micro-shadows.
+// ========================================================================================

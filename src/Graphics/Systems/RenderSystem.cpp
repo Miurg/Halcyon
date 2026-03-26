@@ -74,6 +74,9 @@ void RenderSystem::update(GeneralManager& gm)
 	    textureManager.textures[lightTexture->textureShadowImage.id].textureImageView, vk::ImageAspectFlagBits::eDepth);
 	auto swapChainHandle = rg.importImage("swapChainImage", swapChain.swapChainImages[imageIndex],
 	                                      swapChain.swapChainImageViews[imageIndex], vk::ImageAspectFlagBits::eColor);
+	auto noiseHandle = rg.importImage(
+	    "NoiseImage", textureManager.textures[swapChain.ssaoNoiseTextureHandle.id].textureImage,
+	    textureManager.textures[swapChain.ssaoNoiseTextureHandle.id].textureImageView, vk::ImageAspectFlagBits::eColor);
 
 	if (graphicsSettings->msaaSamples != graphicsSettings->appliedMsaaSamples)
 	{
@@ -194,7 +197,6 @@ void RenderSystem::update(GeneralManager& gm)
 			                                       modelManager, *drawInfo);
 		    });
 	}
-	
 
 	if (graphicsSettings->enableSsao)
 	{
@@ -202,7 +204,9 @@ void RenderSystem::update(GeneralManager& gm)
 		    "SSAO",
 		    {.colorAttachments = {{"SSAOTexture", vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore,
 		                           clearWhite}}},
-		    {{"Depth", RGResourceUsage::ShaderRead}, {"ViewNormals", RGResourceUsage::ShaderRead}},
+		    {{"Depth", RGResourceUsage::ShaderRead}, 
+		     {"ViewNormals", RGResourceUsage::ShaderRead},
+		     {"NoiseImage", RGResourceUsage::ShaderRead}},
 		    {{"SSAOTexture", RGResourceUsage::ColorAttachmentWrite}},
 		    [&](vk::raii::CommandBuffer& cmd)
 		    {
@@ -279,7 +283,7 @@ void RenderSystem::update(GeneralManager& gm)
 	{
 		const std::string mipNames[5] = {"BloomMip0", "BloomMip1", "BloomMip2", "BloomMip3", "BloomMip4"};
 		const std::string downSource[5] = {"MainColor", "BloomMip0", "BloomMip1", "BloomMip2", "BloomMip3"};
-		
+
 		// Divisors matching the RGSizeMode of each mip level
 		const uint32_t divisors[5] = {2, 4, 8, 16, 32};
 
@@ -287,7 +291,7 @@ void RenderSystem::update(GeneralManager& gm)
 		float knee = graphicsSettings->bloomKnee;
 		float intensity = graphicsSettings->bloomIntensity;
 
-		// Downsample 
+		// Downsample
 		for (int i = 0; i < 5; i++)
 		{
 			uint32_t sourceDivision = (i == 0) ? 1 : divisors[i - 1];
@@ -303,16 +307,17 @@ void RenderSystem::update(GeneralManager& gm)
 
 			rg.addPass(
 			    "BloomDown" + std::to_string(i),
-			    {.colorAttachments = {{mipNames[i], vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore, clearBlack}}},
-			    {{downSource[i], RGResourceUsage::ShaderRead}},
-			    {{mipNames[i], RGResourceUsage::ColorAttachmentWrite}},
+			    {.colorAttachments = {{mipNames[i], vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore,
+			                           clearBlack}}},
+			    {{downSource[i], RGResourceUsage::ShaderRead}}, {{mipNames[i], RGResourceUsage::ColorAttachmentWrite}},
 			    [&, texelX, texelY, threshold, knee, isFirst, dstW, dstH, passIdx](vk::raii::CommandBuffer& cmd)
 			    {
 				    CommandBufferFactory::drawBloomDownsamplePass(
-				        cmd, pipelineHandler, *dManager, globalDSetComponent->bloomDownsampleDSets[passIdx],
-				        texelX, texelY, threshold, knee, isFirst, vk::Extent2D{dstW, dstH});
+				        cmd, pipelineHandler, *dManager, globalDSetComponent->bloomDownsampleDSets[passIdx], texelX, texelY,
+				        threshold, knee, isFirst, vk::Extent2D{dstW, dstH});
 			    },
-			    [dManager, globalDSetComponent, passIdx, srcName = downSource[i]](const RenderGraph& graph, const RGPass& pass)
+			    [dManager, globalDSetComponent, passIdx, srcName = downSource[i]](const RenderGraph& graph,
+			                                                                      const RGPass& pass)
 			    {
 				    auto srcHnd = pass.getPhysicalRead(srcName);
 				    dManager->descriptorManager->updateSingleTextureDSet(
@@ -324,7 +329,7 @@ void RenderSystem::update(GeneralManager& gm)
 		// Upsample
 		const std::string upCurrentSrc[5] = {"BloomMip4", "BloomMip3", "BloomMip2", "BloomMip1", "BloomMip0"};
 		const std::string upPrevDst[5] = {"BloomMip3", "BloomMip2", "BloomMip1", "BloomMip0", "MainColor"};
-		
+
 		// Divisors for the destination (previous / target)
 		const uint32_t upDstDivisors[5] = {16, 8, 4, 2, 1};
 
@@ -349,12 +354,12 @@ void RenderSystem::update(GeneralManager& gm)
 			    {{upPrevDst[i], RGResourceUsage::ColorAttachmentWrite}},
 			    [&, texelX, texelY, intensity, isLast, dstW, dstH, passIdx](vk::raii::CommandBuffer& cmd)
 			    {
-				    CommandBufferFactory::drawBloomUpsamplePass(
-				        cmd, pipelineHandler, *dManager, globalDSetComponent->bloomUpsampleDSets[passIdx],
-				        texelX, texelY, intensity, isLast, vk::Extent2D{dstW, dstH});
+				    CommandBufferFactory::drawBloomUpsamplePass(cmd, pipelineHandler, *dManager,
+				                                                globalDSetComponent->bloomUpsampleDSets[passIdx], texelX,
+				                                                texelY, intensity, isLast, vk::Extent2D{dstW, dstH});
 			    },
-			    [dManager, globalDSetComponent, passIdx, curName = upCurrentSrc[i], prevName = upPrevDst[i]](
-			        const RenderGraph& graph, const RGPass& pass)
+			    [dManager, globalDSetComponent, passIdx, curName = upCurrentSrc[i],
+			     prevName = upPrevDst[i]](const RenderGraph& graph, const RGPass& pass)
 			    {
 				    auto curHnd = pass.getPhysicalRead(curName);
 				    auto prevHnd = pass.getPhysicalRead(prevName);
