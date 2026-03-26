@@ -62,6 +62,16 @@ public:
 	static void drawToneMappingPass(vk::raii::CommandBuffer& cmd, SwapChain& swapChain, PipelineHandler& pipelineHandler,
 	                                DescriptorManagerComponent& dManager, DSetHandle toneMappingDescriptorSetIndex);
 
+	static void drawBloomDownsamplePass(vk::raii::CommandBuffer& cmd, PipelineHandler& pipelineHandler,
+	                                    DescriptorManagerComponent& dManager, DSetHandle dSetHandle,
+	                                    float texelSizeX, float texelSizeY, float threshold, float knee,
+	                                    int isFirstPass, vk::Extent2D extent);
+
+	static void drawBloomUpsamplePass(vk::raii::CommandBuffer& cmd, PipelineHandler& pipelineHandler,
+	                                  DescriptorManagerComponent& dManager, DSetHandle dSetHandle,
+	                                  float texelSizeX, float texelSizeY, float blendFactor,
+	                                  int isLastPass, vk::Extent2D extent);
+
 	static void drawImGui(vk::raii::CommandBuffer& cmd);
 
 	static void transitionImageLayout(vk::raii::CommandBuffer& commandBuffer, vk::Image image, vk::ImageLayout oldLayout,

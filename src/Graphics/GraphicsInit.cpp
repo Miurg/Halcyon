@@ -263,6 +263,16 @@ void GraphicsInit::initPipelines(GeneralManager& gm)
 	                         {vk::Format::eR8Unorm, RGSizeMode::HalfExtent, vk::ImageAspectFlagBits::eColor});
 	rg->declareLogicalStream("PostProcessColor",
 	                         {swapChain->swapChainImageFormat, RGSizeMode::FullExtent, vk::ImageAspectFlagBits::eColor});
+	rg->declareLogicalStream("BloomMip0",
+	                         {swapChain->hdrFormat, RGSizeMode::HalfExtent, vk::ImageAspectFlagBits::eColor});
+	rg->declareLogicalStream("BloomMip1",
+	                         {swapChain->hdrFormat, RGSizeMode::QuarterExtent, vk::ImageAspectFlagBits::eColor});
+	rg->declareLogicalStream("BloomMip2",
+	                         {swapChain->hdrFormat, RGSizeMode::EighthExtent, vk::ImageAspectFlagBits::eColor});
+	rg->declareLogicalStream("BloomMip3",
+	                         {swapChain->hdrFormat, RGSizeMode::SixteenthExtent, vk::ImageAspectFlagBits::eColor});
+	rg->declareLogicalStream("BloomMip4",
+	                         {swapChain->hdrFormat, RGSizeMode::ThirtySecondExtent, vk::ImageAspectFlagBits::eColor});
 	gm.addComponent<RenderGraphComponent>(rgEntity, rg);
 	gm.addComponent<NameComponent>(rgEntity, "SYSTEM Render Graph");
 #pragma endregion
@@ -433,6 +443,30 @@ void GraphicsInit::initPipelines(GeneralManager& gm)
 	                                });
 	pipelineHandler->ssaoApplyPipelineLayout = std::move(ssaoApplyLayout);
 	pipelineHandler->ssaoApplyPipeline = std::move(ssaoApplyPipeline);
+
+	auto [bloomDownLayout, bloomDownPipeline] =
+	    PipelineFactory::build(dev, GraphicsPipelineDesc{
+	                                    .shaderPath = "shaders/downsample.spv",
+	                                    .cullMode = vk::CullModeFlagBits::eNone,
+	                                    .colorAttachments = {PipelineFactory::opaqueAttachment()},
+	                                    .colorFormats = {swapChain->hdrFormat},
+	                                    .setLayouts = {*dManager->screenSpaceSetLayout},
+	                                    .pushConstants = {{vk::ShaderStageFlagBits::eFragment, 0, 20u}},
+	                                });
+	pipelineHandler->bloomDownsamplePipelineLayout = std::move(bloomDownLayout);
+	pipelineHandler->bloomDownsamplePipeline = std::move(bloomDownPipeline);
+
+	auto [bloomUpLayout, bloomUpPipeline] =
+	    PipelineFactory::build(dev, GraphicsPipelineDesc{
+	                                    .shaderPath = "shaders/upsample.spv",
+	                                    .cullMode = vk::CullModeFlagBits::eNone,
+	                                    .colorAttachments = {PipelineFactory::opaqueAttachment()},
+	                                    .colorFormats = {swapChain->hdrFormat},
+	                                    .setLayouts = {*dManager->screenSpaceSetLayout},
+	                                    .pushConstants = {{vk::ShaderStageFlagBits::eFragment, 0, 16u}},
+	                                });
+	pipelineHandler->bloomUpsamplePipelineLayout = std::move(bloomUpLayout);
+	pipelineHandler->bloomUpsamplePipeline = std::move(bloomUpPipeline);
 
 	// === Compute pipelines ===
 	auto [cullLayout, cullPipeline] =
@@ -731,6 +765,13 @@ void GraphicsInit::initScene(GeneralManager& gm)
 	globalDSetComponent->ssaoBlurDSets = dManager->allocateOffscreenDescriptorSet(*dManager->screenSpaceSetLayout);
 	globalDSetComponent->ssaoApplyDSets = dManager->allocateOffscreenDescriptorSet(*dManager->screenSpaceSetLayout);
 	globalDSetComponent->toneMappingDSets = dManager->allocateOffscreenDescriptorSet(*dManager->screenSpaceSetLayout);
+
+	// Bloom descriptor sets (5 downsample + 5 upsample)
+	for (int i = 0; i < 5; i++)
+	{
+		globalDSetComponent->bloomDownsampleDSets[i] = dManager->allocateOffscreenDescriptorSet(*dManager->screenSpaceSetLayout);
+		globalDSetComponent->bloomUpsampleDSets[i] = dManager->allocateOffscreenDescriptorSet(*dManager->screenSpaceSetLayout);
+	}
 
 	// SSAO NoiseInput is a static texture — write it manually.
 	dManager->updateSingleTextureDSet(globalDSetComponent->ssaoDSets, Bindings::SSAO::NoiseInput,

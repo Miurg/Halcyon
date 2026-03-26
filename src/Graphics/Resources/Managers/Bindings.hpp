@@ -62,4 +62,13 @@ namespace ToneMapping
 {
 constexpr uint32_t OffscreenInput = 0;
 }
+namespace BloomDownsample
+{
+constexpr uint32_t InputTexture = 0;
+}
+namespace BloomUpsample
+{
+constexpr uint32_t CurrentTexture = 0;
+constexpr uint32_t PreviousTexture = 1;
+}
 } // namespace Bindings

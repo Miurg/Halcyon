@@ -102,7 +102,7 @@ Sampler2D brdfLutMap;
 
 // === CONST ===
 static const float PI = 3.14159265359f;
-static const float MIN_ROUGHNESS = 0.005f;
+static const float MIN_ROUGHNESS = 0.04f;
 static const float MAX_REFLECTION_LOD = 4.0f;
 
 [[vk::constant_id(0)]]

@@ -51,4 +51,9 @@ public:
 
 	vk::raii::Pipeline toneMappingPipeline = nullptr;
 	vk::raii::PipelineLayout toneMappingPipelineLayout = nullptr;
+
+	vk::raii::Pipeline bloomDownsamplePipeline = nullptr;
+	vk::raii::PipelineLayout bloomDownsamplePipelineLayout = nullptr;
+	vk::raii::Pipeline bloomUpsamplePipeline = nullptr;
+	vk::raii::PipelineLayout bloomUpsamplePipelineLayout = nullptr;
 };

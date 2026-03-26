@@ -31,6 +31,11 @@ enum class RGSizeMode
 {
 	FullExtent,
 	HalfExtent,
+	QuarterExtent,
+	EighthExtent,
+	SixteenthExtent,
+	ThirtySecondExtent,
+	SixtyFourthExtent
 };
 
 // Description of a transient image resource

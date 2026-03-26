@@ -64,6 +64,31 @@ void RenderGraph::handleResize(uint32_t newWidth, uint32_t newHeight)
 			targetW /= 2;
 			targetH /= 2;
 		}
+		else if (res.desc.sizeMode == RGSizeMode::QuarterExtent)
+		{
+			targetW /= 4;
+			targetH /= 4;
+		}
+		else if (res.desc.sizeMode == RGSizeMode::EighthExtent)
+		{
+			targetW /= 8;
+			targetH /= 8;
+		}
+		else if (res.desc.sizeMode == RGSizeMode::SixteenthExtent)
+		{
+			targetW /= 16;
+			targetH /= 16;
+		}
+		else if (res.desc.sizeMode == RGSizeMode::ThirtySecondExtent)
+		{
+			targetW /= 32;
+			targetH /= 32;
+		}
+		else if (res.desc.sizeMode == RGSizeMode::SixtyFourthExtent)
+		{
+			targetW /= 64;
+			targetH /= 64;
+		}
 
 		if (res.currentWidth == targetW && res.currentHeight == targetH) continue;
 
@@ -164,6 +189,31 @@ void RenderGraph::compile()
 		{
 			entry.currentWidth /= 2;
 			entry.currentHeight /= 2;
+		}
+		else if (desc.sizeMode == RGSizeMode::QuarterExtent)
+		{
+			entry.currentWidth /= 4;
+			entry.currentHeight /= 4;
+		}
+		else if (desc.sizeMode == RGSizeMode::EighthExtent)
+		{
+			entry.currentWidth /= 8;
+			entry.currentHeight /= 8;
+		}
+		else if (desc.sizeMode == RGSizeMode::SixteenthExtent)
+		{
+			entry.currentWidth /= 16;
+			entry.currentHeight /= 16;
+		}
+		else if (desc.sizeMode == RGSizeMode::ThirtySecondExtent)
+		{
+			entry.currentWidth /= 32;
+			entry.currentHeight /= 32;
+		}
+		else if (desc.sizeMode == RGSizeMode::SixtyFourthExtent)
+		{
+			entry.currentWidth /= 64;
+			entry.currentHeight /= 64;
 		}
 		resources.push_back(std::move(entry));
 		allocateTransientImage(resources.back());

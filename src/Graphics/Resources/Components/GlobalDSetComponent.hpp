@@ -13,4 +13,6 @@ struct GlobalDSetComponent
 	DSetHandle ssaoBlurDSets;
 	DSetHandle ssaoApplyDSets;
 	DSetHandle toneMappingDSets;
+	DSetHandle bloomDownsampleDSets[5];
+	DSetHandle bloomUpsampleDSets[5];
 };

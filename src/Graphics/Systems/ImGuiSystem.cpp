@@ -337,6 +337,13 @@ void ImGuiSystem::update(GeneralManager& gm)
 			{
 				ImGui::Checkbox("Enable SSAO", &settings->enableSsao);
 				ImGui::Checkbox("Enable FXAA", &settings->enableFxaa);
+				ImGui::Checkbox("Enable Bloom", &settings->enableBloom);
+				if (settings->enableBloom)
+				{
+					ImGui::DragFloat("Bloom Threshold", &settings->bloomThreshold, 0.1f, 0.0f, 10.0f);
+					ImGui::DragFloat("Bloom Knee", &settings->bloomKnee, 0.01f, 0.0f, 1.0f);
+					ImGui::DragFloat("Bloom Intensity", &settings->bloomIntensity, 0.001f, 0.0f, 1.0f);
+				}
 
 				auto* vulkanDeviceComponent = gm.getContextComponent<MainVulkanDeviceContext, VulkanDeviceComponent>();
 				if (vulkanDeviceComponent && vulkanDeviceComponent->vulkanDeviceInstance)

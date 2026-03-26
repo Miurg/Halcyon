@@ -690,6 +690,70 @@ void CommandBufferFactory::drawToneMappingPass(vk::raii::CommandBuffer& cmd, Swa
 	cmd.draw(3, 1, 0, 0);
 }
 
+void CommandBufferFactory::drawBloomDownsamplePass(vk::raii::CommandBuffer& cmd, PipelineHandler& pipelineHandler,
+                                                    DescriptorManagerComponent& dManager, DSetHandle dSetHandle,
+                                                    float texelSizeX, float texelSizeY, float threshold, float knee,
+                                                    int isFirstPass, vk::Extent2D extent)
+{
+	cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipelineHandler.bloomDownsamplePipeline);
+
+	cmd.setViewport(0, vk::Viewport(0.0f, 0.0f, static_cast<float>(extent.width),
+	                                static_cast<float>(extent.height), 0.0f, 1.0f));
+	cmd.setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), extent));
+
+	cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineHandler.bloomDownsamplePipelineLayout, 0,
+	                       dManager.descriptorManager->descriptorSets[dSetHandle.id][0], nullptr);
+
+	struct PushConstants
+	{
+		float texelSize[2];
+		float threshold;
+		float knee;
+		int isFirstPass;
+	} push;
+	push.texelSize[0] = texelSizeX;
+	push.texelSize[1] = texelSizeY;
+	push.threshold = threshold;
+	push.knee = knee;
+	push.isFirstPass = isFirstPass;
+
+	cmd.pushConstants<PushConstants>(*pipelineHandler.bloomDownsamplePipelineLayout,
+	                                vk::ShaderStageFlagBits::eFragment, 0, push);
+	cmd.setCullMode(vk::CullModeFlagBits::eNone);
+	cmd.draw(3, 1, 0, 0);
+}
+
+void CommandBufferFactory::drawBloomUpsamplePass(vk::raii::CommandBuffer& cmd, PipelineHandler& pipelineHandler,
+                                                  DescriptorManagerComponent& dManager, DSetHandle dSetHandle,
+                                                  float texelSizeX, float texelSizeY, float blendFactor,
+                                                  int isLastPass, vk::Extent2D extent)
+{
+	cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipelineHandler.bloomUpsamplePipeline);
+
+	cmd.setViewport(0, vk::Viewport(0.0f, 0.0f, static_cast<float>(extent.width),
+	                                static_cast<float>(extent.height), 0.0f, 1.0f));
+	cmd.setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), extent));
+
+	cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineHandler.bloomUpsamplePipelineLayout, 0,
+	                       dManager.descriptorManager->descriptorSets[dSetHandle.id][0], nullptr);
+
+	struct PushConstants
+	{
+		float texelSize[2];
+		float blendFactor;
+		int isLastPass;
+	} push;
+	push.texelSize[0] = texelSizeX;
+	push.texelSize[1] = texelSizeY;
+	push.blendFactor = blendFactor;
+	push.isLastPass = isLastPass;
+
+	cmd.pushConstants<PushConstants>(*pipelineHandler.bloomUpsamplePipelineLayout,
+	                                vk::ShaderStageFlagBits::eFragment, 0, push);
+	cmd.setCullMode(vk::CullModeFlagBits::eNone);
+	cmd.draw(3, 1, 0, 0);
+}
+
 void CommandBufferFactory::drawImGui(vk::raii::CommandBuffer& cmd)
 {
 	// ImGui
