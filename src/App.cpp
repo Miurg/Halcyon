@@ -10,7 +10,7 @@
 #include "vk_mem_alloc.h"
 #include "CoreInit.hpp"
 #include "Game/GameInit.hpp"
-#include "Graphics/GraphicsInit.hpp"
+#include "Graphics/GraphicsInit/GraphicsInit.hpp"
 #include "Cleanup.hpp"
 #include "MainLoop.hpp"
 #include <exception>

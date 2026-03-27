@@ -22,7 +22,7 @@
 #include "../RenderGraph/RenderGraph.hpp"
 #include "../Components/GraphicsSettingsComponent.hpp"
 #include "../Resources/Managers/Bindings.hpp"
-#include "../GraphicsInit.hpp"
+#include "../GraphicsInit/GraphicsInit.hpp"
 
 void RenderSystem::onRegistered(GeneralManager& gm)
 {
