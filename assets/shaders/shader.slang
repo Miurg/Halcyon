@@ -258,6 +258,18 @@ float3 DiffuseDisney(float3 albedo, float NdotL, float NdotV, float HdotV, float
     return albedo / PI * Fd;
 }
 
+float GeometricSpecularAA(float3 worldNormal, float roughness)
+{
+    float3 dndu = ddx(worldNormal);
+    float3 dndv = ddy(worldNormal);
+
+    float variance = 0.5 * (dot(dndu, dndu) + dot(dndv, dndv));
+
+    float roughness2 = roughness * roughness;
+    float kernelRoughness2 = min(2.0 * variance, 0.18);
+    return sqrt(saturate(roughness2 + kernelRoughness2));
+}
+
 float PointLightAttenuation(float dist, float radius)
 {
     float x = saturate(1.0 - pow(dist / radius, 4.0));
@@ -303,6 +315,8 @@ FragOutput fragMain(VSOutput input, bool isFrontFace: SV_IsFrontFace)
 
 	float3 mapNormal = SampleNormalMap(mat.normalMapIndex, input.fragTexCoord, dx, dy);
 	float3 finalNormal = normalize(mapNormal.x * T + mapNormal.y * B + mapNormal.z * N);
+
+    roughness = GeometricSpecularAA(finalNormal, roughness);
 
     // === LIGHTING SETUP ===
     float3 L = normalize(directionalLight[0].direction.xyz);
