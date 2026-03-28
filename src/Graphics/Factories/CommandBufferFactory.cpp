@@ -2,20 +2,20 @@
 #include <imgui.h>
 #include <imgui_impl_vulkan.h>
 
-void CommandBufferFactory::drawShadowCullPass(vk::raii::CommandBuffer& cmd, PipelineHandler& pipelineHandler,
+void CommandBufferFactory::drawShadowCullPass(vk::raii::CommandBuffer& cmd,
                                               uint32_t currentFrame, DescriptorManagerComponent& dManager,
                                               GlobalDSetComponent* globalDSetComponent,
                                               ModelDSetComponent* objectDSetComponent, ModelManager& mManager,
-                                              BufferManager& bManager, const DrawInfoComponent& drawInfo)
+                                              BufferManager& bManager, const DrawInfoComponent& drawInfo, PipelineManager& pManager)
 {
 	// === Frustum Culling ===
-	cmd.bindPipeline(vk::PipelineBindPoint::eCompute, *pipelineHandler.shadowCullingPipeline);
+	cmd.bindPipeline(vk::PipelineBindPoint::eCompute, *pManager.pipelines["shadow_frustum_culling"].pipeline);
 
-	cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute, *pipelineHandler.shadowCullingPipelineLayout, 0,
+	cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute, *pManager.pipelines["shadow_frustum_culling"].layout, 0,
 	                       dManager.descriptorManager->descriptorSets[globalDSetComponent->globalDSets.id][currentFrame],
 	                       nullptr);
 	cmd.bindDescriptorSets(
-	    vk::PipelineBindPoint::eCompute, *pipelineHandler.shadowCullingPipelineLayout, 1,
+	    vk::PipelineBindPoint::eCompute, *pManager.pipelines["shadow_frustum_culling"].layout, 1,
 	    dManager.descriptorManager->descriptorSets[objectDSetComponent->modelBufferDSet.id][currentFrame], nullptr);
 
 	struct PushConsts
@@ -25,7 +25,8 @@ void CommandBufferFactory::drawShadowCullPass(vk::raii::CommandBuffer& cmd, Pipe
 
 	push.objectCount = drawInfo.totalObjectCount;
 
-	cmd.pushConstants<PushConsts>(*pipelineHandler.shadowCullingPipelineLayout, vk::ShaderStageFlagBits::eCompute, 0,
+	cmd.pushConstants<PushConsts>(*pManager.pipelines["shadow_frustum_culling"].layout,
+	                              vk::ShaderStageFlagBits::eCompute, 0,
 	                              push);
 	uint32_t groupCountX = (drawInfo.totalObjectCount + 63) / 64;
 	if (groupCountX > 0) cmd.dispatch(groupCountX, 1, 1);
@@ -59,9 +60,9 @@ void CommandBufferFactory::drawShadowCullPass(vk::raii::CommandBuffer& cmd, Pipe
 	cmd.pipelineBarrier2(fillDepInfo);
 
 	// === Compaction ===
-	cmd.bindPipeline(vk::PipelineBindPoint::eCompute, *pipelineHandler.compactingCullPipeline);
+	cmd.bindPipeline(vk::PipelineBindPoint::eCompute, *pManager.pipelines["frustum_compaction"].pipeline);
 	cmd.bindDescriptorSets(
-	    vk::PipelineBindPoint::eCompute, *pipelineHandler.compactingCullPipelineLayout, 0,
+	    vk::PipelineBindPoint::eCompute, *pManager.pipelines["frustum_compaction"].layout, 0,
 	    dManager.descriptorManager->descriptorSets[objectDSetComponent->modelBufferDSet.id][currentFrame], nullptr);
 
 	struct CompactionPush
@@ -86,7 +87,7 @@ void CommandBufferFactory::drawShadowCullPass(vk::raii::CommandBuffer& cmd, Pipe
 		compactPush.outputOffset = currentOffset;
 		compactPush.inputOffset = currentOffset;
 		compactPush.countIndex = 0;
-		cmd.pushConstants<CompactionPush>(*pipelineHandler.compactingCullPipelineLayout,
+		cmd.pushConstants<CompactionPush>(*pManager.pipelines["frustum_compaction"].layout,
 		                                  vk::ShaderStageFlagBits::eCompute, 0, compactPush);
 		cmd.dispatch((opaqueSingleCount + 63) / 64, 1, 1);
 		currentOffset += opaqueSingleCount;
@@ -99,7 +100,7 @@ void CommandBufferFactory::drawShadowCullPass(vk::raii::CommandBuffer& cmd, Pipe
 		compactPush.outputOffset = currentOffset;
 		compactPush.inputOffset = currentOffset;
 		compactPush.countIndex = 1;
-		cmd.pushConstants<CompactionPush>(*pipelineHandler.compactingCullPipelineLayout,
+		cmd.pushConstants<CompactionPush>(*pManager.pipelines["frustum_compaction"].layout,
 		                                  vk::ShaderStageFlagBits::eCompute, 0, compactPush);
 		cmd.dispatch((opaqueDoubleCount + 63) / 64, 1, 1);
 		currentOffset += opaqueDoubleCount;
@@ -112,7 +113,7 @@ void CommandBufferFactory::drawShadowCullPass(vk::raii::CommandBuffer& cmd, Pipe
 		compactPush.outputOffset = currentOffset;
 		compactPush.inputOffset = currentOffset;
 		compactPush.countIndex = 2;
-		cmd.pushConstants<CompactionPush>(*pipelineHandler.compactingCullPipelineLayout,
+		cmd.pushConstants<CompactionPush>(*pManager.pipelines["frustum_compaction"].layout,
 		                                  vk::ShaderStageFlagBits::eCompute, 0, compactPush);
 		cmd.dispatch((alphaSingleCount + 63) / 64, 1, 1);
 		currentOffset += alphaSingleCount;
@@ -125,7 +126,7 @@ void CommandBufferFactory::drawShadowCullPass(vk::raii::CommandBuffer& cmd, Pipe
 		compactPush.outputOffset = currentOffset;
 		compactPush.inputOffset = currentOffset;
 		compactPush.countIndex = 3;
-		cmd.pushConstants<CompactionPush>(*pipelineHandler.compactingCullPipelineLayout,
+		cmd.pushConstants<CompactionPush>(*pManager.pipelines["frustum_compaction"].layout,
 		                                  vk::ShaderStageFlagBits::eCompute, 0, compactPush);
 		cmd.dispatch((alphaDoubleCount + 63) / 64, 1, 1);
 	}
@@ -143,20 +144,20 @@ void CommandBufferFactory::drawShadowCullPass(vk::raii::CommandBuffer& cmd, Pipe
 	cmd.pipelineBarrier2(drawDepInfo);
 }
 
-void CommandBufferFactory::drawShadowPass(vk::raii::CommandBuffer& cmd, PipelineHandler& pipelineHandler,
+void CommandBufferFactory::drawShadowPass(vk::raii::CommandBuffer& cmd,
                                           uint32_t currentFrame, DirectLightComponent& lightTexture,
                                           DescriptorManagerComponent& dManager,
                                           GlobalDSetComponent* globalDSetComponent,
                                           ModelDSetComponent* objectDSetComponent, TextureManager& tManager,
                                           ModelManager& mManager, BufferManager& bManager,
-                                          const DrawInfoComponent& drawInfo)
+                                          const DrawInfoComponent& drawInfo, PipelineManager& pManager)
 {
-	cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipelineHandler.shadowPipeline);
-	cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineHandler.pipelineLayout, 0,
+	cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pManager.pipelines["shadow"].pipeline);
+	cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pManager.pipelines["shadow"].layout, 0,
 	                       dManager.descriptorManager->descriptorSets[globalDSetComponent->globalDSets.id][currentFrame],
 	                       nullptr);
 	cmd.bindDescriptorSets(
-	    vk::PipelineBindPoint::eGraphics, *pipelineHandler.pipelineLayout, 1,
+	    vk::PipelineBindPoint::eGraphics, *pManager.pipelines["shadow"].layout, 1,
 	    dManager.descriptorManager->descriptorSets[objectDSetComponent->modelBufferDSet.id][currentFrame], nullptr);
 	cmd.setViewport(0, vk::Viewport(0.0f, 0.0f, lightTexture.sizeX, lightTexture.sizeY, 0.0f, 1.0f));
 	cmd.setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), vk::Extent2D(lightTexture.sizeX, lightTexture.sizeY)));
@@ -165,7 +166,6 @@ void CommandBufferFactory::drawShadowPass(vk::raii::CommandBuffer& cmd, Pipeline
 	cmd.bindVertexBuffers(0, mManager.vertexIndexBuffers[mManager.meshes[0].vertexIndexBufferID].vertexBuffer, {0});
 	cmd.bindIndexBuffer(mManager.vertexIndexBuffers[mManager.meshes[0].vertexIndexBufferID].indexBuffer, 0,
 	                    vk::IndexType::eUint32);
-	cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipelineHandler.shadowPipeline);
 
 	uint32_t opaqueSingleCount = drawInfo.opaqueSingleCount;
 	uint32_t opaqueDoubleCount = drawInfo.opaqueDoubleCount;
@@ -222,15 +222,15 @@ void CommandBufferFactory::drawShadowPass(vk::raii::CommandBuffer& cmd, Pipeline
 	}
 }
 
-void CommandBufferFactory::drawResetInstancePass(vk::raii::CommandBuffer& cmd, PipelineHandler& pipelineHandler,
+void CommandBufferFactory::drawResetInstancePass(vk::raii::CommandBuffer& cmd,
                                                  uint32_t currentFrame, DescriptorManagerComponent& dManager,
                                                  ModelDSetComponent* objectDSetComponent,
-                                                 const DrawInfoComponent& drawInfo)
+                                                 const DrawInfoComponent& drawInfo, PipelineManager& pManager)
 {
-	cmd.bindPipeline(vk::PipelineBindPoint::eCompute, *pipelineHandler.resetInstancePipeline);
+	cmd.bindPipeline(vk::PipelineBindPoint::eCompute, *pManager.pipelines["reset_instance_count"].pipeline);
 
 	cmd.bindDescriptorSets(
-	    vk::PipelineBindPoint::eCompute, *pipelineHandler.resetInstancePipelineLayout, 0,
+	    vk::PipelineBindPoint::eCompute, *pManager.pipelines["reset_instance_count"].layout, 0,
 	    dManager.descriptorManager->descriptorSets[objectDSetComponent->modelBufferDSet.id][currentFrame], nullptr);
 
 	struct PushConsts
@@ -240,7 +240,7 @@ void CommandBufferFactory::drawResetInstancePass(vk::raii::CommandBuffer& cmd, P
 
 	push.drawCommandCount = drawInfo.totalDrawCount;
 
-	cmd.pushConstants<PushConsts>(*pipelineHandler.resetInstancePipelineLayout, vk::ShaderStageFlagBits::eCompute, 0,
+	cmd.pushConstants<PushConsts>(*pManager.pipelines["reset_instance_count"].layout, vk::ShaderStageFlagBits::eCompute, 0,
 	                              push);
 	uint32_t groupCountX = (drawInfo.totalDrawCount + 63) / 64;
 	if (groupCountX > 0) cmd.dispatch(groupCountX, 1, 1);
@@ -258,20 +258,20 @@ void CommandBufferFactory::drawResetInstancePass(vk::raii::CommandBuffer& cmd, P
 	cmd.pipelineBarrier2(resetDepInfo);
 }
 
-void CommandBufferFactory::drawCullPass(vk::raii::CommandBuffer& cmd, PipelineHandler& pipelineHandler,
+void CommandBufferFactory::drawCullPass(vk::raii::CommandBuffer& cmd,
                                         uint32_t currentFrame, DescriptorManagerComponent& dManager,
                                         GlobalDSetComponent* globalDSetComponent,
                                         ModelDSetComponent* objectDSetComponent, ModelManager& mManager,
-                                        BufferManager& bManager, const DrawInfoComponent& drawInfo)
+                                        BufferManager& bManager, const DrawInfoComponent& drawInfo, PipelineManager& pManager)
 {
 	// === Frustum Culling ===
-	cmd.bindPipeline(vk::PipelineBindPoint::eCompute, *pipelineHandler.cullingPipeline);
+	cmd.bindPipeline(vk::PipelineBindPoint::eCompute, *pManager.pipelines["frustum_culling"].pipeline);
 
-	cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute, *pipelineHandler.cullingPipelineLayout, 0,
+	cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute, *pManager.pipelines["frustum_culling"].layout, 0,
 	                       dManager.descriptorManager->descriptorSets[globalDSetComponent->globalDSets.id][currentFrame],
 	                       nullptr);
 	cmd.bindDescriptorSets(
-	    vk::PipelineBindPoint::eCompute, *pipelineHandler.cullingPipelineLayout, 1,
+	    vk::PipelineBindPoint::eCompute, *pManager.pipelines["frustum_culling"].layout, 1,
 	    dManager.descriptorManager->descriptorSets[objectDSetComponent->modelBufferDSet.id][currentFrame], nullptr);
 
 	struct PushConsts
@@ -281,7 +281,8 @@ void CommandBufferFactory::drawCullPass(vk::raii::CommandBuffer& cmd, PipelineHa
 
 	push.objectCount = drawInfo.totalObjectCount;
 
-	cmd.pushConstants<PushConsts>(*pipelineHandler.cullingPipelineLayout, vk::ShaderStageFlagBits::eCompute, 0, push);
+	cmd.pushConstants<PushConsts>(*pManager.pipelines["frustum_culling"].layout, vk::ShaderStageFlagBits::eCompute, 0,
+	                              push);
 	uint32_t groupCountX = (drawInfo.totalObjectCount + 63) / 64;
 	if (groupCountX > 0) cmd.dispatch(groupCountX, 1, 1);
 
@@ -312,11 +313,12 @@ void CommandBufferFactory::drawCullPass(vk::raii::CommandBuffer& cmd, PipelineHa
 	fillDepInfo.memoryBarrierCount = 1;
 	fillDepInfo.pMemoryBarriers = &fillBarrier;
 	cmd.pipelineBarrier2(fillDepInfo);
+	
 
 	// === Compaction ===
-	cmd.bindPipeline(vk::PipelineBindPoint::eCompute, *pipelineHandler.compactingCullPipeline);
+	    cmd.bindPipeline(vk::PipelineBindPoint::eCompute, *pManager.pipelines["frustum_compaction"].pipeline);
 	cmd.bindDescriptorSets(
-	    vk::PipelineBindPoint::eCompute, *pipelineHandler.compactingCullPipelineLayout, 0,
+	        vk::PipelineBindPoint::eCompute, *pManager.pipelines["frustum_compaction"].layout, 0,
 	    dManager.descriptorManager->descriptorSets[objectDSetComponent->modelBufferDSet.id][currentFrame], nullptr);
 
 	struct CompactionPush
@@ -341,7 +343,7 @@ void CommandBufferFactory::drawCullPass(vk::raii::CommandBuffer& cmd, PipelineHa
 		compactPush.outputOffset = currentOffset;
 		compactPush.inputOffset = currentOffset;
 		compactPush.countIndex = 0;
-		cmd.pushConstants<CompactionPush>(*pipelineHandler.compactingCullPipelineLayout,
+		cmd.pushConstants<CompactionPush>(*pManager.pipelines["frustum_compaction"].layout,
 		                                  vk::ShaderStageFlagBits::eCompute, 0, compactPush);
 		cmd.dispatch((opaqueSingleCount + 63) / 64, 1, 1);
 		currentOffset += opaqueSingleCount;
@@ -354,7 +356,7 @@ void CommandBufferFactory::drawCullPass(vk::raii::CommandBuffer& cmd, PipelineHa
 		compactPush.outputOffset = currentOffset;
 		compactPush.inputOffset = currentOffset;
 		compactPush.countIndex = 1;
-		cmd.pushConstants<CompactionPush>(*pipelineHandler.compactingCullPipelineLayout,
+		cmd.pushConstants<CompactionPush>(*pManager.pipelines["frustum_compaction"].layout,
 		                                  vk::ShaderStageFlagBits::eCompute, 0, compactPush);
 		cmd.dispatch((opaqueDoubleCount + 63) / 64, 1, 1);
 		currentOffset += opaqueDoubleCount;
@@ -367,7 +369,7 @@ void CommandBufferFactory::drawCullPass(vk::raii::CommandBuffer& cmd, PipelineHa
 		compactPush.outputOffset = currentOffset;
 		compactPush.inputOffset = currentOffset;
 		compactPush.countIndex = 2;
-		cmd.pushConstants<CompactionPush>(*pipelineHandler.compactingCullPipelineLayout,
+		cmd.pushConstants<CompactionPush>(*pManager.pipelines["frustum_compaction"].layout,
 		                                  vk::ShaderStageFlagBits::eCompute, 0, compactPush);
 		cmd.dispatch((alphaSingleCount + 63) / 64, 1, 1);
 		currentOffset += alphaSingleCount;
@@ -380,7 +382,7 @@ void CommandBufferFactory::drawCullPass(vk::raii::CommandBuffer& cmd, PipelineHa
 		compactPush.outputOffset = currentOffset;
 		compactPush.inputOffset = currentOffset;
 		compactPush.countIndex = 3;
-		cmd.pushConstants<CompactionPush>(*pipelineHandler.compactingCullPipelineLayout,
+		cmd.pushConstants<CompactionPush>(*pManager.pipelines["frustum_compaction"].layout,
 		                                  vk::ShaderStageFlagBits::eCompute, 0, compactPush);
 		cmd.dispatch((alphaDoubleCount + 63) / 64, 1, 1);
 	}
@@ -398,20 +400,19 @@ void CommandBufferFactory::drawCullPass(vk::raii::CommandBuffer& cmd, PipelineHa
 	cmd.pipelineBarrier2(drawDepInfo);
 }
 
-void CommandBufferFactory::drawDepthPrepass(vk::raii::CommandBuffer& cmd, SwapChain& swapChain,
-                                            PipelineHandler& pipelineHandler, uint32_t currentFrame,
+void CommandBufferFactory::drawDepthPrepass(vk::raii::CommandBuffer& cmd, SwapChain& swapChain, uint32_t currentFrame,
                                             BindlessTextureDSetComponent& bindlessTextureDSetComponent,
                                             DescriptorManagerComponent& dManager,
                                             GlobalDSetComponent* globalDSetComponent, BufferManager& bManager,
                                             ModelDSetComponent* objectDSetComponent, ModelManager& mManager,
-                                            const DrawInfoComponent& drawInfo)
+                                            const DrawInfoComponent& drawInfo, PipelineManager& pManager)
 {
-	cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipelineHandler.depthPrepassPipeline);
-	cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineHandler.pipelineLayout, 0,
+	cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pManager.pipelines["depth_prepass"].pipeline);
+	cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pManager.pipelines["depth_prepass"].layout, 0,
 	                       dManager.descriptorManager->descriptorSets[globalDSetComponent->globalDSets.id][currentFrame],
 	                       nullptr);
 	cmd.bindDescriptorSets(
-	    vk::PipelineBindPoint::eGraphics, *pipelineHandler.pipelineLayout, 1,
+	    vk::PipelineBindPoint::eGraphics, *pManager.pipelines["depth_prepass"].layout, 1,
 	    dManager.descriptorManager->descriptorSets[objectDSetComponent->modelBufferDSet.id][currentFrame], nullptr);
 
 	cmd.setViewport(0, vk::Viewport(0.0f, 0.0f, static_cast<float>(swapChain.swapChainExtent.width),
@@ -424,8 +425,6 @@ void CommandBufferFactory::drawDepthPrepass(vk::raii::CommandBuffer& cmd, SwapCh
 	                    vk::IndexType::eUint32);
 	uint32_t opaqueSingleCount = drawInfo.opaqueSingleCount;
 	uint32_t opaqueDoubleCount = drawInfo.opaqueDoubleCount;
-
-	cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipelineHandler.depthPrepassPipeline);
 
 	uint32_t currentCommandOffset = 0;
 	uint32_t currentCountBufferOffset = 0;
@@ -453,25 +452,24 @@ void CommandBufferFactory::drawDepthPrepass(vk::raii::CommandBuffer& cmd, SwapCh
 	}
 }
 
-void CommandBufferFactory::drawMainPass(vk::raii::CommandBuffer& cmd, SwapChain& swapChain,
-                                        PipelineHandler& pipelineHandler, uint32_t currentFrame,
+void CommandBufferFactory::drawMainPass(vk::raii::CommandBuffer& cmd, SwapChain& swapChain, uint32_t currentFrame,
                                         BindlessTextureDSetComponent& bindlessTextureDSetComponent,
                                         DescriptorManagerComponent& dManager, GlobalDSetComponent* globalDSetComponent,
                                         BufferManager& bManager, ModelDSetComponent* objectDSetComponent,
-                                        ModelManager& mManager, const DrawInfoComponent& drawInfo)
+                                        ModelManager& mManager, const DrawInfoComponent& drawInfo, PipelineManager& pManager)
 {
 	cmd.setViewport(0, vk::Viewport(0.0f, 0.0f, static_cast<float>(swapChain.swapChainExtent.width),
 	                                static_cast<float>(swapChain.swapChainExtent.height), 0.0f, 1.0f));
 	cmd.setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), swapChain.swapChainExtent));
 
-	cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineHandler.pipelineLayout, 0,
+	cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pManager.pipelines["standard_forward_opaque"].layout, 0,
 	                       dManager.descriptorManager->descriptorSets[globalDSetComponent->globalDSets.id][currentFrame],
 	                       nullptr);
 	cmd.bindDescriptorSets(
-	    vk::PipelineBindPoint::eGraphics, *pipelineHandler.pipelineLayout, 1,
+	    vk::PipelineBindPoint::eGraphics, *pManager.pipelines["standard_forward_opaque"].layout, 1,
 	    dManager.descriptorManager->descriptorSets[objectDSetComponent->modelBufferDSet.id][currentFrame], nullptr);
 	cmd.bindDescriptorSets(
-	    vk::PipelineBindPoint::eGraphics, *pipelineHandler.pipelineLayout, 2,
+	    vk::PipelineBindPoint::eGraphics, *pManager.pipelines["standard_forward_opaque"].layout, 2,
 	    dManager.descriptorManager->descriptorSets[bindlessTextureDSetComponent.bindlessTextureSet.id][0], nullptr);
 
 	const uint32_t commandStride = sizeof(VkDrawIndexedIndirectCommand);
@@ -490,7 +488,7 @@ void CommandBufferFactory::drawMainPass(vk::raii::CommandBuffer& cmd, SwapChain&
 	// Opaque passes
 	if (opaqueSingleCount > 0 || opaqueDoubleCount > 0)
 	{
-		cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipelineHandler.graphicsPipeline);
+		cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pManager.pipelines["standard_forward_opaque"].pipeline);
 
 		// 1. Opaque Single-Sided
 		if (opaqueSingleCount > 0)
@@ -522,11 +520,16 @@ void CommandBufferFactory::drawMainPass(vk::raii::CommandBuffer& cmd, SwapChain&
 		currentCommandOffset += (opaqueSingleCount + opaqueDoubleCount) * commandStride;
 		currentCountBufferOffset += 2 * sizeof(uint32_t);
 	}
+	
+	// Skybox pass
+	cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pManager.pipelines["skybox"].pipeline);
+	cmd.setCullMode(vk::CullModeFlagBits::eNone);
+	cmd.draw(3, 1, 0, 0);
 
 	// Alpha test passes
 	if (alphaSingleCount > 0 || alphaDoubleCount > 0)
 	{
-		cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipelineHandler.alphaTestPipeline);
+		cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pManager.pipelines["standard_forward_alpha"].pipeline);
 
 		// 3. Alpha Single-Sided
 		if (alphaSingleCount > 0)
@@ -550,24 +553,18 @@ void CommandBufferFactory::drawMainPass(vk::raii::CommandBuffer& cmd, SwapChain&
 			    alphaDoubleCount, commandStride);
 		}
 	}
-
-	// Skybox pass
-	cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipelineHandler.skyboxPipeline);
-	cmd.setCullMode(vk::CullModeFlagBits::eNone);
-	cmd.draw(3, 1, 0, 0);
 }
 
-void CommandBufferFactory::drawFxaaPass(vk::raii::CommandBuffer& cmd, SwapChain& swapChain,
-                                        PipelineHandler& pipelineHandler, DescriptorManagerComponent& dManager,
-                                        DSetHandle fxaaDescriptorSetIndex)
+void CommandBufferFactory::drawFxaaPass(vk::raii::CommandBuffer& cmd, SwapChain& swapChain, DescriptorManagerComponent& dManager,
+                                        DSetHandle fxaaDescriptorSetIndex, PipelineManager& pManager)
 {
-	cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipelineHandler.fxaaPipeline);
+	cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pManager.pipelines["fxaa"].pipeline);
 
 	cmd.setViewport(0, vk::Viewport(0.0f, 0.0f, static_cast<float>(swapChain.swapChainExtent.width),
 	                                static_cast<float>(swapChain.swapChainExtent.height), 0.0f, 1.0f));
 	cmd.setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), swapChain.swapChainExtent));
 
-	cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineHandler.fxaaPipelineLayout, 0,
+	cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pManager.pipelines["fxaa"].layout, 0,
 	                       dManager.descriptorManager->descriptorSets[fxaaDescriptorSetIndex.id][0], nullptr);
 
 	struct PushConstants
@@ -577,27 +574,26 @@ void CommandBufferFactory::drawFxaaPass(vk::raii::CommandBuffer& cmd, SwapChain&
 	push.rcpFrame[0] = 1.0f / static_cast<float>(swapChain.swapChainExtent.width);
 	push.rcpFrame[1] = 1.0f / static_cast<float>(swapChain.swapChainExtent.height);
 
-	cmd.pushConstants<PushConstants>(*pipelineHandler.fxaaPipelineLayout, vk::ShaderStageFlagBits::eFragment, 0, push);
+	cmd.pushConstants<PushConstants>(*pManager.pipelines["fxaa"].layout, vk::ShaderStageFlagBits::eFragment, 0, push);
 	cmd.setCullMode(vk::CullModeFlagBits::eNone);
 	cmd.draw(3, 1, 0, 0);
 }
 
-void CommandBufferFactory::drawSsaoPass(vk::raii::CommandBuffer& cmd, SwapChain& swapChain,
-                                        PipelineHandler& pipelineHandler, DescriptorManagerComponent& dManager,
+void CommandBufferFactory::drawSsaoPass(vk::raii::CommandBuffer& cmd, SwapChain& swapChain, DescriptorManagerComponent& dManager,
                                         DSetHandle ssaoDescriptorSetIndex, DSetHandle globalDescriptorSetIndex,
-                                        const SsaoSettingsComponent& ssaoSettings)
+                                        const SsaoSettingsComponent& ssaoSettings, PipelineManager& pManager)
 {
-	cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipelineHandler.ssaoPipeline);
+	cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, pManager.pipelines["ssao"].pipeline);
 
 	cmd.setViewport(0, vk::Viewport(0.0f, 0.0f, static_cast<float>(swapChain.swapChainExtent.width / 2),
 	                                static_cast<float>(swapChain.swapChainExtent.height / 2), 0.0f, 1.0f));
 	cmd.setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), vk::Extent2D{swapChain.swapChainExtent.width / 2,
 	                                                              swapChain.swapChainExtent.height / 2}));
 
-	cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineHandler.ssaoPipelineLayout, 0,
+	cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pManager.pipelines["ssao"].layout, 0,
 	                       dManager.descriptorManager->descriptorSets[ssaoDescriptorSetIndex.id][0], nullptr);
 
-	cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineHandler.ssaoPipelineLayout, 1,
+	cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pManager.pipelines["ssao"].layout, 1,
 	                       dManager.descriptorManager->descriptorSets[globalDescriptorSetIndex.id][0], nullptr);
 
 	struct SsaoPushConstants
@@ -623,24 +619,23 @@ void CommandBufferFactory::drawSsaoPass(vk::raii::CommandBuffer& cmd, SwapChain&
 	push.texelSize[0] = 1.0f / static_cast<float>(swapChain.swapChainExtent.width / 2);
 	push.texelSize[1] = 1.0f / static_cast<float>(swapChain.swapChainExtent.height / 2);
 
-	cmd.pushConstants<SsaoPushConstants>(*pipelineHandler.ssaoPipelineLayout, vk::ShaderStageFlagBits::eFragment, 0,
+	cmd.pushConstants<SsaoPushConstants>(pManager.pipelines["ssao"].layout, vk::ShaderStageFlagBits::eFragment, 0,
 	                                     push);
 	cmd.setCullMode(vk::CullModeFlagBits::eNone);
 	cmd.draw(3, 1, 0, 0);
 }
 
-void CommandBufferFactory::drawSsaoBlurPass(vk::raii::CommandBuffer& cmd, SwapChain& swapChain,
-                                            PipelineHandler& pipelineHandler, DescriptorManagerComponent& dManager,
-                                            DSetHandle ssaoBlurDescriptorSetIndex)
+void CommandBufferFactory::drawSsaoBlurPass(vk::raii::CommandBuffer& cmd, SwapChain& swapChain, DescriptorManagerComponent& dManager, DSetHandle ssaoBlurDescriptorSetIndex,
+                                            PipelineManager& pManager)
 {
-	cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipelineHandler.ssaoBlurPipeline);
+	cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pManager.pipelines["ssao_blur"].pipeline);
 
 	cmd.setViewport(0, vk::Viewport(0.0f, 0.0f, static_cast<float>(swapChain.swapChainExtent.width / 2),
 	                                static_cast<float>(swapChain.swapChainExtent.height / 2), 0.0f, 1.0f));
 	cmd.setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), vk::Extent2D{swapChain.swapChainExtent.width / 2,
 	                                                              swapChain.swapChainExtent.height / 2}));
 
-	cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineHandler.ssaoBlurPipelineLayout, 0,
+	cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pManager.pipelines["ssao_blur"].layout, 0,
 	                       dManager.descriptorManager->descriptorSets[ssaoBlurDescriptorSetIndex.id][0], nullptr);
 
 	struct BlurPushConstants
@@ -650,58 +645,57 @@ void CommandBufferFactory::drawSsaoBlurPass(vk::raii::CommandBuffer& cmd, SwapCh
 	push.texelSize[0] = 1.0f / static_cast<float>(swapChain.swapChainExtent.width / 2);
 	push.texelSize[1] = 1.0f / static_cast<float>(swapChain.swapChainExtent.height / 2);
 
-	cmd.pushConstants<BlurPushConstants>(*pipelineHandler.ssaoBlurPipelineLayout, vk::ShaderStageFlagBits::eFragment, 0,
+	cmd.pushConstants<BlurPushConstants>(*pManager.pipelines["ssao_blur"].layout, vk::ShaderStageFlagBits::eFragment, 0,
 	                                     push);
 	cmd.setCullMode(vk::CullModeFlagBits::eNone);
 	cmd.draw(3, 1, 0, 0);
 }
 
-void CommandBufferFactory::drawSSAOApplyPass(vk::raii::CommandBuffer& cmd, SwapChain& swapChain,
-													 PipelineHandler& pipelineHandler, DescriptorManagerComponent& dManager,
-													DSetHandle ssaoApplyDescriptorSetIndex)
+void CommandBufferFactory::drawSSAOApplyPass(vk::raii::CommandBuffer& cmd, SwapChain& swapChain, DescriptorManagerComponent& dManager,
+                                             DSetHandle ssaoApplyDescriptorSetIndex, PipelineManager& pManager)
 {
-	cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipelineHandler.ssaoApplyPipeline);
+	cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pManager.pipelines["ssao_apply"].pipeline);
 
 	cmd.setViewport(0, vk::Viewport(0.0f, 0.0f, static_cast<float>(swapChain.swapChainExtent.width),
 											  static_cast<float>(swapChain.swapChainExtent.height), 0.0f, 1.0f));
 	cmd.setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), swapChain.swapChainExtent));
 
-	cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineHandler.ssaoApplyPipelineLayout, 0,
+	cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pManager.pipelines["ssao_apply"].layout, 0,
 	                       dManager.descriptorManager->descriptorSets[ssaoApplyDescriptorSetIndex.id][0], nullptr);
 
 	cmd.setCullMode(vk::CullModeFlagBits::eNone);
 	cmd.draw(3, 1, 0, 0);
 }
 
-void CommandBufferFactory::drawToneMappingPass(vk::raii::CommandBuffer& cmd, SwapChain& swapChain,
-                                             PipelineHandler& pipelineHandler, DescriptorManagerComponent& dManager,
-                                               DSetHandle toneMappingDescriptorSetIndex)
+void CommandBufferFactory::drawToneMappingPass(vk::raii::CommandBuffer& cmd, SwapChain& swapChain, DescriptorManagerComponent& dManager,
+                                               DSetHandle toneMappingDescriptorSetIndex, PipelineManager& pManager)
 {
-	cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipelineHandler.toneMappingPipeline);
+	cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pManager.pipelines["tone_mapping"].pipeline);
 
 	cmd.setViewport(0, vk::Viewport(0.0f, 0.0f, static_cast<float>(swapChain.swapChainExtent.width),
 	                                static_cast<float>(swapChain.swapChainExtent.height), 0.0f, 1.0f));
 	cmd.setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), swapChain.swapChainExtent));
 
-	cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineHandler.toneMappingPipelineLayout, 0,
+	cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pManager.pipelines["tone_mapping"].layout, 0,
 	                       dManager.descriptorManager->descriptorSets[toneMappingDescriptorSetIndex.id][0], nullptr);
 
 	cmd.setCullMode(vk::CullModeFlagBits::eNone);
 	cmd.draw(3, 1, 0, 0);
 }
 
-void CommandBufferFactory::drawBloomDownsamplePass(vk::raii::CommandBuffer& cmd, PipelineHandler& pipelineHandler,
-                                                    DescriptorManagerComponent& dManager, DSetHandle dSetHandle,
+void CommandBufferFactory::drawBloomDownsamplePass(vk::raii::CommandBuffer& cmd, 
+                                                    DescriptorManagerComponent& dManager,
+                                                   DSetHandle dSetHandle, PipelineManager& pManager,
                                                     float texelSizeX, float texelSizeY, float threshold, float knee,
                                                     int isFirstPass, vk::Extent2D extent)
 {
-	cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipelineHandler.bloomDownsamplePipeline);
+	cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pManager.pipelines["bloom_downsample"].pipeline);
 
 	cmd.setViewport(0, vk::Viewport(0.0f, 0.0f, static_cast<float>(extent.width),
 	                                static_cast<float>(extent.height), 0.0f, 1.0f));
 	cmd.setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), extent));
 
-	cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineHandler.bloomDownsamplePipelineLayout, 0,
+	cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pManager.pipelines["bloom_downsample"].layout, 0,
 	                       dManager.descriptorManager->descriptorSets[dSetHandle.id][0], nullptr);
 
 	struct PushConstants
@@ -717,24 +711,25 @@ void CommandBufferFactory::drawBloomDownsamplePass(vk::raii::CommandBuffer& cmd,
 	push.knee = knee;
 	push.isFirstPass = isFirstPass;
 
-	cmd.pushConstants<PushConstants>(*pipelineHandler.bloomDownsamplePipelineLayout,
+	cmd.pushConstants<PushConstants>(*pManager.pipelines["bloom_downsample"].layout,
 	                                vk::ShaderStageFlagBits::eFragment, 0, push);
 	cmd.setCullMode(vk::CullModeFlagBits::eNone);
 	cmd.draw(3, 1, 0, 0);
 }
 
-void CommandBufferFactory::drawBloomUpsamplePass(vk::raii::CommandBuffer& cmd, PipelineHandler& pipelineHandler,
-                                                  DescriptorManagerComponent& dManager, DSetHandle dSetHandle,
+void CommandBufferFactory::drawBloomUpsamplePass(vk::raii::CommandBuffer& cmd, 
+                                                  DescriptorManagerComponent& dManager,
+                                                 DSetHandle dSetHandle, PipelineManager& pManager,
                                                   float texelSizeX, float texelSizeY, float blendFactor,
                                                   int isLastPass, vk::Extent2D extent)
 {
-	cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipelineHandler.bloomUpsamplePipeline);
+	cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pManager.pipelines["bloom_upsample"].pipeline);
 
 	cmd.setViewport(0, vk::Viewport(0.0f, 0.0f, static_cast<float>(extent.width),
 	                                static_cast<float>(extent.height), 0.0f, 1.0f));
 	cmd.setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), extent));
 
-	cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineHandler.bloomUpsamplePipelineLayout, 0,
+	cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pManager.pipelines["bloom_upsample"].layout, 0,
 	                       dManager.descriptorManager->descriptorSets[dSetHandle.id][0], nullptr);
 
 	struct PushConstants
@@ -748,7 +743,7 @@ void CommandBufferFactory::drawBloomUpsamplePass(vk::raii::CommandBuffer& cmd, P
 	push.blendFactor = blendFactor;
 	push.isLastPass = isLastPass;
 
-	cmd.pushConstants<PushConstants>(*pipelineHandler.bloomUpsamplePipelineLayout,
+	cmd.pushConstants<PushConstants>(*pManager.pipelines["bloom_upsample"].layout,
 	                                vk::ShaderStageFlagBits::eFragment, 0, push);
 	cmd.setCullMode(vk::CullModeFlagBits::eNone);
 	cmd.draw(3, 1, 0, 0);

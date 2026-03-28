@@ -3,7 +3,6 @@
 #include "../GraphicsContexts.hpp"
 #include <imgui.h>
 #include "../Factories/CommandBufferFactory.hpp"
-#include "../Components/PipelineHandlerComponent.hpp"
 #include "../Components/SwapChainComponent.hpp"
 #include "../Components/BufferManagerComponent.hpp"
 #include "../FrameData.hpp"
@@ -22,7 +21,9 @@
 #include "../RenderGraph/RenderGraph.hpp"
 #include "../Components/GraphicsSettingsComponent.hpp"
 #include "../Resources/Managers/Bindings.hpp"
-#include "../GraphicsInit/GraphicsInit.hpp"
+#include "../GraphicsInit/GraphicsPipelinesInit.hpp"
+#include "../Managers/PipelineManager.hpp"
+#include "../Components/PipelineManagerComponent.hpp"
 
 void RenderSystem::onRegistered(GeneralManager& gm)
 {
@@ -37,8 +38,6 @@ void RenderSystem::onShutdown(GeneralManager& gm)
 void RenderSystem::update(GeneralManager& gm)
 {
 	SwapChain& swapChain = *gm.getContextComponent<MainSwapChainContext, SwapChainComponent>()->swapChainInstance;
-	PipelineHandler& pipelineHandler =
-	    *gm.getContextComponent<MainSignatureContext, PipelineHandlerComponent>()->pipelineHandler;
 	BufferManager& bufferManager =
 	    *gm.getContextComponent<BufferManagerContext, BufferManagerComponent>()->bufferManager;
 	TextureManager& textureManager =
@@ -59,6 +58,9 @@ void RenderSystem::update(GeneralManager& gm)
 	GraphicsSettingsComponent* graphicsSettings =
 	    gm.getContextComponent<GraphicsSettingsContext, GraphicsSettingsComponent>();
 	uint32_t imageIndex = gm.getContextComponent<FrameImageContext, FrameImageComponent>()->imageIndex;
+	PipelineManager* pManager =
+	    gm.getContextComponent<PipelineManagerContext, PipelineManagerComponent>()->pipelineManager;
+
 	if (!currentFrameComp->frameValid) return;
 
 	ImGui::Render();
@@ -80,7 +82,7 @@ void RenderSystem::update(GeneralManager& gm)
 
 	if (graphicsSettings->msaaSamples != graphicsSettings->appliedMsaaSamples)
 	{
-		GraphicsInit::recreateMsaaPipelines(gm, graphicsSettings->msaaSamples);
+		GraphicsPipelinesInit::recreateMsaaPipelines(gm, graphicsSettings->msaaSamples);
 		graphicsSettings->appliedMsaaSamples = graphicsSettings->msaaSamples;
 	}
 
@@ -96,9 +98,9 @@ void RenderSystem::update(GeneralManager& gm)
 	rg.addPass("ShadowCull", {.isCompute = true}, {}, {},
 	           [&](vk::raii::CommandBuffer& cmd)
 	           {
-		           CommandBufferFactory::drawShadowCullPass(cmd, pipelineHandler, currentFrame, *dManager,
+		           CommandBufferFactory::drawShadowCullPass(cmd, currentFrame, *dManager,
 		                                                    globalDSetComponent, objectDSetComponent, modelManager,
-		                                                    bufferManager, *drawInfo);
+		                                                    bufferManager, *drawInfo, *pManager);
 	           });
 
 	rg.addPass("Shadow",
@@ -109,23 +111,24 @@ void RenderSystem::update(GeneralManager& gm)
 	           {}, {{"shadowMap", RGResourceUsage::DepthAttachmentWrite}},
 	           [&](vk::raii::CommandBuffer& cmd)
 	           {
-		           CommandBufferFactory::drawShadowPass(cmd, pipelineHandler, currentFrame, *lightTexture, *dManager,
+		           CommandBufferFactory::drawShadowPass(cmd, currentFrame, *lightTexture, *dManager,
 		                                                globalDSetComponent, objectDSetComponent, textureManager,
-		                                                modelManager, bufferManager, *drawInfo);
+		                                                modelManager, bufferManager, *drawInfo, *pManager);
 	           });
 
 	rg.addPass("ResetInstanceCount", {.isCompute = true}, {}, {},
 	           [&](vk::raii::CommandBuffer& cmd)
 	           {
-		           CommandBufferFactory::drawResetInstancePass(cmd, pipelineHandler, currentFrame, *dManager,
-		                                                       objectDSetComponent, *drawInfo);
+		           CommandBufferFactory::drawResetInstancePass(cmd, currentFrame, *dManager,
+		                                                       objectDSetComponent, *drawInfo, *pManager);
 	           });
 
 	rg.addPass("Cull", {.isCompute = true}, {}, {},
 	           [&](vk::raii::CommandBuffer& cmd)
 	           {
-		           CommandBufferFactory::drawCullPass(cmd, pipelineHandler, currentFrame, *dManager, globalDSetComponent,
-		                                              objectDSetComponent, modelManager, bufferManager, *drawInfo);
+		           CommandBufferFactory::drawCullPass(cmd, currentFrame, *dManager, globalDSetComponent,
+		                                              objectDSetComponent, modelManager, bufferManager, *drawInfo,
+		                                              *pManager);
 	           });
 
 	if (graphicsSettings->msaaSamples & vk::SampleCountFlagBits::e1) // What a mess
@@ -136,9 +139,9 @@ void RenderSystem::update(GeneralManager& gm)
 		           {}, {{"Depth", RGResourceUsage::DepthAttachmentWrite}},
 		           [&](vk::raii::CommandBuffer& cmd)
 		           {
-			           CommandBufferFactory::drawDepthPrepass(cmd, swapChain, pipelineHandler, currentFrame,
-			                                                  *materialDSetComponent, *dManager, globalDSetComponent,
-			                                                  bufferManager, objectDSetComponent, modelManager, *drawInfo);
+			           CommandBufferFactory::drawDepthPrepass(cmd, swapChain, currentFrame,
+			                                                  *materialDSetComponent, *dManager, globalDSetComponent, bufferManager,
+			                                                  objectDSetComponent, modelManager, *drawInfo, *pManager);
 		           });
 
 		std::vector<RGResourceAccess> mainWrites = {{"MainColor", RGResourceUsage::ColorAttachmentWrite},
@@ -154,9 +157,9 @@ void RenderSystem::update(GeneralManager& gm)
 		    {{"shadowMap", RGResourceUsage::ShaderRead}}, std::move(mainWrites),
 		    [&](vk::raii::CommandBuffer& cmd)
 		    {
-			    CommandBufferFactory::drawMainPass(cmd, swapChain, pipelineHandler, currentFrame, *materialDSetComponent,
+			    CommandBufferFactory::drawMainPass(cmd, swapChain, currentFrame, *materialDSetComponent,
 			                                       *dManager, globalDSetComponent, bufferManager, objectDSetComponent,
-			                                       modelManager, *drawInfo);
+			                                       modelManager, *drawInfo, *pManager);
 		    });
 	}
 	else
@@ -167,9 +170,9 @@ void RenderSystem::update(GeneralManager& gm)
 		           {}, {{"DepthMSAA", RGResourceUsage::DepthAttachmentWrite}},
 		           [&](vk::raii::CommandBuffer& cmd)
 		           {
-			           CommandBufferFactory::drawDepthPrepass(cmd, swapChain, pipelineHandler, currentFrame,
-			                                                  *materialDSetComponent, *dManager, globalDSetComponent,
-			                                                  bufferManager, objectDSetComponent, modelManager, *drawInfo);
+			           CommandBufferFactory::drawDepthPrepass(cmd, swapChain, currentFrame, *materialDSetComponent,
+			                                                  *dManager, globalDSetComponent, bufferManager,
+			                                                  objectDSetComponent, modelManager, *drawInfo, *pManager);
 		           });
 
 		std::vector<RGResourceAccess> mainWrites = {{"MainColorMSAA", RGResourceUsage::ColorAttachmentWrite},
@@ -192,9 +195,9 @@ void RenderSystem::update(GeneralManager& gm)
 		    {{"shadowMap", RGResourceUsage::ShaderRead}}, std::move(mainWrites),
 		    [&](vk::raii::CommandBuffer& cmd)
 		    {
-			    CommandBufferFactory::drawMainPass(cmd, swapChain, pipelineHandler, currentFrame, *materialDSetComponent,
+			    CommandBufferFactory::drawMainPass(cmd, swapChain, currentFrame, *materialDSetComponent,
 			                                       *dManager, globalDSetComponent, bufferManager, objectDSetComponent,
-			                                       modelManager, *drawInfo);
+			                                       modelManager, *drawInfo, *pManager);
 		    });
 	}
 
@@ -210,9 +213,9 @@ void RenderSystem::update(GeneralManager& gm)
 		    {{"SSAOTexture", RGResourceUsage::ColorAttachmentWrite}},
 		    [&](vk::raii::CommandBuffer& cmd)
 		    {
-			    CommandBufferFactory::drawSsaoPass(cmd, swapChain, pipelineHandler, *dManager,
+			    CommandBufferFactory::drawSsaoPass(cmd, swapChain, *dManager,
 			                                       globalDSetComponent->ssaoDSets, globalDSetComponent->globalDSets,
-			                                       *ssaoSettings);
+			                                       *ssaoSettings, *pManager);
 		    },
 		    [dManager, globalDSetComponent](const RenderGraph& graph, const RGPass& pass)
 		    {
@@ -236,8 +239,8 @@ void RenderSystem::update(GeneralManager& gm)
 		    {{"SSAOBlurTexture", RGResourceUsage::ColorAttachmentWrite}},
 		    [&](vk::raii::CommandBuffer& cmd)
 		    {
-			    CommandBufferFactory::drawSsaoBlurPass(cmd, swapChain, pipelineHandler, *dManager,
-			                                           globalDSetComponent->ssaoBlurDSets);
+			    CommandBufferFactory::drawSsaoBlurPass(cmd, swapChain, *dManager, globalDSetComponent->ssaoBlurDSets,
+			                                           *pManager);
 		    },
 		    [dManager, globalDSetComponent](const RenderGraph& graph, const RGPass& pass)
 		    {
@@ -262,8 +265,8 @@ void RenderSystem::update(GeneralManager& gm)
 		    {{"MainColor", RGResourceUsage::ColorAttachmentWrite}}, // Overwrites MainColor!
 		    [&](vk::raii::CommandBuffer& cmd)
 		    {
-			    CommandBufferFactory::drawSSAOApplyPass(cmd, swapChain, pipelineHandler, *dManager,
-			                                            globalDSetComponent->ssaoApplyDSets);
+			    CommandBufferFactory::drawSSAOApplyPass(cmd, swapChain, *dManager, globalDSetComponent->ssaoApplyDSets,
+			                                            *pManager);
 		    },
 		    [dManager, globalDSetComponent](const RenderGraph& graph, const RGPass& pass)
 		    {
@@ -313,7 +316,7 @@ void RenderSystem::update(GeneralManager& gm)
 			    [&, texelX, texelY, threshold, knee, isFirst, dstW, dstH, passIdx](vk::raii::CommandBuffer& cmd)
 			    {
 				    CommandBufferFactory::drawBloomDownsamplePass(
-				        cmd, pipelineHandler, *dManager, globalDSetComponent->bloomDownsampleDSets[passIdx], texelX, texelY,
+				        cmd, *dManager, globalDSetComponent->bloomDownsampleDSets[passIdx],*pManager, texelX, texelY,
 				        threshold, knee, isFirst, vk::Extent2D{dstW, dstH});
 			    },
 			    [dManager, globalDSetComponent, passIdx, srcName = downSource[i]](const RenderGraph& graph,
@@ -354,8 +357,7 @@ void RenderSystem::update(GeneralManager& gm)
 			    {{upPrevDst[i], RGResourceUsage::ColorAttachmentWrite}},
 			    [&, texelX, texelY, intensity, isLast, dstW, dstH, passIdx](vk::raii::CommandBuffer& cmd)
 			    {
-				    CommandBufferFactory::drawBloomUpsamplePass(cmd, pipelineHandler, *dManager,
-				                                                globalDSetComponent->bloomUpsampleDSets[passIdx], texelX,
+				    CommandBufferFactory::drawBloomUpsamplePass(cmd, *dManager, globalDSetComponent->bloomUpsampleDSets[passIdx], *pManager, texelX,
 				                                                texelY, intensity, isLast, vk::Extent2D{dstW, dstH});
 			    },
 			    [dManager, globalDSetComponent, passIdx, curName = upCurrentSrc[i],
@@ -380,8 +382,8 @@ void RenderSystem::update(GeneralManager& gm)
 	    {{"MainColor", RGResourceUsage::ShaderRead}}, {{"PostProcessColor", RGResourceUsage::ColorAttachmentWrite}},
 	    [&](vk::raii::CommandBuffer& cmd)
 	    {
-		    CommandBufferFactory::drawToneMappingPass(cmd, swapChain, pipelineHandler, *dManager,
-		                                              globalDSetComponent->toneMappingDSets);
+		    CommandBufferFactory::drawToneMappingPass(cmd, swapChain, *dManager, globalDSetComponent->toneMappingDSets,
+		                                              *pManager);
 	    },
 	    [dManager, globalDSetComponent](const RenderGraph& graph, const RGPass& pass)
 	    {
@@ -401,8 +403,8 @@ void RenderSystem::update(GeneralManager& gm)
 		    {{"PostProcessColor", RGResourceUsage::ColorAttachmentWrite}},
 		    [&](vk::raii::CommandBuffer& cmd)
 		    {
-			    CommandBufferFactory::drawFxaaPass(cmd, swapChain, pipelineHandler, *dManager,
-			                                       globalDSetComponent->fxaaDSets);
+			    CommandBufferFactory::drawFxaaPass(cmd, swapChain, *dManager,
+			                                       globalDSetComponent->fxaaDSets, *pManager);
 		    },
 		    [dManager, globalDSetComponent](const RenderGraph& graph, const RGPass& pass)
 		    {

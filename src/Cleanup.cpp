@@ -8,7 +8,6 @@
 #include "Graphics/Components/SwapChainComponent.hpp"
 #include "Graphics/Components/VulkanDeviceComponent.hpp"
 #include "Graphics/Factories/SwapChainFactory.hpp"
-#include "Graphics/Components/PipelineHandlerComponent.hpp"
 #include "Graphics/Components/FrameManagerComponent.hpp"
 #include "Graphics/Components/VMAllocatorComponent.hpp"
 #include "Graphics/Components/RenderGraphComponent.hpp"
@@ -18,6 +17,8 @@
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_vulkan.h>
+#include "Graphics/Managers/PipelineManager.hpp"
+#include "Graphics/Components/PipelineManagerComponent.hpp"
 
 void Cleanup::cleanup(GeneralManager& gm)
 {
@@ -30,10 +31,10 @@ void Cleanup::cleanup(GeneralManager& gm)
 	SwapChain* swap = gm.getContextComponent<MainSwapChainContext, SwapChainComponent>()->swapChainInstance;
 	VulkanDevice* vulkanDevice =
 	    gm.getContextComponent<MainVulkanDeviceContext, VulkanDeviceComponent>()->vulkanDeviceInstance;
-	PipelineHandler* pipelineHandler =
-	    gm.getContextComponent<MainSignatureContext, PipelineHandlerComponent>()->pipelineHandler;
 	VMAllocatorComponent* vmaComp = gm.getContextComponent<VMAllocatorContext, VMAllocatorComponent>();
 	RenderGraph* rg = gm.getContextComponent<RenderGraphContext, RenderGraphComponent>()->renderGraph;
+	PipelineManager* pManager =
+	    gm.getContextComponent<PipelineManagerContext, PipelineManagerComponent>()->pipelineManager;
 
 	vulkanDevice->device.waitIdle();
 
@@ -72,10 +73,10 @@ void Cleanup::cleanup(GeneralManager& gm)
 		delete swap;
 		swap = nullptr;
 	}
-	if (pipelineHandler)
+	if (pManager)
 	{
-		delete pipelineHandler;
-		pipelineHandler = nullptr;
+		delete pManager;
+		pManager = nullptr;
 	}
 	if (rg)
 	{

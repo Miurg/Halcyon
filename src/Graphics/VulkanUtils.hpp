@@ -8,6 +8,7 @@
 class VulkanUtils
 {
 public:
+	static std::string nameFromPath(const std::string& path);
 	static std::pair<vk::raii::Buffer, vk::raii::DeviceMemory> createBuffer(vk::DeviceSize size,
 	                                                                        vk::BufferUsageFlags usage,
 	                                                                        vk::MemoryPropertyFlags properties,

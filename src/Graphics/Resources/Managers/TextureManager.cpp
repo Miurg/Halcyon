@@ -3,7 +3,6 @@
 #include "BufferManager.hpp"
 #include "../../Resources/Factories/TextureUploader.hpp"
 #include "../../Factories/CommandBufferFactory.hpp"
-#include "../../PipelineHandler.hpp"
 #include "../../VulkanUtils.hpp"
 #include "Bindings.hpp"
 #include <random>
@@ -382,9 +381,10 @@ void TextureManager::resizeTexture(TextureHandle handle, uint32_t newWidth, uint
 	TextureManager::createImageView(texture, texture.format, texture.aspectFlags);
 }
 
-TextureHandle TextureManager::generateCubemapFromHdr(TextureHandle hdrTexture, PipelineHandler& pHandler,
+TextureHandle TextureManager::generateCubemapFromHdr(TextureHandle hdrTexture,
                                                      DescriptorManager& dManager,
-                                                     BindlessTextureDSetComponent& dSetComponent)
+                                                     BindlessTextureDSetComponent& dSetComponent,
+                                                     PipelineManager& pManager)
 {
 	// Create Cubemap
 	TextureHandle cubemapHandle = createCubemapImage(1024, 1024, vk::Format::eR32G32B32A32Sfloat, 1);
@@ -414,12 +414,12 @@ TextureHandle TextureManager::generateCubemapFromHdr(TextureHandle hdrTexture, P
 	    vk::AccessFlagBits2::eShaderWrite, vk::PipelineStageFlagBits2::eTopOfPipe,
 	    vk::PipelineStageFlagBits2::eComputeShader, vk::ImageAspectFlagBits::eColor, 6, 1);
 
-	cmd.bindPipeline(vk::PipelineBindPoint::eCompute, *pHandler.equirectToCubePipeline);
-	cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute, *pHandler.equirectToCubePipelineLayout, 0,
+	cmd.bindPipeline(vk::PipelineBindPoint::eCompute, *pManager.pipelines["equirect_to_cube"].pipeline);
+	cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute, *pManager.pipelines["equirect_to_cube"].layout, 0,
 	                       dManager.descriptorSets[dSetComponent.bindlessTextureSet.id][0], nullptr);
 
 	uint32_t pushConstants = hdrTexture.id;
-	cmd.pushConstants<uint32_t>(*pHandler.equirectToCubePipelineLayout, vk::ShaderStageFlagBits::eCompute, 0,
+	cmd.pushConstants<uint32_t>(*pManager.pipelines["equirect_to_cube"].layout, vk::ShaderStageFlagBits::eCompute, 0,
 	                            pushConstants);
 
 	cmd.dispatch(1024 / 8, 1024 / 8, 6);
@@ -434,9 +434,10 @@ TextureHandle TextureManager::generateCubemapFromHdr(TextureHandle hdrTexture, P
 	return cubemapHandle;
 }
 
-TextureHandle TextureManager::generateIrradianceMap(TextureHandle envCubemap, PipelineHandler& pHandler,
+TextureHandle TextureManager::generateIrradianceMap(TextureHandle envCubemap,
                                                     DescriptorManager& dManager,
-                                                    BindlessTextureDSetComponent& dSetComponent)
+                                                    BindlessTextureDSetComponent& dSetComponent,
+                                                    PipelineManager& pManager)
 {
 	const uint32_t irradianceSize = 32;
 	TextureHandle irradianceHandle = createCubemapImage(irradianceSize, irradianceSize, vk::Format::eR32G32B32A32Sfloat);
@@ -467,12 +468,13 @@ TextureHandle TextureManager::generateIrradianceMap(TextureHandle envCubemap, Pi
 	    vk::AccessFlagBits2::eShaderWrite, vk::PipelineStageFlagBits2::eTopOfPipe,
 	    vk::PipelineStageFlagBits2::eComputeShader, vk::ImageAspectFlagBits::eColor, 6, 1);
 
-	cmd.bindPipeline(vk::PipelineBindPoint::eCompute, *pHandler.irradiancePipeline);
-	cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute, *pHandler.irradiancePipelineLayout, 0,
+	cmd.bindPipeline(vk::PipelineBindPoint::eCompute, *pManager.pipelines["irradiance_convolution"].pipeline);
+	cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute, *pManager.pipelines["irradiance_convolution"].layout, 0,
 	                       dManager.descriptorSets[dSetComponent.bindlessTextureSet.id][0], nullptr);
 
 	float sampleDelta = 0.025f;
-	cmd.pushConstants<float>(*pHandler.irradiancePipelineLayout, vk::ShaderStageFlagBits::eCompute, 0, sampleDelta);
+	cmd.pushConstants<float>(*pManager.pipelines["irradiance_convolution"].layout, vk::ShaderStageFlagBits::eCompute, 0,
+	                         sampleDelta);
 
 	cmd.dispatch(irradianceSize / 8, irradianceSize / 8, 6);
 
@@ -486,9 +488,10 @@ TextureHandle TextureManager::generateIrradianceMap(TextureHandle envCubemap, Pi
 	return irradianceHandle;
 }
 
-TextureHandle TextureManager::generatePrefilteredEnvMap(TextureHandle envCubemap, PipelineHandler& pHandler,
+TextureHandle TextureManager::generatePrefilteredEnvMap(TextureHandle envCubemap,
                                                         DescriptorManager& dManager,
-                                                        BindlessTextureDSetComponent& dSetComponent)
+                                                        BindlessTextureDSetComponent& dSetComponent,
+                                                        PipelineManager& pManager)
 {
 	const uint32_t prefilteredSize = 128;
 	const uint32_t maxMipLevels = 5;
@@ -532,12 +535,13 @@ TextureHandle TextureManager::generatePrefilteredEnvMap(TextureHandle envCubemap
 
 		auto cmd = VulkanUtils::beginSingleTimeCommands(vulkanDevice);
 
-		cmd.bindPipeline(vk::PipelineBindPoint::eCompute, *pHandler.prefilterPipeline);
-		cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute, *pHandler.prefilterPipelineLayout, 0,
+		cmd.bindPipeline(vk::PipelineBindPoint::eCompute, *pManager.pipelines["prefilter_env_map"].pipeline);
+		cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute, *pManager.pipelines["prefilter_env_map"].layout, 0,
 		                       dManager.descriptorSets[dSetComponent.bindlessTextureSet.id][0], nullptr);
 
 		float roughness = static_cast<float>(mip) / static_cast<float>(maxMipLevels - 1);
-		cmd.pushConstants<float>(*pHandler.prefilterPipelineLayout, vk::ShaderStageFlagBits::eCompute, 0, roughness);
+		cmd.pushConstants<float>(*pManager.pipelines["prefilter_env_map"].layout, vk::ShaderStageFlagBits::eCompute, 0,
+		                         roughness);
 
 		uint32_t groupsX = std::max(1u, mipWidth / 8);
 		uint32_t groupsY = std::max(1u, mipHeight / 8);
@@ -558,8 +562,8 @@ TextureHandle TextureManager::generatePrefilteredEnvMap(TextureHandle envCubemap
 	return prefilteredHandle;
 }
 
-TextureHandle TextureManager::generateBrdfLut(PipelineHandler& pHandler, DescriptorManager& dManager,
-                                              BindlessTextureDSetComponent& dSetComponent)
+TextureHandle TextureManager::generateBrdfLut(DescriptorManager& dManager, BindlessTextureDSetComponent& dSetComponent,
+                                              PipelineManager& pManager)
 {
 	const uint32_t brdfLutSize = 512;
 
@@ -615,8 +619,8 @@ TextureHandle TextureManager::generateBrdfLut(PipelineHandler& pHandler, Descrip
 	    vk::AccessFlagBits2::eShaderWrite, vk::PipelineStageFlagBits2::eTopOfPipe,
 	    vk::PipelineStageFlagBits2::eComputeShader, vk::ImageAspectFlagBits::eColor, 1, 1);
 
-	cmd.bindPipeline(vk::PipelineBindPoint::eCompute, *pHandler.brdfLutPipeline);
-	cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute, *pHandler.brdfLutPipelineLayout, 0,
+	cmd.bindPipeline(vk::PipelineBindPoint::eCompute, *pManager.pipelines["brdf_lut"].pipeline);
+	cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute, *pManager.pipelines["brdf_lut"].layout, 0,
 	                       dManager.descriptorSets[dSetComponent.bindlessTextureSet.id][0], nullptr);
 
 	cmd.dispatch(brdfLutSize / 8, brdfLutSize / 8, 1);

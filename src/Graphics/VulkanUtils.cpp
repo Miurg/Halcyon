@@ -1,5 +1,11 @@
 #include "VulkanUtils.hpp"
 #include <fstream>
+#include <filesystem>
+
+std::string VulkanUtils::nameFromPath(const std::string& path)
+{
+	return std::filesystem::path(path).stem().string(); // "shaders/mesh.slang" -> "mesh"
+}
 
 // Creates a buffer and allocates memory for it.
 std::pair<vk::raii::Buffer, vk::raii::DeviceMemory> VulkanUtils::createBuffer(vk::DeviceSize size,

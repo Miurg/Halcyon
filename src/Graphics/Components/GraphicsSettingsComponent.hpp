@@ -10,8 +10,8 @@ struct GraphicsSettingsComponent
 	bool enableFxaa = true;
 	bool enableBloom = true;
 	float bloomThreshold = 1.0f;
-	float bloomKnee = 0.1f;
-	float bloomIntensity = 0.04f;
+	float bloomKnee = 0.3f;
+	float bloomIntensity = 0.08f;
 	//bool enableToneMapping = true;
 	//bool enableGammaCorrection = true;
 	vk::SampleCountFlagBits msaaSamples = vk::SampleCountFlagBits::e4;

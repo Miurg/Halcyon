@@ -12,6 +12,7 @@
 #include "../../VulkanDevice.hpp"
 #include "ResourceHandles.hpp"
 #include "../ResourceStructures.hpp"
+#include "../../Managers/PipelineManager.hpp"
 
 class BufferManager;
 class DescriptorManager;
@@ -45,14 +46,16 @@ public:
 	void createImage(uint32_t width, uint32_t height, vk::Format format, vk::ImageTiling tiling,
 	                 vk::ImageUsageFlags usage, VmaMemoryUsage memoryUsage, Texture& texture, uint32_t mipLevels = 1);
 	TextureHandle createCubemapImage(uint32_t width, uint32_t height, vk::Format format, uint32_t mipLevels = 1);
-	TextureHandle generateCubemapFromHdr(TextureHandle hdrTexture, PipelineHandler& pHandler,
-	                                     DescriptorManager& dManager, BindlessTextureDSetComponent& dSetComponent);
-	TextureHandle generateIrradianceMap(TextureHandle envCubemap, PipelineHandler& pHandler, DescriptorManager& dManager,
-	                                    BindlessTextureDSetComponent& dSetComponent);
-	TextureHandle generatePrefilteredEnvMap(TextureHandle envCubemap, PipelineHandler& pHandler,
-	                                        DescriptorManager& dManager, BindlessTextureDSetComponent& dSetComponent);
-	TextureHandle generateBrdfLut(PipelineHandler& pHandler, DescriptorManager& dManager,
-	                              BindlessTextureDSetComponent& dSetComponent);
+	TextureHandle generateCubemapFromHdr(TextureHandle hdrTexture,
+	                                     DescriptorManager& dManager, BindlessTextureDSetComponent& dSetComponent,
+	                                     PipelineManager& pManager);
+	TextureHandle generateIrradianceMap(TextureHandle envCubemap, DescriptorManager& dManager,
+	                                    BindlessTextureDSetComponent& dSetComponent, PipelineManager& pManager);
+	TextureHandle generatePrefilteredEnvMap(TextureHandle envCubemap, 
+	                                        DescriptorManager& dManager, BindlessTextureDSetComponent& dSetComponent,
+	                                        PipelineManager& pManager);
+	TextureHandle generateBrdfLut(DescriptorManager& dManager, BindlessTextureDSetComponent& dSetComponent,
+	                              PipelineManager& pManager);
 	std::vector<Texture> textures;
 	std::unordered_map<std::string, TextureHandle> texturePaths;
 

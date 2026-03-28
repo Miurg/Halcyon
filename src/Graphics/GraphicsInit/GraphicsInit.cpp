@@ -5,7 +5,6 @@
 #include <stdexcept>
 #include "../Factories/VulkanDeviceFactory.hpp"
 #include "../Factories/SwapChainFactory.hpp"
-#include "../Factories/PipelineFactory.hpp"
 
 // Entities and Components
 #include "../Components/VulkanDeviceComponent.hpp"
@@ -20,7 +19,6 @@
 #include "../Components/CurrentFrameComponent.hpp"
 #include "../Components/GraphicsSettingsComponent.hpp"
 #include "../Components/FrameImageComponent.hpp"
-#include "../Components/PipelineHandlerComponent.hpp"
 #include "../Resources/Components/GlobalDSetComponent.hpp"
 #include "../Resources/Components/ModelDSetComponent.hpp"
 #include "../Components/DrawInfoComponent.hpp"
@@ -40,7 +38,6 @@
 // Managers and Resources
 #include "../VulkanDevice.hpp"
 #include "../SwapChain.hpp"
-#include "../PipelineHandler.hpp"
 #include "../Resources/Managers/TextureManager.hpp"
 #include "../Resources/Managers/BufferManager.hpp"
 #include "../Resources/Managers/ModelManager.hpp"
@@ -52,11 +49,14 @@
 #include "../GraphicsContexts.hpp"
 #include "../Resources/ResourceStructures.hpp"
 #include "../Resources/Managers/Bindings.hpp"
+#include "GraphicsPipelinesInit.hpp"
 
 // ImGui
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_vulkan.h>
+#include "../Components/PipelineManagerComponent.hpp"
+#include "../Managers/PipelineManager.hpp"
 #pragma endregion
 
 #pragma region Run
@@ -69,7 +69,7 @@ void GraphicsInit::Run(GeneralManager& gm)
 	initVulkanCore(gm);
 	initManagers(gm);
 	initFrameData(gm);
-	initPipelines(gm);
+	GraphicsPipelinesInit::initPipelines(gm);
 	initScene(gm);
 	initImGui(gm);
 
@@ -209,343 +209,6 @@ void GraphicsInit::initFrameData(GeneralManager& gm)
 }
 #pragma endregion
 
-#pragma region initPipelines
-void GraphicsInit::initPipelines(GeneralManager& gm)
-{
-	VulkanDevice* vulkanDevice =
-	    gm.getContextComponent<MainVulkanDeviceContext, VulkanDeviceComponent>()->vulkanDeviceInstance;
-	Window* window = gm.getContextComponent<MainWindowContext, WindowComponent>()->windowInstance;
-	DescriptorManager* dManager =
-	    gm.getContextComponent<DescriptorManagerContext, DescriptorManagerComponent>()->descriptorManager;
-	TextureManager* tManager = gm.getContextComponent<TextureManagerContext, TextureManagerComponent>()->textureManager;
-	VmaAllocator vmaAlloc = gm.getContextComponent<VMAllocatorContext, VMAllocatorComponent>()->allocator;
-	SwapChain* swapChain = gm.getContextComponent<MainSwapChainContext, SwapChainComponent>()->swapChainInstance;
-
-#pragma region RenderGraph
-
-	Entity rgEntity = gm.createEntity();
-	RenderGraph* rg = new RenderGraph(*vulkanDevice, vmaAlloc);
-	gm.registerContext<RenderGraphContext>(rgEntity);
-	rg->handleResize(swapChain->swapChainExtent.width, swapChain->swapChainExtent.height);
-	vk::SampleCountFlags counts = static_cast<vk::SampleCountFlags>(vulkanDevice->maxMsaaSamples);
-	vk::SampleCountFlagBits msaaSamples = vk::SampleCountFlagBits::e4;
-
-	// Prefer 4x MSAA if available, but allow fallback to 2x or 1x if not supported
-	for (auto samples : {vk::SampleCountFlagBits::e4, vk::SampleCountFlagBits::e2, vk::SampleCountFlagBits::e1})
-	{
-		if (counts & samples)
-		{
-			msaaSamples = samples;
-			break;
-		}
-	}
-
-	// Logical Streams
-	rg->declareLogicalStream(
-	    "DepthMSAA", {tManager->findBestFormat(), RGSizeMode::FullExtent, vk::ImageAspectFlagBits::eDepth, msaaSamples});
-	rg->declareLogicalStream(
-	    "MainColorMSAA", {swapChain->hdrFormat, RGSizeMode::FullExtent, vk::ImageAspectFlagBits::eColor, msaaSamples});
-	rg->declareLogicalStream("ViewNormalsMSAA", {vk::Format::eR16G16B16A16Sfloat, RGSizeMode::FullExtent,
-	                                             vk::ImageAspectFlagBits::eColor, msaaSamples});
-
-	rg->declareLogicalStream("Depth",
-	                         {tManager->findBestFormat(), RGSizeMode::FullExtent, vk::ImageAspectFlagBits::eDepth});
-	rg->declareLogicalStream("MainColor",
-	                         {swapChain->hdrFormat, RGSizeMode::FullExtent, vk::ImageAspectFlagBits::eColor});
-	rg->declareLogicalStream("ViewNormals",
-	                         {vk::Format::eR16G16B16A16Sfloat, RGSizeMode::FullExtent, vk::ImageAspectFlagBits::eColor});
-	rg->declareLogicalStream("SSAOTexture",
-	                         {vk::Format::eR8Unorm, RGSizeMode::HalfExtent, vk::ImageAspectFlagBits::eColor});
-	rg->declareLogicalStream("SSAOBlurTexture",
-	                         {vk::Format::eR8Unorm, RGSizeMode::HalfExtent, vk::ImageAspectFlagBits::eColor});
-	rg->declareLogicalStream("PostProcessColor",
-	                         {swapChain->swapChainImageFormat, RGSizeMode::FullExtent, vk::ImageAspectFlagBits::eColor});
-	rg->declareLogicalStream("BloomMip0",
-	                         {swapChain->hdrFormat, RGSizeMode::HalfExtent, vk::ImageAspectFlagBits::eColor});
-	rg->declareLogicalStream("BloomMip1",
-	                         {swapChain->hdrFormat, RGSizeMode::QuarterExtent, vk::ImageAspectFlagBits::eColor});
-	rg->declareLogicalStream("BloomMip2",
-	                         {swapChain->hdrFormat, RGSizeMode::EighthExtent, vk::ImageAspectFlagBits::eColor});
-	rg->declareLogicalStream("BloomMip3",
-	                         {swapChain->hdrFormat, RGSizeMode::SixteenthExtent, vk::ImageAspectFlagBits::eColor});
-	rg->declareLogicalStream("BloomMip4",
-	                         {swapChain->hdrFormat, RGSizeMode::ThirtySecondExtent, vk::ImageAspectFlagBits::eColor});
-	gm.addComponent<RenderGraphComponent>(rgEntity, rg);
-	gm.addComponent<NameComponent>(rgEntity, "SYSTEM Render Graph");
-#pragma endregion
-
-#pragma region Pipelines
-
-	Entity signatureEntity = gm.createEntity();
-	gm.registerContext<MainSignatureContext>(signatureEntity);
-	PipelineHandler* pipelineHandler = new PipelineHandler();
-
-	auto& dev = vulkanDevice->device;
-
-	auto bindingDesc = Vertex::getBindingDescription();
-	auto attrDescs = Vertex::getAttributeDescriptions();
-	auto depthFmt = tManager->findBestFormat();
-
-	std::vector<vk::Format> hdrFormats = {swapChain->hdrFormat, vk::Format::eR16G16B16A16Sfloat};
-
-	std::vector<vk::DescriptorSetLayout> mainLayouts = {*dManager->globalSetLayout, *dManager->modelSetLayout,
-	                                                    *dManager->textureSetLayout};
-
-	// === General depth-only settings ===
-	auto depthOnlyDesc = [&](const std::string& shaderPath,
-	                         vk::SampleCountFlagBits samples = vk::SampleCountFlagBits::e1) -> GraphicsPipelineDesc
-	{
-		return GraphicsPipelineDesc{
-		    .shaderPath = shaderPath,
-		    .fragEntry = "", // vertex only
-		    .vertexBinding = &bindingDesc,
-		    .vertexAttributes = attrDescs.data(),
-		    .attributeCount = static_cast<uint32_t>(attrDescs.size()),
-		    .cullMode = vk::CullModeFlagBits::eBack,
-		    .depthTest = true,
-		    .depthWrite = true,
-		    .depthOp = vk::CompareOp::eGreater,
-		    .colorFormats = {},
-		    .depthFormat = depthFmt,
-		    .rasterizationSamples = samples,
-		    .setLayouts = mainLayouts,
-		};
-	};
-
-	// === Graphics (opaque) ===
-	auto [mainLayout, mainPipeline] = PipelineFactory::build(
-	    dev, GraphicsPipelineDesc{
-	             .shaderPath = "shaders/shader.spv",
-	             .specializationValue = 0,
-	             .vertexBinding = &bindingDesc,
-	             .vertexAttributes = attrDescs.data(),
-	             .attributeCount = static_cast<uint32_t>(attrDescs.size()),
-	             .cullMode = vk::CullModeFlagBits::eBack,
-	             .depthTest = true,
-	             .depthWrite = false,
-	             .depthOp = vk::CompareOp::eEqual,
-	             .colorAttachments = {PipelineFactory::blendedAttachment(), PipelineFactory::blendedAttachment()},
-	             .colorFormats = hdrFormats,
-	             .depthFormat = depthFmt,
-	             .rasterizationSamples = msaaSamples,
-	             .setLayouts = mainLayouts,
-	         });
-	pipelineHandler->pipelineLayout = std::move(mainLayout);
-	pipelineHandler->graphicsPipeline = std::move(mainPipeline);
-
-	// === Graphics (alpha test) ===
-	pipelineHandler->alphaTestPipeline =
-	    PipelineFactory::build(
-	        dev,
-	        GraphicsPipelineDesc{
-	            .shaderPath = "shaders/shader.spv",
-	            .specializationValue = 1,
-	            .vertexBinding = &bindingDesc,
-	            .vertexAttributes = attrDescs.data(),
-	            .attributeCount = static_cast<uint32_t>(attrDescs.size()),
-	            .cullMode = vk::CullModeFlagBits::eBack,
-	            .depthTest = true,
-	            .depthWrite = true,
-	            .depthOp = vk::CompareOp::eGreater,
-	            .colorAttachments = {PipelineFactory::blendedAttachment(), PipelineFactory::blendedAttachment()},
-	            .colorFormats = hdrFormats,
-	            .depthFormat = depthFmt,
-	            .rasterizationSamples = msaaSamples,
-	            .setLayouts = mainLayouts,
-	        })
-	        .pipeline;
-
-	// === Shadow (direct) ===
-	pipelineHandler->shadowPipeline =
-	    PipelineFactory::build(dev, depthOnlyDesc("shaders/shadow.spv", vk::SampleCountFlagBits::e1)).pipeline;
-
-	// === Depth prepass ===
-	pipelineHandler->depthPrepassPipeline =
-	    PipelineFactory::build(dev, depthOnlyDesc("shaders/depth_prepass.spv", msaaSamples)).pipeline;
-
-	// === Skybox ===
-	pipelineHandler->skyboxPipeline =
-	    PipelineFactory::build(
-	        dev,
-	        GraphicsPipelineDesc{
-	            .shaderPath = "shaders/skybox.spv",
-	            .cullMode = vk::CullModeFlagBits::eNone,
-	            .depthTest = true,
-	            .depthWrite = false,
-	            .depthOp = vk::CompareOp::eEqual,
-	            .colorAttachments = {PipelineFactory::blendedAttachment(), PipelineFactory::blendedAttachment()},
-	            .colorFormats = hdrFormats,
-	            .depthFormat = depthFmt,
-	            .rasterizationSamples = msaaSamples,
-	            .setLayouts = mainLayouts,
-	        })
-	        .pipeline;
-
-	// === Fullscreen passes ===
-	auto [toneMappingPipelineLayout, toneMappingPipeline] =
-	    PipelineFactory::build(dev, GraphicsPipelineDesc{
-	                                    .shaderPath = "shaders/tonemapping.spv",
-	                                    .cullMode = vk::CullModeFlagBits::eNone,
-	                                    .colorAttachments = {PipelineFactory::opaqueAttachment()},
-	                                    .colorFormats = {swapChain->swapChainImageFormat},
-	                                    .setLayouts = {*dManager->screenSpaceSetLayout},
-	                                });
-	pipelineHandler->toneMappingPipelineLayout = std::move(toneMappingPipelineLayout);
-	pipelineHandler->toneMappingPipeline = std::move(toneMappingPipeline);
-
-	auto [fxaaLayout, fxaaPipeline] =
-	    PipelineFactory::build(dev, GraphicsPipelineDesc{
-	                                    .shaderPath = "shaders/fxaa.spv",
-	                                    .cullMode = vk::CullModeFlagBits::eNone,
-	                                    .colorAttachments = {PipelineFactory::opaqueAttachment()},
-	                                    .colorFormats = {swapChain->swapChainImageFormat},
-	                                    .setLayouts = {*dManager->screenSpaceSetLayout},
-	                                    .pushConstants = {{vk::ShaderStageFlagBits::eFragment, 0, sizeof(float) * 2}},
-	                                });
-	pipelineHandler->fxaaPipelineLayout = std::move(fxaaLayout);
-	pipelineHandler->fxaaPipeline = std::move(fxaaPipeline);
-
-	auto [ssaoLayout, ssaoPipeline] =
-	    PipelineFactory::build(dev, GraphicsPipelineDesc{
-	                                    .shaderPath = "shaders/ssao.spv",
-	                                    .cullMode = vk::CullModeFlagBits::eNone,
-	                                    .colorAttachments = {PipelineFactory::opaqueAttachment()},
-	                                    .colorFormats = {vk::Format::eR8Unorm},
-	                                    .setLayouts = {*dManager->screenSpaceSetLayout, *dManager->globalSetLayout},
-	                                    .pushConstants = {{vk::ShaderStageFlagBits::eFragment, 0, 40u}},
-	                                });
-	pipelineHandler->ssaoPipelineLayout = std::move(ssaoLayout);
-	pipelineHandler->ssaoPipeline = std::move(ssaoPipeline);
-
-	auto [ssaoBlurLayout, ssaoBlurPipeline] =
-	    PipelineFactory::build(dev, GraphicsPipelineDesc{
-	                                    .shaderPath = "shaders/ssaoblur.spv",
-	                                    .cullMode = vk::CullModeFlagBits::eNone,
-	                                    .colorAttachments = {PipelineFactory::opaqueAttachment()},
-	                                    .colorFormats = {vk::Format::eR8Unorm},
-	                                    .setLayouts = {*dManager->screenSpaceSetLayout},
-	                                    .pushConstants = {{vk::ShaderStageFlagBits::eFragment, 0, sizeof(float) * 2}},
-	                                });
-	pipelineHandler->ssaoBlurPipelineLayout = std::move(ssaoBlurLayout);
-	pipelineHandler->ssaoBlurPipeline = std::move(ssaoBlurPipeline);
-
-	auto [ssaoApplyLayout, ssaoApplyPipeline] =
-	    PipelineFactory::build(dev, GraphicsPipelineDesc{
-	                                    .shaderPath = "shaders/ssaoapply.spv",
-	                                    .cullMode = vk::CullModeFlagBits::eNone,
-	                                    .colorAttachments = {PipelineFactory::opaqueAttachment()},
-	                                    .colorFormats = {swapChain->hdrFormat},
-	                                    .setLayouts = {*dManager->screenSpaceSetLayout},
-	                                    .pushConstants = {{vk::ShaderStageFlagBits::eFragment, 0, sizeof(float) * 2}},
-	                                });
-	pipelineHandler->ssaoApplyPipelineLayout = std::move(ssaoApplyLayout);
-	pipelineHandler->ssaoApplyPipeline = std::move(ssaoApplyPipeline);
-
-	auto [bloomDownLayout, bloomDownPipeline] =
-	    PipelineFactory::build(dev, GraphicsPipelineDesc{
-	                                    .shaderPath = "shaders/downsample.spv",
-	                                    .cullMode = vk::CullModeFlagBits::eNone,
-	                                    .colorAttachments = {PipelineFactory::opaqueAttachment()},
-	                                    .colorFormats = {swapChain->hdrFormat},
-	                                    .setLayouts = {*dManager->screenSpaceSetLayout},
-	                                    .pushConstants = {{vk::ShaderStageFlagBits::eFragment, 0, 20u}},
-	                                });
-	pipelineHandler->bloomDownsamplePipelineLayout = std::move(bloomDownLayout);
-	pipelineHandler->bloomDownsamplePipeline = std::move(bloomDownPipeline);
-
-	auto [bloomUpLayout, bloomUpPipeline] =
-	    PipelineFactory::build(dev, GraphicsPipelineDesc{
-	                                    .shaderPath = "shaders/upsample.spv",
-	                                    .cullMode = vk::CullModeFlagBits::eNone,
-	                                    .colorAttachments = {PipelineFactory::opaqueAttachment()},
-	                                    .colorFormats = {swapChain->hdrFormat},
-	                                    .setLayouts = {*dManager->screenSpaceSetLayout},
-	                                    .pushConstants = {{vk::ShaderStageFlagBits::eFragment, 0, 16u}},
-	                                });
-	pipelineHandler->bloomUpsamplePipelineLayout = std::move(bloomUpLayout);
-	pipelineHandler->bloomUpsamplePipeline = std::move(bloomUpPipeline);
-
-	// === Compute pipelines ===
-	auto [cullLayout, cullPipeline] =
-	    PipelineFactory::build(dev, ComputePipelineDesc{
-	                                    .shaderPath = "shaders/frustum_culling.spv",
-	                                    .setLayouts = {*dManager->globalSetLayout, *dManager->modelSetLayout},
-	                                    .pushConstants = {{vk::ShaderStageFlagBits::eCompute, 0, sizeof(uint32_t)}},
-	                                });
-	pipelineHandler->cullingPipelineLayout = std::move(cullLayout);
-	pipelineHandler->cullingPipeline = std::move(cullPipeline);
-
-	auto [shadowCullLayout, shadowCullPipeline] =
-	    PipelineFactory::build(dev, ComputePipelineDesc{
-	                                    .shaderPath = "shaders/shadow_frustum_culling.spv",
-	                                    .setLayouts = {*dManager->globalSetLayout, *dManager->modelSetLayout},
-	                                    .pushConstants = {{vk::ShaderStageFlagBits::eCompute, 0, sizeof(uint32_t)}},
-	                                });
-	pipelineHandler->shadowCullingPipelineLayout = std::move(shadowCullLayout);
-	pipelineHandler->shadowCullingPipeline = std::move(shadowCullPipeline);
-
-	auto [compactLayout, compactPipeline] =
-	    PipelineFactory::build(dev, ComputePipelineDesc{
-	                                    .shaderPath = "shaders/frustum_compaction.spv",
-	                                    .setLayouts = {*dManager->modelSetLayout},
-	                                    .pushConstants = {{vk::ShaderStageFlagBits::eCompute, 0, sizeof(uint32_t) * 4}},
-	                                });
-	pipelineHandler->compactingCullPipelineLayout = std::move(compactLayout);
-	pipelineHandler->compactingCullPipeline = std::move(compactPipeline);
-
-	auto [resetInstLayout, resetInstPipeline] =
-	    PipelineFactory::build(dev, ComputePipelineDesc{
-	                                    .shaderPath = "shaders/reset_instance_count.spv",
-	                                    .setLayouts = {*dManager->modelSetLayout},
-	                                    .pushConstants = {{vk::ShaderStageFlagBits::eCompute, 0, sizeof(uint32_t)}},
-	                                });
-	pipelineHandler->resetInstancePipelineLayout = std::move(resetInstLayout);
-	pipelineHandler->resetInstancePipeline = std::move(resetInstPipeline);
-
-	auto [equirectLayout, equirectPipeline] =
-	    PipelineFactory::build(dev, ComputePipelineDesc{
-	                                    .shaderPath = "shaders/equirect_to_cube.spv",
-	                                    .setLayouts = {*dManager->textureSetLayout},
-	                                    .pushConstants = {{vk::ShaderStageFlagBits::eCompute, 0, sizeof(uint32_t)}},
-	                                });
-	pipelineHandler->equirectToCubePipelineLayout = std::move(equirectLayout);
-	pipelineHandler->equirectToCubePipeline = std::move(equirectPipeline);
-
-	auto [irradianceLayout, irradiancePipeline] =
-	    PipelineFactory::build(dev, ComputePipelineDesc{
-	                                    .shaderPath = "shaders/irradiance_convolution.spv",
-	                                    .setLayouts = {*dManager->textureSetLayout},
-	                                    .pushConstants = {{vk::ShaderStageFlagBits::eCompute, 0, sizeof(float)}},
-	                                });
-	pipelineHandler->irradiancePipelineLayout = std::move(irradianceLayout);
-	pipelineHandler->irradiancePipeline = std::move(irradiancePipeline);
-
-	auto [prefilterLayout, prefilterPipeline] =
-	    PipelineFactory::build(dev, ComputePipelineDesc{
-	                                    .shaderPath = "shaders/prefilter_env_map.spv",
-	                                    .setLayouts = {*dManager->textureSetLayout},
-	                                    .pushConstants = {{vk::ShaderStageFlagBits::eCompute, 0, sizeof(float)}},
-	                                });
-	pipelineHandler->prefilterPipelineLayout = std::move(prefilterLayout);
-	pipelineHandler->prefilterPipeline = std::move(prefilterPipeline);
-
-	auto [brdfLutLayout, brdfLutPipeline] = PipelineFactory::build(dev, ComputePipelineDesc{
-	                                                                        .shaderPath = "shaders/brdf_lut.spv",
-	                                                                        .setLayouts = {*dManager->textureSetLayout},
-	                                                                    });
-	pipelineHandler->brdfLutPipelineLayout = std::move(brdfLutLayout);
-	pipelineHandler->brdfLutPipeline = std::move(brdfLutPipeline);
-
-	gm.addComponent<PipelineHandlerComponent>(signatureEntity, pipelineHandler);
-	gm.addComponent<NameComponent>(signatureEntity, "SYSTEM Pipeline Handler");
-#pragma endregion
-
-#ifdef _DEBUG
-	std::cout << "GRAPHICSINIT::VULKANNEEDS::Succes!" << std::endl;
-#endif //_DEBUG
-}
-#pragma endregion
-
 #pragma region initScene
 void GraphicsInit::initScene(GeneralManager& gm)
 {
@@ -564,8 +227,8 @@ void GraphicsInit::initScene(GeneralManager& gm)
 	VmaAllocator allocator = gm.getContextComponent<VMAllocatorContext, VMAllocatorComponent>()->allocator;
 	VulkanDevice* vulkanDevice =
 	    gm.getContextComponent<MainVulkanDeviceContext, VulkanDeviceComponent>()->vulkanDeviceInstance;
-	PipelineHandler* pipelineHandler =
-	    gm.getContextComponent<MainSignatureContext, PipelineHandlerComponent>()->pipelineHandler;
+	PipelineManager& pManager =
+	    *gm.getContextComponent<PipelineManagerContext, PipelineManagerComponent>()->pipelineManager;
 #pragma endregion
 
 #pragma region Scene Entities (Camera, DirectLight, Skybox)
@@ -584,8 +247,8 @@ void GraphicsInit::initScene(GeneralManager& gm)
 	glm::vec3 directLightPos = glm::vec3(10.0f, 20.0f, 10.0f);
 	glm::vec3 directLightDir = glm::normalize(-directLightPos);
 	glm::quat directLightRot = glm::quatLookAt(directLightDir, glm::vec3(0.0f, 1.0f, 0.0f));
-	glm::vec4 directLightColor = glm::vec4(0.984f, 1.0f, 0.808f, 10.0f); // Slightly warm white light with high intensity
-	glm::vec4 directLightAmbient = directLightColor * 0.05f;                     // Ambient component is 10% of the main light color
+	glm::vec4 directLightColor = glm::vec4(0.984f, 1.0f, 0.808f, 50.0f); // Slightly warm white light with high intensity
+	glm::vec4 directLightAmbient = directLightColor * 0.01f;                     // Ambient component is 10% of the main light color
 	gm.addComponent<GlobalTransformComponent>(directLightEntity, directLightPos, directLightRot);
 	gm.addComponent<DirectLightComponent>(directLightEntity, 4000, 4000, directLightColor, directLightAmbient);
 	gm.registerContext<SunContext>(directLightEntity);
@@ -698,7 +361,7 @@ void GraphicsInit::initScene(GeneralManager& gm)
 	                               whiteCubemap.textureImageView, whiteCubemap.textureSampler);
 
 	// BRDF LUT - generated once, reused across all skybox changes
-	TextureHandle brdfLutHandle = tManager->generateBrdfLut(*pipelineHandler, *dManager, *bTextureDSetComponent);
+	TextureHandle brdfLutHandle = tManager->generateBrdfLut(*dManager, *bTextureDSetComponent, pManager);
 
 	skybox->cubemapTexture = whiteCubemapHandle;
 	skybox->irradianceMap = whiteCubemapHandle;
@@ -876,120 +539,3 @@ void GraphicsInit::initImGui(GeneralManager& gm)
 #endif //_DEBUG
 }
 #pragma endregion
-
-// Its so bad, its not even a joke anymore.
-// TODO: Refactor this entire function to be more modular and less copy-pastey.
-// Move pipeline creation to its own class or something.
-void GraphicsInit::recreateMsaaPipelines(GeneralManager& gm, vk::SampleCountFlagBits msaaSamples)
-{
-	auto* pipelineHandler = gm.getContextComponent<MainSignatureContext, PipelineHandlerComponent>()->pipelineHandler;
-	VulkanDevice* vulkanDevice =
-	    gm.getContextComponent<MainVulkanDeviceContext, VulkanDeviceComponent>()->vulkanDeviceInstance;
-	auto* rg = gm.getContextComponent<RenderGraphContext, RenderGraphComponent>()->renderGraph;
-	auto* tManager = gm.getContextComponent<TextureManagerContext, TextureManagerComponent>()->textureManager;
-	auto* swapChain = gm.getContextComponent<MainSwapChainContext, SwapChainComponent>()->swapChainInstance;
-	DescriptorManager* dManager =
-	    gm.getContextComponent<DescriptorManagerContext, DescriptorManagerComponent>()->descriptorManager;
-
-	vulkanDevice->device.waitIdle();
-
-	rg->declareLogicalStream(
-	    "DepthMSAA", {tManager->findBestFormat(), RGSizeMode::FullExtent, vk::ImageAspectFlagBits::eDepth, msaaSamples});
-	rg->declareLogicalStream(
-	    "MainColorMSAA", {swapChain->hdrFormat, RGSizeMode::FullExtent, vk::ImageAspectFlagBits::eColor, msaaSamples});
-	rg->declareLogicalStream("ViewNormalsMSAA", {vk::Format::eR16G16B16A16Sfloat, RGSizeMode::FullExtent,
-	                                             vk::ImageAspectFlagBits::eColor, msaaSamples});
-
-	rg->handleResize(swapChain->swapChainExtent.width, swapChain->swapChainExtent.height);
-
-	auto bindingDesc = Vertex::getBindingDescription();
-	auto attrDescs = Vertex::getAttributeDescriptions();
-	auto depthFmt = tManager->findBestFormat();
-
-	std::vector<vk::Format> hdrFormats = {swapChain->hdrFormat, vk::Format::eR16G16B16A16Sfloat};
-
-	std::vector<vk::DescriptorSetLayout> mainLayouts = {*dManager->globalSetLayout, *dManager->modelSetLayout,
-	                                                    *dManager->textureSetLayout};
-
-	auto depthOnlyDesc = [&](const std::string& shaderPath,
-	                         vk::SampleCountFlagBits samples = vk::SampleCountFlagBits::e1) -> GraphicsPipelineDesc
-	{
-		return GraphicsPipelineDesc{
-		    .shaderPath = shaderPath,
-		    .fragEntry = "", // vertex only
-		    .vertexBinding = &bindingDesc,
-		    .vertexAttributes = attrDescs.data(),
-		    .attributeCount = static_cast<uint32_t>(attrDescs.size()),
-		    .cullMode = vk::CullModeFlagBits::eBack,
-		    .depthTest = true,
-		    .depthWrite = true,
-		    .depthOp = vk::CompareOp::eGreater,
-		    .colorFormats = {},
-		    .depthFormat = depthFmt,
-		    .rasterizationSamples = samples,
-		    .setLayouts = mainLayouts,
-		};
-	};
-
-	auto [mainLayout, mainPipeline] = PipelineFactory::build(
-	    vulkanDevice->device,
-	    GraphicsPipelineDesc{
-	        .shaderPath = "shaders/shader.spv",
-	        .specializationValue = 0,
-	        .vertexBinding = &bindingDesc,
-	        .vertexAttributes = attrDescs.data(),
-	        .attributeCount = static_cast<uint32_t>(attrDescs.size()),
-	        .cullMode = vk::CullModeFlagBits::eBack,
-	        .depthTest = true,
-	        .depthWrite = false,
-	        .depthOp = vk::CompareOp::eEqual,
-	        .colorAttachments = {PipelineFactory::blendedAttachment(), PipelineFactory::blendedAttachment()},
-	        .colorFormats = hdrFormats,
-	        .depthFormat = depthFmt,
-	        .rasterizationSamples = msaaSamples,
-	        .setLayouts = mainLayouts,
-	    });
-	pipelineHandler->pipelineLayout = std::move(mainLayout);
-	pipelineHandler->graphicsPipeline = std::move(mainPipeline);
-
-	pipelineHandler->alphaTestPipeline =
-	    PipelineFactory::build(
-	        vulkanDevice->device,
-	        GraphicsPipelineDesc{
-	            .shaderPath = "shaders/shader.spv",
-	            .specializationValue = 1,
-	            .vertexBinding = &bindingDesc,
-	            .vertexAttributes = attrDescs.data(),
-	            .attributeCount = static_cast<uint32_t>(attrDescs.size()),
-	            .cullMode = vk::CullModeFlagBits::eBack,
-	            .depthTest = true,
-	            .depthWrite = true,
-	            .depthOp = vk::CompareOp::eGreater,
-	            .colorAttachments = {PipelineFactory::blendedAttachment(), PipelineFactory::blendedAttachment()},
-	            .colorFormats = hdrFormats,
-	            .depthFormat = depthFmt,
-	            .rasterizationSamples = msaaSamples,
-	            .setLayouts = mainLayouts,
-	        })
-	        .pipeline;
-
-	pipelineHandler->depthPrepassPipeline =
-	    PipelineFactory::build(vulkanDevice->device, depthOnlyDesc("shaders/depth_prepass.spv", msaaSamples)).pipeline;
-
-	pipelineHandler->skyboxPipeline =
-	    PipelineFactory::build(
-	        vulkanDevice->device,
-	        GraphicsPipelineDesc{
-	            .shaderPath = "shaders/skybox.spv",
-	            .cullMode = vk::CullModeFlagBits::eNone,
-	            .depthTest = true,
-	            .depthWrite = false,
-	            .depthOp = vk::CompareOp::eEqual,
-	            .colorAttachments = {PipelineFactory::blendedAttachment(), PipelineFactory::blendedAttachment()},
-	            .colorFormats = hdrFormats,
-	            .depthFormat = depthFmt,
-	            .rasterizationSamples = msaaSamples,
-	            .setLayouts = mainLayouts,
-	        })
-	        .pipeline;
-}

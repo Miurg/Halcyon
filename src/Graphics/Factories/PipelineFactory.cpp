@@ -43,11 +43,11 @@ vk::raii::PipelineLayout PipelineFactory::buildLayout(vk::raii::Device& device,
 }
 
 // Graphics build
-BuiltPipeline PipelineFactory::build(vk::raii::Device& device, const GraphicsPipelineDesc& desc)
+BuiltPipeline PipelineFactory::build(vk::raii::Device& device, const PipelineDescription& desc)
 {
 	auto shader = loadShader(device, desc.shaderPath);
 
-	// Specialization constant (один int32, slot 0)
+	// Specialization constant (one int32, slot 0)
 	vk::SpecializationMapEntry specEntry{0, 0, sizeof(int32_t)};
 	vk::SpecializationInfo specInfo{};
 	int32_t specValue = 0;
@@ -61,57 +61,64 @@ BuiltPipeline PipelineFactory::build(vk::raii::Device& device, const GraphicsPip
 	}
 
 	PipelineBuilder builder;
-	builder.addShaderStage(vk::ShaderStageFlagBits::eVertex, shader, desc.vertEntry.c_str());
-
-	if (!desc.fragEntry.empty())
+	if (desc.isCompute)
 	{
-		builder.addShaderStage(vk::ShaderStageFlagBits::eFragment, shader, desc.fragEntry.c_str(),
-		                       desc.specializationValue.has_value() ? &specInfo : nullptr);
-	}
-
-	if (desc.vertexBinding)
-	{
-		builder.setVertexInput(desc.vertexBinding, 1, desc.vertexAttributes, desc.attributeCount);
+		if (!desc.computeEntry.empty())
+		{
+			builder.addShaderStage(vk::ShaderStageFlagBits::eCompute, shader, desc.computeEntry.c_str());
+		}
 	}
 	else
 	{
-		builder.setVertexInput(nullptr, 0, nullptr, 0);
+		if (!desc.vertEntry.empty())
+		{
+			builder.addShaderStage(vk::ShaderStageFlagBits::eVertex, shader, desc.vertEntry.c_str());
+		}
+
+		if (!desc.fragEntry.empty())
+		{
+			builder.addShaderStage(vk::ShaderStageFlagBits::eFragment, shader, desc.fragEntry.c_str(),
+			                       desc.specializationValue.has_value() ? &specInfo : nullptr);
+		}
+		if (desc.vertexBinding)
+		{
+			builder.setVertexInput(desc.vertexBinding, 1, desc.vertexAttributes, desc.attributeCount);
+		}
+		else
+		{
+			builder.setVertexInput(nullptr, 0, nullptr, 0);
+		}
+
+		builder.setInputAssembly(vk::PrimitiveTopology::eTriangleList)
+		    .setViewportState(1, 1)
+		    .addDynamicState(vk::DynamicState::eViewport)
+		    .addDynamicState(vk::DynamicState::eScissor)
+		    .addDynamicState(vk::DynamicState::eCullMode)
+		    .setRasterizer(vk::PolygonMode::eFill, desc.cullMode, desc.frontFace)
+		    .setMultisampling(desc.rasterizationSamples);
+
+		for (const auto& att : desc.colorAttachments)
+		{
+			builder.addColorBlendAttachment(att.blendEnable, att.srcColor, att.dstColor, att.colorOp, att.srcAlpha,
+			                                att.dstAlpha, att.alphaOp, att.writeMask);
+		}
+
+		builder.setColorBlendingLogicOp(false, vk::LogicOp::eCopy)
+		    .setDepthStencil(desc.depthTest, desc.depthWrite, desc.depthOp)
+		    .setPipelineRendering(desc.colorFormats, desc.depthFormat, desc.stencilFormat);
 	}
+	
 
-	builder.setInputAssembly(vk::PrimitiveTopology::eTriangleList)
-	    .setViewportState(1, 1)
-	    .addDynamicState(vk::DynamicState::eViewport)
-	    .addDynamicState(vk::DynamicState::eScissor)
-	    .addDynamicState(vk::DynamicState::eCullMode)
-	    .setRasterizer(vk::PolygonMode::eFill, desc.cullMode, desc.frontFace)
-	    .setMultisampling(desc.rasterizationSamples);
-
-	for (const auto& att : desc.colorAttachments)
+	BuiltPipeline result;
+	result.layout = buildLayout(device, desc.setLayouts, desc.pushConstants);
+	if (desc.isCompute)
 	{
-		builder.addColorBlendAttachment(att.blendEnable, att.srcColor, att.dstColor, att.colorOp, att.srcAlpha,
-		                                att.dstAlpha, att.alphaOp, att.writeMask);
+		result.pipeline = builder.buildCompute(device, result.layout);
 	}
-
-	builder.setColorBlendingLogicOp(false, vk::LogicOp::eCopy)
-	    .setDepthStencil(desc.depthTest, desc.depthWrite, desc.depthOp)
-	    .setPipelineRendering(desc.colorFormats, desc.depthFormat, desc.stencilFormat);
-
-	BuiltPipeline result;
-	result.layout = buildLayout(device, desc.setLayouts, desc.pushConstants);
-	result.pipeline = builder.buildGraphics(device, result.layout);
-	return result;
-}
-
-// Compute build
-BuiltPipeline PipelineFactory::build(vk::raii::Device& device, const ComputePipelineDesc& desc)
-{
-	auto shader = loadShader(device, desc.shaderPath);
-
-	PipelineBuilder builder;
-	builder.addShaderStage(vk::ShaderStageFlagBits::eCompute, shader, desc.entry.c_str());
-
-	BuiltPipeline result;
-	result.layout = buildLayout(device, desc.setLayouts, desc.pushConstants);
-	result.pipeline = builder.buildCompute(device, result.layout);
+	else
+	{
+		result.pipeline = builder.buildGraphics(device, result.layout);
+	}
+	
 	return result;
 }

@@ -60,3 +60,7 @@ class RenderGraphContext
 class GraphicsSettingsContext
 {
 };
+class PipelineManagerContext
+{
+
+};

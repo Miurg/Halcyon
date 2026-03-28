@@ -5,13 +5,6 @@
 #include <string>
 #include <optional>
 
-#include "../VulkanDevice.hpp"
-#include "../SwapChain.hpp"
-#include "../PipelineHandler.hpp"
-#include "../Resources/Managers/BufferManager.hpp"
-#include "../Resources/Managers/DescriptorManager.hpp"
-#include "../Resources/Managers/TextureManager.hpp"
-
 struct ColorBlendAttachmentDesc
 {
 	bool blendEnable = false;
@@ -25,11 +18,13 @@ struct ColorBlendAttachmentDesc
 	                                    vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA;
 };
 
-struct GraphicsPipelineDesc
+struct PipelineDescription
 {
+	bool isCompute = false;
 	std::string shaderPath;
 	std::string vertEntry = "vertMain";
-	std::string fragEntry = "fragMain";         // empty - vertex-only
+	std::string fragEntry = "fragMain"; // empty - vertex-only
+	std::string computeEntry = "computeMain";
 	std::optional<int32_t> specializationValue; // spec constant 0
 
 	// Vertex input — nullptr means "no vertex input" (fullscreen pass)
@@ -57,15 +52,6 @@ struct GraphicsPipelineDesc
 	std::vector<vk::PushConstantRange> pushConstants;
 };
 
-struct ComputePipelineDesc
-{
-	std::string shaderPath;
-	std::string entry = "computeMain";
-	std::vector<vk::DescriptorSetLayout> setLayouts;
-	std::vector<vk::PushConstantRange> pushConstants;
-};
-
-
 // Result of build - pipeline + layout
 struct BuiltPipeline
 {
@@ -76,8 +62,7 @@ struct BuiltPipeline
 class PipelineFactory
 {
 public:
-	static BuiltPipeline build(vk::raii::Device& device, const GraphicsPipelineDesc& desc);
-	static BuiltPipeline build(vk::raii::Device& device, const ComputePipelineDesc& desc);
+	static BuiltPipeline build(vk::raii::Device& device, const PipelineDescription& desc);
 
 	// Standart blended attachment (HDR + normals RT)
 	static ColorBlendAttachmentDesc blendedAttachment();
