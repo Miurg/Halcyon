@@ -27,10 +27,9 @@ struct PipelineDescription
 	std::string computeEntry = "computeMain";
 	std::optional<int32_t> specializationValue; // spec constant 0
 
-	// Vertex input — nullptr means "no vertex input" (fullscreen pass)
-	const vk::VertexInputBindingDescription* vertexBinding = nullptr;
-	const vk::VertexInputAttributeDescription* vertexAttributes = nullptr;
-	uint32_t attributeCount = 0;
+	// Vertex input — empty means "no vertex input" (fullscreen pass)
+	std::vector<vk::VertexInputBindingDescription> vertexBindings;
+	std::vector<vk::VertexInputAttributeDescription> vertexAttributes;
 
 	vk::CullModeFlags cullMode = vk::CullModeFlagBits::eBack;
 	vk::FrontFace frontFace = vk::FrontFace::eCounterClockwise;
@@ -52,11 +51,12 @@ struct PipelineDescription
 	std::vector<vk::PushConstantRange> pushConstants;
 };
 
-// Result of build - pipeline + layout
+// Result of build - pipeline + layout + desc
 struct BuiltPipeline
 {
 	vk::raii::PipelineLayout layout{nullptr};
 	vk::raii::Pipeline pipeline{nullptr};
+	PipelineDescription desc;
 };
 
 class PipelineFactory

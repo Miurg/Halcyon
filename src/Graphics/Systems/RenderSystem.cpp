@@ -214,8 +214,8 @@ void RenderSystem::update(GeneralManager& gm)
 		    [&](vk::raii::CommandBuffer& cmd)
 		    {
 			    CommandBufferFactory::drawSsaoPass(cmd, swapChain, *dManager,
-			                                       globalDSetComponent->ssaoDSets, globalDSetComponent->globalDSets,
-			                                       *ssaoSettings, *pManager);
+			                                       globalDSetComponent->ssaoDSets, globalDSetComponent->globalDSets, *ssaoSettings,
+			                                       *pManager);
 		    },
 		    [dManager, globalDSetComponent](const RenderGraph& graph, const RGPass& pass)
 		    {

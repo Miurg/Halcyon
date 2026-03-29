@@ -80,9 +80,9 @@ BuiltPipeline PipelineFactory::build(vk::raii::Device& device, const PipelineDes
 			builder.addShaderStage(vk::ShaderStageFlagBits::eFragment, shader, desc.fragEntry.c_str(),
 			                       desc.specializationValue.has_value() ? &specInfo : nullptr);
 		}
-		if (desc.vertexBinding)
+		if (!desc.vertexBindings.empty())
 		{
-			builder.setVertexInput(desc.vertexBinding, 1, desc.vertexAttributes, desc.attributeCount);
+			builder.setVertexInput(desc.vertexBindings.data(), static_cast<uint32_t>(desc.vertexBindings.size()), desc.vertexAttributes.data(), static_cast<uint32_t>(desc.vertexAttributes.size()));
 		}
 		else
 		{

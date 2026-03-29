@@ -580,8 +580,8 @@ void CommandBufferFactory::drawFxaaPass(vk::raii::CommandBuffer& cmd, SwapChain&
 }
 
 void CommandBufferFactory::drawSsaoPass(vk::raii::CommandBuffer& cmd, SwapChain& swapChain, DescriptorManagerComponent& dManager,
-                                        DSetHandle ssaoDescriptorSetIndex, DSetHandle globalDescriptorSetIndex,
-                                        const SsaoSettingsComponent& ssaoSettings, PipelineManager& pManager)
+                                        DSetHandle ssaoDescriptorSetIndex, DSetHandle globalDescriptorSetIndex, const SsaoSettingsComponent& ssaoSettings,
+                                        PipelineManager& pManager)
 {
 	cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, pManager.pipelines["ssao"].pipeline);
 

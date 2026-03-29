@@ -86,4 +86,5 @@ void FrameEndSystem::update(GeneralManager& gm)
 	}
 
 	currentFrameComp->currentFrame = (currentFrameComp->currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+	currentFrameComp->frameNumber++;
 }
