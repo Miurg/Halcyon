@@ -164,13 +164,16 @@ VSOutput vertMain(VSInput input, uint instanceID: SV_InstanceID, uint baseInstan
 	return output;
 }
 
-// Helper func
+// Samples a normal map and unpacks from [0,1] to [-1,1] tangent-space range.
 float3 SampleNormalMap(uint mapIndex, float2 uv, float2 dx, float2 dy)
 {
 	float3 raw = textureArray[NonUniformResourceIndex(mapIndex)].SampleGrad(uv, dx, dy).rgb;
 	return normalize(raw * 2.0 - 1.0);
 }
 
+// Computes PCF shadow factor with a 3x3 kernel using hardware comparison sampler.
+// Applies normal-based bias to reduce shadow acne on surfaces at grazing angles.
+// Returns 1.0 (fully lit) for fragments outside the shadow map bounds.
 float ComputeShadow(float3 projCoords, float2 texelSize, float3 surfaceNormal, float3 lightDir)
 {
 	if (any(projCoords.xy < 0.0) || any(projCoords.xy > 1.0) || projCoords.z <= 0.0 || projCoords.z >= 1.0) return 1.0;
@@ -192,6 +195,12 @@ float ComputeShadow(float3 projCoords, float2 texelSize, float3 surfaceNormal, f
 	return shadow / 9.0;
 }
 
+// GGX normal distribution function (Trowbridge & Reitz, 1975 / Walter et al., 2007).
+// Describes the statistical distribution of microfacet orientations on a surface.
+// Preferred over Beckmann due to longer specular tail matching real-world materials.
+//        a^2
+// ──────────────────────────
+// PI * ((NdotH^2 * (a^2 - 1) + 1)^2)
 float D_GGX(float NdotH, float a)
 {
 	float a2 = a * a;
@@ -199,6 +208,12 @@ float D_GGX(float NdotH, float a)
 	return a2 / (PI * d * d);
 }
 
+// Correlated Smith visibility function for GGX distribution (Heitz, 2014).
+// Models mutual masking-shadowing between microfacets more accurately
+// than the uncorrelated separable form used in earlier formulations.
+//                    0.5
+// ──────────────────────────────────────────────
+// NdotL*(NdotV*(1-a)+a) + NdotV*(NdotL*(1-a)+a)
 float V_SmithGGXCorrelated(float NdotV, float NdotL, float a)
 {
 	float ggxV = NdotL * (NdotV * (1.0 - a) + a);
@@ -206,16 +221,23 @@ float V_SmithGGXCorrelated(float NdotV, float NdotL, float a)
 	return 0.5 / (ggxV + ggxL + 1e-5);
 }
 
-float3 F_Schlick(float cosTheta, float3 F0)
+// Schlick approximation of the Fresnel term (Schlick, 1994).
+// Approximates the fraction of light reflected vs refracted at a surface.
+// Uses fast exp2 form instead of pow for performance.
+// F0 + (1 - F0) * 2^((-5.55473 * HdotV - 6.98316) * HdotV)
+float3 F_Schlick(float HdotV, float3 F0)
 {
-	return F0 + (1.0 - F0) * exp2((-5.55473 * cosTheta - 6.98316) * cosTheta);
+    return F0 + (1.0 - F0) * exp2((-5.55473 * HdotV - 6.98316) * HdotV);
 }
 
+// Simplest diffuse BRDF — Lambertian reflectance normalized by PI.
 float3 DiffuseLambert(float3 albedo)
 {
 	return albedo / PI;
 }
 
+// Diffuse BRDF that models rough surface scattering using microfacet theory.
+// Based on "Generalization of Lambert's Reflectance Model" (Oren & Nayar, 1994).
 float3 DiffuseOrenNayar(float3 albedo, float NdotL, float NdotV, float roughness,
                         float3 L, float3 V, float3 N)
 {
@@ -239,6 +261,8 @@ float3 DiffuseOrenNayar(float3 albedo, float NdotL, float NdotV, float roughness
 	return albedo / PI * (A + B * cosPhiDiff * s);
 }
 
+// Disney diffuse BRDF with retroreflection and grazing darkening.
+// Based on "Physically Based Shading at Disney" (Burley, SIGGRAPH 2012).
 float3 DiffuseDisney(float3 albedo, float NdotL, float NdotV, float HdotV, float roughness)
 {
 	float FL   = pow(1.0 - NdotL, 5.0);
@@ -248,6 +272,9 @@ float3 DiffuseDisney(float3 albedo, float NdotL, float NdotV, float HdotV, float
 	return albedo / PI * Fd;
 }
 
+// Increases roughness based on normal map variance to reduce specular aliasing.
+// Based on "Stable Specular Highlights" (Tokuyoshi & Kaplanyan, 2019).
+// Uses screen-space ddx/ddy of the world normal to estimate high-frequency detail.
 float GeometricSpecularAA(float3 worldNormal, float roughness)
 {
 	float3 dndu = ddx(worldNormal);
@@ -260,6 +287,9 @@ float GeometricSpecularAA(float3 worldNormal, float roughness)
 	return sqrt(saturate(roughness2 + kernelRoughness2));
 }
 
+// Computes physically-based point light attenuation using inverse-square falloff
+// with a smooth windowing function (Karis, UE4) to avoid singularity at dist=0
+// and ensure zero contribution at the light radius boundary.
 float PointLightAttenuation(float dist, float radius)
 {
 	float x = saturate(1.0 - pow(dist / radius, 4.0));
@@ -274,6 +304,9 @@ struct LightingVectors
 	float HdotV;
 };
 
+// Computes per-light half-vector and dot products (NdotL, NdotH, HdotV)
+// from a given light direction L, view vector V and surface normal N.
+// Call once per light source before EvaluateBRDF.
 LightingVectors ComputeLightingVectors(float3 L, float3 V, float3 N)
 {
 	LightingVectors lv;
@@ -290,6 +323,9 @@ struct BRDFResult
 	float3 specular;
 };
 
+// Evaluates the Cook-Torrance BRDF for a single light source.
+// Returns diffuse (Oren-Nayar) and specular (GGX/Smith) components separately.
+// NdotV must be precomputed outside the light loop as it is view-invariant.
 BRDFResult EvaluateBRDF(float3 albedo, float3 F0, float metallic, float roughness,
                         float NdotL, float NdotV, float NdotH, float HdotV,
                         float3 L, float3 V, float3 N)
