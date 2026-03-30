@@ -1,4 +1,4 @@
-﻿cmake_minimum_required (VERSION 3.20)
+cmake_minimum_required (VERSION 3.20)
 
 if (POLICY CMP0141)
   cmake_policy(SET CMP0141 NEW)
@@ -27,7 +27,7 @@ find_package(imgui CONFIG REQUIRED)
 FetchContent_Declare(
     Orhescyon
     GIT_REPOSITORY https://github.com/Miurg/Orhescyon.git
-    GIT_TAG main 
+    GIT_TAG v0.0.1
 )
 FetchContent_MakeAvailable(Orhescyon)
 
@@ -45,6 +45,11 @@ target_link_libraries("${CMAKE_PROJECT_NAME}" PRIVATE imgui::imgui)
 
 target_link_libraries("${CMAKE_PROJECT_NAME}" PRIVATE Orhescyon)
 target_compile_definitions("${CMAKE_PROJECT_NAME}" PRIVATE ORHESCYON_HIGH_CHECK)
+
+target_compile_definitions("${CMAKE_PROJECT_NAME}" PRIVATE HALCYON_DEV_BUILD)
+target_compile_definitions("${CMAKE_PROJECT_NAME}" PRIVATE
+    HALCYON_SHADER_SRC_DIR="${CMAKE_SOURCE_DIR}/assets/shaders"
+)
 
 if(MSVC)
     target_compile_options("${CMAKE_PROJECT_NAME}" PRIVATE "/Zc:__cplusplus" "/permissive-")
@@ -149,5 +154,3 @@ add_custom_command(
     "$<TARGET_FILE_DIR:${PROJECT_NAME}>/assets/models"
     COMMENT "Copy models..."
 )
-
-

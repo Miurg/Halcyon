@@ -18,6 +18,8 @@ public:
 	std::vector<float> frameTimes;
 	float avgFrameTime = 0.0f;
 	float onePercentLowFrameTime = 0.0f;
+	
+	bool autoShaderReload = false;
 
 private:
 	void drawEntityNode(Entity entity, GeneralManager& gm);

@@ -64,3 +64,7 @@ class PipelineManagerContext
 {
 
 };
+class ShaderReloaderContext
+{
+
+};

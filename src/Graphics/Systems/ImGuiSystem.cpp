@@ -23,6 +23,9 @@
 #include "../Components/VulkanDeviceComponent.hpp"
 #include "../VulkanDevice.hpp"
 #include "../Components/PointLightComponent.hpp"
+#include "../ShaderReloader.hpp"
+#include "../Components/ShaderReloaderComponent.hpp"
+#include "../Components/PipelineManagerComponent.hpp"
 
 void ImGuiSystem::onRegistered(GeneralManager& gm)
 {
@@ -167,6 +170,17 @@ void ImGuiSystem::update(GeneralManager& gm)
 		frameTimes.clear();
 		frameCount = 0;
 		time = 0;
+	}
+
+	ImGui::Checkbox("Enable shader auto reload", &autoShaderReload);
+	if (autoShaderReload)
+	{
+		ShaderReloader* sr = gm.getContextComponent<ShaderReloaderContext, ShaderReloaderComponent>()->shaderReloader;
+		PipelineManager* pManager =
+		    gm.getContextComponent<PipelineManagerContext, PipelineManagerComponent>()->pipelineManager;
+		VulkanDevice* vulkanDevice =
+		    gm.getContextComponent<MainVulkanDeviceContext, VulkanDeviceComponent>()->vulkanDeviceInstance;
+		sr->update(*pManager, *vulkanDevice);
 	}
 
 	ImGui::End();

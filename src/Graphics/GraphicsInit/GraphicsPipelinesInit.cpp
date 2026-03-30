@@ -55,6 +55,8 @@
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_vulkan.h>
+#include "../ShaderReloader.hpp"
+#include "../Components/ShaderReloaderComponent.hpp"
 
 #pragma region initPipelines
 void GraphicsPipelinesInit::initPipelines(GeneralManager& gm)
@@ -124,6 +126,12 @@ void GraphicsPipelinesInit::initPipelines(GeneralManager& gm)
 	rg->declareLogicalStream("BloomMip4",
 	                         {swapChain->hdrFormat, RGSizeMode::ThirtySecondExtent, vk::ImageAspectFlagBits::eColor});
 #pragma endregion
+
+	ShaderReloader* shaderReloader = new ShaderReloader(HALCYON_SHADER_SRC_DIR, "shaders");
+	Entity shaderReloaderEntity = gm.createEntity();
+	gm.registerContext<ShaderReloaderContext>(shaderReloaderEntity);
+	gm.addComponent<ShaderReloaderComponent>(shaderReloaderEntity, shaderReloader);
+	gm.addComponent<NameComponent>(shaderReloaderEntity, "SYSTEM Shader Reloader");
 
 #pragma region Pipelines
 
