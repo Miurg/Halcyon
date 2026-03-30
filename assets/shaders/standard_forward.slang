@@ -18,25 +18,25 @@ struct DirectionalLightData
 	float4 color;
 	float4 ambient;
 	float4 shadowMapSize; // x: width, y: height, z: 1.0/width, w: 1.0/height
-    float4 frustumPlanes[6];
-    float shadowCasterRange;
-    float3 _pad;
-    float4 cameraFrustumLightSpaceBounds;
+	float4 frustumPlanes[6];
+	float shadowCasterRange;
+	float3 _pad;
+	float4 cameraFrustumLightSpaceBounds;
 };
 [[vk::binding(1, 0)]]
 StructuredBuffer<DirectionalLightData> directionalLight;
 
 struct PointLightData
 {
-    float3 position;
-    float radius;
-    float3 color;
-    float intensity;
-    float3 direction; // for spot = normalized direction, for point ignored
-    float innerConeAngle; // for point = -1.0
-    float outerConeAngle; // for point = -1.0
-    uint type;            // 0 = point, 1 = spot
-    float2 _pad;
+	float3 position;
+	float radius;
+	float3 color;
+	float intensity;
+	float3 direction; // for spot = normalized direction, for point ignored
+	float innerConeAngle; // for point = -1.0
+	float outerConeAngle; // for point = -1.0
+	uint type;            // 0 = point, 1 = spot
+	float2 _pad;
 };
 
 [[vk::binding(2, 0)]]
@@ -81,10 +81,10 @@ struct MaterialData
 	uint emissiveIndex;
 	float alphaCutoff;
 	uint alphaMode;
-    float emissiveStrength;
-    uint doubleSided;
-    float3 emissiveFactor;
-    float emissivePadding;
+	float emissiveStrength;
+	uint doubleSided;
+	float3 emissiveFactor;
+	float emissivePadding;
 	float roughnessFactor;
 	float metallicFactor;
 	float padding1;
@@ -151,8 +151,8 @@ VSOutput vertMain(VSInput input, uint instanceID: SV_InstanceID, uint baseInstan
 
 	VSOutput output;
 	output.pos = mul(camera[0].cameraSpaceMatrix, worldPos);
-    output.viewDepth = output.pos.w;
-    output.shadowCoord = mul(directionalLight[0].lightSpaceMatrix, worldPos);
+	output.viewDepth = output.pos.w;
+	output.shadowCoord = mul(directionalLight[0].lightSpaceMatrix, worldPos);
 	output.fragColor = input.inColor;
 	output.fragTexCoord = input.inTexCoord;
 	output.fragNormal = N;
@@ -211,74 +211,106 @@ float3 F_Schlick(float cosTheta, float3 F0)
 	return F0 + (1.0 - F0) * exp2((-5.55473 * cosTheta - 6.98316) * cosTheta);
 }
 
-float3 ApplyFog(float3 color, float viewDepth)
-{
-	const float fogStart = 2000.0;
-	const float fogEnd = 15000.0;
-	const float3 fogColor = float3(0.0, 0.7, 0.8);
-
-	float factor = saturate((viewDepth - fogStart) / (fogEnd - fogStart));
-	return lerp(color, fogColor, factor);
-}
-
 float3 DiffuseLambert(float3 albedo)
 {
-    return albedo / PI;
+	return albedo / PI;
 }
 
 float3 DiffuseOrenNayar(float3 albedo, float NdotL, float NdotV, float roughness,
                         float3 L, float3 V, float3 N)
 {
-    float sigma2 = roughness * roughness;
-    float A = 1.0 - 0.5 * sigma2 / (sigma2 + 0.57);
-    float B = 0.45 * sigma2 / (sigma2 + 0.09);
+	float sigma2 = roughness * roughness;
+	float A = 1.0 - 0.5 * sigma2 / (sigma2 + 0.57);
+	float B = 0.45 * sigma2 / (sigma2 + 0.09);
 
-    float3 Lperp = L - N * NdotL;
-    float3 Vperp = V - N * NdotV;
-    float LperpLen = length(Lperp);
-    float VperpLen = length(Vperp);
+	float3 Lperp = L - N * NdotL;
+	float3 Vperp = V - N * NdotV;
+	float LperpLen = length(Lperp);
+	float VperpLen = length(Vperp);
 
-    float cosPhiDiff = (LperpLen > 1e-4 && VperpLen > 1e-4)
-        ? saturate(dot(Lperp / LperpLen, Vperp / VperpLen))
-        : 0.0;
+	float cosPhiDiff = (LperpLen > 1e-4 && VperpLen > 1e-4)
+		? saturate(dot(Lperp / LperpLen, Vperp / VperpLen))
+		: 0.0;
 
-    float sinThetaI = sqrt(max(1.0 - NdotL * NdotL, 0.0));
-    float sinThetaR = sqrt(max(1.0 - NdotV * NdotV, 0.0));
-    float s = sinThetaI * sinThetaR / max(max(NdotL, NdotV), 1e-4);
+	float sinThetaI = sqrt(max(1.0 - NdotL * NdotL, 0.0));
+	float sinThetaR = sqrt(max(1.0 - NdotV * NdotV, 0.0));
+	float s = sinThetaI * sinThetaR / max(max(NdotL, NdotV), 1e-4);
 
-    return albedo / PI * (A + B * cosPhiDiff * s);
+	return albedo / PI * (A + B * cosPhiDiff * s);
 }
 
 float3 DiffuseDisney(float3 albedo, float NdotL, float NdotV, float HdotV, float roughness)
 {
-    float FL   = pow(1.0 - NdotL, 5.0);
-    float FV   = pow(1.0 - NdotV, 5.0);
-    float Fd90 = 0.5 + 2.0 * HdotV * HdotV * roughness;
-    float Fd   = lerp(1.0, Fd90, FL) * lerp(1.0, Fd90, FV);
-    return albedo / PI * Fd;
+	float FL   = pow(1.0 - NdotL, 5.0);
+	float FV   = pow(1.0 - NdotV, 5.0);
+	float Fd90 = 0.5 + 2.0 * HdotV * HdotV * roughness;
+	float Fd   = lerp(1.0, Fd90, FL) * lerp(1.0, Fd90, FV);
+	return albedo / PI * Fd;
 }
 
 float GeometricSpecularAA(float3 worldNormal, float roughness)
 {
-    float3 dndu = ddx(worldNormal);
-    float3 dndv = ddy(worldNormal);
+	float3 dndu = ddx(worldNormal);
+	float3 dndv = ddy(worldNormal);
 
-    float variance = 0.5 * (dot(dndu, dndu) + dot(dndv, dndv));
+	float variance = 0.5 * (dot(dndu, dndu) + dot(dndv, dndv));
 
-    float roughness2 = roughness * roughness;
-    float kernelRoughness2 = min(2.0 * variance, 0.18);
-    return sqrt(saturate(roughness2 + kernelRoughness2));
+	float roughness2 = roughness * roughness;
+	float kernelRoughness2 = min(2.0 * variance, 0.18);
+	return sqrt(saturate(roughness2 + kernelRoughness2));
 }
 
 float PointLightAttenuation(float dist, float radius)
 {
-    float x = saturate(1.0 - pow(dist / radius, 4.0));
-    return x * x / (dist * dist + 1.0);
+	float x = saturate(1.0 - pow(dist / radius, 4.0));
+	return x * x / (dist * dist + 1.0);
+}
+
+struct LightingVectors
+{
+	float3 H;
+	float NdotL;
+	float NdotH;
+	float HdotV;
+};
+
+LightingVectors ComputeLightingVectors(float3 L, float3 V, float3 N)
+{
+	LightingVectors lv;
+	lv.H     = normalize(L + V);
+	lv.NdotL = max(dot(N, L), 1e-4);
+	lv.NdotH = max(dot(N, lv.H), 0.0);
+	lv.HdotV = max(dot(lv.H, V), 0.0);
+	return lv;
+}
+
+struct BRDFResult
+{
+	float3 diffuse;
+	float3 specular;
+};
+
+BRDFResult EvaluateBRDF(float3 albedo, float3 F0, float metallic, float roughness,
+                        float NdotL, float NdotV, float NdotH, float HdotV,
+                        float3 L, float3 V, float3 N)
+{
+	float a = roughness * roughness;
+
+	float  D   = D_GGX(NdotH, a);
+	float  Vis = V_SmithGGXCorrelated(NdotV, NdotL, a);
+	float3 F   = F_Schlick(HdotV, F0);
+
+	float3 kD = (1.0 - F) * (1.0 - metallic);
+
+	BRDFResult result;
+	result.specular = D * Vis * F;
+	result.diffuse  = kD * DiffuseOrenNayar(albedo, NdotL, NdotV, roughness, L, V, N);
+	return result;
 }
 
 struct FragOutput
 {
-	float4 color : SV_Target0;
+	float4 color    : SV_Target0;
 	float4 vsNormal : SV_Target1;
 };
 
@@ -305,105 +337,90 @@ FragOutput fragMain(VSOutput input, bool isFrontFace: SV_IsFrontFace)
 	float4 mrSample =
 	    textureArray[NonUniformResourceIndex(mat.metallicRoughnessIndex)].SampleGrad(input.fragTexCoord, dx, dy);
 	float roughness = max(mrSample.g * mat.roughnessFactor, MIN_ROUGHNESS);
-	float metallic = saturate(mrSample.b * mat.metallicFactor);
+	float metallic  = saturate(mrSample.b * mat.metallicFactor);
 
 	// === NORMAL MAPPING ===
-    float3 N = normalize(input.fragNormal);
-    if (!isFrontFace) N = -N;
+	float3 N = normalize(input.fragNormal);
+	if (!isFrontFace) N = -N;
 	float3 T = normalize(input.fragTangent);
 	float3 B = normalize(input.fragBitangent);
 
-	float3 mapNormal = SampleNormalMap(mat.normalMapIndex, input.fragTexCoord, dx, dy);
+	float3 mapNormal  = SampleNormalMap(mat.normalMapIndex, input.fragTexCoord, dx, dy);
 	float3 finalNormal = normalize(mapNormal.x * T + mapNormal.y * B + mapNormal.z * N);
 
-    roughness = GeometricSpecularAA(finalNormal, roughness);
+	roughness = GeometricSpecularAA(finalNormal, roughness);
 
-    // === LIGHTING SETUP ===
-    float3 L = normalize(directionalLight[0].direction.xyz);
+	// === LIGHTING SETUP ===
+	float3 L = normalize(directionalLight[0].direction.xyz);
 	float3 V = normalize(camera[0].cameraPositionAndPadding.xyz - input.fragWorldPos);
-	float3 H = normalize(L + V);
 
-    float NdotL = max(dot(finalNormal, L), 1e-4);
 	float NdotV = max(dot(finalNormal, V), 1e-4);
-	float NdotH = max(dot(finalNormal, H), 0.0);
-    float HdotV = max(dot(H, V), 0.0);
 
-    // === SHADOW (PCF 3x3) ===
-    float2 shadowTexelSize = directionalLight[0].shadowMapSize.zw;
+	float3 F0 = lerp(float3(0.04, 0.04, 0.04), albedo.rgb, metallic);
 
+	// === SHADOW (PCF 3x3) ===
+	float2 shadowTexelSize = directionalLight[0].shadowMapSize.zw;
 	float3 projCoords = input.shadowCoord.xyz / input.shadowCoord.w;
 	projCoords.xy = projCoords.xy * 0.5 + 0.5;
 	float shadow = ComputeShadow(projCoords, shadowTexelSize, finalNormal, L);
 
-	// === PBR (Cook-Torrance) ===
-	float3 F0 = lerp(float3(0.04, 0.04, 0.04), albedo.rgb, metallic);
+	// === DIRECTIONAL LIGHT ===
+	float3 directionalLightRadiance = directionalLight[0].color.rgb * directionalLight[0].color.a;
 
-	float a = roughness * roughness;
-	float D = D_GGX(NdotH, a);
-	float Vis = V_SmithGGXCorrelated(NdotV, NdotL, a);
-	float3 F = F_Schlick(HdotV, F0);
-	float3 specular = D * Vis * F;
+	LightingVectors lv   = ComputeLightingVectors(L, V, finalNormal);
+	BRDFResult      brdf = EvaluateBRDF(albedo.rgb, F0, metallic, roughness,
+	                                    lv.NdotL, NdotV, lv.NdotH, lv.HdotV,
+	                                    L, V, finalNormal);
 
-	float3 kD = (1.0 - F) * (1.0 - metallic);
-	float3 diffuse = kD * DiffuseOrenNayar(albedo.rgb, NdotL, NdotV, roughness, L, V, finalNormal);
+	float3 directLight = (brdf.diffuse + brdf.specular) * directionalLightRadiance * lv.NdotL * shadow;
 
-    float3 directionalLightRadiance = directionalLight[0].color.rgb * directionalLight[0].color.a;
+	// === POINT / SPOT LIGHTS ===
+	float3 litColorFromLights = float3(0.0, 0.0, 0.0);
+	for (uint i = 0; i < lightCount[0]; i++)
+	{
+		float3 Lp   = lights[i].position - input.fragWorldPos;
+		float  dist = length(Lp);
+		if (dist >= lights[i].radius) continue;
 
-    // === LIGHTS ===
-    float3 litColorFromLights = float3(0.0, 0.0, 0.0);
-    for (uint i = 0; i < lightCount[0]; i++)
-    {
-        float3 Lp = lights[i].position - input.fragWorldPos;
-        float dist = length(Lp);
-        if (dist >= lights[i].radius) continue;
+		float3 Ldir = Lp / dist;
 
-        float3 Ldir = Lp / dist;
-        float3 Hp = normalize(Ldir + V);
+		float spotAttenuation = 1.0;
+		if (lights[i].type == 1)
+		{
+			float cosAngle = dot(-Ldir, lights[i].direction);
+			spotAttenuation = smoothstep(lights[i].outerConeAngle, lights[i].innerConeAngle, cosAngle);
+			if (spotAttenuation <= 0.0) continue;
+		}
 
-        float NdotLp = max(dot(finalNormal, Ldir), 1e-4);
-        float NdotHp = max(dot(finalNormal, Hp), 0.0);
-        float HdotVp = max(dot(Hp, V), 0.0);
+		float attenuation = PointLightAttenuation(dist, lights[i].radius);
 
-        float attenuation = PointLightAttenuation(dist, lights[i].radius);
+		LightingVectors lvp   = ComputeLightingVectors(Ldir, V, finalNormal);
+		BRDFResult      brdfp = EvaluateBRDF(albedo.rgb, F0, metallic, roughness,
+		                                     lvp.NdotL, NdotV, lvp.NdotH, lvp.HdotV,
+		                                     Ldir, V, finalNormal);
 
-        float spotAttenuation = 1.0;
-        if (lights[i].type == 1)
-        {
-            float cosAngle = dot(-Ldir, lights[i].direction);
-            spotAttenuation = smoothstep(lights[i].outerConeAngle, lights[i].innerConeAngle, cosAngle);
-            if (spotAttenuation <= 0.0) continue;
-        }
+		float3 radiance = lights[i].color * lights[i].intensity;
+		litColorFromLights += (brdfp.diffuse + brdfp.specular) * radiance * lvp.NdotL * attenuation * spotAttenuation;
+	}
 
-        float ap = roughness * roughness;
-        float Dp = D_GGX(NdotHp, ap);
-        float Vp = V_SmithGGXCorrelated(NdotV, NdotLp, ap);
-        float3 Fp = F_Schlick(HdotVp, F0);
-        float3 specp = Dp * Vp * Fp;
+	// === IBL ===
+	float3 F_ibl = F0 + (max(float3(1.0 - roughness, 1.0 - roughness, 1.0 - roughness), F0) - F0) * pow(1.0 - NdotV, 5.0);
 
-        float3 kDp = (1.0 - Fp) * (1.0 - metallic);
-        float3 diffp = kDp * DiffuseOrenNayar(albedo.rgb, NdotLp, NdotV, roughness, Ldir, V, finalNormal);
+	float3 irradiance = irradianceMap.Sample(finalNormal).rgb;
+	float3 iblDiffuse = (1.0 - F_ibl) * (1.0 - metallic) * albedo.rgb * irradiance;
 
-        float3 radiance = lights[i].color * lights[i].intensity;
-        litColorFromLights += (diffp + specp) * radiance * NdotLp * attenuation * spotAttenuation;
-    }
-    // === IBL ===
-    float3 F_ibl = F0 + (max(float3(1.0 - roughness, 1.0 - roughness, 1.0 - roughness), F0) - F0) * pow(1.0 - NdotV, 5.0);
+	float3 iblSpecular = float3(0.0, 0.0, 0.0);
+	if (mat.alphaMode != 1 && mat.doubleSided != 1)
+	{
+		float3 R = reflect(-V, finalNormal);
+		float3 prefilteredColor = prefilteredMap.SampleLevel(R, roughness * MAX_REFLECTION_LOD).rgb;
+		float2 brdfLut = brdfLutMap.SampleLevel(float2(NdotV, roughness), 0).rg;
+		iblSpecular = prefilteredColor * (F_ibl * brdfLut.x + brdfLut.y);
+	}
 
-    float3 irradiance = irradianceMap.Sample(finalNormal).rgb;
-    float3 iblDiffuse = (1.0 - F_ibl) * (1.0 - metallic) * albedo.rgb * irradiance;
+	float3 ambient = (iblDiffuse + iblSpecular) * directionalLight[0].ambient.a;
 
-    float3 iblSpecular = float3(0.0, 0.0, 0.0);
-    if (mat.alphaMode != 1 || mat.doubleSided != 0) // mostly for foliage
-    {
-        float3 R = reflect(-V, finalNormal);
-        float3 prefilteredColor = prefilteredMap.SampleLevel(R, roughness * MAX_REFLECTION_LOD).rgb;
-        float2 brdf = brdfLutMap.SampleLevel(float2(NdotV, roughness), 0).rg;
-        iblSpecular = prefilteredColor * (F_ibl * brdf.x + brdf.y);
-    }
-
-    float3 ambient = (iblDiffuse + iblSpecular) * directionalLight[0].ambient.a;
-
-    float3 litColor = (diffuse + specular) * directionalLightRadiance * NdotL * shadow + litColorFromLights + ambient + emissive;
+	float3 litColor = directLight + litColorFromLights + ambient + emissive;
 
 	// === FINAL OUTPUT ===
 	float outAlpha = (mat.alphaMode == 2) ? albedo.a : 1.0;
@@ -411,7 +428,7 @@ FragOutput fragMain(VSOutput input, bool isFrontFace: SV_IsFrontFace)
 	float3 viewNormal = mul((float3x3)camera[0].viewMatrix, finalNormal);
 
 	FragOutput output;
-	output.color = float4(ApplyFog(litColor, input.viewDepth), outAlpha);
+	output.color    = float4(litColor, outAlpha);
 	output.vsNormal = float4(normalize(viewNormal), 1.0);
 	return output;
 }
