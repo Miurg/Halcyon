@@ -10,7 +10,8 @@ struct GlobalDSetComponent
 	BufferHandle pointLightCountBuffer;
 	DSetHandle fxaaDSets;
 	DSetHandle ssaoDSets;
-	DSetHandle ssaoBlurDSets;
+	DSetHandle ssaoBlurHDSets;
+	DSetHandle ssaoBlurVDSets;
 	DSetHandle ssaoApplyDSets;
 	DSetHandle toneMappingDSets;
 	DSetHandle bloomDownsampleDSets[5];

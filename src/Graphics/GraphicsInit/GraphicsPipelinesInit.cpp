@@ -110,9 +110,11 @@ void GraphicsPipelinesInit::initPipelines(GeneralManager& gm)
 	rg->declareLogicalStream("ViewNormals",
 	                         {vk::Format::eR16G16B16A16Sfloat, RGSizeMode::FullExtent, vk::ImageAspectFlagBits::eColor});
 	rg->declareLogicalStream("SSAOTexture",
-	                         {vk::Format::eR8Unorm, RGSizeMode::HalfExtent, vk::ImageAspectFlagBits::eColor});
+	                         {vk::Format::eR16Sfloat, RGSizeMode::HalfExtent, vk::ImageAspectFlagBits::eColor});
+	rg->declareLogicalStream("SSAOBlurTempTexture",
+	                         {vk::Format::eR16Sfloat, RGSizeMode::HalfExtent, vk::ImageAspectFlagBits::eColor});
 	rg->declareLogicalStream("SSAOBlurTexture",
-	                         {vk::Format::eR8Unorm, RGSizeMode::HalfExtent, vk::ImageAspectFlagBits::eColor});
+	                         {vk::Format::eR16Sfloat, RGSizeMode::HalfExtent, vk::ImageAspectFlagBits::eColor});
 	rg->declareLogicalStream("PostProcessColor",
 	                         {swapChain->swapChainImageFormat, RGSizeMode::FullExtent, vk::ImageAspectFlagBits::eColor});
 	rg->declareLogicalStream("BloomMip0",
@@ -254,17 +256,17 @@ void GraphicsPipelinesInit::initPipelines(GeneralManager& gm)
 	    .shaderPath = "shaders/ssao.spv",
 	    .cullMode = vk::CullModeFlagBits::eNone,
 	    .colorAttachments = {PipelineFactory::opaqueAttachment()},
-	    .colorFormats = {vk::Format::eR8Unorm},
+	    .colorFormats = {vk::Format::eR16Sfloat},
 	    .setLayouts = {*dManager->screenSpaceSetLayout, *dManager->globalSetLayout},
-	    .pushConstants = {{vk::ShaderStageFlagBits::eFragment, 0, 40u}}, 
+	    .pushConstants = {{vk::ShaderStageFlagBits::eFragment, 0, 44u}},
 	});
 	pManager->build(PipelineDescription{
 	    .shaderPath = "shaders/ssao_blur.spv",
 	    .cullMode = vk::CullModeFlagBits::eNone,
 	    .colorAttachments = {PipelineFactory::opaqueAttachment()},
-	    .colorFormats = {vk::Format::eR8Unorm},
+	    .colorFormats = {vk::Format::eR16Sfloat},
 	    .setLayouts = {*dManager->screenSpaceSetLayout},
-	    .pushConstants = {{vk::ShaderStageFlagBits::eFragment, 0, sizeof(float) * 2}},
+	    .pushConstants = {{vk::ShaderStageFlagBits::eFragment, 0, sizeof(float) * 4}},
 	});
 	pManager->build(PipelineDescription{
 	    .shaderPath = "shaders/ssao_apply.spv",

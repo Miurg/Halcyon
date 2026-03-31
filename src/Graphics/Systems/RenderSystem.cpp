@@ -205,9 +205,9 @@ void RenderSystem::update(GeneralManager& gm)
 	{
 		rg.addPass(
 		    "SSAO",
-		    {.colorAttachments = {{"SSAOTexture", vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore,
+		    {.colorAttachments = {{"SSAOTexture", vk::AttachmentLoadOp::eLoad, vk::AttachmentStoreOp::eStore,
 		                           clearWhite}}},
-		    {{"Depth", RGResourceUsage::ShaderRead}, 
+		    {{"Depth", RGResourceUsage::ShaderRead},
 		     {"ViewNormals", RGResourceUsage::ShaderRead},
 		     {"NoiseImage", RGResourceUsage::ShaderRead}},
 		    {{"SSAOTexture", RGResourceUsage::ColorAttachmentWrite}},
@@ -215,7 +215,7 @@ void RenderSystem::update(GeneralManager& gm)
 		    {
 			    CommandBufferFactory::drawSsaoPass(cmd, swapChain, *dManager,
 			                                       globalDSetComponent->ssaoDSets, globalDSetComponent->globalDSets, *ssaoSettings,
-			                                       *pManager);
+			                                       currentFrameComp->frameNumber, *pManager);
 		    },
 		    [dManager, globalDSetComponent](const RenderGraph& graph, const RGPass& pass)
 		    {
@@ -230,17 +230,17 @@ void RenderSystem::update(GeneralManager& gm)
 		    });
 
 		rg.addPass(
-		    "SSAOBlur",
-		    {.colorAttachments = {{"SSAOBlurTexture", vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore,
+		    "SSAOBlurH",
+		    {.colorAttachments = {{"SSAOBlurTempTexture", vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore,
 		                           clearWhite}}},
 		    {{"SSAOTexture", RGResourceUsage::ShaderRead},
 		     {"Depth", RGResourceUsage::ShaderRead},
 		     {"ViewNormals", RGResourceUsage::ShaderRead}},
-		    {{"SSAOBlurTexture", RGResourceUsage::ColorAttachmentWrite}},
+		    {{"SSAOBlurTempTexture", RGResourceUsage::ColorAttachmentWrite}},
 		    [&](vk::raii::CommandBuffer& cmd)
 		    {
-			    CommandBufferFactory::drawSsaoBlurPass(cmd, swapChain, *dManager, globalDSetComponent->ssaoBlurDSets,
-			                                           *pManager);
+			    CommandBufferFactory::drawSsaoBlurPass(cmd, swapChain, *dManager, globalDSetComponent->ssaoBlurHDSets,
+			                                           1.0f, 0.0f, *pManager);
 		    },
 		    [dManager, globalDSetComponent](const RenderGraph& graph, const RGPass& pass)
 		    {
@@ -248,13 +248,42 @@ void RenderSystem::update(GeneralManager& gm)
 			    auto depthHnd = pass.getPhysicalRead("Depth");
 			    auto normHnd = pass.getPhysicalRead("ViewNormals");
 			    dManager->descriptorManager->updateSingleTextureDSet(
-			        globalDSetComponent->ssaoBlurDSets, Bindings::SSAOBlur::SsaoInput, graph.getImageView(ssaoHnd),
+			        globalDSetComponent->ssaoBlurHDSets, Bindings::SSAOBlur::SsaoInput, graph.getImageView(ssaoHnd),
 			        graph.getSampler(ssaoHnd));
 			    dManager->descriptorManager->updateSingleTextureDSet(
-			        globalDSetComponent->ssaoBlurDSets, Bindings::SSAOBlur::DepthInput, graph.getImageView(depthHnd),
+			        globalDSetComponent->ssaoBlurHDSets, Bindings::SSAOBlur::DepthInput, graph.getImageView(depthHnd),
 			        graph.getSampler(depthHnd));
 			    dManager->descriptorManager->updateSingleTextureDSet(
-			        globalDSetComponent->ssaoBlurDSets, Bindings::SSAOBlur::NormalsInput, graph.getImageView(normHnd),
+			        globalDSetComponent->ssaoBlurHDSets, Bindings::SSAOBlur::NormalsInput, graph.getImageView(normHnd),
+			        graph.getSampler(normHnd));
+		    });
+
+		rg.addPass(
+		    "SSAOBlurV",
+		    {.colorAttachments = {{"SSAOBlurTexture", vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore,
+		                           clearWhite}}},
+		    {{"SSAOBlurTempTexture", RGResourceUsage::ShaderRead},
+		     {"Depth", RGResourceUsage::ShaderRead},
+		     {"ViewNormals", RGResourceUsage::ShaderRead}},
+		    {{"SSAOBlurTexture", RGResourceUsage::ColorAttachmentWrite}},
+		    [&](vk::raii::CommandBuffer& cmd)
+		    {
+			    CommandBufferFactory::drawSsaoBlurPass(cmd, swapChain, *dManager, globalDSetComponent->ssaoBlurVDSets,
+			                                           0.0f, 1.0f, *pManager);
+		    },
+		    [dManager, globalDSetComponent](const RenderGraph& graph, const RGPass& pass)
+		    {
+			    auto ssaoHnd = pass.getPhysicalRead("SSAOBlurTempTexture");
+			    auto depthHnd = pass.getPhysicalRead("Depth");
+			    auto normHnd = pass.getPhysicalRead("ViewNormals");
+			    dManager->descriptorManager->updateSingleTextureDSet(
+			        globalDSetComponent->ssaoBlurVDSets, Bindings::SSAOBlur::SsaoInput, graph.getImageView(ssaoHnd),
+			        graph.getSampler(ssaoHnd));
+			    dManager->descriptorManager->updateSingleTextureDSet(
+			        globalDSetComponent->ssaoBlurVDSets, Bindings::SSAOBlur::DepthInput, graph.getImageView(depthHnd),
+			        graph.getSampler(depthHnd));
+			    dManager->descriptorManager->updateSingleTextureDSet(
+			        globalDSetComponent->ssaoBlurVDSets, Bindings::SSAOBlur::NormalsInput, graph.getImageView(normHnd),
 			        graph.getSampler(normHnd));
 		    });
 

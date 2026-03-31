@@ -581,12 +581,12 @@ void CommandBufferFactory::drawFxaaPass(vk::raii::CommandBuffer& cmd, SwapChain&
 
 void CommandBufferFactory::drawSsaoPass(vk::raii::CommandBuffer& cmd, SwapChain& swapChain, DescriptorManagerComponent& dManager,
                                         DSetHandle ssaoDescriptorSetIndex, DSetHandle globalDescriptorSetIndex, const SsaoSettingsComponent& ssaoSettings,
-                                        PipelineManager& pManager)
+                                        uint32_t frameNumber, PipelineManager& pManager)
 {
 	cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, pManager.pipelines["ssao"].pipeline);
 
-	cmd.setViewport(0, vk::Viewport(0.0f, 0.0f, static_cast<float>(swapChain.swapChainExtent.width / 2),
-	                                static_cast<float>(swapChain.swapChainExtent.height / 2), 0.0f, 1.0f));
+	cmd.setViewport(0, vk::Viewport(0.0f, 0.0f, static_cast<float>(swapChain.swapChainExtent.width / 2.0),
+	                                static_cast<float>(swapChain.swapChainExtent.height / 2.0), 0.0f, 1.0f));
 	cmd.setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), vk::Extent2D{swapChain.swapChainExtent.width / 2,
 	                                                              swapChain.swapChainExtent.height / 2}));
 
@@ -607,6 +607,7 @@ void CommandBufferFactory::drawSsaoPass(vk::raii::CommandBuffer& cmd, SwapChain&
 		float fadeStart;
 		float fadeEnd;
 		float texelSize[2];
+		uint32_t frameNumber;
 	} push;
 	push.kernelSize = ssaoSettings.kernelSize;
 	push.radius = ssaoSettings.radius;
@@ -616,8 +617,9 @@ void CommandBufferFactory::drawSsaoPass(vk::raii::CommandBuffer& cmd, SwapChain&
 	push.maxScreenRadius = ssaoSettings.maxScreenRadius;
 	push.fadeStart = ssaoSettings.fadeStart;
 	push.fadeEnd = ssaoSettings.fadeEnd;
-	push.texelSize[0] = 1.0f / static_cast<float>(swapChain.swapChainExtent.width / 2);
-	push.texelSize[1] = 1.0f / static_cast<float>(swapChain.swapChainExtent.height / 2);
+	push.texelSize[0] = 1.0f / static_cast<float>(swapChain.swapChainExtent.width / 2.0);
+	push.texelSize[1] = 1.0f / static_cast<float>(swapChain.swapChainExtent.height / 2.0);
+	push.frameNumber = frameNumber;
 
 	cmd.pushConstants<SsaoPushConstants>(pManager.pipelines["ssao"].layout, vk::ShaderStageFlagBits::eFragment, 0,
 	                                     push);
@@ -626,24 +628,26 @@ void CommandBufferFactory::drawSsaoPass(vk::raii::CommandBuffer& cmd, SwapChain&
 }
 
 void CommandBufferFactory::drawSsaoBlurPass(vk::raii::CommandBuffer& cmd, SwapChain& swapChain, DescriptorManagerComponent& dManager, DSetHandle ssaoBlurDescriptorSetIndex,
-                                            PipelineManager& pManager)
+                                            float dirX, float dirY, PipelineManager& pManager)
 {
 	cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pManager.pipelines["ssao_blur"].pipeline);
 
-	cmd.setViewport(0, vk::Viewport(0.0f, 0.0f, static_cast<float>(swapChain.swapChainExtent.width / 2),
-	                                static_cast<float>(swapChain.swapChainExtent.height / 2), 0.0f, 1.0f));
+	cmd.setViewport(0, vk::Viewport(0.0f, 0.0f, static_cast<float>(swapChain.swapChainExtent.width / 2.0),
+	                                static_cast<float>(swapChain.swapChainExtent.height / 2.0), 0.0f, 1.0f));
 	cmd.setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), vk::Extent2D{swapChain.swapChainExtent.width / 2,
 	                                                              swapChain.swapChainExtent.height / 2}));
 
 	cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pManager.pipelines["ssao_blur"].layout, 0,
 	                       dManager.descriptorManager->descriptorSets[ssaoBlurDescriptorSetIndex.id][0], nullptr);
-
 	struct BlurPushConstants
 	{
 		float texelSize[2];
+		float direction[2];
 	} push;
-	push.texelSize[0] = 1.0f / static_cast<float>(swapChain.swapChainExtent.width / 2);
-	push.texelSize[1] = 1.0f / static_cast<float>(swapChain.swapChainExtent.height / 2);
+	push.texelSize[0] = 1.0f / static_cast<float>(swapChain.swapChainExtent.width / 2.0);
+	push.texelSize[1] = 1.0f / static_cast<float>(swapChain.swapChainExtent.height / 2.0);
+	push.direction[0] = dirX;
+	push.direction[1] = dirY;
 
 	cmd.pushConstants<BlurPushConstants>(*pManager.pipelines["ssao_blur"].layout, vk::ShaderStageFlagBits::eFragment, 0,
 	                                     push);
@@ -657,7 +661,7 @@ void CommandBufferFactory::drawSSAOApplyPass(vk::raii::CommandBuffer& cmd, SwapC
 	cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pManager.pipelines["ssao_apply"].pipeline);
 
 	cmd.setViewport(0, vk::Viewport(0.0f, 0.0f, static_cast<float>(swapChain.swapChainExtent.width),
-											  static_cast<float>(swapChain.swapChainExtent.height), 0.0f, 1.0f));
+	                                static_cast<float>(swapChain.swapChainExtent.height), 0.0f, 1.0f));
 	cmd.setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), swapChain.swapChainExtent));
 
 	cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pManager.pipelines["ssao_apply"].layout, 0,

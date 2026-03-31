@@ -7,7 +7,8 @@ Sampler2D normalsTexture;
 
 struct PushConstants
 {
-	float2 texelSize; // 1.0 / resolution
+	float2 texelSize;  // 1.0 / resolution
+	float2 direction;  // (1,0) for horizontal, (0,1) for vertical
 };
 [[vk::push_constant]]
 ConstantBuffer<PushConstants> pc;
@@ -24,7 +25,7 @@ VSOutput vertMain(uint vertexID: SV_VertexID)
 	VSOutput output;
 	output.uv = float2((vertexID << 1) & 2, vertexID & 2);
 	output.pos = float4(output.uv * 2.0 - 1.0, 0.0, 1.0);
-	return output; 
+	return output;
 }
 
 [shader("fragment")]
@@ -43,29 +44,27 @@ float4 fragMain(VSOutput input) : SV_Target
 
     const float weights[7] = { 0.006, 0.061, 0.242, 0.383, 0.242, 0.061, 0.006 };
 
-    for (int x = -3; x <= 3; x++)
+    float2 step = pc.direction * pc.texelSize;
+
+    for (int i = -3; i <= 3; i++)
     {
-        for (int y = -3; y <= 3; y++)
-        {
-            float2 offset = float2(x, y) * pc.texelSize;
-            float2 sampleUV = input.uv + offset;
+        float2 sampleUV = input.uv + step * float(i);
 
-            float sampleDepth = depthTexture.SampleLevel(sampleUV, 0).r;
-            float3 sampleNormal = normalsTexture.SampleLevel(sampleUV, 0).xyz;
-            float sampleSsao = ssaoTexture.SampleLevel(sampleUV, 0).r;
+        float sampleDepth = depthTexture.SampleLevel(sampleUV, 0).r;
+        float3 sampleNormal = normalsTexture.SampleLevel(sampleUV, 0).xyz;
+        float sampleSsao = ssaoTexture.SampleLevel(sampleUV, 0).r;
 
-            float depthDiff = abs(centerDepth - sampleDepth);
-            float depthWeight = exp(-depthDiff * 100.0);
+        float depthDiff = abs(centerDepth - sampleDepth);
+        float depthWeight = exp(-depthDiff * 100.0);
 
-            float normalDiff = max(dot(centerNormal, sampleNormal), 0.0);
-            float normalWeight = pow(normalDiff, 16.0); 
+        float normalDiff = max(dot(centerNormal, sampleNormal), 0.0);
+        float normalWeight = pow(normalDiff, 16.0);
 
-            float spatialWeight = weights[x + 3] * weights[y + 3];
-            float finalWeight = spatialWeight * depthWeight * normalWeight;
+        float spatialWeight = weights[i + 3];
+        float finalWeight = spatialWeight * depthWeight * normalWeight;
 
-            combinedSsao += sampleSsao * finalWeight;
-            totalWeight += finalWeight;
-        }
+        combinedSsao += sampleSsao * finalWeight;
+        totalWeight += finalWeight;
     }
 
     float result = (totalWeight > 0.0001) ? (combinedSsao / totalWeight) : centerSsao;

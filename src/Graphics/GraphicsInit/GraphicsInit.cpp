@@ -422,7 +422,8 @@ void GraphicsInit::initScene(GeneralManager& gm)
 	RenderGraph* rg = gm.getContextComponent<RenderGraphContext, RenderGraphComponent>()->renderGraph;
 	globalDSetComponent->fxaaDSets = dManager->allocateOffscreenDescriptorSet(*dManager->screenSpaceSetLayout);
 	globalDSetComponent->ssaoDSets = dManager->allocateOffscreenDescriptorSet(*dManager->screenSpaceSetLayout);
-	globalDSetComponent->ssaoBlurDSets = dManager->allocateOffscreenDescriptorSet(*dManager->screenSpaceSetLayout);
+	globalDSetComponent->ssaoBlurHDSets = dManager->allocateOffscreenDescriptorSet(*dManager->screenSpaceSetLayout);
+	globalDSetComponent->ssaoBlurVDSets = dManager->allocateOffscreenDescriptorSet(*dManager->screenSpaceSetLayout);
 	globalDSetComponent->ssaoApplyDSets = dManager->allocateOffscreenDescriptorSet(*dManager->screenSpaceSetLayout);
 	globalDSetComponent->toneMappingDSets = dManager->allocateOffscreenDescriptorSet(*dManager->screenSpaceSetLayout);
 

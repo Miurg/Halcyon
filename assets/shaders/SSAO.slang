@@ -28,6 +28,7 @@ struct PushConstants
 	float fadeStart;
 	float fadeEnd;
 	float2 texelSize;
+	uint frameNumber;
 };
 [[vk::push_constant]]
 ConstantBuffer<PushConstants> pc;
@@ -69,9 +70,19 @@ float falloff(float distSq, float RrSq)
 	return saturate(1.0 - factor * factor);
 }
 
+float InterleavedGradientNoise(float2 pixelPos)
+{
+    float3 magic = float3(0.06711056, 0.00583715, 52.9829189);
+    return frac(magic.z * frac(dot(pixelPos, magic.xy)));
+}
+
 [shader("fragment")]
 float4 fragMain(VSOutput input) : SV_Target
 {
+	uint2 pixel = uint2(input.pos.xy);
+	if ((pixel.x + pixel.y) % 2 != pc.frameNumber % 2)
+		discard;
+
 	float depth = depthTexture.SampleLevel(input.uv, 0).r;
 
 	if (depth <= 0.0) return float4(1.0, 1.0, 1.0, 1.0);

@@ -54,11 +54,11 @@ public:
 
 	static void drawSsaoPass(vk::raii::CommandBuffer& cmd, SwapChain& swapChain,
 	                         DescriptorManagerComponent& dManager, DSetHandle ssaoDescriptorSetIndex, DSetHandle globalDescriptorSetIndex,
-	                         const SsaoSettingsComponent& ssaoSettings, PipelineManager& pManager);
+	                         const SsaoSettingsComponent& ssaoSettings, uint32_t frameNumber, PipelineManager& pManager);
 
-	static void drawSsaoBlurPass(vk::raii::CommandBuffer& cmd, SwapChain& swapChain, 
-	                             DescriptorManagerComponent& dManager, DSetHandle ssaoBlurDescriptorSetIndex,
-	                             PipelineManager& pManager);
+	static void drawSsaoBlurPass(vk::raii::CommandBuffer& cmd, SwapChain& swapChain,
+	                             DescriptorManagerComponent& dManager, DSetHandle ssaoBlurDescriptorSetIndex, float dirX,
+	                             float dirY, PipelineManager& pManager);
 	static void drawSSAOApplyPass(vk::raii::CommandBuffer& cmd, SwapChain& swapChain,
 	                              DescriptorManagerComponent& dManager, DSetHandle fxaaDescriptorSetIndex,
 	                              PipelineManager& pManager);
