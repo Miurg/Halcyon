@@ -42,11 +42,11 @@ float4 fragMain(VSOutput input) : SV_Target
     float combinedSsao = 0.0;
     float totalWeight = 0.0;
 
-    const float weights[7] = { 0.006, 0.061, 0.242, 0.383, 0.242, 0.061, 0.006 };
+    const float weights[5] = { 0.061, 0.242, 0.383, 0.242, 0.061 };
 
     float2 step = pc.direction * pc.texelSize;
 
-    for (int i = -3; i <= 3; i++)
+    for (int i = -2; i <= 2; i++)
     {
         float2 sampleUV = input.uv + step * float(i);
 
@@ -60,7 +60,7 @@ float4 fragMain(VSOutput input) : SV_Target
         float normalDiff = max(dot(centerNormal, sampleNormal), 0.0);
         float normalWeight = pow(normalDiff, 16.0);
 
-        float spatialWeight = weights[i + 3];
+        float spatialWeight = weights[i + 2];
         float finalWeight = spatialWeight * depthWeight * normalWeight;
 
         combinedSsao += sampleSsao * finalWeight;
