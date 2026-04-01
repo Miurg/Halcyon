@@ -56,6 +56,7 @@ struct RGResourceEntry
 	vk::Sampler sampler = {};
 	vk::ImageAspectFlags aspectFlags = vk::ImageAspectFlagBits::eColor;
 	bool isTransient = false;
+	vk::ImageLayout importedLayout = vk::ImageLayout::eUndefined;
 	RGImageDesc desc = {};
 
 	// VMA fields (only for transient resources)

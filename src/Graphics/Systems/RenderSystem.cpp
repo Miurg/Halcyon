@@ -78,7 +78,8 @@ void RenderSystem::update(GeneralManager& gm)
 	                                      swapChain.swapChainImageViews[imageIndex], vk::ImageAspectFlagBits::eColor);
 	auto noiseHandle = rg.importImage(
 	    "NoiseImage", textureManager.textures[swapChain.ssaoNoiseTextureHandle.id].textureImage,
-	    textureManager.textures[swapChain.ssaoNoiseTextureHandle.id].textureImageView, vk::ImageAspectFlagBits::eColor);
+	    textureManager.textures[swapChain.ssaoNoiseTextureHandle.id].textureImageView, vk::ImageAspectFlagBits::eColor,
+	    vk::ImageLayout::eShaderReadOnlyOptimal);
 
 	if (graphicsSettings->msaaSamples != graphicsSettings->appliedMsaaSamples)
 	{

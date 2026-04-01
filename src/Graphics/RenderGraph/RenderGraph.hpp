@@ -46,7 +46,8 @@ public:
 
 	// Resource API
 	RGResourceHandle importImage(const std::string& name, vk::Image image, vk::ImageView imageView,
-	                             vk::ImageAspectFlags aspect);
+	                             vk::ImageAspectFlags aspect,
+	                             vk::ImageLayout currentLayout = vk::ImageLayout::eUndefined);
 	void handleResize(uint32_t newWidth, uint32_t newHeight);
 
 	void declareLogicalStream(const std::string& name, const RGImageDesc& desc);

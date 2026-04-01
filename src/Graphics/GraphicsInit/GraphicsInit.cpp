@@ -442,7 +442,6 @@ void GraphicsInit::initScene(GeneralManager& gm)
 	                          vk::ImageUsageFlagBits::eSampled,
 	                      VMA_MEMORY_USAGE_AUTO, noiseTexture, 1);
 	tManager->createImageView(noiseTexture, vk::Format::eR8G8B8A8Unorm, vk::ImageAspectFlagBits::eColor);
-	//tManager->createTextureSampler(noiseTexture);
 
 	vk::PhysicalDeviceProperties properties = vulkanDevice->physicalDevice.getProperties();
 	vk::SamplerCreateInfo samplerInfo;
