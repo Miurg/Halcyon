@@ -67,6 +67,9 @@ public:
 	                                DescriptorManagerComponent& dManager, DSetHandle toneMappingDescriptorSetIndex,
 	                                PipelineManager& pManager);
 
+	static void drawVignettePass(vk::raii::CommandBuffer& cmd, SwapChain& swapChain, DescriptorManagerComponent& dManager,
+	                      DSetHandle vignetteDescriptorSetIndex, PipelineManager& pManager);
+
 	static void drawBloomDownsamplePass(vk::raii::CommandBuffer& cmd, 
 	                                    DescriptorManagerComponent& dManager,
 	                                    DSetHandle dSetHandle, PipelineManager& pManager,
@@ -77,6 +80,7 @@ public:
 	                                  DSetHandle dSetHandle, PipelineManager& pManager,
 	                                  float texelSizeX, float texelSizeY, float blendFactor,
 	                                  int isLastPass, vk::Extent2D extent);
+
 
 	static void drawImGui(vk::raii::CommandBuffer& cmd);
 

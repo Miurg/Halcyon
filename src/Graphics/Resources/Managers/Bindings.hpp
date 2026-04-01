@@ -70,5 +70,9 @@ namespace BloomUpsample
 {
 constexpr uint32_t CurrentTexture = 0;
 constexpr uint32_t PreviousTexture = 1;
+} // namespace BloomUpsample
+namespace Vignette
+{
+constexpr uint32_t OffscreenInput = 0;
 }
 } // namespace Bindings

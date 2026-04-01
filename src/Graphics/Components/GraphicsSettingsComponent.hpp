@@ -9,6 +9,7 @@ struct GraphicsSettingsComponent
 	bool enableSsao = true;
 	bool enableFxaa = true;
 	bool enableBloom = true;
+	bool enableVignette = true;
 	float bloomThreshold = 1.0f;
 	float bloomKnee = 0.3f;
 	float bloomIntensity = 0.08f;

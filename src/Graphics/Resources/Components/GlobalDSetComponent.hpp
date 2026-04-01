@@ -16,4 +16,5 @@ struct GlobalDSetComponent
 	DSetHandle toneMappingDSets;
 	DSetHandle bloomDownsampleDSets[5];
 	DSetHandle bloomUpsampleDSets[5];
+	DSetHandle vignetteDSets;
 };

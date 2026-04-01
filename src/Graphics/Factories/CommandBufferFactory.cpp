@@ -687,6 +687,23 @@ void CommandBufferFactory::drawToneMappingPass(vk::raii::CommandBuffer& cmd, Swa
 	cmd.draw(3, 1, 0, 0);
 }
 
+void CommandBufferFactory::drawVignettePass(vk::raii::CommandBuffer& cmd, SwapChain& swapChain,
+                                               DescriptorManagerComponent& dManager,
+                                               DSetHandle vignetteDescriptorSetIndex, PipelineManager& pManager)
+{
+	cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pManager.pipelines["vignette"].pipeline);
+
+	cmd.setViewport(0, vk::Viewport(0.0f, 0.0f, static_cast<float>(swapChain.swapChainExtent.width),
+	                                static_cast<float>(swapChain.swapChainExtent.height), 0.0f, 1.0f));
+	cmd.setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), swapChain.swapChainExtent));
+
+	cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pManager.pipelines["vignette"].layout, 0,
+	                       dManager.descriptorManager->descriptorSets[vignetteDescriptorSetIndex.id][0], nullptr);
+
+	cmd.setCullMode(vk::CullModeFlagBits::eNone);
+	cmd.draw(3, 1, 0, 0);
+}
+
 void CommandBufferFactory::drawBloomDownsamplePass(vk::raii::CommandBuffer& cmd, 
                                                     DescriptorManagerComponent& dManager,
                                                    DSetHandle dSetHandle, PipelineManager& pManager,

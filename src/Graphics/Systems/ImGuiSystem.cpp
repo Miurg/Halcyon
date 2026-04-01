@@ -352,6 +352,7 @@ void ImGuiSystem::update(GeneralManager& gm)
 				ImGui::Checkbox("Enable SSAO", &settings->enableSsao);
 				ImGui::Checkbox("Enable FXAA", &settings->enableFxaa);
 				ImGui::Checkbox("Enable Bloom", &settings->enableBloom);
+				ImGui::Checkbox("Enable Vignette", &settings->enableVignette);
 				if (settings->enableBloom)
 				{
 					ImGui::DragFloat("Bloom Threshold", &settings->bloomThreshold, 0.1f, 0.0f, 10.0f);

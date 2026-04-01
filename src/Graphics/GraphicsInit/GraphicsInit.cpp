@@ -426,6 +426,7 @@ void GraphicsInit::initScene(GeneralManager& gm)
 	globalDSetComponent->ssaoBlurVDSets = dManager->allocateOffscreenDescriptorSet(*dManager->screenSpaceSetLayout);
 	globalDSetComponent->ssaoApplyDSets = dManager->allocateOffscreenDescriptorSet(*dManager->screenSpaceSetLayout);
 	globalDSetComponent->toneMappingDSets = dManager->allocateOffscreenDescriptorSet(*dManager->screenSpaceSetLayout);
+	globalDSetComponent->vignetteDSets = dManager->allocateOffscreenDescriptorSet(*dManager->screenSpaceSetLayout);
 
 	// Bloom descriptor sets (5 downsample + 5 upsample)
 	for (int i = 0; i < 5; i++)

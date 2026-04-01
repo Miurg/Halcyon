@@ -237,6 +237,14 @@ void GraphicsPipelinesInit::initPipelines(GeneralManager& gm)
 
 	// === Fullscreen passes ===
 	pManager->build(PipelineDescription{
+	    .shaderPath = "shaders/vignette.spv",
+	    .cullMode = vk::CullModeFlagBits::eNone,
+	    .colorAttachments = {PipelineFactory::opaqueAttachment()},
+	    .colorFormats = {swapChain->swapChainImageFormat},
+	    .setLayouts = {*dManager->screenSpaceSetLayout},
+	});
+
+	pManager->build(PipelineDescription{
 	    .shaderPath = "shaders/tone_mapping.spv",
 	    .cullMode = vk::CullModeFlagBits::eNone,
 	    .colorAttachments = {PipelineFactory::opaqueAttachment()},
