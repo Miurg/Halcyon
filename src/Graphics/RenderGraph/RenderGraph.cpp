@@ -100,6 +100,7 @@ void RenderGraph::handleResize(uint32_t newWidth, uint32_t newHeight)
 		// Allocate with new dimensions
 		res.currentWidth = targetW;
 		res.currentHeight = targetH;
+		res.currentLayout = vk::ImageLayout::eUndefined;
 		allocateTransientImage(res);
 
 		// Create sampler on first allocation
@@ -122,6 +123,7 @@ void RenderGraph::declareLogicalStream(const std::string& name, const RGImageDes
 		{
 			res.desc = desc;
 			destroyTransientImage(res);   // Force destruction immediately
+			res.currentLayout = vk::ImageLayout::eUndefined;
 			res.currentWidth = 0;         // Force recreation during next handleResize
 		}
 	}
