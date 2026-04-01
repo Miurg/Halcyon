@@ -33,7 +33,7 @@ RGResourceHandle RenderGraph::importImage(const std::string& name, vk::Image ima
 		{
 			resources[i].image = image;
 			resources[i].imageView = imageView;
-			resources[i].importedLayout = currentLayout;
+			resources[i].currentLayout = currentLayout;
 			return i;
 		}
 	}
@@ -45,7 +45,7 @@ RGResourceHandle RenderGraph::importImage(const std::string& name, vk::Image ima
 	entry.imageView = imageView;
 	entry.aspectFlags = aspect;
 	entry.isTransient = false;
-	entry.importedLayout = currentLayout;
+	entry.currentLayout = currentLayout;
 	resources.push_back(std::move(entry));
 	return handle;
 }
@@ -297,10 +297,7 @@ void RenderGraph::compile()
 	for (uint32_t i = 0; i < resources.size(); ++i)
 	{
 		resourceStates[i] = RGResourceState{};
-		if (!resources[i].isTransient)
-		{
-			resourceStates[i].layout = resources[i].importedLayout;
-		}
+		resourceStates[i].layout = resources[i].currentLayout;
 	}
 
 	// With all logical names resolved to physical ones, we can determine barriers and final layouts for each pass.
@@ -330,6 +327,8 @@ void RenderGraph::compile()
 				barrier.dstStageMask = dstStage;
 				barrier.aspectFlags = resources[handle].aspectFlags;
 				compiled.barriers.push_back(barrier);
+
+				resources[handle].currentLayout = requiredLayout;
 			}
 
 			state.layout = requiredLayout;
