@@ -183,11 +183,11 @@ void GraphicsPipelinesInit::initPipelines(GeneralManager& gm)
 	    .setLayouts = mainLayouts,
 	});
 
-	// === Graphics (opaque) ===
+	// === Graphics (opaque, IBL) ===
 	pManager->build(
 	    PipelineDescription{
 	        .shaderPath = "shaders/standard_forward.spv",
-	        .specializationValue = 0,
+	        .specializationValues = {0, 1}, // ALPHA_TEST=0, IBL=1
 	        .vertexBindings = {bindingDesc},
 	        .vertexAttributes = std::vector<vk::VertexInputAttributeDescription>(attrDescs.begin(), attrDescs.end()),
 	        .cullMode = vk::CullModeFlagBits::eBack,
@@ -202,11 +202,30 @@ void GraphicsPipelinesInit::initPipelines(GeneralManager& gm)
 	    },
 	    "standard_forward_opaque");
 
-	// === Graphics (alpha test) ===
+	// === Graphics (opaque, no IBL) ===
 	pManager->build(
 	    PipelineDescription{
 	        .shaderPath = "shaders/standard_forward.spv",
-	        .specializationValue = 1,
+	        .specializationValues = {0, 0}, // ALPHA_TEST=0, IBL=0
+	        .vertexBindings = {bindingDesc},
+	        .vertexAttributes = std::vector<vk::VertexInputAttributeDescription>(attrDescs.begin(), attrDescs.end()),
+	        .cullMode = vk::CullModeFlagBits::eBack,
+	        .depthTest = true,
+	        .depthWrite = false,
+	        .depthOp = vk::CompareOp::eEqual,
+	        .colorAttachments = {PipelineFactory::blendedAttachment(), PipelineFactory::blendedAttachment()},
+	        .colorFormats = hdrFormats,
+	        .depthFormat = depthFormat,
+	        .rasterizationSamples = msaaSamples,
+	        .setLayouts = mainLayouts,
+	    },
+	    "standard_forward_opaque_no_ibl");
+
+	// === Graphics (alpha test, IBL) ===
+	pManager->build(
+	    PipelineDescription{
+	        .shaderPath = "shaders/standard_forward.spv",
+	        .specializationValues = {1, 1}, // ALPHA_TEST=1, IBL=1
 	        .vertexBindings = {bindingDesc},
 	        .vertexAttributes = std::vector<vk::VertexInputAttributeDescription>(attrDescs.begin(), attrDescs.end()),
 	        .cullMode = vk::CullModeFlagBits::eBack,
@@ -220,6 +239,25 @@ void GraphicsPipelinesInit::initPipelines(GeneralManager& gm)
 	        .setLayouts = mainLayouts,
 	    },
 	    "standard_forward_alpha");
+
+	// === Graphics (alpha test, no IBL) ===
+	pManager->build(
+	    PipelineDescription{
+	        .shaderPath = "shaders/standard_forward.spv",
+	        .specializationValues = {1, 0}, // ALPHA_TEST=1, IBL=0
+	        .vertexBindings = {bindingDesc},
+	        .vertexAttributes = std::vector<vk::VertexInputAttributeDescription>(attrDescs.begin(), attrDescs.end()),
+	        .cullMode = vk::CullModeFlagBits::eBack,
+	        .depthTest = true,
+	        .depthWrite = true,
+	        .depthOp = vk::CompareOp::eGreater,
+	        .colorAttachments = {PipelineFactory::blendedAttachment(), PipelineFactory::blendedAttachment()},
+	        .colorFormats = hdrFormats,
+	        .depthFormat = depthFormat,
+	        .rasterizationSamples = msaaSamples,
+	        .setLayouts = mainLayouts,
+	    },
+	    "standard_forward_alpha_no_ibl");
 
 	// === Skybox ===
 	pManager->build(PipelineDescription{
@@ -447,11 +485,11 @@ void GraphicsPipelinesInit::recreateMsaaPipelines(GeneralManager& gm, vk::Sample
 	    },
 	    "depth_prepass");
 
-	// === Graphics (opaque) ===
+	// === Graphics (opaque, IBL) ===
 	pManager->rebuild(
 	    PipelineDescription{
 	        .shaderPath = "shaders/standard_forward.spv",
-	        .specializationValue = 0,
+	        .specializationValues = {0, 1}, // ALPHA_TEST=0, IBL=1
 	        .vertexBindings = {bindingDesc},
 	        .vertexAttributes = std::vector<vk::VertexInputAttributeDescription>(attrDescs.begin(), attrDescs.end()),
 	        .cullMode = vk::CullModeFlagBits::eBack,
@@ -466,11 +504,30 @@ void GraphicsPipelinesInit::recreateMsaaPipelines(GeneralManager& gm, vk::Sample
 	    },
 	    "standard_forward_opaque");
 
-	// === Graphics (alpha test) ===
+	// === Graphics (opaque, no IBL) ===
 	pManager->rebuild(
 	    PipelineDescription{
 	        .shaderPath = "shaders/standard_forward.spv",
-	        .specializationValue = 1,
+	        .specializationValues = {0, 0}, // ALPHA_TEST=0, IBL=0
+	        .vertexBindings = {bindingDesc},
+	        .vertexAttributes = std::vector<vk::VertexInputAttributeDescription>(attrDescs.begin(), attrDescs.end()),
+	        .cullMode = vk::CullModeFlagBits::eBack,
+	        .depthTest = true,
+	        .depthWrite = false,
+	        .depthOp = vk::CompareOp::eEqual,
+	        .colorAttachments = {PipelineFactory::blendedAttachment(), PipelineFactory::blendedAttachment()},
+	        .colorFormats = hdrFormats,
+	        .depthFormat = depthFmt,
+	        .rasterizationSamples = msaaSamples,
+	        .setLayouts = mainLayouts,
+	    },
+	    "standard_forward_opaque_no_ibl");
+
+	// === Graphics (alpha test, IBL) ===
+	pManager->rebuild(
+	    PipelineDescription{
+	        .shaderPath = "shaders/standard_forward.spv",
+	        .specializationValues = {1, 1}, // ALPHA_TEST=1, IBL=1
 	        .vertexBindings = {bindingDesc},
 	        .vertexAttributes = std::vector<vk::VertexInputAttributeDescription>(attrDescs.begin(), attrDescs.end()),
 	        .cullMode = vk::CullModeFlagBits::eBack,
@@ -484,6 +541,25 @@ void GraphicsPipelinesInit::recreateMsaaPipelines(GeneralManager& gm, vk::Sample
 	        .setLayouts = mainLayouts,
 	    },
 	    "standard_forward_alpha");
+
+	// === Graphics (alpha test, no IBL) ===
+	pManager->rebuild(
+	    PipelineDescription{
+	        .shaderPath = "shaders/standard_forward.spv",
+	        .specializationValues = {1, 0}, // ALPHA_TEST=1, IBL=0
+	        .vertexBindings = {bindingDesc},
+	        .vertexAttributes = std::vector<vk::VertexInputAttributeDescription>(attrDescs.begin(), attrDescs.end()),
+	        .cullMode = vk::CullModeFlagBits::eBack,
+	        .depthTest = true,
+	        .depthWrite = true,
+	        .depthOp = vk::CompareOp::eGreater,
+	        .colorAttachments = {PipelineFactory::blendedAttachment(), PipelineFactory::blendedAttachment()},
+	        .colorFormats = hdrFormats,
+	        .depthFormat = depthFmt,
+	        .rasterizationSamples = msaaSamples,
+	        .setLayouts = mainLayouts,
+	    },
+	    "standard_forward_alpha_no_ibl");
 
 	pManager->rebuild(
 	    PipelineDescription{

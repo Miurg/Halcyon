@@ -1,4 +1,4 @@
-#include "RenderSystem.hpp"
+﻿#include "RenderSystem.hpp"
 #include <iostream>
 #include "../GraphicsContexts.hpp"
 #include <imgui.h>
@@ -24,6 +24,7 @@
 #include "../GraphicsInit/GraphicsPipelinesInit.hpp"
 #include "../Managers/PipelineManager.hpp"
 #include "../Components/PipelineManagerComponent.hpp"
+#include "../Components/SkyboxComponent.hpp"
 #include "../Resources/Components/MeshInfoComponent.hpp"
 #include "../Components/RelationshipComponent.hpp"
 #include "../Components/GlobalTransformComponent.hpp"
@@ -57,6 +58,8 @@ void RenderSystem::update(GeneralManager& gm)
 	GlobalDSetComponent* globalDSetComponent = gm.getContextComponent<MainDSetsContext, GlobalDSetComponent>();
 	ModelDSetComponent* objectDSetComponent = gm.getContextComponent<MainDSetsContext, ModelDSetComponent>();
 	DrawInfoComponent* drawInfo = gm.getContextComponent<CurrentFrameContext, DrawInfoComponent>();
+	SkyboxComponent* skyboxComp = gm.getContextComponent<SkyBoxContext, SkyboxComponent>();
+	bool hasSkybox = skyboxComp && skyboxComp->hasSkybox;
 	SsaoSettingsComponent* ssaoSettings = gm.getContextComponent<SsaoSettingsContext, SsaoSettingsComponent>();
 	RenderGraph& rg = *gm.getContextComponent<RenderGraphContext, RenderGraphComponent>()->renderGraph;
 	GraphicsSettingsComponent* graphicsSettings =
@@ -164,7 +167,7 @@ void RenderSystem::update(GeneralManager& gm)
 		    {
 			    CommandBufferFactory::drawMainPass(cmd, swapChain, currentFrame, *materialDSetComponent, *dManager,
 			                                       globalDSetComponent, bufferManager, objectDSetComponent, modelManager,
-			                                       *drawInfo, *pManager);
+			                                       *drawInfo, *pManager, hasSkybox);
 		    });
 	}
 	else
@@ -202,7 +205,7 @@ void RenderSystem::update(GeneralManager& gm)
 		    {
 			    CommandBufferFactory::drawMainPass(cmd, swapChain, currentFrame, *materialDSetComponent, *dManager,
 			                                       globalDSetComponent, bufferManager, objectDSetComponent, modelManager,
-			                                       *drawInfo, *pManager);
+			                                       *drawInfo, *pManager, hasSkybox);
 		    });
 	}
 

@@ -65,5 +65,6 @@ void SkyboxFactory::loadSkybox(const std::string& hdrPath, GeneralManager& gm)
 	skybox.cubemapTexture = cubemapHandle;
 	skybox.irradianceMap = irradianceHandle;
 	skybox.prefilteredMap = prefilteredHandle;
+	skybox.hasSkybox = true;
 	// brdfLut stays the same - it's generated once at init
 }

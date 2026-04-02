@@ -25,7 +25,7 @@ struct PipelineDescription
 	std::string vertEntry = "vertMain";
 	std::string fragEntry = "fragMain"; // empty - vertex-only
 	std::string computeEntry = "computeMain";
-	std::optional<int32_t> specializationValue; // spec constant 0
+	std::vector<int32_t> specializationValues; // индекс = constant_id
 
 	// Vertex input — empty means "no vertex input" (fullscreen pass)
 	std::vector<vk::VertexInputBindingDescription> vertexBindings;

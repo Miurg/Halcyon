@@ -456,20 +456,24 @@ void CommandBufferFactory::drawMainPass(vk::raii::CommandBuffer& cmd, SwapChain&
                                         BindlessTextureDSetComponent& bindlessTextureDSetComponent,
                                         DescriptorManagerComponent& dManager, GlobalDSetComponent* globalDSetComponent,
                                         BufferManager& bManager, ModelDSetComponent* objectDSetComponent,
-                                        ModelManager& mManager, const DrawInfoComponent& drawInfo, PipelineManager& pManager)
+                                        ModelManager& mManager, const DrawInfoComponent& drawInfo, PipelineManager& pManager,
+                                        bool hasSkybox)
 {
 	cmd.setViewport(0, vk::Viewport(0.0f, 0.0f, static_cast<float>(swapChain.swapChainExtent.width),
 	                                static_cast<float>(swapChain.swapChainExtent.height), 0.0f, 1.0f));
 	cmd.setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), swapChain.swapChainExtent));
 
-	cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pManager.pipelines["standard_forward_opaque"].layout, 0,
+	const std::string opaquePipeline = hasSkybox ? "standard_forward_opaque"    : "standard_forward_opaque_no_ibl";
+	const std::string alphaPipeline  = hasSkybox ? "standard_forward_alpha"     : "standard_forward_alpha_no_ibl";
+
+	cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pManager.pipelines[opaquePipeline].layout, 0,
 	                       dManager.descriptorManager->descriptorSets[globalDSetComponent->globalDSets.id][currentFrame],
 	                       nullptr);
 	cmd.bindDescriptorSets(
-	    vk::PipelineBindPoint::eGraphics, *pManager.pipelines["standard_forward_opaque"].layout, 1,
+	    vk::PipelineBindPoint::eGraphics, *pManager.pipelines[opaquePipeline].layout, 1,
 	    dManager.descriptorManager->descriptorSets[objectDSetComponent->modelBufferDSet.id][currentFrame], nullptr);
 	cmd.bindDescriptorSets(
-	    vk::PipelineBindPoint::eGraphics, *pManager.pipelines["standard_forward_opaque"].layout, 2,
+	    vk::PipelineBindPoint::eGraphics, *pManager.pipelines[opaquePipeline].layout, 2,
 	    dManager.descriptorManager->descriptorSets[bindlessTextureDSetComponent.bindlessTextureSet.id][0], nullptr);
 
 	const uint32_t commandStride = sizeof(VkDrawIndexedIndirectCommand);
@@ -488,7 +492,7 @@ void CommandBufferFactory::drawMainPass(vk::raii::CommandBuffer& cmd, SwapChain&
 	// Opaque passes
 	if (opaqueSingleCount > 0 || opaqueDoubleCount > 0)
 	{
-		cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pManager.pipelines["standard_forward_opaque"].pipeline);
+		cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pManager.pipelines[opaquePipeline].pipeline);
 
 		// 1. Opaque Single-Sided
 		if (opaqueSingleCount > 0)
@@ -522,14 +526,17 @@ void CommandBufferFactory::drawMainPass(vk::raii::CommandBuffer& cmd, SwapChain&
 	}
 	
 	// Skybox pass
-	cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pManager.pipelines["skybox"].pipeline);
-	cmd.setCullMode(vk::CullModeFlagBits::eNone);
-	cmd.draw(3, 1, 0, 0);
+	if (hasSkybox)
+	{
+		cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pManager.pipelines["skybox"].pipeline);
+		cmd.setCullMode(vk::CullModeFlagBits::eNone);
+		cmd.draw(3, 1, 0, 0);
+	}
 
 	// Alpha test passes
 	if (alphaSingleCount > 0 || alphaDoubleCount > 0)
 	{
-		cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pManager.pipelines["standard_forward_alpha"].pipeline);
+		cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pManager.pipelines[alphaPipeline].pipeline);
 
 		// 3. Alpha Single-Sided
 		if (alphaSingleCount > 0)

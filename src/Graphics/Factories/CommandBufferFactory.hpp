@@ -48,7 +48,7 @@ public:
 	                         uint32_t currentFrame, BindlessTextureDSetComponent& bindlessTextureDSetComponent,
 	                         DescriptorManagerComponent& dManager, GlobalDSetComponent* globalDSetComponent,
 	                         BufferManager& bManager, ModelDSetComponent* objectDSetComponent, ModelManager& mManager,
-	                         const DrawInfoComponent& drawInfo, PipelineManager& pManager);
+	                         const DrawInfoComponent& drawInfo, PipelineManager& pManager, bool hasSkybox);
 
 	struct AABBPush
 	{

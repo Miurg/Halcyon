@@ -9,4 +9,5 @@ struct SkyboxComponent
 	TextureHandle irradianceMap;
 	TextureHandle prefilteredMap;
 	TextureHandle brdfLut;
+	bool hasSkybox = false;
 };

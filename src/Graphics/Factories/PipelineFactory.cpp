@@ -47,17 +47,17 @@ BuiltPipeline PipelineFactory::build(vk::raii::Device& device, const PipelineDes
 {
 	auto shader = loadShader(device, desc.shaderPath);
 
-	// Specialization constant (one int32, slot 0)
-	vk::SpecializationMapEntry specEntry{0, 0, sizeof(int32_t)};
+	// Specialization constants (index == constant_id)
+	std::vector<vk::SpecializationMapEntry> specEntries;
 	vk::SpecializationInfo specInfo{};
-	int32_t specValue = 0;
-	if (desc.specializationValue.has_value())
+	if (!desc.specializationValues.empty())
 	{
-		specValue = *desc.specializationValue;
-		specInfo.mapEntryCount = 1;
-		specInfo.pMapEntries = &specEntry;
-		specInfo.dataSize = sizeof(int32_t);
-		specInfo.pData = &specValue;
+		for (uint32_t i = 0; i < desc.specializationValues.size(); i++)
+			specEntries.push_back({i, i * static_cast<uint32_t>(sizeof(int32_t)), sizeof(int32_t)});
+		specInfo.mapEntryCount = static_cast<uint32_t>(specEntries.size());
+		specInfo.pMapEntries   = specEntries.data();
+		specInfo.dataSize      = desc.specializationValues.size() * sizeof(int32_t);
+		specInfo.pData         = desc.specializationValues.data();
 	}
 
 	PipelineBuilder builder;
@@ -78,7 +78,7 @@ BuiltPipeline PipelineFactory::build(vk::raii::Device& device, const PipelineDes
 		if (!desc.fragEntry.empty())
 		{
 			builder.addShaderStage(vk::ShaderStageFlagBits::eFragment, shader, desc.fragEntry.c_str(),
-			                       desc.specializationValue.has_value() ? &specInfo : nullptr);
+			                       !desc.specializationValues.empty() ? &specInfo : nullptr);
 		}
 		if (!desc.vertexBindings.empty())
 		{
