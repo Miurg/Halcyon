@@ -108,6 +108,9 @@ static const float MAX_REFLECTION_LOD = 4.0f;
 [[vk::constant_id(0)]]
 const int ALPHA_TEST_ENABLED = 0;
 
+[[vk::constant_id(1)]]
+const int SKYBOX_ENABLED = 1;
+
 // === Vertex I/O ===
 struct VSInput
 {
@@ -259,6 +262,14 @@ float3 DiffuseOrenNayar(float3 albedo, float NdotL, float NdotV, float roughness
 	float s = sinThetaI * sinThetaR / max(max(NdotL, NdotV), 1e-4);
 
 	return albedo / PI * (A + B * cosPhiDiff * s);
+}
+
+float3 DiffuseOrenNayarIBL(float3 albedo, float NdotV, float roughness)
+{
+    float sigma2 = roughness * roughness;
+    float A = 1.0 - 0.5 * sigma2 / (sigma2 + 0.57);
+    // Without B, we dont have L in ambient
+    return albedo * A;
 }
 
 // Disney diffuse BRDF with retroreflection and grazing darkening.
@@ -439,24 +450,34 @@ FragOutput fragMain(VSOutput input, bool isFrontFace: SV_IsFrontFace)
 		litColorFromLights += (brdfp.diffuse + brdfp.specular) * radiance * lvp.NdotL * attenuation * spotAttenuation;
 	}
 
-	// === IBL ===
+	// === IBL / Ambient ===
 	float3 F_ibl = F0 + (max(float3(1.0 - roughness, 1.0 - roughness, 1.0 - roughness), F0) - F0) * pow(1.0 - NdotV, 5.0);
 
-	float3 irradiance = irradianceMap.Sample(finalNormal).rgb;
-	float3 iblDiffuse = (1.0 - F_ibl) * (1.0 - metallic) * albedo.rgb * irradiance;
-
-	float3 iblSpecular = float3(0.0, 0.0, 0.0);
-	if (mat.alphaMode != 1 && mat.doubleSided != 1)
+	float3 ambient;
+	if (SKYBOX_ENABLED == 1)
 	{
-		float3 R = reflect(-V, finalNormal);
-		float3 prefilteredColor = prefilteredMap.SampleLevel(R, roughness * MAX_REFLECTION_LOD).rgb;
-		float2 brdfLut = brdfLutMap.SampleLevel(float2(NdotV, roughness), 0).rg;
-		iblSpecular = prefilteredColor * (F_ibl * brdfLut.x + brdfLut.y);
+		float3 irradiance  = irradianceMap.Sample(finalNormal).rgb;
+		float3 iblDiffuse  = (1.0 - F_ibl) * (1.0 - metallic) * DiffuseOrenNayarIBL(albedo.rgb, NdotV, roughness) * irradiance;
+
+		float3 iblSpecular = float3(0.0, 0.0, 0.0);
+		if (mat.alphaMode != 1 && mat.doubleSided != 1)
+		{
+			float3 R            = reflect(-V, finalNormal);
+			float3 prefiltColor = prefilteredMap.SampleLevel(R, roughness * MAX_REFLECTION_LOD).rgb;
+			float2 brdfLut      = brdfLutMap.SampleLevel(float2(NdotV, roughness), 0).rg;
+			iblSpecular         = prefiltColor * (F_ibl * brdfLut.x + brdfLut.y);
+		}
+
+		ambient = (iblDiffuse + iblSpecular) * directionalLight[0].ambient.a;
 	}
-
-	float3 ambient = (iblDiffuse + iblSpecular) * directionalLight[0].ambient.a;
-
-	float3 litColor = directLight + litColorFromLights + ambient + emissive;
+	else
+	{
+		// Fallback without skybox
+        ambient = (1.0 - F_ibl) * (1.0 - metallic)
+		        * DiffuseOrenNayarIBL(albedo.rgb, NdotV, roughness)
+		        * directionalLight[0].ambient.a + directionalLight[0].ambient.rgb;
+	}
+    float3 litColor = directLight + litColorFromLights + ambient + emissive;
 
 	// === FINAL OUTPUT ===
 	float outAlpha = (mat.alphaMode == 2) ? albedo.a : 1.0;
