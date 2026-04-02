@@ -24,6 +24,10 @@
 #include "../GraphicsInit/GraphicsPipelinesInit.hpp"
 #include "../Managers/PipelineManager.hpp"
 #include "../Components/PipelineManagerComponent.hpp"
+#include "../Resources/Components/MeshInfoComponent.hpp"
+#include "../Components/RelationshipComponent.hpp"
+#include "../Components/GlobalTransformComponent.hpp"
+#include <functional>
 
 void RenderSystem::onRegistered(GeneralManager& gm)
 {
@@ -201,6 +205,48 @@ void RenderSystem::update(GeneralManager& gm)
 			                                       *drawInfo, *pManager);
 		    });
 	}
+
+	std::function<void(Entity, std::vector<CommandBufferFactory::AABBPush>&)> draw =
+	    [&](Entity e, std::vector<CommandBufferFactory::AABBPush>& pushData)
+	{
+		if (!gm.isActive(e)) return;
+		if (auto* meshComponent = gm.getComponent<MeshInfoComponent>(e))
+			if (auto* globalTransform = gm.getComponent<GlobalTransformComponent>(e))
+			{
+				CommandBufferFactory::AABBPush pd;
+				pd.model = globalTransform->getGlobalModelMatrix();
+				for (const auto& primitive : modelManager.meshes[meshComponent->mesh].primitives)
+				{
+					pd.aabbMin = primitive.AABBMin;
+					pd.aabbMax = primitive.AABBMax;
+				}
+				pushData.push_back(pd);
+			}
+		if (auto* rel = gm.getComponent<RelationshipComponent>(e))
+		{
+			Entity child = rel->firstChild;
+			while (child != NULL_ENTITY)
+			{
+				draw(child, pushData);
+				auto* childRel = gm.getComponent<RelationshipComponent>(child);
+				child = childRel ? childRel->nextSibling : NULL_ENTITY;
+			}
+		}
+	};
+	std::vector<CommandBufferFactory::AABBPush> pushData;
+	draw(graphicsSettings->selectedEntity, pushData);
+
+	rg.addPass(
+	    "AABBDebug",
+	    {.colorAttachments = {{"MainColor", vk::AttachmentLoadOp::eLoad, vk::AttachmentStoreOp::eStore}},
+	     .depthAttachment =
+	         RGAttachmentConfig{"Depth", vk::AttachmentLoadOp::eLoad, vk::AttachmentStoreOp::eStore, clearDepth0}},
+	    {}, {{"MainColor", RGResourceUsage::ColorAttachmentWrite}, {"Depth", RGResourceUsage::DepthAttachmentWrite}},
+	    [&](vk::raii::CommandBuffer& cmd)
+	    {
+		    CommandBufferFactory::drawAABBDebugPass(cmd, swapChain, *dManager, globalDSetComponent->globalDSets, *pManager,
+		                                            pushData, graphicsSettings->aabbAlwaysOnTop, currentFrame);
+	    });
 
 	if (graphicsSettings->enableSsao)
 	{

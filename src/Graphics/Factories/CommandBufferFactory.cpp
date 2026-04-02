@@ -555,6 +555,28 @@ void CommandBufferFactory::drawMainPass(vk::raii::CommandBuffer& cmd, SwapChain&
 	}
 }
 
+void CommandBufferFactory::drawAABBDebugPass(vk::raii::CommandBuffer& cmd, SwapChain& swapChain,
+                                             DescriptorManagerComponent& dManager,
+                                             DSetHandle AABBDebugDescriptorSetIndex, PipelineManager& pManager,
+                                             std::vector<AABBPush> pushData, bool aabbOnTop, uint32_t currentFrame)
+{
+	auto& pip = pManager.pipelines[aabbOnTop ? "aabb_debug_ontop" : "aabb_debug"];
+	cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pip.pipeline);
+	cmd.setViewport(0, vk::Viewport(0.0f, 0.0f, static_cast<float>(swapChain.swapChainExtent.width),
+	                                static_cast<float>(swapChain.swapChainExtent.height), 0.0f, 1.0f));
+	cmd.setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), swapChain.swapChainExtent));
+	cmd.setCullMode(vk::CullModeFlagBits::eNone);
+	cmd.bindDescriptorSets(
+	    vk::PipelineBindPoint::eGraphics, *pip.layout, 0,
+	                       dManager.descriptorManager->descriptorSets[AABBDebugDescriptorSetIndex.id][currentFrame],
+	                       nullptr);
+	for (int i = 0; i < pushData.size(); ++i)
+	{
+		cmd.pushConstants<AABBPush>(*pip.layout, vk::ShaderStageFlagBits::eVertex, 0, pushData[i]);
+		cmd.draw(24, 1, 0, 0);
+	}
+}
+
 void CommandBufferFactory::drawFxaaPass(vk::raii::CommandBuffer& cmd, SwapChain& swapChain, DescriptorManagerComponent& dManager,
                                         DSetHandle fxaaDescriptorSetIndex, PipelineManager& pManager)
 {

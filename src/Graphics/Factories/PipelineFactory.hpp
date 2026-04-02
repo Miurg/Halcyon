@@ -31,6 +31,8 @@ struct PipelineDescription
 	std::vector<vk::VertexInputBindingDescription> vertexBindings;
 	std::vector<vk::VertexInputAttributeDescription> vertexAttributes;
 
+	vk::PrimitiveTopology topology = vk::PrimitiveTopology::eTriangleList;
+
 	vk::CullModeFlags cullMode = vk::CullModeFlagBits::eBack;
 	vk::FrontFace frontFace = vk::FrontFace::eCounterClockwise;
 

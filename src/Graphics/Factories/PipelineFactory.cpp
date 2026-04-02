@@ -89,7 +89,7 @@ BuiltPipeline PipelineFactory::build(vk::raii::Device& device, const PipelineDes
 			builder.setVertexInput(nullptr, 0, nullptr, 0);
 		}
 
-		builder.setInputAssembly(vk::PrimitiveTopology::eTriangleList)
+		builder.setInputAssembly(desc.topology)
 		    .setViewportState(1, 1)
 		    .addDynamicState(vk::DynamicState::eViewport)
 		    .addDynamicState(vk::DynamicState::eScissor)

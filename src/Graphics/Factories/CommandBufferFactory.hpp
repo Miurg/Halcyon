@@ -12,6 +12,7 @@
 #include "../Components/DrawInfoComponent.hpp"
 #include "../Components/SsaoSettingsComponent.hpp"
 #include "../Managers/PipelineManager.hpp"
+#include <Orhescyon/Entitys/EntityManager.hpp>
 
 
 class CommandBufferFactory
@@ -48,6 +49,20 @@ public:
 	                         DescriptorManagerComponent& dManager, GlobalDSetComponent* globalDSetComponent,
 	                         BufferManager& bManager, ModelDSetComponent* objectDSetComponent, ModelManager& mManager,
 	                         const DrawInfoComponent& drawInfo, PipelineManager& pManager);
+
+	struct AABBPush
+	{
+		glm::mat4 model;
+		glm::vec3 aabbMin;
+		float p0 = 0.0f;
+		glm::vec3 aabbMax;
+		float p1 = 0.0f;
+	};
+
+	static void drawAABBDebugPass(vk::raii::CommandBuffer& cmd, SwapChain& swapChain,
+	                              DescriptorManagerComponent& dManager, DSetHandle AABBDebugDescriptorSetIndex,
+	                              PipelineManager& pManager, std::vector<AABBPush> pushData, bool aabbOnTop,
+	                              uint32_t currentFrame);
 
 	static void drawFxaaPass(vk::raii::CommandBuffer& cmd, SwapChain& swapChain,
 	                         DescriptorManagerComponent& dManager, DSetHandle fxaaDescriptorSetIndex, PipelineManager& pManager);

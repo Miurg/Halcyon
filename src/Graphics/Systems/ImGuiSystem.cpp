@@ -26,6 +26,7 @@
 #include "../ShaderReloader.hpp"
 #include "../Components/ShaderReloaderComponent.hpp"
 #include "../Components/PipelineManagerComponent.hpp"
+#include "../Components/GraphicsSettingsComponent.hpp"
 
 void ImGuiSystem::onRegistered(GeneralManager& gm)
 {
@@ -64,6 +65,8 @@ void ImGuiSystem::drawEntityNode(Entity entity, GeneralManager& gm)
 	if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen())
 	{
 		selectedEntity = entity;
+		if (auto* gs = gm.getContextComponent<GraphicsSettingsContext, GraphicsSettingsComponent>())
+			gs->selectedEntity = entity;
 	}
 
 	if (nodeOpen)
@@ -182,6 +185,9 @@ void ImGuiSystem::update(GeneralManager& gm)
 		    gm.getContextComponent<MainVulkanDeviceContext, VulkanDeviceComponent>()->vulkanDeviceInstance;
 		sr->update(*pManager, *vulkanDevice);
 	}
+
+	if (auto* gs = gm.getContextComponent<GraphicsSettingsContext, GraphicsSettingsComponent>())
+		ImGui::Checkbox("Draw AABB boxes on top", &gs->aabbAlwaysOnTop);
 
 	ImGui::End();
 

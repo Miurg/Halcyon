@@ -145,7 +145,7 @@ void GraphicsPipelinesInit::initPipelines(GeneralManager& gm)
 
 	auto bindingDesc = Vertex::getBindingDescription();
 	auto attrDescs = Vertex::getAttributeDescriptions();
-	auto depthFmt = tManager->findBestFormat();
+	auto depthFormat = tManager->findBestFormat();
 
 	std::vector<vk::Format> hdrFormats = {swapChain->hdrFormat, vk::Format::eR16G16B16A16Sfloat};
 
@@ -162,7 +162,7 @@ void GraphicsPipelinesInit::initPipelines(GeneralManager& gm)
 	    .depthWrite = true,
 	    .depthOp = vk::CompareOp::eGreater,
 	    .colorFormats = {},
-	    .depthFormat = depthFmt,
+	    .depthFormat = depthFormat,
 	    .rasterizationSamples = vk::SampleCountFlagBits::e1,
 	    .setLayouts = mainLayouts,
 	});
@@ -178,7 +178,7 @@ void GraphicsPipelinesInit::initPipelines(GeneralManager& gm)
 	    .depthWrite = true,
 	    .depthOp = vk::CompareOp::eGreater,
 	    .colorFormats = {},
-	    .depthFormat = depthFmt,
+	    .depthFormat = depthFormat,
 	    .rasterizationSamples = msaaSamples,
 	    .setLayouts = mainLayouts,
 	});
@@ -196,7 +196,7 @@ void GraphicsPipelinesInit::initPipelines(GeneralManager& gm)
 	        .depthOp = vk::CompareOp::eEqual,
 	        .colorAttachments = {PipelineFactory::blendedAttachment(), PipelineFactory::blendedAttachment()},
 	        .colorFormats = hdrFormats,
-	        .depthFormat = depthFmt,
+	        .depthFormat = depthFormat,
 	        .rasterizationSamples = msaaSamples,
 	        .setLayouts = mainLayouts,
 	    },
@@ -215,7 +215,7 @@ void GraphicsPipelinesInit::initPipelines(GeneralManager& gm)
 	        .depthOp = vk::CompareOp::eGreater,
 	        .colorAttachments = {PipelineFactory::blendedAttachment(), PipelineFactory::blendedAttachment()},
 	        .colorFormats = hdrFormats,
-	        .depthFormat = depthFmt,
+	        .depthFormat = depthFormat,
 	        .rasterizationSamples = msaaSamples,
 	        .setLayouts = mainLayouts,
 	    },
@@ -230,7 +230,7 @@ void GraphicsPipelinesInit::initPipelines(GeneralManager& gm)
 	    .depthOp = vk::CompareOp::eEqual,
 	    .colorAttachments = {PipelineFactory::blendedAttachment(), PipelineFactory::blendedAttachment()},
 	    .colorFormats = hdrFormats,
-	    .depthFormat = depthFmt,
+	    .depthFormat = depthFormat,
 	    .rasterizationSamples = msaaSamples,
 	    .setLayouts = mainLayouts,
 	});
@@ -360,6 +360,34 @@ void GraphicsPipelinesInit::initPipelines(GeneralManager& gm)
 	    .shaderPath = "shaders/brdf_lut.spv",
 	    .setLayouts = {*dManager->textureSetLayout},
 	});
+
+	// === AABB debug overlay ===
+	pManager->build(PipelineDescription{
+	    .shaderPath = "shaders/aabb_debug.spv",
+	    .topology = vk::PrimitiveTopology::eLineList,
+	    .cullMode = vk::CullModeFlagBits::eNone,
+	    .depthTest = true,
+	    .depthWrite = false,
+	    .depthOp = vk::CompareOp::eGreater,
+	    .colorAttachments = {PipelineFactory::opaqueAttachment()},
+	    .colorFormats = {swapChain->hdrFormat},
+	    .depthFormat = depthFormat,
+	    .setLayouts = {*dManager->globalSetLayout},
+	    .pushConstants = {{vk::ShaderStageFlagBits::eVertex, 0, 96u}},
+	}, "aabb_debug");
+
+	pManager->build(PipelineDescription{
+	    .shaderPath = "shaders/aabb_debug.spv",
+	    .topology = vk::PrimitiveTopology::eLineList,
+	    .cullMode = vk::CullModeFlagBits::eNone,
+	    .depthTest = false,
+	    .depthWrite = false,
+	    .colorAttachments = {PipelineFactory::opaqueAttachment()},
+	    .colorFormats = {swapChain->hdrFormat},
+	    .depthFormat = depthFormat,
+	    .setLayouts = {*dManager->globalSetLayout},
+	    .pushConstants = {{vk::ShaderStageFlagBits::eVertex, 0, 96u}},
+	}, "aabb_debug_ontop");
 #pragma endregion
 
 #ifdef _DEBUG
