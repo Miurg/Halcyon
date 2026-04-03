@@ -93,8 +93,9 @@ struct MaterialData
 [[vk::binding(2, 2)]]
 StructuredBuffer<MaterialData> materialBuffer;
 
+struct SHCoefficients { float3 coefficient[9]; };
 [[vk::binding(5, 2)]]
-SamplerCube irradianceMap;
+StructuredBuffer<SHCoefficients> shCoefficients;
 [[vk::binding(6, 2)]]
 SamplerCube prefilteredMap;
 [[vk::binding(7, 2)]]
@@ -172,6 +173,27 @@ float3 SampleNormalMap(uint mapIndex, float2 uv, float2 dx, float2 dy)
 {
 	float3 raw = textureArray[NonUniformResourceIndex(mapIndex)].SampleGrad(uv, dx, dy).rgb;
 	return normalize(raw * 2.0 - 1.0);
+}
+
+float3 computeIrradiance(float3 n, float3 sh[9])
+{
+    const float f0 = 0.28209479f;
+    const float f1 = 0.48860251f;
+    const float f2 = 1.09254843f;
+    const float f3 = 0.31539156f;
+    const float f4 = 0.54627421f;
+
+    float3 color = sh[0] * f0;
+    color += sh[1] * (-f1 * n.y);
+    color += sh[2] * (f1 * n.z);
+    color += sh[3] * (-f1 * n.x);
+    color += sh[4] * (f2 * n.x * n.y);
+    color += sh[5] * (-f2 * n.y * n.z);
+    color += sh[6] * (f3 * (3.0f * n.z * n.z - 1.0f));
+    color += sh[7] * (-f2 * n.x * n.z);
+    color += sh[8] * (f4 * (n.x * n.x - n.y * n.y));
+
+    return max(color, float3(0.0));
 }
 
 // Computes PCF shadow factor with a 3x3 kernel using hardware comparison sampler.
@@ -455,8 +477,8 @@ FragOutput fragMain(VSOutput input, bool isFrontFace: SV_IsFrontFace)
 
 	float3 ambient;
 	if (SKYBOX_ENABLED == 1)
-	{
-		float3 irradiance  = irradianceMap.Sample(finalNormal).rgb;
+    {
+        float3 irradiance = computeIrradiance(finalNormal, shCoefficients[0].coefficient);
 		float3 iblDiffuse  = (1.0 - F_ibl) * (1.0 - metallic) * DiffuseOrenNayarIBL(albedo.rgb, NdotV, roughness) * irradiance;
 
 		float3 iblSpecular = float3(0.0, 0.0, 0.0);

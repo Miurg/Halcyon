@@ -356,15 +356,27 @@ void GraphicsInit::initScene(GeneralManager& gm)
 	dManager->updateCubemapDescriptors(*bTextureDSetComponent, whiteCubemap.textureImageView,
 	                                   whiteCubemap.textureSampler, whiteCubemap.textureImageView);
 
+	// Default zeroed SH buffer (9 x float4 = 144 bytes) - used until a real skybox is loaded
+	constexpr vk::DeviceSize shBufferSize = 9 * 3 * sizeof(float);
+	BufferHandle defaultSHHandle = bManager->createBuffer(
+	    vk::MemoryPropertyFlagBits::eDeviceLocal, shBufferSize, 1,
+	    vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst);
+	{
+		auto cmd = VulkanUtils::beginSingleTimeCommands(*vulkanDevice);
+		cmd.fillBuffer(bManager->buffers[defaultSHHandle.id].buffer[0], 0, VK_WHOLE_SIZE, 0);
+		VulkanUtils::endSingleTimeCommands(cmd, *vulkanDevice);
+	}
+	dManager->updateSHBufferDescriptor(*bTextureDSetComponent, bManager->buffers[defaultSHHandle.id].buffer[0],
+	                                    shBufferSize);
+
 	dManager->updateIBLDescriptors(*bTextureDSetComponent, whiteCubemap.textureImageView, whiteCubemap.textureSampler,
-	                               whiteCubemap.textureImageView, whiteCubemap.textureSampler,
 	                               whiteCubemap.textureImageView, whiteCubemap.textureSampler);
 
 	// BRDF LUT - generated once, reused across all skybox changes
 	TextureHandle brdfLutHandle = tManager->generateBrdfLut(*dManager, *bTextureDSetComponent, pManager);
 
 	skybox->cubemapTexture = whiteCubemapHandle;
-	skybox->irradianceMap = whiteCubemapHandle;
+	skybox->shBuffer = defaultSHHandle;
 	skybox->prefilteredMap = whiteCubemapHandle;
 	skybox->brdfLut = brdfLutHandle;
 

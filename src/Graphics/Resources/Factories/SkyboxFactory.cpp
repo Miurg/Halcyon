@@ -2,12 +2,14 @@
 
 #include "../Managers/TextureManager.hpp"
 #include "../Managers/DescriptorManager.hpp"
+#include "../Managers/BufferManager.hpp"
 #include "TextureUploader.hpp"
 #include "../../Components/TextureManagerComponent.hpp"
 #include "../../Components/DescriptorManagerComponent.hpp"
 #include "../../Components/VMAllocatorComponent.hpp"
 #include "../../Components/VulkanDeviceComponent.hpp"
 #include "../../Components/SkyboxComponent.hpp"
+#include "../../Components/BufferManagerComponent.hpp"
 #include "../Components/BindlessTextureDSetComponent.hpp"
 #include "../../GraphicsContexts.hpp"
 #include "../../Managers/PipelineManager.hpp"
@@ -27,6 +29,8 @@ void SkyboxFactory::loadSkybox(const std::string& hdrPath, GeneralManager& gm)
 	    gm.getContextComponent<VMAllocatorContext, VMAllocatorComponent>()->allocator;
 	VulkanDevice& vulkanDevice =
 	    *gm.getContextComponent<MainVulkanDeviceContext, VulkanDeviceComponent>()->vulkanDeviceInstance;
+	BufferManager& bManager =
+	    *gm.getContextComponent<BufferManagerContext, BufferManagerComponent>()->bufferManager;
 	SkyboxComponent& skybox =
 	    *gm.getContextComponent<SkyBoxContext, SkyboxComponent>();
 
@@ -41,29 +45,22 @@ void SkyboxFactory::loadSkybox(const std::string& hdrPath, GeneralManager& gm)
 	dManager.updateBindlessTextureSet(hdrTexture.textureImageView, hdrTexture.textureSampler,
 	                                   bTextureDSetComponent, hdrIndex);
 
-	// Generate cubemap, irradiance map, and prefiltered environment map from the HDR texture
 	TextureHandle cubemapHandle =
 	    tManager.generateCubemapFromHdr(hdrHandle, dManager, bTextureDSetComponent, pManager);
-	TextureHandle irradianceHandle =
-	    tManager.generateIrradianceMap(cubemapHandle, dManager, bTextureDSetComponent, pManager);
+
+	BufferHandle shHandle =
+	    bManager.generateSHCoefficients(cubemapHandle, dManager, bTextureDSetComponent, pManager, tManager);
+
 	TextureHandle prefilteredHandle = tManager.generatePrefilteredEnvMap(cubemapHandle, dManager,
 	                                                                      bTextureDSetComponent, pManager);
-
-	// Restore cubemap descriptors to the actual environment cubemap (used by skybox)
-	dManager.updateCubemapDescriptors(bTextureDSetComponent,
-	                                   tManager.textures[cubemapHandle.id].textureImageView,
-	                                   tManager.textures[cubemapHandle.id].textureSampler,
-	                                   tManager.textures[cubemapHandle.id].textureImageView);
 	dManager.updateIBLDescriptors(bTextureDSetComponent,
-	                               tManager.textures[irradianceHandle.id].textureImageView,
-	                               tManager.textures[irradianceHandle.id].textureSampler,
 	                               tManager.textures[prefilteredHandle.id].textureImageView,
 	                               tManager.textures[prefilteredHandle.id].textureSampler,
 	                               tManager.textures[skybox.brdfLut.id].textureImageView,
 	                               tManager.textures[skybox.brdfLut.id].textureSampler);
 
 	skybox.cubemapTexture = cubemapHandle;
-	skybox.irradianceMap = irradianceHandle;
+	skybox.shBuffer = shHandle;
 	skybox.prefilteredMap = prefilteredHandle;
 	skybox.hasSkybox = true;
 	// brdfLut stays the same - it's generated once at init

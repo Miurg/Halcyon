@@ -6,7 +6,7 @@
 struct SkyboxComponent
 {
 	TextureHandle cubemapTexture;
-	TextureHandle irradianceMap;
+	BufferHandle  shBuffer;
 	TextureHandle prefilteredMap;
 	TextureHandle brdfLut;
 	bool hasSkybox = false;

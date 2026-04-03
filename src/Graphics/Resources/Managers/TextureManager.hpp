@@ -49,9 +49,7 @@ public:
 	TextureHandle generateCubemapFromHdr(TextureHandle hdrTexture,
 	                                     DescriptorManager& dManager, BindlessTextureDSetComponent& dSetComponent,
 	                                     PipelineManager& pManager);
-	TextureHandle generateIrradianceMap(TextureHandle envCubemap, DescriptorManager& dManager,
-	                                    BindlessTextureDSetComponent& dSetComponent, PipelineManager& pManager);
-	TextureHandle generatePrefilteredEnvMap(TextureHandle envCubemap, 
+	TextureHandle generatePrefilteredEnvMap(TextureHandle envCubemap,
 	                                        DescriptorManager& dManager, BindlessTextureDSetComponent& dSetComponent,
 	                                        PipelineManager& pManager);
 	TextureHandle generateBrdfLut(DescriptorManager& dManager, BindlessTextureDSetComponent& dSetComponent,

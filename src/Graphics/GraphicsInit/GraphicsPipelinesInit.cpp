@@ -383,9 +383,9 @@ void GraphicsPipelinesInit::initPipelines(GeneralManager& gm)
 	});
 	pManager->build(PipelineDescription{
 	    .isCompute = true,
-	    .shaderPath = "shaders/irradiance_convolution.spv",
+	    .shaderPath = "shaders/sh_projection.spv",
 	    .setLayouts = {*dManager->textureSetLayout},
-	    .pushConstants = {{vk::ShaderStageFlagBits::eCompute, 0, sizeof(float)}},
+	    .pushConstants = {{vk::ShaderStageFlagBits::eCompute, 0, sizeof(int)}},
 	});
 	pManager->build(PipelineDescription{
 	    .isCompute = true,

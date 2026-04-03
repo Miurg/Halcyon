@@ -78,17 +78,19 @@ DescriptorManager::DescriptorManager(VulkanDevice& vulkanDevice) : vulkanDevice(
 	vk::DescriptorSetLayoutBinding cubemapStorageBinding(Bindings::Textures::CubemapStorage,
 	                                                     vk::DescriptorType::eStorageImage, 1,
 	                                                     vk::ShaderStageFlagBits::eCompute, nullptr);
-	vk::DescriptorSetLayoutBinding irradianceBinding(Bindings::Textures::IrradianceMap,
-	                                                 vk::DescriptorType::eCombinedImageSampler, 1,
-	                                                 vk::ShaderStageFlagBits::eFragment, nullptr);
+	vk::DescriptorSetLayoutBinding shCoefficientsBinding(Bindings::Textures::SHCoefficients,
+	                                                     vk::DescriptorType::eStorageBuffer, 1,
+	                                                     vk::ShaderStageFlagBits::eFragment |
+	                                                         vk::ShaderStageFlagBits::eCompute,
+	                                                     nullptr);
 	vk::DescriptorSetLayoutBinding prefilteredBinding(Bindings::Textures::PrefilteredMap,
 	                                                  vk::DescriptorType::eCombinedImageSampler, 1,
 	                                                  vk::ShaderStageFlagBits::eFragment, nullptr);
 	vk::DescriptorSetLayoutBinding brdfLutBinding(Bindings::Textures::BrdfLut, vk::DescriptorType::eCombinedImageSampler,
 	                                              1, vk::ShaderStageFlagBits::eFragment, nullptr);
 	std::array<vk::DescriptorSetLayoutBinding, 8> textureBindings = {
-	    textureBinding,        shadowBinding,     materialBinding,    cubemapSamplerBinding,
-	    cubemapStorageBinding, irradianceBinding, prefilteredBinding, brdfLutBinding};
+	    textureBinding,          shadowBinding,      materialBinding,    cubemapSamplerBinding,
+	    cubemapStorageBinding,   shCoefficientsBinding, prefilteredBinding, brdfLutBinding};
 
 	std::array<vk::DescriptorBindingFlags, 8> textureBindingFlags = {
 	    vk::DescriptorBindingFlagBits::ePartiallyBound | vk::DescriptorBindingFlagBits::eUpdateAfterBind,
@@ -96,7 +98,7 @@ DescriptorManager::DescriptorManager(VulkanDevice& vulkanDevice) : vulkanDevice(
 	    vk::DescriptorBindingFlags{}, // materialBinding
 	    vk::DescriptorBindingFlags{}, // cubemapSampler
 	    vk::DescriptorBindingFlags{}, // cubemapStorage
-	    vk::DescriptorBindingFlags{}, // irradianceMap
+	    vk::DescriptorBindingFlags{}, // shCoefficients
 	    vk::DescriptorBindingFlags{}, // prefilteredMap
 	    vk::DescriptorBindingFlags{}  // brdfLut
 	};
@@ -219,16 +221,10 @@ void DescriptorManager::updateCubemapDescriptors(BindlessTextureDSetComponent& d
 	vulkanDevice.device.updateDescriptorSets(descriptorWrites, {});
 }
 
-void DescriptorManager::updateIBLDescriptors(BindlessTextureDSetComponent& dSetComponent, vk::ImageView irradianceView,
-                                             vk::Sampler irradianceSampler, vk::ImageView prefilteredView,
-                                             vk::Sampler prefilteredSampler, vk::ImageView brdfLutView,
-                                             vk::Sampler brdfLutSampler)
+void DescriptorManager::updateIBLDescriptors(BindlessTextureDSetComponent& dSetComponent,
+                                             vk::ImageView prefilteredView, vk::Sampler prefilteredSampler,
+                                             vk::ImageView brdfLutView, vk::Sampler brdfLutSampler)
 {
-	vk::DescriptorImageInfo irradianceInfo;
-	irradianceInfo.sampler = irradianceSampler;
-	irradianceInfo.imageView = irradianceView;
-	irradianceInfo.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
-
 	vk::DescriptorImageInfo prefilteredInfo;
 	prefilteredInfo.sampler = prefilteredSampler;
 	prefilteredInfo.imageView = prefilteredView;
@@ -239,30 +235,42 @@ void DescriptorManager::updateIBLDescriptors(BindlessTextureDSetComponent& dSetC
 	brdfLutInfo.imageView = brdfLutView;
 	brdfLutInfo.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
 
-	std::array<vk::WriteDescriptorSet, 3> descriptorWrites;
+	std::array<vk::WriteDescriptorSet, 2> descriptorWrites;
 
 	descriptorWrites[0].dstSet = descriptorSets[dSetComponent.bindlessTextureSet.id][0];
-	descriptorWrites[0].dstBinding = Bindings::Textures::IrradianceMap;
+	descriptorWrites[0].dstBinding = Bindings::Textures::PrefilteredMap;
 	descriptorWrites[0].dstArrayElement = 0;
 	descriptorWrites[0].descriptorType = vk::DescriptorType::eCombinedImageSampler;
 	descriptorWrites[0].descriptorCount = 1;
-	descriptorWrites[0].pImageInfo = &irradianceInfo;
+	descriptorWrites[0].pImageInfo = &prefilteredInfo;
 
 	descriptorWrites[1].dstSet = descriptorSets[dSetComponent.bindlessTextureSet.id][0];
-	descriptorWrites[1].dstBinding = Bindings::Textures::PrefilteredMap;
+	descriptorWrites[1].dstBinding = Bindings::Textures::BrdfLut;
 	descriptorWrites[1].dstArrayElement = 0;
 	descriptorWrites[1].descriptorType = vk::DescriptorType::eCombinedImageSampler;
 	descriptorWrites[1].descriptorCount = 1;
-	descriptorWrites[1].pImageInfo = &prefilteredInfo;
-
-	descriptorWrites[2].dstSet = descriptorSets[dSetComponent.bindlessTextureSet.id][0];
-	descriptorWrites[2].dstBinding = Bindings::Textures::BrdfLut;
-	descriptorWrites[2].dstArrayElement = 0;
-	descriptorWrites[2].descriptorType = vk::DescriptorType::eCombinedImageSampler;
-	descriptorWrites[2].descriptorCount = 1;
-	descriptorWrites[2].pImageInfo = &brdfLutInfo;
+	descriptorWrites[1].pImageInfo = &brdfLutInfo;
 
 	vulkanDevice.device.updateDescriptorSets(descriptorWrites, {});
+}
+
+void DescriptorManager::updateSHBufferDescriptor(BindlessTextureDSetComponent& dSetComponent, vk::Buffer shBuffer,
+                                                  vk::DeviceSize bufferSize)
+{
+	vk::DescriptorBufferInfo bufferInfo;
+	bufferInfo.buffer = shBuffer;
+	bufferInfo.offset = 0;
+	bufferInfo.range = bufferSize;
+
+	vk::WriteDescriptorSet descriptorWrite;
+	descriptorWrite.dstSet = descriptorSets[dSetComponent.bindlessTextureSet.id][0];
+	descriptorWrite.dstBinding = Bindings::Textures::SHCoefficients;
+	descriptorWrite.dstArrayElement = 0;
+	descriptorWrite.descriptorType = vk::DescriptorType::eStorageBuffer;
+	descriptorWrite.descriptorCount = 1;
+	descriptorWrite.pBufferInfo = &bufferInfo;
+
+	vulkanDevice.device.updateDescriptorSets(descriptorWrite, {});
 }
 
 void DescriptorManager::updateSingleTextureDSet(DSetHandle dIndex, int binding, vk::ImageView imageView,

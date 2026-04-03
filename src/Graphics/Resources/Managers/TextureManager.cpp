@@ -422,7 +422,7 @@ TextureHandle TextureManager::generateCubemapFromHdr(TextureHandle hdrTexture,
 	cmd.pushConstants<uint32_t>(*pManager.pipelines["equirect_to_cube"].layout, vk::ShaderStageFlagBits::eCompute, 0,
 	                            pushConstants);
 
-	cmd.dispatch(1024 / 8, 1024 / 8, 6);
+	cmd.dispatch(1024 / 8, 1024 / 8, 6); //TODO: Get rid of hardcoded resolution. Same in SH compute.
 
 	VulkanUtils::transitionImageLayout(
 	    cmd, cubemapTexture.textureImage, vk::ImageLayout::eGeneral, vk::ImageLayout::eShaderReadOnlyOptimal,
@@ -432,60 +432,6 @@ TextureHandle TextureManager::generateCubemapFromHdr(TextureHandle hdrTexture,
 	VulkanUtils::endSingleTimeCommands(cmd, vulkanDevice);
 
 	return cubemapHandle;
-}
-
-TextureHandle TextureManager::generateIrradianceMap(TextureHandle envCubemap,
-                                                    DescriptorManager& dManager,
-                                                    BindlessTextureDSetComponent& dSetComponent,
-                                                    PipelineManager& pManager)
-{
-	const uint32_t irradianceSize = 32;
-	TextureHandle irradianceHandle = createCubemapImage(irradianceSize, irradianceSize, vk::Format::eR32G32B32A32Sfloat);
-	Texture& irradianceTexture = textures[irradianceHandle.id];
-	createCubemapImageView(irradianceTexture, vk::Format::eR32G32B32A32Sfloat, vk::ImageAspectFlagBits::eColor);
-	createCubemapSampler(irradianceTexture);
-
-	// Create storage image view for compute write
-	vk::ImageViewCreateInfo viewInfo;
-	viewInfo.image = irradianceTexture.textureImage;
-	viewInfo.viewType = vk::ImageViewType::e2DArray;
-	viewInfo.format = vk::Format::eR32G32B32A32Sfloat;
-	viewInfo.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
-	viewInfo.subresourceRange.baseMipLevel = 0;
-	viewInfo.subresourceRange.levelCount = 1;
-	viewInfo.subresourceRange.baseArrayLayer = 0;
-	viewInfo.subresourceRange.layerCount = 6;
-	vk::raii::ImageView storageImageView(vulkanDevice.device, viewInfo);
-
-	// Temporarily update cubemap storage descriptor to point to our irradiance output
-	dManager.updateCubemapDescriptors(dSetComponent, textures[envCubemap.id].textureImageView,
-	                                  textures[envCubemap.id].textureSampler, *storageImageView);
-
-	auto cmd = VulkanUtils::beginSingleTimeCommands(vulkanDevice);
-
-	VulkanUtils::transitionImageLayout(
-	    cmd, irradianceTexture.textureImage, vk::ImageLayout::eUndefined, vk::ImageLayout::eGeneral, {},
-	    vk::AccessFlagBits2::eShaderWrite, vk::PipelineStageFlagBits2::eTopOfPipe,
-	    vk::PipelineStageFlagBits2::eComputeShader, vk::ImageAspectFlagBits::eColor, 6, 1);
-
-	cmd.bindPipeline(vk::PipelineBindPoint::eCompute, *pManager.pipelines["irradiance_convolution"].pipeline);
-	cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute, *pManager.pipelines["irradiance_convolution"].layout, 0,
-	                       dManager.descriptorSets[dSetComponent.bindlessTextureSet.id][0], nullptr);
-
-	float sampleDelta = 0.025f;
-	cmd.pushConstants<float>(*pManager.pipelines["irradiance_convolution"].layout, vk::ShaderStageFlagBits::eCompute, 0,
-	                         sampleDelta);
-
-	cmd.dispatch(irradianceSize / 8, irradianceSize / 8, 6);
-
-	VulkanUtils::transitionImageLayout(
-	    cmd, irradianceTexture.textureImage, vk::ImageLayout::eGeneral, vk::ImageLayout::eShaderReadOnlyOptimal,
-	    vk::AccessFlagBits2::eShaderWrite, vk::AccessFlagBits2::eShaderRead, vk::PipelineStageFlagBits2::eComputeShader,
-	    vk::PipelineStageFlagBits2::eFragmentShader, vk::ImageAspectFlagBits::eColor, 6, 1);
-
-	VulkanUtils::endSingleTimeCommands(cmd, vulkanDevice);
-
-	return irradianceHandle;
 }
 
 TextureHandle TextureManager::generatePrefilteredEnvMap(TextureHandle envCubemap,
