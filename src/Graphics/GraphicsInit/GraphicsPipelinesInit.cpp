@@ -1,62 +1,33 @@
 #include "GraphicsPipelinesInit.hpp"
 #include "../Factories/PipelineFactory.hpp"
 #include <iostream>
-#include <stdexcept>
-#include "../Factories/VulkanDeviceFactory.hpp"
-#include "../Factories/SwapChainFactory.hpp"
-
-// Entities and Components
+#include <vk_mem_alloc.h>
+#include "../Resources/Managers/Vertex.hpp"
 #include "../Components/VulkanDeviceComponent.hpp"
 #include "../Components/SwapChainComponent.hpp"
 #include "../Components/VMAllocatorComponent.hpp"
 #include "../Components/TextureManagerComponent.hpp"
-#include "../Components/BufferManagerComponent.hpp"
-#include "../Components/ModelManagerComponent.hpp"
 #include "../Components/DescriptorManagerComponent.hpp"
-#include "../Components/FrameManagerComponent.hpp"
-#include "../Components/FrameDataComponent.hpp"
-#include "../Components/CurrentFrameComponent.hpp"
-#include "../Components/GraphicsSettingsComponent.hpp"
-#include "../Components/FrameImageComponent.hpp"
-#include "../Resources/Components/GlobalDSetComponent.hpp"
-#include "../Resources/Components/ModelDSetComponent.hpp"
-#include "../Components/DrawInfoComponent.hpp"
-#include "../Components/SsaoSettingsComponent.hpp"
 #include "../Components/RenderGraphComponent.hpp"
 #include "../Components/PipelineManagerComponent.hpp"
 #include "../RenderGraph/RenderGraph.hpp"
-
 #include "../Components/NameComponent.hpp"
-#include "../Components/CameraComponent.hpp"
-#include "../Components/DirectLightComponent.hpp"
-#include "../Components/LocalTransformComponent.hpp"
-#include "../Components/GlobalTransformComponent.hpp"
-#include "../Components/SkyboxComponent.hpp"
-#include "../../Platform/PlatformContexts.hpp"
-#include "../../Platform/Components/WindowComponent.hpp"
-
-// Managers and Resources
 #include "../VulkanDevice.hpp"
 #include "../SwapChain.hpp"
 #include "../Resources/Managers/TextureManager.hpp"
-#include "../Resources/Managers/BufferManager.hpp"
-#include "../Resources/Managers/ModelManager.hpp"
 #include "../Resources/Managers/DescriptorManager.hpp"
-#include "../Managers/FrameManager.hpp"
 #include "../Managers/PipelineManager.hpp"
-#include "../Resources/Factories/TextureUploader.hpp"
-#include "../VulkanUtils.hpp"
-// Contexts
 #include "../GraphicsContexts.hpp"
-#include "../Resources/ResourceStructures.hpp"
-#include "../Resources/Managers/Bindings.hpp"
-
-// ImGui
-#include <imgui.h>
-#include <imgui_impl_glfw.h>
-#include <imgui_impl_vulkan.h>
 #include "../ShaderReloader.hpp"
 #include "../Components/ShaderReloaderComponent.hpp"
+#include <cstdint>
+#include <vector>
+#include <vulkan/vulkan_enums.hpp>
+#include <vulkan/vulkan_handles.hpp>
+#include <vulkan/vulkan_structs.hpp>
+#include <Orhescyon/Entitys/ActiveEntitySet.hpp>
+#include <Orhescyon/GeneralManager.hpp>
+#include "../RenderGraph/RGResource.hpp"
 
 #pragma region initPipelines
 void GraphicsPipelinesInit::initPipelines(GeneralManager& gm)
@@ -66,7 +37,6 @@ void GraphicsPipelinesInit::initPipelines(GeneralManager& gm)
 #endif //_DEBUG
 	VulkanDevice* vulkanDevice =
 	    gm.getContextComponent<MainVulkanDeviceContext, VulkanDeviceComponent>()->vulkanDeviceInstance;
-	Window* window = gm.getContextComponent<MainWindowContext, WindowComponent>()->windowInstance;
 	DescriptorManager* dManager =
 	    gm.getContextComponent<DescriptorManagerContext, DescriptorManagerComponent>()->descriptorManager;
 	TextureManager* tManager = gm.getContextComponent<TextureManagerContext, TextureManagerComponent>()->textureManager;

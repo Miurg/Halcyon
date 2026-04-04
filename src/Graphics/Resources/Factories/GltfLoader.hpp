@@ -2,7 +2,6 @@
 #include "../Managers/VertexIndexBuffer.hpp"
 #include "../Managers/Texture.hpp"
 #include "../Components/MeshInfoComponent.hpp"
-#include <vk_mem_alloc.h>
 #include <memory>
 #include "../../VulkanDevice.hpp"
 #include "../Managers/PrimitivesInfo.hpp"
