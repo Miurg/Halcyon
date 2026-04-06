@@ -37,7 +37,6 @@ void FrameBeginSystem::update(GeneralManager& gm)
 	Window& window = *gm.getContextComponent<MainWindowContext, WindowComponent>()->windowInstance;
 	FrameManager* frameManager = gm.getContextComponent<FrameManagerContext, FrameManagerComponent>()->frameManager;
 	CurrentFrameComponent* currentFrameComp = gm.getContextComponent<CurrentFrameContext, CurrentFrameComponent>();
-	FrameImageComponent* frameImageComponent = gm.getContextComponent<FrameImageContext, FrameImageComponent>();
 	currentFrameComp->frameValid = false;
 	DescriptorManager* dManager =
 	    gm.getContextComponent<DescriptorManagerContext, DescriptorManagerComponent>()->descriptorManager;
@@ -84,6 +83,9 @@ void FrameBeginSystem::update(GeneralManager& gm)
 	vulkanDevice.device.resetFences(*frameManager->frames[currentFrameComp->currentFrame].inFlightFence);
 	frameManager->frames[currentFrameComp->currentFrame].commandBuffer.reset();
 
+	FrameImageComponent* frameImageComponent = gm.getContextComponent<FrameImageContext, FrameImageComponent>();
 	frameImageComponent->imageIndex = imageIndex;
+	
 	currentFrameComp->frameValid = true;
+	rg->clearFrame();
 }

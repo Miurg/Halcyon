@@ -42,6 +42,10 @@ void FrameEndSystem::update(GeneralManager& gm)
 
 	if (!currentFrameComp->frameValid) return;
 
+	RenderGraph* rg = gm.getContextComponent<RenderGraphContext, RenderGraphComponent>()->renderGraph;
+	rg->compile();
+	rg->execute(frameManager->frames[currentFrameComp->currentFrame].commandBuffer);
+
 	vk::PipelineStageFlags waitDestinationStageMask(vk::PipelineStageFlagBits::eColorAttachmentOutput);
 
 	const vk::SubmitInfo submitInfo(*frameManager->frames[currentFrameComp->currentFrame].presentCompleteSemaphore,

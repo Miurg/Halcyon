@@ -97,6 +97,11 @@ void GraphicsPipelinesInit::initPipelines(GeneralManager& gm)
 	                         {swapChain->hdrFormat, RGSizeMode::SixteenthExtent, vk::ImageAspectFlagBits::eColor});
 	rg->declareLogicalStream("BloomMip4",
 	                         {swapChain->hdrFormat, RGSizeMode::ThirtySecondExtent, vk::ImageAspectFlagBits::eColor});
+
+	rg->setTerminalOutput("PostProcessColor", "swapChainImage"); // The final target for post-process chains
+	rg->setTerminalOutput("shadowMap",
+	                     "shadowMap"); // The shadow pass writes directly to the imported physical shadow map
+
 #pragma endregion
 
 	ShaderReloader* shaderReloader = new ShaderReloader(HALCYON_SHADER_SRC_DIR, "shaders");

@@ -2,7 +2,6 @@
 #include "DescriptorManager.hpp"
 #include "BufferManager.hpp"
 #include "../../Resources/Factories/TextureUploader.hpp"
-#include "../../Factories/CommandBufferFactory.hpp"
 #include "../../VulkanUtils.hpp"
 #include "Bindings.hpp"
 #include <random>

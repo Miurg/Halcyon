@@ -361,6 +361,7 @@ void RenderGraph::compile()
 
 void RenderGraph::execute(vk::raii::CommandBuffer& cmd)
 {
+	cmd.begin({});
 	for (const auto& compiled : compiledPasses)
 	{
 		// Emit barriers
@@ -515,6 +516,7 @@ void RenderGraph::execute(vk::raii::CommandBuffer& cmd)
 			cmd.endRendering();
 		}
 	}
+	cmd.end();
 }
 
 void RenderGraph::clearFrame()
