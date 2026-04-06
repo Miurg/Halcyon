@@ -11,11 +11,11 @@ void drawShadowCullPass(vk::raii::CommandBuffer& cmd, uint32_t currentFrame,
 	cmd.bindPipeline(vk::PipelineBindPoint::eCompute, *pManager.pipelines["shadow_frustum_culling"].pipeline);
 
 	cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute, *pManager.pipelines["shadow_frustum_culling"].layout, 0,
-	                       dManager.descriptorManager->descriptorSets[globalDSetComponent.globalDSets.id][currentFrame],
+	                       dManager.descriptorManager->getSet(globalDSetComponent.globalDSets, currentFrame),
 	                       nullptr);
 	cmd.bindDescriptorSets(
 	    vk::PipelineBindPoint::eCompute, *pManager.pipelines["shadow_frustum_culling"].layout, 1,
-	    dManager.descriptorManager->descriptorSets[objectDSetComponent.modelBufferDSet.id][currentFrame], nullptr);
+	    dManager.descriptorManager->getSet(objectDSetComponent.modelBufferDSet, currentFrame), nullptr);
 
 	struct PushConsts
 	{
@@ -61,7 +61,7 @@ void drawShadowCullPass(vk::raii::CommandBuffer& cmd, uint32_t currentFrame,
 	cmd.bindPipeline(vk::PipelineBindPoint::eCompute, *pManager.pipelines["frustum_compaction"].pipeline);
 	cmd.bindDescriptorSets(
 	    vk::PipelineBindPoint::eCompute, *pManager.pipelines["frustum_compaction"].layout, 0,
-	    dManager.descriptorManager->descriptorSets[objectDSetComponent.modelBufferDSet.id][currentFrame], nullptr);
+	    dManager.descriptorManager->getSet(objectDSetComponent.modelBufferDSet, currentFrame), nullptr);
 
 	struct CompactionPush
 	{
@@ -151,11 +151,11 @@ void drawShadowPass(vk::raii::CommandBuffer& cmd, uint32_t currentFrame,
 {
 	cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pManager.pipelines["shadow"].pipeline);
 	cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pManager.pipelines["shadow"].layout, 0,
-	                       dManager.descriptorManager->descriptorSets[globalDSetComponent.globalDSets.id][currentFrame],
+	                       dManager.descriptorManager->getSet(globalDSetComponent.globalDSets, currentFrame),
 	                       nullptr);
 	cmd.bindDescriptorSets(
 	    vk::PipelineBindPoint::eGraphics, *pManager.pipelines["shadow"].layout, 1,
-	    dManager.descriptorManager->descriptorSets[objectDSetComponent.modelBufferDSet.id][currentFrame], nullptr);
+	    dManager.descriptorManager->getSet(objectDSetComponent.modelBufferDSet, currentFrame), nullptr);
 	cmd.setViewport(0, vk::Viewport(0.0f, 0.0f, lightTexture.sizeX, lightTexture.sizeY, 0.0f, 1.0f));
 	cmd.setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), vk::Extent2D(lightTexture.sizeX, lightTexture.sizeY)));
 

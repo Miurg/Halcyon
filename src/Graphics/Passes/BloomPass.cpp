@@ -11,7 +11,7 @@ void drawBloomDownsamplePass(vk::raii::CommandBuffer& cmd, DescriptorManagerComp
 	cmd.setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), extent));
 
 	cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pManager.pipelines["bloom_downsample"].layout, 0,
-	                       dManager.descriptorManager->descriptorSets[dSetHandle.id][0], nullptr);
+	                       dManager.descriptorManager->getSet(dSetHandle), nullptr);
 
 	struct PushConstants
 	{
@@ -43,7 +43,7 @@ void drawBloomUpsamplePass(vk::raii::CommandBuffer& cmd, DescriptorManagerCompon
 	cmd.setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), extent));
 
 	cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pManager.pipelines["bloom_upsample"].layout, 0,
-	                       dManager.descriptorManager->descriptorSets[dSetHandle.id][0], nullptr);
+	                       dManager.descriptorManager->getSet(dSetHandle), nullptr);
 
 	struct PushConstants
 	{

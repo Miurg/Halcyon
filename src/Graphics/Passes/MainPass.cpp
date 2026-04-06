@@ -13,14 +13,14 @@ static void drawMainPass(vk::raii::CommandBuffer& cmd, SwapChain& swapChain, uin
 	const std::string alphaPipeline = hasSkybox ? "standard_forward_alpha" : "standard_forward_alpha_no_ibl";
 
 	cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pManager.pipelines[opaquePipeline].layout, 0,
-	                       dManager.descriptorManager->descriptorSets[globalDSetComponent.globalDSets.id][currentFrame],
+	                       dManager.descriptorManager->getSet(globalDSetComponent.globalDSets, currentFrame),
 	                       nullptr);
 	cmd.bindDescriptorSets(
 	    vk::PipelineBindPoint::eGraphics, *pManager.pipelines[opaquePipeline].layout, 1,
-	    dManager.descriptorManager->descriptorSets[objectDSetComponent.modelBufferDSet.id][currentFrame], nullptr);
+	    dManager.descriptorManager->getSet(objectDSetComponent.modelBufferDSet, currentFrame), nullptr);
 	cmd.bindDescriptorSets(
 	    vk::PipelineBindPoint::eGraphics, *pManager.pipelines[opaquePipeline].layout, 2,
-	    dManager.descriptorManager->descriptorSets[bindlessTextureDSetComponent.bindlessTextureSet.id][0], nullptr);
+	    dManager.descriptorManager->getSet(bindlessTextureDSetComponent.bindlessTextureSet), nullptr);
 
 	const uint32_t commandStride = sizeof(VkDrawIndexedIndirectCommand);
 	cmd.bindVertexBuffers(0, mManager.vertexIndexBuffers[mManager.meshes[0].vertexIndexBufferID].vertexBuffer, {0});

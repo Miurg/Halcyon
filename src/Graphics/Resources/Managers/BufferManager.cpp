@@ -51,7 +51,7 @@ BufferHandle BufferManager::generateSHCoefficients(TextureHandle envCubemap, Des
 
 	cmd.bindPipeline(vk::PipelineBindPoint::eCompute, *pManager.pipelines["sh_projection"].pipeline);
 	cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute, *pManager.pipelines["sh_projection"].layout, 0,
-	                       dManager.descriptorSets[dSetComponent.bindlessTextureSet.id][0], nullptr);
+	                       dManager.getSet(dSetComponent.bindlessTextureSet), nullptr);
 
 	cmd.pushConstants<int>(*pManager.pipelines["sh_projection"].layout, vk::ShaderStageFlagBits::eCompute, 0,
 	                       cubemapResolution);

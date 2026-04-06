@@ -18,8 +18,7 @@ void RenderPasses::ToneMappingPass(SwapChain& swapChain, DescriptorManagerCompon
 		    cmd.setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), swapChain.swapChainExtent));
 
 		    cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pManager.pipelines["tone_mapping"].layout, 0,
-		        dManager.descriptorManager->descriptorSets[globalDSetComponent.toneMappingDSets.id][0],
-		                           nullptr);
+		        dManager.descriptorManager->getSet(globalDSetComponent.toneMappingDSets), nullptr);
 
 		    cmd.setCullMode(vk::CullModeFlagBits::eNone);
 		    cmd.draw(3, 1, 0, 0);

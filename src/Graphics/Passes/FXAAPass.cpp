@@ -19,7 +19,7 @@ void RenderPasses::FXAAPass(SwapChain& swapChain, DescriptorManagerComponent& dM
 		    cmd.setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), swapChain.swapChainExtent));
 
 		    cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pManager.pipelines["fxaa"].layout, 0,
-		        dManager.descriptorManager->descriptorSets[globalDSetComponent.fxaaDSets.id][0], nullptr);
+		        dManager.descriptorManager->getSet(globalDSetComponent.fxaaDSets), nullptr);
 
 		    struct PushConstants
 		    {

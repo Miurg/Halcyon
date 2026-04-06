@@ -61,7 +61,7 @@ void RenderPasses::DebugPass(SwapChain& swapChain, DescriptorManagerComponent& d
 		           cmd.setCullMode(vk::CullModeFlagBits::eNone);
 		           cmd.bindDescriptorSets(
 		               vk::PipelineBindPoint::eGraphics, *pip.layout, 0,
-		               dManager.descriptorManager->descriptorSets[globalDSetComponent.globalDSets.id][currentFrame], nullptr);
+		               dManager.descriptorManager->getSet(globalDSetComponent.globalDSets, currentFrame), nullptr);
 		           for (int i = 0; i < pushData.size(); ++i)
 		           {
 			           cmd.pushConstants<AABBPush>(*pip.layout, vk::ShaderStageFlagBits::eVertex, 0, pushData[i]);

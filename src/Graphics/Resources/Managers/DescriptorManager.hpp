@@ -33,11 +33,23 @@ public:
 	void updateStorageBufferDescriptors(BufferManager& bManager, BufferHandle bNumber, DSetHandle dSet,
 	                                    uint32_t binding);
 	DSetHandle allocateOffscreenDescriptorSet(vk::DescriptorSetLayout layout);
-	std::vector<std::vector<vk::DescriptorSet>> descriptorSets;
+
+	// Returns the descriptor set at the given slot index (0 for single-buffered, currentFrame for per-frame sets).
+	vk::DescriptorSet getSet(DSetHandle handle, uint32_t index = 0) const
+	{
+		return descriptorSets[handle.id][index];
+	}
+
+	// Returns the number of buffered copies in this set (1 for single-frame, MAX_FRAMES_IN_FLIGHT for per-frame).
+	uint32_t getSetCount(DSetHandle handle) const
+	{
+		return static_cast<uint32_t>(descriptorSets[handle.id].size());
+	}
 
 	vk::raii::DescriptorPool imguiPool = nullptr;
 
 private:
 	VulkanDevice& vulkanDevice;
 	vk::raii::DescriptorPool descriptorPool = nullptr;
+	std::vector<std::vector<vk::DescriptorSet>> descriptorSets;
 };

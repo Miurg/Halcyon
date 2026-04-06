@@ -415,7 +415,7 @@ TextureHandle TextureManager::generateCubemapFromHdr(TextureHandle hdrTexture,
 
 	cmd.bindPipeline(vk::PipelineBindPoint::eCompute, *pManager.pipelines["equirect_to_cube"].pipeline);
 	cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute, *pManager.pipelines["equirect_to_cube"].layout, 0,
-	                       dManager.descriptorSets[dSetComponent.bindlessTextureSet.id][0], nullptr);
+	                       dManager.getSet(dSetComponent.bindlessTextureSet), nullptr);
 
 	uint32_t pushConstants = hdrTexture.id;
 	cmd.pushConstants<uint32_t>(*pManager.pipelines["equirect_to_cube"].layout, vk::ShaderStageFlagBits::eCompute, 0,
@@ -482,7 +482,7 @@ TextureHandle TextureManager::generatePrefilteredEnvMap(TextureHandle envCubemap
 
 		cmd.bindPipeline(vk::PipelineBindPoint::eCompute, *pManager.pipelines["prefilter_env_map"].pipeline);
 		cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute, *pManager.pipelines["prefilter_env_map"].layout, 0,
-		                       dManager.descriptorSets[dSetComponent.bindlessTextureSet.id][0], nullptr);
+		                       dManager.getSet(dSetComponent.bindlessTextureSet), nullptr);
 
 		float roughness = static_cast<float>(mip) / static_cast<float>(maxMipLevels - 1);
 		cmd.pushConstants<float>(*pManager.pipelines["prefilter_env_map"].layout, vk::ShaderStageFlagBits::eCompute, 0,
@@ -549,7 +549,7 @@ TextureHandle TextureManager::generateBrdfLut(DescriptorManager& dManager, Bindl
 	storageImgInfo.imageLayout = vk::ImageLayout::eGeneral;
 
 	vk::WriteDescriptorSet storageWrite;
-	storageWrite.dstSet = dManager.descriptorSets[dSetComponent.bindlessTextureSet.id][0];
+	storageWrite.dstSet = dManager.getSet(dSetComponent.bindlessTextureSet);
 	storageWrite.dstBinding = Bindings::Textures::CubemapStorage;
 	storageWrite.dstArrayElement = 0;
 	storageWrite.descriptorType = vk::DescriptorType::eStorageImage;
@@ -566,7 +566,7 @@ TextureHandle TextureManager::generateBrdfLut(DescriptorManager& dManager, Bindl
 
 	cmd.bindPipeline(vk::PipelineBindPoint::eCompute, *pManager.pipelines["brdf_lut"].pipeline);
 	cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute, *pManager.pipelines["brdf_lut"].layout, 0,
-	                       dManager.descriptorSets[dSetComponent.bindlessTextureSet.id][0], nullptr);
+	                       dManager.getSet(dSetComponent.bindlessTextureSet), nullptr);
 
 	cmd.dispatch(brdfLutSize / 8, brdfLutSize / 8, 1);
 

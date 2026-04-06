@@ -19,7 +19,7 @@ void RenderPasses::VignettePass(SwapChain& swapChain, DescriptorManagerComponent
 		    cmd.setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), swapChain.swapChainExtent));
 
 		    cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pManager.pipelines["vignette"].layout, 0,
-		                           dManager.descriptorManager->descriptorSets[globalDSetComponent.vignetteDSets.id][0],
+		                           dManager.descriptorManager->getSet(globalDSetComponent.vignetteDSets),
 		                           nullptr);
 
 		    cmd.setCullMode(vk::CullModeFlagBits::eNone);

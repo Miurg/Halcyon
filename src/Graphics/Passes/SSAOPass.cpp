@@ -13,10 +13,10 @@ void drawSsaoPass(vk::raii::CommandBuffer& cmd, SwapChain& swapChain,
 	                                                              swapChain.swapChainExtent.height / 2}));
 
 	cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pManager.pipelines["ssao"].layout, 0,
-	                       dManager.descriptorManager->descriptorSets[ssaoDescriptorSetIndex.id][0], nullptr);
+	                       dManager.descriptorManager->getSet(ssaoDescriptorSetIndex), nullptr);
 
 	cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pManager.pipelines["ssao"].layout, 1,
-	                       dManager.descriptorManager->descriptorSets[globalDescriptorSetIndex.id][0], nullptr);
+	                       dManager.descriptorManager->getSet(globalDescriptorSetIndex), nullptr);
 
 	struct SsaoPushConstants
 	{
@@ -61,7 +61,7 @@ void drawSsaoBlurPass(vk::raii::CommandBuffer& cmd, SwapChain& swapChain,
 	                                                              swapChain.swapChainExtent.height / 2}));
 
 	cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pManager.pipelines["ssao_blur"].layout, 0,
-	                       dManager.descriptorManager->descriptorSets[ssaoBlurDescriptorSetIndex.id][0], nullptr);
+	                       dManager.descriptorManager->getSet(ssaoBlurDescriptorSetIndex), nullptr);
 	struct BlurPushConstants
 	{
 		float texelSize[2];
@@ -89,7 +89,7 @@ void drawSSAOApplyPass(vk::raii::CommandBuffer& cmd, SwapChain& swapChain,
 	cmd.setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), swapChain.swapChainExtent));
 
 	cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pManager.pipelines["ssao_apply"].layout, 0,
-	                       dManager.descriptorManager->descriptorSets[ssaoApplyDescriptorSetIndex.id][0], nullptr);
+	                       dManager.descriptorManager->getSet(ssaoApplyDescriptorSetIndex), nullptr);
 
 	cmd.setCullMode(vk::CullModeFlagBits::eNone);
 	cmd.draw(3, 1, 0, 0);

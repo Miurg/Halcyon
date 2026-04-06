@@ -9,7 +9,7 @@ void drawResetInstancePass(vk::raii::CommandBuffer& cmd, uint32_t currentFrame,
 
 	cmd.bindDescriptorSets(
 	    vk::PipelineBindPoint::eCompute, *pManager.pipelines["reset_instance_count"].layout, 0,
-	    dManager.descriptorManager->descriptorSets[objectDSetComponent.modelBufferDSet.id][currentFrame], nullptr);
+	    dManager.descriptorManager->getSet(objectDSetComponent.modelBufferDSet, currentFrame), nullptr);
 
 	struct PushConsts
 	{
@@ -46,11 +46,11 @@ void drawCullPass(vk::raii::CommandBuffer& cmd, uint32_t currentFrame,
 	cmd.bindPipeline(vk::PipelineBindPoint::eCompute, *pManager.pipelines["frustum_culling"].pipeline);
 
 	cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute, *pManager.pipelines["frustum_culling"].layout, 0,
-	                       dManager.descriptorManager->descriptorSets[globalDSetComponent.globalDSets.id][currentFrame],
+	                       dManager.descriptorManager->getSet(globalDSetComponent.globalDSets, currentFrame),
 	                       nullptr);
 	cmd.bindDescriptorSets(
 	    vk::PipelineBindPoint::eCompute, *pManager.pipelines["frustum_culling"].layout, 1,
-	    dManager.descriptorManager->descriptorSets[objectDSetComponent.modelBufferDSet.id][currentFrame], nullptr);
+	    dManager.descriptorManager->getSet(objectDSetComponent.modelBufferDSet, currentFrame), nullptr);
 
 	struct PushConsts
 	{
@@ -96,7 +96,7 @@ void drawCullPass(vk::raii::CommandBuffer& cmd, uint32_t currentFrame,
 	cmd.bindPipeline(vk::PipelineBindPoint::eCompute, *pManager.pipelines["frustum_compaction"].pipeline);
 	cmd.bindDescriptorSets(
 	    vk::PipelineBindPoint::eCompute, *pManager.pipelines["frustum_compaction"].layout, 0,
-	    dManager.descriptorManager->descriptorSets[objectDSetComponent.modelBufferDSet.id][currentFrame], nullptr);
+	    dManager.descriptorManager->getSet(objectDSetComponent.modelBufferDSet, currentFrame), nullptr);
 
 	struct CompactionPush
 	{

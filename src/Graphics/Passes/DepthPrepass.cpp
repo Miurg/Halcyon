@@ -8,11 +8,11 @@ void drawDepthPrepass(vk::raii::CommandBuffer& cmd, SwapChain& swapChain, uint32
 {
 	cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pManager.pipelines["depth_prepass"].pipeline);
 	cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pManager.pipelines["depth_prepass"].layout, 0,
-	                       dManager.descriptorManager->descriptorSets[globalDSetComponent.globalDSets.id][currentFrame],
+	                       dManager.descriptorManager->getSet(globalDSetComponent.globalDSets, currentFrame),
 	                       nullptr);
 	cmd.bindDescriptorSets(
 	    vk::PipelineBindPoint::eGraphics, *pManager.pipelines["depth_prepass"].layout, 1,
-	    dManager.descriptorManager->descriptorSets[objectDSetComponent.modelBufferDSet.id][currentFrame], nullptr);
+	    dManager.descriptorManager->getSet(objectDSetComponent.modelBufferDSet, currentFrame), nullptr);
 
 	cmd.setViewport(0, vk::Viewport(0.0f, 0.0f, static_cast<float>(swapChain.swapChainExtent.width),
 	                                static_cast<float>(swapChain.swapChainExtent.height), 0.0f, 1.0f));
