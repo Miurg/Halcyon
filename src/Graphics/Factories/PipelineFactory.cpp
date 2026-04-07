@@ -43,7 +43,8 @@ vk::raii::PipelineLayout PipelineFactory::buildLayout(vk::raii::Device& device,
 }
 
 // Graphics build
-BuiltPipeline PipelineFactory::build(vk::raii::Device& device, const PipelineDescription& desc)
+BuiltPipeline PipelineFactory::build(vk::raii::Device& device, const PipelineDescription& desc,
+                                      const std::vector<vk::DescriptorSetLayout>& resolvedLayouts)
 {
 	auto shader = loadShader(device, desc.shaderPath);
 
@@ -110,7 +111,7 @@ BuiltPipeline PipelineFactory::build(vk::raii::Device& device, const PipelineDes
 	
 
 	BuiltPipeline result;
-	result.layout = buildLayout(device, desc.setLayouts, desc.pushConstants);
+	result.layout = buildLayout(device, resolvedLayouts, desc.pushConstants);
 	if (desc.isCompute)
 	{
 		result.pipeline = builder.buildCompute(device, result.layout);

@@ -16,6 +16,7 @@
 #include "../SwapChain.hpp"
 #include "../Resources/Managers/TextureManager.hpp"
 #include "../Resources/Managers/DescriptorManager.hpp"
+#include "../Resources/Managers/Bindings.hpp"
 #include "../Managers/PipelineManager.hpp"
 #include "../GraphicsContexts.hpp"
 #include "../ShaderReloader.hpp"
@@ -100,7 +101,7 @@ void GraphicsPipelinesInit::initPipelines(GeneralManager& gm)
 
 	rg->setTerminalOutput("PostProcessColor", "swapChainImage"); // The final target for post-process chains
 	rg->setTerminalOutput("shadowMap",
-	                     "shadowMap"); // The shadow pass writes directly to the imported physical shadow map
+	                      "shadowMap"); // The shadow pass writes directly to the imported physical shadow map
 
 #pragma endregion
 
@@ -111,10 +112,9 @@ void GraphicsPipelinesInit::initPipelines(GeneralManager& gm)
 	gm.addComponent<NameComponent>(shaderReloaderEntity, "SYSTEM Shader Reloader");
 
 #pragma region Pipelines
-
 	Entity pManagerEntity = gm.createEntity();
 	gm.registerContext<PipelineManagerContext>(pManagerEntity);
-	PipelineManager* pManager = new PipelineManager(*vulkanDevice);
+	PipelineManager* pManager = new PipelineManager(*vulkanDevice, *dManager);
 	gm.addComponent<PipelineManagerComponent>(pManagerEntity, pManager);
 	gm.addComponent<NameComponent>(pManagerEntity, "SYSTEM Pipeline Manager");
 
@@ -124,8 +124,7 @@ void GraphicsPipelinesInit::initPipelines(GeneralManager& gm)
 
 	std::vector<vk::Format> hdrFormats = {swapChain->hdrFormat, vk::Format::eR16G16B16A16Sfloat};
 
-	std::vector<vk::DescriptorSetLayout> mainLayouts = {*dManager->globalSetLayout, *dManager->modelSetLayout,
-	                                                    *dManager->textureSetLayout};
+	std::vector<std::string> mainLayouts = {"globalSet", "modelSet", "textureSet"};
 	// === Shadow (direct) ===
 	pManager->build(PipelineDescription{
 	    .shaderPath = "shaders/shadow.spv",
@@ -139,7 +138,7 @@ void GraphicsPipelinesInit::initPipelines(GeneralManager& gm)
 	    .colorFormats = {},
 	    .depthFormat = depthFormat,
 	    .rasterizationSamples = vk::SampleCountFlagBits::e1,
-	    .setLayouts = mainLayouts,
+	    .setLayoutNames = mainLayouts,
 	});
 
 	// === Depth prepass ===
@@ -155,7 +154,7 @@ void GraphicsPipelinesInit::initPipelines(GeneralManager& gm)
 	    .colorFormats = {},
 	    .depthFormat = depthFormat,
 	    .rasterizationSamples = msaaSamples,
-	    .setLayouts = mainLayouts,
+	    .setLayoutNames = mainLayouts,
 	});
 
 	// === Graphics (opaque, IBL) ===
@@ -173,7 +172,7 @@ void GraphicsPipelinesInit::initPipelines(GeneralManager& gm)
 	        .colorFormats = hdrFormats,
 	        .depthFormat = depthFormat,
 	        .rasterizationSamples = msaaSamples,
-	        .setLayouts = mainLayouts,
+	        .setLayoutNames = mainLayouts,
 	    },
 	    "standard_forward_opaque");
 
@@ -192,7 +191,7 @@ void GraphicsPipelinesInit::initPipelines(GeneralManager& gm)
 	        .colorFormats = hdrFormats,
 	        .depthFormat = depthFormat,
 	        .rasterizationSamples = msaaSamples,
-	        .setLayouts = mainLayouts,
+	        .setLayoutNames = mainLayouts,
 	    },
 	    "standard_forward_opaque_no_ibl");
 
@@ -211,7 +210,7 @@ void GraphicsPipelinesInit::initPipelines(GeneralManager& gm)
 	        .colorFormats = hdrFormats,
 	        .depthFormat = depthFormat,
 	        .rasterizationSamples = msaaSamples,
-	        .setLayouts = mainLayouts,
+	        .setLayoutNames = mainLayouts,
 	    },
 	    "standard_forward_alpha");
 
@@ -230,7 +229,7 @@ void GraphicsPipelinesInit::initPipelines(GeneralManager& gm)
 	        .colorFormats = hdrFormats,
 	        .depthFormat = depthFormat,
 	        .rasterizationSamples = msaaSamples,
-	        .setLayouts = mainLayouts,
+	        .setLayoutNames = mainLayouts,
 	    },
 	    "standard_forward_alpha_no_ibl");
 
@@ -245,7 +244,7 @@ void GraphicsPipelinesInit::initPipelines(GeneralManager& gm)
 	    .colorFormats = hdrFormats,
 	    .depthFormat = depthFormat,
 	    .rasterizationSamples = msaaSamples,
-	    .setLayouts = mainLayouts,
+	    .setLayoutNames = mainLayouts,
 	});
 
 	// === Fullscreen passes ===
@@ -254,7 +253,7 @@ void GraphicsPipelinesInit::initPipelines(GeneralManager& gm)
 	    .cullMode = vk::CullModeFlagBits::eNone,
 	    .colorAttachments = {PipelineFactory::opaqueAttachment()},
 	    .colorFormats = {swapChain->swapChainImageFormat},
-	    .setLayouts = {*dManager->screenSpaceSetLayout},
+	    .setLayoutNames = {"screenSpaceSet"},
 	});
 
 	pManager->build(PipelineDescription{
@@ -262,7 +261,7 @@ void GraphicsPipelinesInit::initPipelines(GeneralManager& gm)
 	    .cullMode = vk::CullModeFlagBits::eNone,
 	    .colorAttachments = {PipelineFactory::opaqueAttachment()},
 	    .colorFormats = {swapChain->swapChainImageFormat},
-	    .setLayouts = {*dManager->screenSpaceSetLayout},
+	    .setLayoutNames = {"screenSpaceSet"},
 	});
 
 	pManager->build(PipelineDescription{
@@ -270,7 +269,7 @@ void GraphicsPipelinesInit::initPipelines(GeneralManager& gm)
 	    .cullMode = vk::CullModeFlagBits::eNone,
 	    .colorAttachments = {PipelineFactory::opaqueAttachment()},
 	    .colorFormats = {swapChain->swapChainImageFormat},
-	    .setLayouts = {*dManager->screenSpaceSetLayout},
+	    .setLayoutNames = {"screenSpaceSet"},
 	    .pushConstants = {{vk::ShaderStageFlagBits::eFragment, 0, sizeof(float) * 2}},
 	});
 	pManager->build(PipelineDescription{
@@ -278,7 +277,7 @@ void GraphicsPipelinesInit::initPipelines(GeneralManager& gm)
 	    .cullMode = vk::CullModeFlagBits::eNone,
 	    .colorAttachments = {PipelineFactory::opaqueAttachment()},
 	    .colorFormats = {vk::Format::eR8Unorm},
-	    .setLayouts = {*dManager->screenSpaceSetLayout, *dManager->globalSetLayout},
+	    .setLayoutNames = {"screenSpaceSet", "globalSet"},
 	    .pushConstants = {{vk::ShaderStageFlagBits::eFragment, 0, 44u}},
 	});
 	pManager->build(PipelineDescription{
@@ -286,7 +285,7 @@ void GraphicsPipelinesInit::initPipelines(GeneralManager& gm)
 	    .cullMode = vk::CullModeFlagBits::eNone,
 	    .colorAttachments = {PipelineFactory::opaqueAttachment()},
 	    .colorFormats = {vk::Format::eR8Unorm},
-	    .setLayouts = {*dManager->screenSpaceSetLayout},
+	    .setLayoutNames = {"screenSpaceSet"},
 	    .pushConstants = {{vk::ShaderStageFlagBits::eFragment, 0, sizeof(float) * 4}},
 	});
 	pManager->build(PipelineDescription{
@@ -294,7 +293,7 @@ void GraphicsPipelinesInit::initPipelines(GeneralManager& gm)
 	    .cullMode = vk::CullModeFlagBits::eNone,
 	    .colorAttachments = {PipelineFactory::opaqueAttachment()},
 	    .colorFormats = {swapChain->hdrFormat},
-	    .setLayouts = {*dManager->screenSpaceSetLayout},
+	    .setLayoutNames = {"screenSpaceSet"},
 	    .pushConstants = {{vk::ShaderStageFlagBits::eFragment, 0, sizeof(float) * 2}},
 	});
 
@@ -303,7 +302,7 @@ void GraphicsPipelinesInit::initPipelines(GeneralManager& gm)
 	    .cullMode = vk::CullModeFlagBits::eNone,
 	    .colorAttachments = {PipelineFactory::opaqueAttachment()},
 	    .colorFormats = {swapChain->hdrFormat},
-	    .setLayouts = {*dManager->screenSpaceSetLayout},
+	    .setLayoutNames = {"screenSpaceSet"},
 	    .pushConstants = {{vk::ShaderStageFlagBits::eFragment, 0, 20u}},
 	});
 	pManager->build(PipelineDescription{
@@ -311,7 +310,7 @@ void GraphicsPipelinesInit::initPipelines(GeneralManager& gm)
 	    .cullMode = vk::CullModeFlagBits::eNone,
 	    .colorAttachments = {PipelineFactory::opaqueAttachment()},
 	    .colorFormats = {swapChain->hdrFormat},
-	    .setLayouts = {*dManager->screenSpaceSetLayout},
+	    .setLayoutNames = {"screenSpaceSet"},
 	    .pushConstants = {{vk::ShaderStageFlagBits::eFragment, 0, 16u}},
 	});
 
@@ -319,88 +318,92 @@ void GraphicsPipelinesInit::initPipelines(GeneralManager& gm)
 	pManager->build(PipelineDescription{
 	    .isCompute = true,
 	    .shaderPath = "shaders/frustum_culling.spv",
-	    .setLayouts = {*dManager->globalSetLayout, *dManager->modelSetLayout},
+	    .setLayoutNames = {"globalSet", "modelSet"},
 	    .pushConstants = {{vk::ShaderStageFlagBits::eCompute, 0, sizeof(uint32_t)}},
 	});
 
 	pManager->build(PipelineDescription{
 	    .isCompute = true,
 	    .shaderPath = "shaders/shadow_frustum_culling.spv",
-	    .setLayouts = {*dManager->globalSetLayout, *dManager->modelSetLayout},
+	    .setLayoutNames = {"globalSet", "modelSet"},
 	    .pushConstants = {{vk::ShaderStageFlagBits::eCompute, 0, sizeof(uint32_t)}},
 	});
 
 	pManager->build(PipelineDescription{
 	    .isCompute = true,
 	    .shaderPath = "shaders/frustum_compaction.spv",
-	    .setLayouts = {*dManager->modelSetLayout},
+	    .setLayoutNames = {"modelSet"},
 	    .pushConstants = {{vk::ShaderStageFlagBits::eCompute, 0, sizeof(uint32_t) * 4}},
 	});
 
 	pManager->build(PipelineDescription{
 	    .isCompute = true,
 	    .shaderPath = "shaders/reset_instance_count.spv",
-	    .setLayouts = {*dManager->modelSetLayout},
+	    .setLayoutNames = {"modelSet"},
 	    .pushConstants = {{vk::ShaderStageFlagBits::eCompute, 0, sizeof(uint32_t)}},
 	});
 
 	pManager->build(PipelineDescription{
 	    .isCompute = true,
 	    .shaderPath = "shaders/reset_instance_count.spv",
-	    .setLayouts = {*dManager->modelSetLayout},
+	    .setLayoutNames = {"modelSet"},
 	    .pushConstants = {{vk::ShaderStageFlagBits::eCompute, 0, sizeof(uint32_t)}},
 	});
 	pManager->build(PipelineDescription{
 	    .isCompute = true,
 	    .shaderPath = "shaders/equirect_to_cube.spv",
-	    .setLayouts = {*dManager->textureSetLayout},
+	    .setLayoutNames = {"textureSet"},
 	    .pushConstants = {{vk::ShaderStageFlagBits::eCompute, 0, sizeof(uint32_t)}},
 	});
 	pManager->build(PipelineDescription{
 	    .isCompute = true,
 	    .shaderPath = "shaders/sh_projection.spv",
-	    .setLayouts = {*dManager->textureSetLayout},
+	    .setLayoutNames = {"textureSet"},
 	    .pushConstants = {{vk::ShaderStageFlagBits::eCompute, 0, sizeof(int)}},
 	});
 	pManager->build(PipelineDescription{
 	    .isCompute = true,
 	    .shaderPath = "shaders/prefilter_env_map.spv",
-	    .setLayouts = {*dManager->textureSetLayout},
+	    .setLayoutNames = {"textureSet"},
 	    .pushConstants = {{vk::ShaderStageFlagBits::eCompute, 0, sizeof(float)}},
 	});
 	pManager->build(PipelineDescription{
 	    .isCompute = true,
 	    .shaderPath = "shaders/brdf_lut.spv",
-	    .setLayouts = {*dManager->textureSetLayout},
+	    .setLayoutNames = {"textureSet"},
 	});
 
 	// === AABB debug overlay ===
-	pManager->build(PipelineDescription{
-	    .shaderPath = "shaders/aabb_debug.spv",
-	    .topology = vk::PrimitiveTopology::eLineList,
-	    .cullMode = vk::CullModeFlagBits::eNone,
-	    .depthTest = true,
-	    .depthWrite = false,
-	    .depthOp = vk::CompareOp::eGreater,
-	    .colorAttachments = {PipelineFactory::opaqueAttachment()},
-	    .colorFormats = {swapChain->hdrFormat},
-	    .depthFormat = depthFormat,
-	    .setLayouts = {*dManager->globalSetLayout},
-	    .pushConstants = {{vk::ShaderStageFlagBits::eVertex, 0, 96u}},
-	}, "aabb_debug");
+	pManager->build(
+	    PipelineDescription{
+	        .shaderPath = "shaders/aabb_debug.spv",
+	        .topology = vk::PrimitiveTopology::eLineList,
+	        .cullMode = vk::CullModeFlagBits::eNone,
+	        .depthTest = true,
+	        .depthWrite = false,
+	        .depthOp = vk::CompareOp::eGreater,
+	        .colorAttachments = {PipelineFactory::opaqueAttachment()},
+	        .colorFormats = {swapChain->hdrFormat},
+	        .depthFormat = depthFormat,
+	        .setLayoutNames = {"globalSet"},
+	        .pushConstants = {{vk::ShaderStageFlagBits::eVertex, 0, 96u}},
+	    },
+	    "aabb_debug");
 
-	pManager->build(PipelineDescription{
-	    .shaderPath = "shaders/aabb_debug.spv",
-	    .topology = vk::PrimitiveTopology::eLineList,
-	    .cullMode = vk::CullModeFlagBits::eNone,
-	    .depthTest = false,
-	    .depthWrite = false,
-	    .colorAttachments = {PipelineFactory::opaqueAttachment()},
-	    .colorFormats = {swapChain->hdrFormat},
-	    .depthFormat = depthFormat,
-	    .setLayouts = {*dManager->globalSetLayout},
-	    .pushConstants = {{vk::ShaderStageFlagBits::eVertex, 0, 96u}},
-	}, "aabb_debug_ontop");
+	pManager->build(
+	    PipelineDescription{
+	        .shaderPath = "shaders/aabb_debug.spv",
+	        .topology = vk::PrimitiveTopology::eLineList,
+	        .cullMode = vk::CullModeFlagBits::eNone,
+	        .depthTest = false,
+	        .depthWrite = false,
+	        .colorAttachments = {PipelineFactory::opaqueAttachment()},
+	        .colorFormats = {swapChain->hdrFormat},
+	        .depthFormat = depthFormat,
+	        .setLayoutNames = {"globalSet"},
+	        .pushConstants = {{vk::ShaderStageFlagBits::eVertex, 0, 96u}},
+	    },
+	    "aabb_debug_ontop");
 #pragma endregion
 
 #ifdef _DEBUG
@@ -440,8 +443,7 @@ void GraphicsPipelinesInit::recreateMsaaPipelines(GeneralManager& gm, vk::Sample
 
 	std::vector<vk::Format> hdrFormats = {swapChain->hdrFormat, vk::Format::eR16G16B16A16Sfloat};
 
-	std::vector<vk::DescriptorSetLayout> mainLayouts = {*dManager->globalSetLayout, *dManager->modelSetLayout,
-	                                                    *dManager->textureSetLayout};
+	std::vector<std::string> mainLayouts = {"globalSet", "modelSet", "textureSet"};
 
 	pManager->rebuild(
 	    PipelineDescription{
@@ -456,7 +458,7 @@ void GraphicsPipelinesInit::recreateMsaaPipelines(GeneralManager& gm, vk::Sample
 	        .colorFormats = {},
 	        .depthFormat = depthFmt,
 	        .rasterizationSamples = msaaSamples,
-	        .setLayouts = mainLayouts,
+	        .setLayoutNames = mainLayouts,
 	    },
 	    "depth_prepass");
 
@@ -475,7 +477,7 @@ void GraphicsPipelinesInit::recreateMsaaPipelines(GeneralManager& gm, vk::Sample
 	        .colorFormats = hdrFormats,
 	        .depthFormat = depthFmt,
 	        .rasterizationSamples = msaaSamples,
-	        .setLayouts = mainLayouts,
+	        .setLayoutNames = mainLayouts,
 	    },
 	    "standard_forward_opaque");
 
@@ -494,7 +496,7 @@ void GraphicsPipelinesInit::recreateMsaaPipelines(GeneralManager& gm, vk::Sample
 	        .colorFormats = hdrFormats,
 	        .depthFormat = depthFmt,
 	        .rasterizationSamples = msaaSamples,
-	        .setLayouts = mainLayouts,
+	        .setLayoutNames = mainLayouts,
 	    },
 	    "standard_forward_opaque_no_ibl");
 
@@ -513,7 +515,7 @@ void GraphicsPipelinesInit::recreateMsaaPipelines(GeneralManager& gm, vk::Sample
 	        .colorFormats = hdrFormats,
 	        .depthFormat = depthFmt,
 	        .rasterizationSamples = msaaSamples,
-	        .setLayouts = mainLayouts,
+	        .setLayoutNames = mainLayouts,
 	    },
 	    "standard_forward_alpha");
 
@@ -532,7 +534,7 @@ void GraphicsPipelinesInit::recreateMsaaPipelines(GeneralManager& gm, vk::Sample
 	        .colorFormats = hdrFormats,
 	        .depthFormat = depthFmt,
 	        .rasterizationSamples = msaaSamples,
-	        .setLayouts = mainLayouts,
+	        .setLayoutNames = mainLayouts,
 	    },
 	    "standard_forward_alpha_no_ibl");
 
@@ -547,7 +549,7 @@ void GraphicsPipelinesInit::recreateMsaaPipelines(GeneralManager& gm, vk::Sample
 	        .colorFormats = hdrFormats,
 	        .depthFormat = depthFmt,
 	        .rasterizationSamples = msaaSamples,
-	        .setLayouts = mainLayouts,
+	        .setLayoutNames = mainLayouts,
 	    },
 	    "skybox");
 }

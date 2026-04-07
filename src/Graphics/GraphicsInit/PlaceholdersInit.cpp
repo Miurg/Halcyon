@@ -102,7 +102,7 @@ void PlaceholdersInit::initPlaceholders(GeneralManager& gm)
 
 #pragma region Global Descriptor Set (Set 0)
 	globalDSetComponent->globalDSets =
-	    dManager->allocateStorageBufferDSets(MAX_FRAMES_IN_FLIGHT, *dManager->globalSetLayout);
+	    dManager->allocateStorageBufferDSets(MAX_FRAMES_IN_FLIGHT, "globalSet");
 
 	// Camera buffer
 	globalDSetComponent->cameraBuffers =
@@ -207,7 +207,7 @@ void PlaceholdersInit::initPlaceholders(GeneralManager& gm)
 #pragma region Model & Frustum Culling Buffers (Set 1)
 	ModelDSetComponent* objectDSetComponent = gm.getContextComponent<MainDSetsContext, ModelDSetComponent>();
 	objectDSetComponent->modelBufferDSet =
-	    dManager->allocateStorageBufferDSets(MAX_FRAMES_IN_FLIGHT, *dManager->modelSetLayout);
+	    dManager->allocateStorageBufferDSets(MAX_FRAMES_IN_FLIGHT, "modelSet");
 
 	objectDSetComponent->primitiveBuffer =
 	    bManager->createBuffer((vk::MemoryPropertyFlagBits::eHostVisible), 10240 * sizeof(PrimitiveSctructure),
@@ -254,21 +254,21 @@ void PlaceholdersInit::initPlaceholders(GeneralManager& gm)
 
 #pragma region Post-Processing & SSAO Descriptor Sets
 	RenderGraph* rg = gm.getContextComponent<RenderGraphContext, RenderGraphComponent>()->renderGraph;
-	globalDSetComponent->fxaaDSets = dManager->allocateOffscreenDescriptorSet(*dManager->screenSpaceSetLayout);
-	globalDSetComponent->ssaoDSets = dManager->allocateOffscreenDescriptorSet(*dManager->screenSpaceSetLayout);
-	globalDSetComponent->ssaoBlurHDSets = dManager->allocateOffscreenDescriptorSet(*dManager->screenSpaceSetLayout);
-	globalDSetComponent->ssaoBlurVDSets = dManager->allocateOffscreenDescriptorSet(*dManager->screenSpaceSetLayout);
-	globalDSetComponent->ssaoApplyDSets = dManager->allocateOffscreenDescriptorSet(*dManager->screenSpaceSetLayout);
-	globalDSetComponent->toneMappingDSets = dManager->allocateOffscreenDescriptorSet(*dManager->screenSpaceSetLayout);
-	globalDSetComponent->vignetteDSets = dManager->allocateOffscreenDescriptorSet(*dManager->screenSpaceSetLayout);
+	globalDSetComponent->fxaaDSets        = dManager->allocateOffscreenDescriptorSet("screenSpaceSet");
+	globalDSetComponent->ssaoDSets        = dManager->allocateOffscreenDescriptorSet("screenSpaceSet");
+	globalDSetComponent->ssaoBlurHDSets   = dManager->allocateOffscreenDescriptorSet("screenSpaceSet");
+	globalDSetComponent->ssaoBlurVDSets   = dManager->allocateOffscreenDescriptorSet("screenSpaceSet");
+	globalDSetComponent->ssaoApplyDSets   = dManager->allocateOffscreenDescriptorSet("screenSpaceSet");
+	globalDSetComponent->toneMappingDSets = dManager->allocateOffscreenDescriptorSet("screenSpaceSet");
+	globalDSetComponent->vignetteDSets    = dManager->allocateOffscreenDescriptorSet("screenSpaceSet");
 
 	// Bloom descriptor sets (5 downsample + 5 upsample)
 	for (int i = 0; i < 5; i++)
 	{
 		globalDSetComponent->bloomDownsampleDSets[i] =
-		    dManager->allocateOffscreenDescriptorSet(*dManager->screenSpaceSetLayout);
+		    dManager->allocateOffscreenDescriptorSet("screenSpaceSet");
 		globalDSetComponent->bloomUpsampleDSets[i] =
-		    dManager->allocateOffscreenDescriptorSet(*dManager->screenSpaceSetLayout);
+		    dManager->allocateOffscreenDescriptorSet("screenSpaceSet");
 	}
 
 	// SSAO NoiseInput is a static texture — write it manually.

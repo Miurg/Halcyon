@@ -48,8 +48,8 @@ struct PipelineDescription
 
 	vk::SampleCountFlagBits rasterizationSamples = vk::SampleCountFlagBits::e1;
 
-	// Layout - if now set, will use pipelineHandler.pipelineLayout
-	std::vector<vk::DescriptorSetLayout> setLayouts;
+	// Layout names — resolved to raw handles by PipelineManager via DescriptorManager
+	std::vector<std::string> setLayoutNames;
 	std::vector<vk::PushConstantRange> pushConstants;
 };
 
@@ -64,7 +64,8 @@ struct BuiltPipeline
 class PipelineFactory
 {
 public:
-	static BuiltPipeline build(vk::raii::Device& device, const PipelineDescription& desc);
+	static BuiltPipeline build(vk::raii::Device& device, const PipelineDescription& desc,
+	                           const std::vector<vk::DescriptorSetLayout>& resolvedLayouts);
 
 	// Standart blended attachment (HDR + normals RT)
 	static ColorBlendAttachmentDesc blendedAttachment();

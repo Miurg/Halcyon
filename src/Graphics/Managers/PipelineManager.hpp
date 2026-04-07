@@ -4,10 +4,12 @@
 #include "../Factories/PipelineFactory.hpp"
 #include "../VulkanDevice.hpp"
 
+class DescriptorManager;
+
 class PipelineManager
 {
 public:
-	PipelineManager(VulkanDevice& vulkanDevice);
+	PipelineManager(VulkanDevice& vulkanDevice, DescriptorManager& descriptorManager);
 	~PipelineManager();
 	std::unordered_map<std::string, BuiltPipeline> pipelines;
 	void build(const PipelineDescription& desc);
@@ -19,4 +21,8 @@ public:
 
 private:
 	VulkanDevice& vulkanDevice;
+	DescriptorManager& descriptorManager;
+
+	// Resolves desc.setLayoutNames to raw vk::DescriptorSetLayout handles via DescriptorManager
+	std::vector<vk::DescriptorSetLayout> resolveLayouts(const PipelineDescription& desc) const;
 };
