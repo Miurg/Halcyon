@@ -59,7 +59,7 @@ MaterialMaps GltfLoader::materialsParser(tinygltf::Model& model, TextureManager&
 	    tManager.isTextureLoaded("sys_default_emissive")
 	        ? tManager.texturePaths["sys_default_emissive"].id
 	        : tManager
-	              .generateTextureData("sys_default_emissive", 1, 1, std::vector<unsigned char>{0, 0, 0, 255}.data(),
+	              .generateTextureData("sys_default_emissive", 1, 1, std::vector<unsigned char>{255, 255, 255, 255}.data(),
 	                                   dSetComponent, dManager)
 	              .id;
 
@@ -259,6 +259,7 @@ MaterialMaps GltfLoader::materialsParser(tinygltf::Model& model, TextureManager&
 			}
 		}
 		// Emissive Factor
+		bool hasEmissiveTexture = (material.emissiveIndex != defaultEmissiveTexture);
 		auto emissiveFactorIt = model.materials[i].additionalValues.find("emissiveFactor");
 		if (emissiveFactorIt != model.materials[i].additionalValues.end())
 		{
@@ -268,6 +269,10 @@ MaterialMaps GltfLoader::materialsParser(tinygltf::Model& model, TextureManager&
 				material.emissiveFactor = {static_cast<float>(factorVal[0]), static_cast<float>(factorVal[1]),
 				                           static_cast<float>(factorVal[2])};
 			}
+		}
+		else if (hasEmissiveTexture)
+		{
+			material.emissiveFactor = {1.0f, 1.0f, 1.0f};
 		}
 
 		// Emissive Strength (KHR_materials_emissive_strength)

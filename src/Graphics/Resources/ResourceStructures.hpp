@@ -62,7 +62,7 @@ struct MaterialStructure
 	uint32_t alphaMode = 0; // 0 = OPAQUE, 1 = MASK, 2 = BLEND
 	float emissiveStrength = 1.0f;
 	uint32_t doubleSided = 0; // 0 = single-sided, 1 = double-sided
-	alignas(16) glm::vec3 emissiveFactor = {1.0f, 1.0f, 1.0f};
+	alignas(16) glm::vec3 emissiveFactor = {0.0f, 0.0f, 0.0f};
 	float emissivePadding = 0.0f;
 	float roughnessFactor = 1.0f;
 	float metallicFactor = 1.0f;
