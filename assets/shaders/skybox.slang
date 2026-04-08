@@ -10,6 +10,21 @@ struct CameraData
 [[vk::binding(0, 0)]]
 StructuredBuffer<CameraData> camera;
 
+struct DirectionalLightData
+{
+    float4x4 lightSpaceMatrix;
+    float4 direction;
+    float4 color;
+    float4 ambient;
+    float4 shadowMapSize;
+    float4 frustumPlanes[6];
+    float shadowCasterRange;
+    float3 _pad;
+    float4 cameraFrustumLightSpaceBounds;
+};
+[[vk::binding(1, 0)]]
+StructuredBuffer<DirectionalLightData> directionalLight;
+
 [[vk::binding(3, 2)]]
 SamplerCube skyboxMap;
 
@@ -35,6 +50,22 @@ VSOutput vertMain(uint vertexID: SV_VertexID)
 	return output;
 }
 
+float3 ComputeAnalyticalSun(float3 viewDir, float3 lightDir, float3 sunColor, float sunIntensity)
+{
+    float cosTheta = dot(viewDir, lightDir);
+
+    float sunAngularRadius = 0.9998;
+    float sunGlowRadius = 0.9980;
+
+    float sunDisc = smoothstep(sunAngularRadius - 0.0001, sunAngularRadius + 0.0001, cosTheta);
+    float sunGlow = smoothstep(sunGlowRadius, 1.0, cosTheta);
+    sunGlow = pow(sunGlow, 3.0);
+
+    float totalSun = max(sunDisc, sunGlow * 0.4);
+
+    return sunColor * totalSun * sunIntensity;
+}
+
 struct FragOutput
 {
 	float4 color : SV_Target0;
@@ -44,13 +75,19 @@ struct FragOutput
 [shader("fragment")]
 FragOutput fragMain(VSOutput input)
 {
-	FragOutput output;
+    FragOutput output;
 
-	// Sample skybox using the reconstructed local ray direction
-	float3 envColor = skyboxMap.Sample(input.localPos).rgb;
+    // Just in case
+    float3 viewDir = normalize(input.localPos);
+    float3 lightDir = normalize(directionalLight[0].direction.xyz);
+    float3 sunColor = directionalLight[0].color.rgb;
+    float sunIntensity = directionalLight[0].color.a * 100.0f;
+    float3 sun = ComputeAnalyticalSun(viewDir, lightDir, sunColor, sunIntensity);
 
-	output.color = float4(envColor, 1.0);
-	output.normals = float4(0.0, 0.0, 0.0, 0.0); // Don't disrupt normals target
+    float3 envColor = skyboxMap.Sample(input.localPos).rgb;
+    
+    output.color = float4(envColor + sun, 1.0);
+    output.normals = float4(0.0, 0.0, 0.0, 0.0); // Don't disrupt normals target
 
-	return output;
+    return output;
 }
