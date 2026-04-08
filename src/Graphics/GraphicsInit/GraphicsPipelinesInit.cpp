@@ -285,6 +285,22 @@ void GraphicsPipelinesInit::initPipelines(GeneralManager& gm)
 	    .setLayoutNames = mainLayouts,
 	});
 
+	// === Skybox for baking ===
+	pManager->build(
+	    PipelineDescription{
+	        .shaderPath = "shaders/skybox.spv",
+	        .cullMode = vk::CullModeFlagBits::eNone,
+	        .depthTest = true,
+	        .depthWrite = false,
+	        .depthOp = vk::CompareOp::eEqual,
+	        .colorAttachments = {PipelineFactory::blendedAttachment(), PipelineFactory::blendedAttachment()},
+	        .colorFormats = hdrFormats,
+	        .depthFormat = depthFormat,
+	        .rasterizationSamples = vk::SampleCountFlagBits::e1,
+	        .setLayoutNames = mainLayouts,
+	    },
+	    "skybox_capture");
+
 	// === Fullscreen passes ===
 	pManager->build(PipelineDescription{
 	    .shaderPath = "shaders/vignette.spv",

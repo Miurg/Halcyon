@@ -32,16 +32,12 @@
 #include <array>
 #include <iostream>
 
-// ─────────────────────────────────────────────────────────────────────────────
-// File-scope constants
-// ─────────────────────────────────────────────────────────────────────────────
+// Constants
 
 static constexpr uint32_t kCaptureSize = 128;
 static constexpr vk::Format kCaptureFormat = vk::Format::eR16G16B16A16Sfloat;
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Implementation-only structs
-// ─────────────────────────────────────────────────────────────────────────────
 
 struct FaceDesc
 {
@@ -63,6 +59,7 @@ struct BakeContext
 	DrawInfoComponent* drawInfo;
 	LightProbeGridComponent* grid;
 	VmaAllocator allocator;
+	bool hasSkybox;
 };
 
 struct TempImages
@@ -144,6 +141,7 @@ static BakeContext gatherContext(GeneralManager& gm)
 	ctx.drawInfo = gm.getContextComponent<CurrentFrameContext, DrawInfoComponent>();
 	ctx.grid = gm.getContextComponent<LightProbeGridContext, LightProbeGridComponent>();
 	ctx.allocator = gm.getContextComponent<VMAllocatorContext, VMAllocatorComponent>()->allocator;
+	ctx.hasSkybox = gm.getContextComponent<SkyBoxContext, SkyboxComponent>()->hasSkybox;
 	return ctx;
 }
 
@@ -274,6 +272,13 @@ static void drawGeometry(vk::raii::CommandBuffer& cmd, const BakeContext& ctx)
 		                             cmdOffset, ctx.bufferManager->buffers[ctx.modelDSet->drawCountBuffer.id].buffer[0],
 		                             countOffset, ctx.drawInfo->opaqueDoubleCount, commandStride);
 		cmdOffset += ctx.drawInfo->opaqueDoubleCount * commandStride;
+	}
+
+	if (ctx.hasSkybox)
+	{
+		cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *ctx.pipelineManager->pipelines["skybox_capture"].pipeline);
+		cmd.setCullMode(vk::CullModeFlagBits::eNone);
+		cmd.draw(3, 1, 0, 0);
 	}
 
 	// === Alpha ===
