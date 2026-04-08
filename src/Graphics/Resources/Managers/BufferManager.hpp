@@ -27,9 +27,9 @@ public:
 
 	BufferHandle createBuffer(vk::MemoryPropertyFlags propertyBits, vk::DeviceSize sizeBuffer,
 	                          uint_fast16_t numberBuffers, vk::Flags<vk::BufferUsageFlagBits> usageBuffer);
-	BufferHandle generateSHCoefficients(TextureHandle envCubemap, DescriptorManager& dManager,
-	                                     BindlessTextureDSetComponent& dSetComponent, PipelineManager& pManager,
-	                                     TextureManager& tManager);
+	void bakeSHForProbe(TextureHandle envCubemap, BufferHandle probeBuffer, int probeSlot,
+	                    DescriptorManager& dManager, BindlessTextureDSetComponent& dSetComponent,
+	                    DSetHandle globalDSet, PipelineManager& pManager, TextureManager& tManager);
 
 	template <typename T>
 	void writeToBuffer(BufferHandle handle, uint32_t bufferIndex, uint32_t elementIndex, const T& value)

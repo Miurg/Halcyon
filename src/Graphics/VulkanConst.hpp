@@ -8,6 +8,7 @@ constexpr int MAX_OBJECTS = 3;
 constexpr int MAX_PATH_LEN = 260;
 constexpr uint_fast32_t MAX_SIZE_OF_VERTEX_INDEX_BUFFER = 6710886400; // 64 MB
 constexpr int MAX_BINDLESS_TEXTURES = 2048;
+constexpr uint32_t MAX_SH_PROBES = 4096; // 127 scene probes + slot 0 (skybox fallback)
 
 struct UniformBufferObject
 {

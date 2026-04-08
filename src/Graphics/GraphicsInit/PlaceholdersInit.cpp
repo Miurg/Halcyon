@@ -1,4 +1,5 @@
 #include "PlaceholdersInit.hpp"
+#include <limits>
 #include "GraphicsInit.hpp"
 #include "../Components/VulkanDeviceComponent.hpp"
 #include "../Components/SwapChainComponent.hpp"
@@ -67,10 +68,10 @@ void PlaceholdersInit::initPlaceholders(GeneralManager& gm)
 	gm.addComponent<NameComponent>(directLightEntity, "Directional Light (Sun)");
 	gm.addComponent<CameraComponent>(directLightEntity);
 	glm::vec3 directLightPos = glm::vec3(10.0f, 20.0f, 10.0f);
-	glm::vec3 directLightDir = glm::normalize(-directLightPos);
-	glm::quat directLightRot = glm::quatLookAt(directLightDir, glm::vec3(0.0f, 1.0f, 0.0f));
+	glm::quat directLightRot = glm::quatLookAt(glm::vec3(0.577f, -0.816f, 0.005f), glm::vec3(0.0f, 1.0f, 0.0f));
 	glm::vec4 directLightColor = glm::vec4(0.984f, 1.0f, 0.808f, 50.0f); // Slightly warm white light with high intensity
-	glm::vec4 directLightAmbient = directLightColor * 0.01f; // Ambient component is 10% of the main light color
+	glm::vec4 directLightAmbient = directLightColor; // Ambient component is 0.1% of the main light color
+	directLightAmbient.w *= 0.001f;
 	gm.addComponent<GlobalTransformComponent>(directLightEntity, directLightPos, directLightRot);
 	gm.addComponent<DirectLightComponent>(directLightEntity, 4000, 4000, directLightColor, directLightAmbient);
 	gm.registerContext<SunContext>(directLightEntity);
@@ -128,6 +129,38 @@ void PlaceholdersInit::initPlaceholders(GeneralManager& gm)
 	                           sizeof(uint32_t), MAX_FRAMES_IN_FLIGHT, vk::BufferUsageFlagBits::eStorageBuffer);
 	dManager->updateStorageBufferDescriptors(*bManager, globalDSetComponent->pointLightCountBuffer,
 	                                         globalDSetComponent->globalDSets, Bindings::Global::PointLightCount);
+
+	// SH Probe buffer.
+	globalDSetComponent->shProbeBuffer =
+	    bManager->createBuffer((vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal),
+	                           sizeof(SHProbeEntry) * MAX_SH_PROBES, 1,
+	                           vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst);
+	{
+		SHProbeEntry skyboxSlot{};
+		skyboxSlot.position        = glm::vec3(0.0f);
+		skyboxSlot.influenceRadius = std::numeric_limits<float>::max();
+		auto cmd = VulkanUtils::beginSingleTimeCommands(*vulkanDevice);
+		cmd.updateBuffer(bManager->buffers[globalDSetComponent->shProbeBuffer.id].buffer[0],
+		                 0, vk::ArrayProxy<const SHProbeEntry>(1, &skyboxSlot));
+		VulkanUtils::endSingleTimeCommands(cmd, *vulkanDevice);
+	}
+	dManager->updateStorageBufferDescriptors(*bManager, globalDSetComponent->shProbeBuffer,
+	                                         globalDSetComponent->globalDSets, Bindings::Global::SHProbes);
+
+	// SH Probe count - slot 0 (skybox) always present, so initial count = 1.
+	globalDSetComponent->shProbeCountBuffer =
+	    bManager->createBuffer((vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal),
+	                           sizeof(uint32_t), 1,
+	                           vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst);
+	dManager->updateStorageBufferDescriptors(*bManager, globalDSetComponent->shProbeCountBuffer,
+	                                         globalDSetComponent->globalDSets, Bindings::Global::SHProbeCount);
+	{
+		uint32_t initialCount = 1u;
+		auto cmd = VulkanUtils::beginSingleTimeCommands(*vulkanDevice);
+		cmd.updateBuffer(bManager->buffers[globalDSetComponent->shProbeCountBuffer.id].buffer[0],
+		                 0, vk::ArrayProxy<const uint32_t>(1, &initialCount));
+		VulkanUtils::endSingleTimeCommands(cmd, *vulkanDevice);
+	}
 #pragma endregion
 
 #pragma region Material & Texture System (Set 2)
@@ -160,7 +193,9 @@ void PlaceholdersInit::initPlaceholders(GeneralManager& gm)
 	gm.registerContext<SkyBoxContext>(skyboxEntity);
 	SkyboxComponent* skybox = gm.getContextComponent<SkyBoxContext, SkyboxComponent>();
 
-	TextureHandle whiteCubemapHandle = tManager->createCubemapImage(1, 1, vk::Format::eR32G32B32A32Sfloat);
+	TextureHandle whiteCubemapHandle = tManager->createCubemapImage(
+	    1, 1, vk::Format::eR32G32B32A32Sfloat,
+	    vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eStorage);
 	Texture& whiteCubemap = tManager->textures[whiteCubemapHandle.id];
 	tManager->createCubemapImageView(whiteCubemap, vk::Format::eR32G32B32A32Sfloat, vk::ImageAspectFlagBits::eColor);
 	tManager->createCubemapSampler(whiteCubemap);
@@ -178,19 +213,6 @@ void PlaceholdersInit::initPlaceholders(GeneralManager& gm)
 	dManager->updateCubemapDescriptors(*bTextureDSetComponent, whiteCubemap.textureImageView,
 	                                   whiteCubemap.textureSampler, whiteCubemap.textureImageView);
 
-	// Default zeroed SH buffer (9 x float4 = 144 bytes) - used until a real skybox is loaded
-	constexpr vk::DeviceSize shBufferSize = 9 * 3 * sizeof(float);
-	BufferHandle defaultSHHandle =
-	    bManager->createBuffer(vk::MemoryPropertyFlagBits::eDeviceLocal, shBufferSize, 1,
-	                           vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst);
-	{
-		auto cmd = VulkanUtils::beginSingleTimeCommands(*vulkanDevice);
-		cmd.fillBuffer(bManager->buffers[defaultSHHandle.id].buffer[0], 0, VK_WHOLE_SIZE, 0);
-		VulkanUtils::endSingleTimeCommands(cmd, *vulkanDevice);
-	}
-	dManager->updateSHBufferDescriptor(*bTextureDSetComponent, bManager->buffers[defaultSHHandle.id].buffer[0],
-	                                   shBufferSize);
-
 	dManager->updateIBLDescriptors(*bTextureDSetComponent, whiteCubemap.textureImageView, whiteCubemap.textureSampler,
 	                               whiteCubemap.textureImageView, whiteCubemap.textureSampler);
 
@@ -198,7 +220,6 @@ void PlaceholdersInit::initPlaceholders(GeneralManager& gm)
 	TextureHandle brdfLutHandle = tManager->generateBrdfLut(*dManager, *bTextureDSetComponent, pManager);
 
 	skybox->cubemapTexture = whiteCubemapHandle;
-	skybox->shBuffer = defaultSHHandle;
 	skybox->prefilteredMap = whiteCubemapHandle;
 	skybox->brdfLut = brdfLutHandle;
 

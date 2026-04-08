@@ -41,6 +41,18 @@
 #include "../Components/RelationshipComponent.hpp"
 #include "../Components/GlobalTransformComponent.hpp"
 #include <functional>
+
+// Free helpers used by both CullPass and LightProbeGISystem (probe baking).
+// TODO: do something, seems inconsistent
+void drawResetInstancePass(vk::raii::CommandBuffer& cmd, uint32_t frame, DescriptorManagerComponent& dManager,
+                           ModelDSetComponent& objectDSetComponent, const DrawInfoComponent& drawInfo,
+                           PipelineManager& pManager);
+
+void drawCullPass(vk::raii::CommandBuffer& cmd, uint32_t frame, DescriptorManagerComponent& dManager,
+                  GlobalDSetComponent& globalDSetComponent, ModelDSetComponent& objectDSetComponent,
+                  ModelManager& mManager, BufferManager& bManager, const DrawInfoComponent& drawInfo,
+                  PipelineManager& pManager);
+
 class RenderPasses
 {
 public:

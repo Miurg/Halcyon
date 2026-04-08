@@ -233,6 +233,44 @@ void GraphicsPipelinesInit::initPipelines(GeneralManager& gm)
 	    },
 	    "standard_forward_alpha_no_ibl");
 
+	// === Capture (1x MSAA, 2 outputs matching standard_forward — used for rendering scenes to cubemap faces) ===
+	pManager->build(
+	    PipelineDescription{
+	        .shaderPath = "shaders/standard_forward.spv",
+	        .specializationValues = {0, 1, 1}, // ALPHA_TEST=0, IBL=1
+	        .vertexBindings = {bindingDesc},
+	        .vertexAttributes = std::vector<vk::VertexInputAttributeDescription>(attrDescs.begin(), attrDescs.end()),
+	        .cullMode = vk::CullModeFlagBits::eBack,
+	        .depthTest = true,
+	        .depthWrite = true,
+	        .depthOp = vk::CompareOp::eGreater,
+	        .colorAttachments = {PipelineFactory::blendedAttachment(), PipelineFactory::blendedAttachment()},
+	        .colorFormats = hdrFormats,
+	        .depthFormat = depthFormat,
+	        .rasterizationSamples = vk::SampleCountFlagBits::e1,
+	        .setLayoutNames = mainLayouts,
+	    },
+	    "standard_forward_capture");
+
+	// === Capture alpha (ALPHA_TEST=1, same 2-attachment layout as standard_forward_capture) ===
+	pManager->build(
+	    PipelineDescription{
+	        .shaderPath = "shaders/standard_forward.spv",
+	        .specializationValues = {1, 1, 1}, // ALPHA_TEST=1, IBL=1
+	        .vertexBindings = {bindingDesc},
+	        .vertexAttributes = std::vector<vk::VertexInputAttributeDescription>(attrDescs.begin(), attrDescs.end()),
+	        .cullMode = vk::CullModeFlagBits::eBack,
+	        .depthTest = true,
+	        .depthWrite = true,
+	        .depthOp = vk::CompareOp::eGreater,
+	        .colorAttachments = {PipelineFactory::blendedAttachment(), PipelineFactory::blendedAttachment()},
+	        .colorFormats = hdrFormats,
+	        .depthFormat = depthFormat,
+	        .rasterizationSamples = vk::SampleCountFlagBits::e1,
+	        .setLayoutNames = mainLayouts,
+	    },
+	    "standard_forward_capture_alpha");
+
 	// === Skybox ===
 	pManager->build(PipelineDescription{
 	    .shaderPath = "shaders/skybox.spv",
@@ -358,8 +396,8 @@ void GraphicsPipelinesInit::initPipelines(GeneralManager& gm)
 	pManager->build(PipelineDescription{
 	    .isCompute = true,
 	    .shaderPath = "shaders/sh_projection.spv",
-	    .setLayoutNames = {"textureSet"},
-	    .pushConstants = {{vk::ShaderStageFlagBits::eCompute, 0, sizeof(int)}},
+	    .setLayoutNames = {"globalSet", "textureSet"},
+	    .pushConstants = {{vk::ShaderStageFlagBits::eCompute, 0, sizeof(int) * 2}},
 	});
 	pManager->build(PipelineDescription{
 	    .isCompute = true,

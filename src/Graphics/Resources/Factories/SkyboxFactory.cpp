@@ -11,6 +11,7 @@
 #include "../../Components/SkyboxComponent.hpp"
 #include "../../Components/BufferManagerComponent.hpp"
 #include "../Components/BindlessTextureDSetComponent.hpp"
+#include "../Components/GlobalDSetComponent.hpp"
 #include "../../GraphicsContexts.hpp"
 #include "../../Managers/PipelineManager.hpp"
 #include "../../Components/PipelineManagerComponent.hpp"
@@ -33,6 +34,8 @@ void SkyboxFactory::loadSkybox(const std::string& hdrPath, GeneralManager& gm)
 	    *gm.getContextComponent<BufferManagerContext, BufferManagerComponent>()->bufferManager;
 	SkyboxComponent& skybox =
 	    *gm.getContextComponent<SkyBoxContext, SkyboxComponent>();
+	GlobalDSetComponent& globalDSetComp =
+	    *gm.getContextComponent<MainDSetsContext, GlobalDSetComponent>();
 
 	// Upload HDR texture
 	tManager.textures.push_back(Texture());
@@ -48,8 +51,10 @@ void SkyboxFactory::loadSkybox(const std::string& hdrPath, GeneralManager& gm)
 	TextureHandle cubemapHandle =
 	    tManager.generateCubemapFromHdr(hdrHandle, dManager, bTextureDSetComponent, pManager);
 
-	BufferHandle shHandle =
-	    bManager.generateSHCoefficients(cubemapHandle, dManager, bTextureDSetComponent, pManager, tManager);
+	// Bake skybox SH into probe slot 0 (the global fallback probe)
+	bManager.bakeSHForProbe(cubemapHandle, globalDSetComp.shProbeBuffer, 0,
+	                         dManager, bTextureDSetComponent,
+	                         globalDSetComp.globalDSets, pManager, tManager);
 
 	TextureHandle prefilteredHandle = tManager.generatePrefilteredEnvMap(cubemapHandle, dManager,
 	                                                                      bTextureDSetComponent, pManager);
@@ -60,7 +65,6 @@ void SkyboxFactory::loadSkybox(const std::string& hdrPath, GeneralManager& gm)
 	                               tManager.textures[skybox.brdfLut.id].textureSampler);
 
 	skybox.cubemapTexture = cubemapHandle;
-	skybox.shBuffer = shHandle;
 	skybox.prefilteredMap = prefilteredHandle;
 	skybox.hasSkybox = true;
 	// brdfLut stays the same - it's generated once at init

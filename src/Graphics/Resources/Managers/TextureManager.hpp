@@ -45,7 +45,9 @@ public:
 	                                   vk::FormatFeatureFlags features);
 	void createImage(uint32_t width, uint32_t height, vk::Format format, vk::ImageTiling tiling,
 	                 vk::ImageUsageFlags usage, VmaMemoryUsage memoryUsage, Texture& texture, uint32_t mipLevels = 1);
-	TextureHandle createCubemapImage(uint32_t width, uint32_t height, vk::Format format, uint32_t mipLevels = 1);
+	TextureHandle createCubemapImage(uint32_t width, uint32_t height, vk::Format format,
+	                                 vk::ImageUsageFlags usage, uint32_t mipLevels = 1);
+	void destroyTexture(TextureHandle handle);
 	TextureHandle generateCubemapFromHdr(TextureHandle hdrTexture,
 	                                     DescriptorManager& dManager, BindlessTextureDSetComponent& dSetComponent,
 	                                     PipelineManager& pManager);

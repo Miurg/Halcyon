@@ -33,6 +33,30 @@ TextureManager::~TextureManager()
 	}
 }
 
+void TextureManager::destroyTexture(TextureHandle handle)
+{
+	Texture& texture = textures[handle.id];
+
+	if (texture.textureSampler)
+	{
+		(*vulkanDevice.device).destroySampler(texture.textureSampler);
+		texture.textureSampler = nullptr;
+	}
+
+	if (texture.textureImageView)
+	{
+		(*vulkanDevice.device).destroyImageView(texture.textureImageView);
+		texture.textureImageView = nullptr;
+	}
+
+	if (texture.textureImage)
+	{
+		vmaDestroyImage(allocator, texture.textureImage, texture.textureImageAllocation);
+		texture.textureImage     = nullptr;
+		texture.textureImageAllocation = nullptr;
+	}
+}
+
 TextureHandle TextureManager::createDepthImage(uint32_t resolutionWidth, uint32_t resolutionHeight)
 {
 	textures.push_back(Texture());
@@ -231,7 +255,8 @@ int TextureManager::emplaceMaterials(BindlessTextureDSetComponent& dSetComponent
 	return materials.size() - 1;
 }
 
-TextureHandle TextureManager::createCubemapImage(uint32_t width, uint32_t height, vk::Format format, uint32_t mipLevels)
+TextureHandle TextureManager::createCubemapImage(uint32_t width, uint32_t height, vk::Format format,
+                                                 vk::ImageUsageFlags usage, uint32_t mipLevels)
 {
 	textures.push_back(Texture());
 	Texture& texture = textures.back();
@@ -240,8 +265,7 @@ TextureHandle TextureManager::createCubemapImage(uint32_t width, uint32_t height
 	texture.height = height;
 	texture.format = format;
 	texture.tiling = vk::ImageTiling::eOptimal;
-	texture.usage =
-	    vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eStorage;
+	texture.usage = usage;
 	texture.memoryUsage = VMA_MEMORY_USAGE_AUTO;
 	texture.layerCount = 6;
 	texture.mipLevels = mipLevels;
@@ -386,7 +410,9 @@ TextureHandle TextureManager::generateCubemapFromHdr(TextureHandle hdrTexture,
                                                      PipelineManager& pManager)
 {
 	// Create Cubemap
-	TextureHandle cubemapHandle = createCubemapImage(1024, 1024, vk::Format::eR32G32B32A32Sfloat, 1);
+	TextureHandle cubemapHandle = createCubemapImage(
+	    1024, 1024, vk::Format::eR32G32B32A32Sfloat,
+	    vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eStorage);
 	Texture& cubemapTexture = textures[cubemapHandle.id];
 	createCubemapImageView(cubemapTexture, vk::Format::eR32G32B32A32Sfloat, vk::ImageAspectFlagBits::eColor);
 	createCubemapSampler(cubemapTexture);
@@ -441,8 +467,10 @@ TextureHandle TextureManager::generatePrefilteredEnvMap(TextureHandle envCubemap
 	const uint32_t prefilteredSize = 128;
 	const uint32_t maxMipLevels = 5;
 
-	TextureHandle prefilteredHandle =
-	    createCubemapImage(prefilteredSize, prefilteredSize, vk::Format::eR32G32B32A32Sfloat, maxMipLevels);
+	TextureHandle prefilteredHandle = createCubemapImage(
+	    prefilteredSize, prefilteredSize, vk::Format::eR32G32B32A32Sfloat,
+	    vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eStorage,
+	    maxMipLevels);
 	Texture& prefilteredTexture = textures[prefilteredHandle.id];
 	createCubemapImageView(prefilteredTexture, vk::Format::eR32G32B32A32Sfloat, vk::ImageAspectFlagBits::eColor);
 	createCubemapSampler(prefilteredTexture);

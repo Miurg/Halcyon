@@ -1,17 +1,30 @@
 static const float F_PI = 3.14159265358979f;
 
-struct SHCoefficients
+struct SHProbeEntry
 {
-    float3 coefficient[9];
+    float3 position;     float influenceRadius;
+    float3 sh0; float _p0;
+    float3 sh1; float _p1;
+    float3 sh2; float _p2;
+    float3 sh3; float _p3;
+    float3 sh4; float _p4;
+    float3 sh5; float _p5;
+    float3 sh6; float _p6;
+    float3 sh7; float _p7;
+    float3 sh8; float _p8;
 };
 
-[[vk::binding(3, 0)]] SamplerCube cubemap;
-[[vk::binding(5, 0)]] RWStructuredBuffer<SHCoefficients> outSH;
+// Set 0 = globalSet
+[[vk::binding(4, 0)]] RWStructuredBuffer<SHProbeEntry> probeArray;
+
+// Set 1 = textureSet
+[[vk::binding(3, 1)]] SamplerCube cubemap;
 
 [[vk::push_constant]]
 cbuffer PushConstants
 {
     int cubemapResolution;
+    int probeSlot;
 };
 
 float3 faceDirection(int face, float u, float v)
@@ -53,6 +66,12 @@ float[9] computeShBasis(float3 dir)
     outBasis[8] = f4 * (dir.x * dir.x - dir.y * dir.y);
     return outBasis;
 }
+
+// Local-only struct for accumulation during projection
+struct SHCoefficients
+{
+    float3 coefficient[9];
+};
 
 SHCoefficients convolveWithCosineLobe(SHCoefficients SHIn)
 {
@@ -127,5 +146,14 @@ void computeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
         result.coefficient[i].z *= normFactor;
     }
     result = convolveWithCosineLobe(result);
-    outSH[0] = result;
+
+    probeArray[probeSlot].sh0 = result.coefficient[0];
+    probeArray[probeSlot].sh1 = result.coefficient[1];
+    probeArray[probeSlot].sh2 = result.coefficient[2];
+    probeArray[probeSlot].sh3 = result.coefficient[3];
+    probeArray[probeSlot].sh4 = result.coefficient[4];
+    probeArray[probeSlot].sh5 = result.coefficient[5];
+    probeArray[probeSlot].sh6 = result.coefficient[6];
+    probeArray[probeSlot].sh7 = result.coefficient[7];
+    probeArray[probeSlot].sh8 = result.coefficient[8];
 }

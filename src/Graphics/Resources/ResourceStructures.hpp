@@ -70,6 +70,26 @@ struct MaterialStructure
 	float padding2 = 0.0f;
 };
 
+// Unified SH light probe entry (160 bytes, 16-byte aligned).
+// Slot 0 = skybox fallback (influenceRadius = FLT_MAX, position ignored).
+// SH coefficients are float3 + float pad to match std430 vec4 stride.
+struct SHProbeEntry
+{
+    alignas(16) glm::vec3 position;
+    float influenceRadius; // FLT_MAX = global fallback (skybox slot)
+
+    alignas(16) glm::vec3 sh0; float _p0;
+    alignas(16) glm::vec3 sh1; float _p1;
+    alignas(16) glm::vec3 sh2; float _p2;
+    alignas(16) glm::vec3 sh3; float _p3;
+    alignas(16) glm::vec3 sh4; float _p4;
+    alignas(16) glm::vec3 sh5; float _p5;
+    alignas(16) glm::vec3 sh6; float _p6;
+    alignas(16) glm::vec3 sh7; float _p7;
+    alignas(16) glm::vec3 sh8; float _p8;
+    // Total: 10 × 16 = 160 bytes
+};
+
 struct PointLightStructure
 {
 	alignas(16) glm::vec3 position;

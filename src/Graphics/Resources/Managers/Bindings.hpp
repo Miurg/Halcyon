@@ -9,6 +9,8 @@ constexpr uint32_t Camera = 0;
 constexpr uint32_t Sun = 1;
 constexpr uint32_t PointLights = 2;
 constexpr uint32_t PointLightCount = 3;
+constexpr uint32_t SHProbes = 4;
+constexpr uint32_t SHProbeCount = 5;
 } // namespace Global
 
 namespace Model
@@ -28,7 +30,6 @@ constexpr uint32_t ShadowMap = 1;
 constexpr uint32_t Materials = 2;
 constexpr uint32_t CubemapSampler = 3;
 constexpr uint32_t CubemapStorage = 4;
-constexpr uint32_t SHCoefficients = 5;
 constexpr uint32_t PrefilteredMap = 6;
 constexpr uint32_t BrdfLut = 7;
 } // namespace Textures

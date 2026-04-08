@@ -8,6 +8,8 @@ struct GlobalDSetComponent
 	BufferHandle sunCameraBuffers;
 	BufferHandle pointLightBuffers;
 	BufferHandle pointLightCountBuffer;
+	BufferHandle shProbeBuffer;      // SHProbeEntry[MAX_SH_PROBES] — slot 0 = skybox fallback
+	BufferHandle shProbeCountBuffer; // single uint32_t
 	DSetHandle fxaaDSets;
 	DSetHandle ssaoDSets;
 	DSetHandle ssaoBlurHDSets;

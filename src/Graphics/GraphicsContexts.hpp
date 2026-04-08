@@ -68,3 +68,6 @@ class ShaderReloaderContext
 {
 
 };
+class LightProbeGridContext
+{
+};

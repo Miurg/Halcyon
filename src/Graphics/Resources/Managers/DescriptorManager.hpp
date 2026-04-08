@@ -34,9 +34,12 @@ public:
 	                              vk::Sampler cubemapSampler, vk::ImageView storageImageView);
 	void updateIBLDescriptors(BindlessTextureDSetComponent& dSetComponent, vk::ImageView prefilteredView,
 	                          vk::Sampler prefilteredSampler, vk::ImageView brdfLutView, vk::Sampler brdfLutSampler);
-	void updateSHBufferDescriptor(BindlessTextureDSetComponent& dSetComponent, vk::Buffer shBuffer,
-	                              vk::DeviceSize bufferSize);
 	void updateSingleTextureDSet(DSetHandle dIndex, int binding, vk::ImageView imageView, vk::Sampler sampler);
+	// Updates only Bindings::Textures::CubemapSampler (binding 3 of textureSet).
+	// Call before bakeSHForProbe to redirect sh_projection at a capture cubemap.
+	void updateCubemapSamplerDescriptor(BindlessTextureDSetComponent& dSetComponent,
+	                                    vk::ImageView cubemapImageView,
+	                                    vk::Sampler   cubemapSampler);
 	void updateStorageBufferDescriptors(BufferManager& bManager, BufferHandle bNumber, DSetHandle dSet,
 	                                    uint32_t binding);
 

@@ -50,6 +50,9 @@ DescriptorManager::DescriptorManager(VulkanDevice& vulkanDevice)
 		                                   kAllStages),
 		    vk::DescriptorSetLayoutBinding(Bindings::Global::PointLightCount, vk::DescriptorType::eStorageBuffer, 1,
 		                                   kAllStages),
+		    vk::DescriptorSetLayoutBinding(Bindings::Global::SHProbes, vk::DescriptorType::eStorageBuffer, 1, kAllStages),
+		    vk::DescriptorSetLayoutBinding(Bindings::Global::SHProbeCount, vk::DescriptorType::eStorageBuffer, 1,
+		                                   kAllStages),
 		};
 		registerLayout("globalSet", globalBindings);
 	}
@@ -88,20 +91,17 @@ DescriptorManager::DescriptorManager(VulkanDevice& vulkanDevice)
 		                                   1, S::eFragment | S::eCompute),
 		    vk::DescriptorSetLayoutBinding(Bindings::Textures::CubemapStorage, vk::DescriptorType::eStorageImage, 1,
 		                                   S::eCompute),
-		    vk::DescriptorSetLayoutBinding(Bindings::Textures::SHCoefficients, vk::DescriptorType::eStorageBuffer, 1,
-		                                   S::eFragment | S::eCompute),
 		    vk::DescriptorSetLayoutBinding(Bindings::Textures::PrefilteredMap, vk::DescriptorType::eCombinedImageSampler,
 		                                   1, S::eFragment),
 		    vk::DescriptorSetLayoutBinding(Bindings::Textures::BrdfLut, vk::DescriptorType::eCombinedImageSampler, 1,
 		                                   S::eFragment),
 		};
-		std::array<vk::DescriptorBindingFlags, 8> textureBindingFlags = {
+		std::array<vk::DescriptorBindingFlags, 7> textureBindingFlags = {
 		    vk::DescriptorBindingFlagBits::ePartiallyBound | vk::DescriptorBindingFlagBits::eUpdateAfterBind,
 		    vk::DescriptorBindingFlags{}, // shadowMap
 		    vk::DescriptorBindingFlags{}, // materials
 		    vk::DescriptorBindingFlags{}, // cubemapSampler
 		    vk::DescriptorBindingFlags{}, // cubemapStorage
-		    vk::DescriptorBindingFlags{}, // shCoefficients
 		    vk::DescriptorBindingFlags{}, // prefilteredMap
 		    vk::DescriptorBindingFlags{}, // brdfLut
 		};
@@ -112,7 +112,7 @@ DescriptorManager::DescriptorManager(VulkanDevice& vulkanDevice)
 		               &bindingFlagsInfo);
 	}
 
-	// Shared fullscreen layout: 3 CombinedImageSampler slots 
+	// Shared fullscreen layout: 3 CombinedImageSampler slots
 	{
 		std::array<vk::DescriptorSetLayoutBinding, 3> ssBindings{};
 		for (uint32_t i = 0; i < 3; i++)
@@ -266,25 +266,6 @@ void DescriptorManager::updateIBLDescriptors(BindlessTextureDSetComponent& dSetC
 	vulkanDevice.device.updateDescriptorSets(descriptorWrites, {});
 }
 
-void DescriptorManager::updateSHBufferDescriptor(BindlessTextureDSetComponent& dSetComponent, vk::Buffer shBuffer,
-                                                 vk::DeviceSize bufferSize)
-{
-	vk::DescriptorBufferInfo bufferInfo;
-	bufferInfo.buffer = shBuffer;
-	bufferInfo.offset = 0;
-	bufferInfo.range = bufferSize;
-
-	vk::WriteDescriptorSet descriptorWrite;
-	descriptorWrite.dstSet = descriptorSets[dSetComponent.bindlessTextureSet.id][0];
-	descriptorWrite.dstBinding = Bindings::Textures::SHCoefficients;
-	descriptorWrite.dstArrayElement = 0;
-	descriptorWrite.descriptorType = vk::DescriptorType::eStorageBuffer;
-	descriptorWrite.descriptorCount = 1;
-	descriptorWrite.pBufferInfo = &bufferInfo;
-
-	vulkanDevice.device.updateDescriptorSets(descriptorWrite, {});
-}
-
 void DescriptorManager::updateSingleTextureDSet(DSetHandle dIndex, int binding, vk::ImageView imageView,
                                                 vk::Sampler sampler)
 {
@@ -307,11 +288,30 @@ void DescriptorManager::updateSingleTextureDSet(DSetHandle dIndex, int binding, 
 	}
 }
 
+void DescriptorManager::updateCubemapSamplerDescriptor(BindlessTextureDSetComponent& dSetComponent,
+                                                       vk::ImageView cubemapImageView, vk::Sampler cubemapSampler)
+{
+	vk::DescriptorImageInfo imageInfo;
+	imageInfo.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
+	imageInfo.imageView = cubemapImageView;
+	imageInfo.sampler = cubemapSampler;
+
+	vk::WriteDescriptorSet write;
+	write.dstSet = descriptorSets[dSetComponent.bindlessTextureSet.id][0];
+	write.dstBinding = Bindings::Textures::CubemapSampler;
+	write.dstArrayElement = 0;
+	write.descriptorType = vk::DescriptorType::eCombinedImageSampler;
+	write.descriptorCount = 1;
+	write.pImageInfo = &imageInfo;
+
+	vulkanDevice.device.updateDescriptorSets(write, {});
+}
+
 void DescriptorManager::updateStorageBufferDescriptors(BufferManager& bManager, BufferHandle bNumber, DSetHandle dSet,
                                                        uint32_t binding)
 {
 	const size_t count = descriptorSets[dSet.id].size();
-	assert(bManager.buffers[bNumber.id].buffer.size() >= count);
+	const size_t bufCount = bManager.buffers[bNumber.id].buffer.size();
 
 	std::vector<vk::WriteDescriptorSet> writes;
 	writes.reserve(count);
@@ -320,7 +320,7 @@ void DescriptorManager::updateStorageBufferDescriptors(BufferManager& bManager, 
 
 	for (size_t i = 0; i < count; ++i)
 	{
-		bufferInfos[i].buffer = bManager.buffers[bNumber.id].buffer[i];
+		bufferInfos[i].buffer = bManager.buffers[bNumber.id].buffer[bufCount == 1 ? 0 : i];
 		bufferInfos[i].offset = 0;
 		bufferInfos[i].range = VK_WHOLE_SIZE;
 

@@ -45,6 +45,25 @@ StructuredBuffer<PointLightData> lights;
 [[vk::binding(3, 0)]]
 StructuredBuffer<uint> lightCount;
 
+struct SHProbeEntry
+{
+    float3 position;     float influenceRadius;
+    float3 sh0; float _p0;
+    float3 sh1; float _p1;
+    float3 sh2; float _p2;
+    float3 sh3; float _p3;
+    float3 sh4; float _p4;
+    float3 sh5; float _p5;
+    float3 sh6; float _p6;
+    float3 sh7; float _p7;
+    float3 sh8; float _p8;
+};
+[[vk::binding(4, 0)]]
+StructuredBuffer<SHProbeEntry> shProbes;
+
+[[vk::binding(5, 0)]]
+StructuredBuffer<uint> shProbeCount;
+
 // === SET 1 ===
 struct ModelData
 {
@@ -93,9 +112,6 @@ struct MaterialData
 [[vk::binding(2, 2)]]
 StructuredBuffer<MaterialData> materialBuffer;
 
-struct SHCoefficients { float3 coefficient[9]; };
-[[vk::binding(5, 2)]]
-StructuredBuffer<SHCoefficients> shCoefficients;
 [[vk::binding(6, 2)]]
 SamplerCube prefilteredMap;
 [[vk::binding(7, 2)]]
@@ -111,6 +127,10 @@ const int ALPHA_TEST_ENABLED = 0;
 
 [[vk::constant_id(1)]]
 const int SKYBOX_ENABLED = 1;
+
+// For SH probes bake.
+[[vk::constant_id(2)]]
+const int CAPTURE_PASS = 0;
 
 // === Vertex I/O ===
 struct VSInput
@@ -377,6 +397,58 @@ BRDFResult EvaluateBRDF(float3 albedo, float3 F0, float metallic, float roughnes
 	return result;
 }
 
+float3 getProbeCoeff(uint idx, uint band)
+{
+    switch (band)
+    {
+        case 0: return shProbes[idx].sh0;
+        case 1: return shProbes[idx].sh1;
+        case 2: return shProbes[idx].sh2;
+        case 3: return shProbes[idx].sh3;
+        case 4: return shProbes[idx].sh4;
+        case 5: return shProbes[idx].sh5;
+        case 6: return shProbes[idx].sh6;
+        case 7: return shProbes[idx].sh7;
+        default: return shProbes[idx].sh8;
+    }
+}
+
+// Returns diffuse irradiance blended from all nearby SH probes.
+// Falls back to slot 0 (skybox) when no scene probe covers worldPos.
+float3 sampleSHProbes(float3 worldPos, float3 N)
+{
+    uint  count      = shProbeCount[0];
+    float totalW     = 0.0f;
+    float3 blended[9];
+    for (int k = 0; k < 9; ++k) blended[k] = float3(0.0, 0.0, 0.0);
+
+    for (uint i = 1; i < count; ++i)
+    {
+        float dist = length(worldPos - shProbes[i].position);
+        if (dist >= shProbes[i].influenceRadius) continue;
+
+        // Normalized distance [0,1], then smoothstep for C1 falloff
+        float t = dist / shProbes[i].influenceRadius;
+        float w = smoothstep(1.0, 0.0, t);
+
+        for (int k = 0; k < 9; ++k)
+            blended[k] += getProbeCoeff(i, k) * w;
+        totalW += w;
+    }
+
+    if (totalW < 1e-4f)
+    {
+        // Outside all probe radii — fall back to skybox slot 0
+        float3 sh[9];
+        for (int k = 0; k < 9; ++k) sh[k] = getProbeCoeff(0, k);
+        return computeIrradiance(N, sh);
+    }
+
+    float3 sh[9];
+    for (int k = 0; k < 9; ++k) sh[k] = blended[k] / totalW;
+    return computeIrradiance(N, sh);
+}
+
 struct FragOutput
 {
 	float4 color    : SV_Target0;
@@ -475,10 +547,21 @@ FragOutput fragMain(VSOutput input, bool isFrontFace: SV_IsFrontFace)
 	// === IBL / Ambient ===
 	float3 F_ibl = F0 + (max(float3(1.0 - roughness, 1.0 - roughness, 1.0 - roughness), F0) - F0) * pow(1.0 - NdotV, 5.0);
 
-	float3 ambient;
+    float3 ambient;
+    float3 startAmbient;
+
+    if (CAPTURE_PASS == 1)
+    {
+        startAmbient = float3(1.0,1.0,1.0);
+    }
+    else
+    {
+        startAmbient = directionalLight[0].ambient.a * directionalLight[0].ambient.rgb;
+	}
+    
 	if (SKYBOX_ENABLED == 1)
     {
-        float3 irradiance = computeIrradiance(finalNormal, shCoefficients[0].coefficient);
+        float3 irradiance = sampleSHProbes(input.fragWorldPos, finalNormal);
 		float3 iblDiffuse  = (1.0 - F_ibl) * (1.0 - metallic) * DiffuseOrenNayarIBL(albedo.rgb, NdotV, roughness) * irradiance;
 
 		float3 iblSpecular = float3(0.0, 0.0, 0.0);
@@ -490,14 +573,14 @@ FragOutput fragMain(VSOutput input, bool isFrontFace: SV_IsFrontFace)
 			iblSpecular         = prefiltColor * (F_ibl * brdfLut.x + brdfLut.y);
 		}
 
-		ambient = (iblDiffuse + iblSpecular) * directionalLight[0].ambient.a;
+        ambient = (iblDiffuse + iblSpecular) * startAmbient;
 	}
 	else
 	{
 		// Fallback without skybox
         ambient = (1.0 - F_ibl) * (1.0 - metallic)
 		        * DiffuseOrenNayarIBL(albedo.rgb, NdotV, roughness)
-		        * directionalLight[0].ambient.a + directionalLight[0].ambient.rgb;
+		        * startAmbient;
 	}
     float3 litColor = directLight + litColorFromLights + ambient + emissive;
 
