@@ -32,12 +32,12 @@ float3 faceDirection(int face, float u, float v)
     float3 dir;
     switch (face)
     {
-    case 0: dir = float3(1.0f, v, -u); break;
-    case 1: dir = float3(-1.0f, v, u); break;
-    case 2: dir = float3(u, 1.0f, -v); break;
-    case 3: dir = float3(u, -1.0f, v); break;
-    case 4: dir = float3(u, v, 1.0f); break;
-    case 5: dir = float3(-u, v, -1.0f); break;
+    case 0: dir = float3(1.0f, -v, -u); break;
+    case 1: dir = float3(-1.0f, -v, u); break;
+    case 2: dir = float3(u, 1.0f, v); break;
+    case 3: dir = float3(u, -1.0f, -v); break;
+    case 4: dir = float3(u, -v, 1.0f); break;
+    case 5: dir = float3(-u, -v, -1.0f); break;
     default: dir = float3(0.0f, 0.0f, 1.0f); break;
     }
     return normalize(dir);

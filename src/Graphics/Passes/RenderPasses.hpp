@@ -53,6 +53,17 @@ void drawCullPass(vk::raii::CommandBuffer& cmd, uint32_t frame, DescriptorManage
                   ModelManager& mManager, BufferManager& bManager, const DrawInfoComponent& drawInfo,
                   PipelineManager& pManager);
 
+void drawShadowCullPass(vk::raii::CommandBuffer& cmd, uint32_t currentFrame,
+                        DescriptorManagerComponent& dManager, GlobalDSetComponent& globalDSetComponent,
+                        ModelDSetComponent& objectDSetComponent, ModelManager& mManager,
+                        BufferManager& bManager, const DrawInfoComponent& drawInfo, PipelineManager& pManager);
+
+void drawShadowPass(vk::raii::CommandBuffer& cmd, uint32_t currentFrame,
+                    DirectLightComponent& lightTexture, DescriptorManagerComponent& dManager,
+                    GlobalDSetComponent& globalDSetComponent, ModelDSetComponent& objectDSetComponent,
+                    TextureManager& tManager, ModelManager& mManager, BufferManager& bManager,
+                    const DrawInfoComponent& drawInfo, PipelineManager& pManager);
+
 class RenderPasses
 {
 public:
