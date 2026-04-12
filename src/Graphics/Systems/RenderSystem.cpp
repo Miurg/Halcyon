@@ -30,8 +30,6 @@
 #include <functional>
 #include "../Passes/RenderPasses.hpp"
 #include <imgui_impl_vulkan.h>
-#include "../Components/LightProbeGridComponent.hpp"
-#include "../GIBaker/LightProbeGIBaking.hpp"
 
 void RenderSystem::onRegistered(GeneralManager& gm)
 {
@@ -69,16 +67,9 @@ void RenderSystem::update(GeneralManager& gm)
 	uint32_t imageIndex = gm.getContextComponent<FrameImageContext, FrameImageComponent>()->imageIndex;
 	PipelineManager& pManager =
 	    *gm.getContextComponent<PipelineManagerContext, PipelineManagerComponent>()->pipelineManager;
-	LightProbeGridComponent* probesGrid = gm.getContextComponent<LightProbeGridContext, LightProbeGridComponent>();
+	
 
 	if (!currentFrameComp.frameValid) return;
-
-	// Rebake grid if need.
-	if (probesGrid != nullptr && probesGrid->needBake)
-	{
-		LightProbeGIBaking::bakeAll(gm);
-		probesGrid->needBake = false;
-	}
 
 	ImGui::Render();
 

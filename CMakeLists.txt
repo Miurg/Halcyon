@@ -104,7 +104,7 @@ function(add_slang_shader_target TARGET_NAME)
 endfunction()
 
 # Auto gather shader files and create targets
-file(GLOB SLANG_SHADER_FILES "${CMAKE_CURRENT_LIST_DIR}/assets/shaders/*.slang")
+file(GLOB_RECURSE SLANG_SHADER_FILES "${CMAKE_CURRENT_LIST_DIR}/assets/shaders/*.slang")
 
 foreach(SHADER_FILE ${SLANG_SHADER_FILES})
     get_filename_component(SHADER_NAME "${SHADER_FILE}" NAME_WE)

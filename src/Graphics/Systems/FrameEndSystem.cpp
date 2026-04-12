@@ -18,6 +18,8 @@
 #include "../Resources/Components/GlobalDSetComponent.hpp"
 #include "../Components/RenderGraphComponent.hpp"
 #include "../RenderGraph/RenderGraph.hpp"
+#include "../Components/LightProbeGridComponent.hpp"
+#include "../GIBaker/LightProbeGIBaking.hpp"
 
 void FrameEndSystem::onRegistered(GeneralManager& gm)
 {
@@ -41,6 +43,14 @@ void FrameEndSystem::update(GeneralManager& gm)
 	GraphicsSettingsComponent* settings = gm.getContextComponent<GraphicsSettingsContext, GraphicsSettingsComponent>();
 
 	if (!currentFrameComp->frameValid) return;
+
+	LightProbeGridComponent* probesGrid = gm.getContextComponent<LightProbeGridContext, LightProbeGridComponent>();
+	// Rebake grid if need.
+	if (probesGrid != nullptr && probesGrid->needBake)
+	{
+		LightProbeGIBaking::bakeAll(gm);
+		probesGrid->needBake = false;
+	}
 
 	RenderGraph* rg = gm.getContextComponent<RenderGraphContext, RenderGraphComponent>()->renderGraph;
 	rg->compile();

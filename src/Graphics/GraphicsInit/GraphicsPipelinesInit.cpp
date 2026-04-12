@@ -233,43 +233,43 @@ void GraphicsPipelinesInit::initPipelines(GeneralManager& gm)
 	    },
 	    "standard_forward_alpha_no_ibl");
 
-	// === Capture (1x MSAA, 2 outputs matching standard_forward — used for rendering scenes to cubemap faces) ===
+	// === Capture ===
 	pManager->build(
 	    PipelineDescription{
-	        .shaderPath = "shaders/standard_forward.spv",
-	        .specializationValues = {0, 1, 1}, // ALPHA_TEST=0, IBL=1
+	        .shaderPath = "shaders/global_illumination_forward.spv",
+	        .specializationValues = {0, 1}, // ALPHA_TEST=0, IBL=1
 	        .vertexBindings = {bindingDesc},
 	        .vertexAttributes = std::vector<vk::VertexInputAttributeDescription>(attrDescs.begin(), attrDescs.end()),
 	        .cullMode = vk::CullModeFlagBits::eBack,
 	        .depthTest = true,
 	        .depthWrite = true,
 	        .depthOp = vk::CompareOp::eGreater,
-	        .colorAttachments = {PipelineFactory::blendedAttachment(), PipelineFactory::blendedAttachment()},
-	        .colorFormats = hdrFormats,
+	        .colorAttachments = {PipelineFactory::blendedAttachment()},
+	        .colorFormats = {swapChain->hdrFormat},
 	        .depthFormat = depthFormat,
 	        .rasterizationSamples = vk::SampleCountFlagBits::e1,
 	        .setLayoutNames = mainLayouts,
 	    },
-	    "standard_forward_capture");
+	    "global_illumination_forward");
 
-	// === Capture alpha (ALPHA_TEST=1, same 2-attachment layout as standard_forward_capture) ===
+	// === Capture alpha  ===
 	pManager->build(
 	    PipelineDescription{
-	        .shaderPath = "shaders/standard_forward.spv",
-	        .specializationValues = {1, 1, 1}, // ALPHA_TEST=1, IBL=1
+	        .shaderPath = "shaders/global_illumination_forward.spv",
+	        .specializationValues = {1, 1}, // ALPHA_TEST=1, IBL=1
 	        .vertexBindings = {bindingDesc},
 	        .vertexAttributes = std::vector<vk::VertexInputAttributeDescription>(attrDescs.begin(), attrDescs.end()),
 	        .cullMode = vk::CullModeFlagBits::eBack,
 	        .depthTest = true,
 	        .depthWrite = true,
 	        .depthOp = vk::CompareOp::eGreater,
-	        .colorAttachments = {PipelineFactory::blendedAttachment(), PipelineFactory::blendedAttachment()},
-	        .colorFormats = hdrFormats,
+	        .colorAttachments = {PipelineFactory::blendedAttachment()},
+	        .colorFormats = {swapChain->hdrFormat},
 	        .depthFormat = depthFormat,
 	        .rasterizationSamples = vk::SampleCountFlagBits::e1,
 	        .setLayoutNames = mainLayouts,
 	    },
-	    "standard_forward_capture_alpha");
+	    "global_illumination_forward_alpha");
 
 	// === Skybox ===
 	pManager->build(PipelineDescription{
@@ -288,13 +288,13 @@ void GraphicsPipelinesInit::initPipelines(GeneralManager& gm)
 	// === Skybox for baking ===
 	pManager->build(
 	    PipelineDescription{
-	        .shaderPath = "shaders/skybox.spv",
+	        .shaderPath = "shaders/global_illumination_skybox.spv",
 	        .cullMode = vk::CullModeFlagBits::eNone,
 	        .depthTest = true,
 	        .depthWrite = false,
 	        .depthOp = vk::CompareOp::eEqual,
-	        .colorAttachments = {PipelineFactory::blendedAttachment(), PipelineFactory::blendedAttachment()},
-	        .colorFormats = hdrFormats,
+	        .colorAttachments = {PipelineFactory::blendedAttachment()},
+	        .colorFormats = {swapChain->hdrFormat},
 	        .depthFormat = depthFormat,
 	        .rasterizationSamples = vk::SampleCountFlagBits::e1,
 	        .setLayoutNames = mainLayouts,
