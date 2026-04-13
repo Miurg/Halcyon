@@ -94,9 +94,9 @@ Entity ModelFactory::createEntityHierarchy(int parentEntity, tinygltf::Model& mo
 				auto* comp = gm.addComponent<PointLightComponent>(entity);
 				gm.subscribeEntity<LightUpdateSystem>(entity);
 
-				comp->intensity = comp->intensity =
-				    (lightDef.Has("intensity") ? (float)lightDef.Get("intensity").GetNumberAsDouble() : 1.0f) /
-				    683.0f; // Convert from lumens to nits for a point light with 1m radius
+				comp->intensity =
+				    (lightDef.Has("intensity") ? (float)lightDef.Get("intensity").GetNumberAsDouble() / 683.0f
+				                               : 1.0f); // Convert from lumens to nits for a point light with 1m radius
 				comp->radius = lightDef.Has("range") ? (float)lightDef.Get("range").GetNumberAsDouble() : 10.0f;
 				comp->innerConeAngle = glm::cos(glm::radians(15.0f));
 				comp->outerConeAngle = glm::cos(glm::radians(30.0f));

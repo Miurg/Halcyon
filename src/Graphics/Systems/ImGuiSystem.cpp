@@ -27,6 +27,7 @@
 #include "../Components/ShaderReloaderComponent.hpp"
 #include "../Components/PipelineManagerComponent.hpp"
 #include "../Components/GraphicsSettingsComponent.hpp"
+#include "../Components/LightProbeGridComponent.hpp"
 
 void ImGuiSystem::onRegistered(GeneralManager& gm)
 {
@@ -443,6 +444,18 @@ void ImGuiSystem::update(GeneralManager& gm)
 				}
 			}
 		}
+
+		if (auto* globalIllumination = gm.getComponent<LightProbeGridComponent>(selectedEntity))
+		{
+			if (ImGui::CollapsingHeader("Global Illumination Component", ImGuiTreeNodeFlags_DefaultOpen))
+			{
+				if (ImGui::Button("Bake Global Illumination", ImVec2(200, 20)))
+				{
+					globalIllumination->needBake = true;
+				}
+			}
+		}
+
 	}
 	else
 	{

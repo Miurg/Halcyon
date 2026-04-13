@@ -59,8 +59,8 @@ MaterialMaps GltfLoader::materialsParser(tinygltf::Model& model, TextureManager&
 	    tManager.isTextureLoaded("sys_default_emissive")
 	        ? tManager.texturePaths["sys_default_emissive"].id
 	        : tManager
-	              .generateTextureData("sys_default_emissive", 1, 1, std::vector<unsigned char>{255, 255, 255, 255}.data(),
-	                                   dSetComponent, dManager)
+	              .generateTextureData("sys_default_emissive", 1, 1,
+	                                   std::vector<unsigned char>{255, 255, 255, 255}.data(), dSetComponent, dManager)
 	              .id;
 
 	MaterialStructure defaultMaterial{};
@@ -68,12 +68,6 @@ MaterialMaps GltfLoader::materialsParser(tinygltf::Model& model, TextureManager&
 	defaultMaterial.normalMapIndex = defaultNormalTexture;
 	defaultMaterial.metallicRoughnessIndex = defaultMRTexture;
 	defaultMaterial.emissiveIndex = defaultEmissiveTexture;
-	defaultMaterial.roughnessFactor = 1.0f;
-	defaultMaterial.metallicFactor = 1.0f;
-	defaultMaterial.emissiveFactor = {0.0f, 0.0f, 0.0f};
-	defaultMaterial.alphaMode = 0;
-	defaultMaterial.alphaCutoff = 0.5f;
-	defaultMaterial.doubleSided = 0;
 
 	maps.materials.emplace(static_cast<uint32_t>(-1),
 	                       tManager.emplaceMaterials(dSetComponent, defaultMaterial, bManager));
@@ -105,23 +99,30 @@ MaterialMaps GltfLoader::materialsParser(tinygltf::Model& model, TextureManager&
 					tinygltf::Image& img = model.images[sourceImageIndex];
 					if (!img.image.empty() && img.width > 0 && img.height > 0)
 					{
-						auto rgbaPixels = ImageConverter::convertToRGBA(img);
-						if (!rgbaPixels.empty())
+						std::string prefix = "model_" + std::string(filePath) + "_basecolor_";
+						std::string texName;
+						if (!img.name.empty())
+							texName = prefix + img.name;
+						else if (!img.uri.empty() && img.uri.find("data:") != 0)
+							texName = prefix + img.uri;
+						else
+							texName = prefix + "__embedded_img_" + std::to_string(sourceImageIndex);
+
+						if (tManager.isTextureLoaded(texName.c_str()))
 						{
-							auto newTex = std::make_shared<TextureData>();
-							std::string prefix = "model_" + std::string(filePath) + "_basecolor_";
-							if (!img.name.empty())
-								newTex->name = prefix + img.name;
-							else if (!img.uri.empty() && img.uri.find("data:") != 0)
-								newTex->name = prefix + img.uri;
-							else
-								newTex->name = prefix + "__embedded_img_" + std::to_string(sourceImageIndex) +
-								               std::to_string(tManager.textures.size());
-							int indexInSystem = tManager
-							                        .generateTextureData(newTex->name.c_str(), img.width, img.height,
-							                                             rgbaPixels.data(), dSetComponent, dManager)
-							                        .id;
-							material.textureIndex = indexInSystem;
+							material.textureIndex = tManager.texturePaths[texName].id;
+						}
+						else
+						{
+							auto rgbaPixels = ImageConverter::convertToRGBA(img);
+							if (!rgbaPixels.empty())
+							{
+								int indexInSystem = tManager
+								                        .generateTextureData(texName.c_str(), img.width, img.height,
+								                                             rgbaPixels.data(), dSetComponent, dManager)
+								                        .id;
+								material.textureIndex = indexInSystem;
+							}
 						}
 					}
 				}
@@ -142,26 +143,31 @@ MaterialMaps GltfLoader::materialsParser(tinygltf::Model& model, TextureManager&
 					tinygltf::Image& img = model.images[sourceImageIndex];
 					if (!img.image.empty() && img.width > 0 && img.height > 0)
 					{
-						auto rgbaPixels = ImageConverter::convertToRGBA(img);
-						if (!rgbaPixels.empty())
-						{
-							auto newTex = std::make_shared<TextureData>();
-							std::string prefix = "model_" + std::string(filePath) + "_normal_";
-							if (!img.name.empty())
-								newTex->name = prefix + img.name;
-							else if (!img.uri.empty() && img.uri.find("data:") != 0)
-								newTex->name = prefix + img.uri;
-							else
-								newTex->name = prefix + "__embedded_img_" + std::to_string(sourceImageIndex) +
-								               std::to_string(tManager.textures.size());
+						std::string prefix = "model_" + std::string(filePath) + "_normal_";
+						std::string texName;
+						if (!img.name.empty())
+							texName = prefix + img.name;
+						else if (!img.uri.empty() && img.uri.find("data:") != 0)
+							texName = prefix + img.uri;
+						else
+							texName = prefix + "__embedded_img_" + std::to_string(sourceImageIndex);
 
-							int indexInSystem =
-							    tManager
-							        .generateTextureData(newTex->name.c_str(), img.width, img.height, rgbaPixels.data(),
-							                             dSetComponent, dManager,
-							                             vk::Format::eR8G8B8A8Unorm) // Linear format for normal maps
-							        .id;
-							material.normalMapIndex = indexInSystem;
+						if (tManager.isTextureLoaded(texName.c_str()))
+						{
+							material.normalMapIndex = tManager.texturePaths[texName].id;
+						}
+						else
+						{
+							auto rgbaPixels = ImageConverter::convertToRGBA(img);
+							if (!rgbaPixels.empty())
+							{
+								int indexInSystem =
+								    tManager
+								        .generateTextureData(texName.c_str(), img.width, img.height, rgbaPixels.data(),
+								                             dSetComponent, dManager, vk::Format::eR8G8B8A8Unorm)
+								        .id;
+								material.normalMapIndex = indexInSystem;
+							}
 						}
 					}
 				}
@@ -182,25 +188,31 @@ MaterialMaps GltfLoader::materialsParser(tinygltf::Model& model, TextureManager&
 					tinygltf::Image& img = model.images[sourceImageIndex];
 					if (!img.image.empty() && img.width > 0 && img.height > 0)
 					{
-						auto rgbaPixels = ImageConverter::convertToRGBA(img);
-						if (!rgbaPixels.empty())
-						{
-							auto newTex = std::make_shared<TextureData>();
-							std::string prefix = "model_" + std::string(filePath) + "_mr_";
-							if (!img.name.empty())
-								newTex->name = prefix + img.name;
-							else if (!img.uri.empty() && img.uri.find("data:") != 0)
-								newTex->name = prefix + img.uri;
-							else
-								newTex->name = prefix + "__embedded_img_" + std::to_string(sourceImageIndex) + "_" +
-								               std::to_string(tManager.textures.size());
+						std::string prefix = "model_" + std::string(filePath) + "_mr_";
+						std::string texName;
+						if (!img.name.empty())
+							texName = prefix + img.name;
+						else if (!img.uri.empty() && img.uri.find("data:") != 0)
+							texName = prefix + img.uri;
+						else
+							texName = prefix + "__embedded_img_" + std::to_string(sourceImageIndex);
 
-							int indexInSystem = tManager
-							                        .generateTextureData(newTex->name.c_str(), img.width, img.height,
-							                                             rgbaPixels.data(), dSetComponent, dManager,
-							                                             vk::Format::eR8G8B8A8Unorm) // Linear
-							                        .id;
-							material.metallicRoughnessIndex = indexInSystem;
+						if (tManager.isTextureLoaded(texName.c_str()))
+						{
+							material.metallicRoughnessIndex = tManager.texturePaths[texName].id;
+						}
+						else
+						{
+							auto rgbaPixels = ImageConverter::convertToRGBA(img);
+							if (!rgbaPixels.empty())
+							{
+								int indexInSystem =
+								    tManager
+								        .generateTextureData(texName.c_str(), img.width, img.height, rgbaPixels.data(),
+								                             dSetComponent, dManager, vk::Format::eR8G8B8A8Unorm)
+								        .id;
+								material.metallicRoughnessIndex = indexInSystem;
+							}
 						}
 					}
 				}
@@ -234,25 +246,31 @@ MaterialMaps GltfLoader::materialsParser(tinygltf::Model& model, TextureManager&
 					tinygltf::Image& img = model.images[sourceImageIndex];
 					if (!img.image.empty() && img.width > 0 && img.height > 0)
 					{
-						auto rgbaPixels = ImageConverter::convertToRGBA(img);
-						if (!rgbaPixels.empty())
-						{
-							auto newTex = std::make_shared<TextureData>();
-							std::string prefix = "model_" + std::string(filePath) + "_emissive_";
-							if (!img.name.empty())
-								newTex->name = prefix + img.name;
-							else if (!img.uri.empty() && img.uri.find("data:") != 0)
-								newTex->name = prefix + img.uri;
-							else
-								newTex->name = prefix + "__embedded_img_" + std::to_string(sourceImageIndex) + "_" +
-								               std::to_string(tManager.textures.size());
+						std::string prefix = "model_" + std::string(filePath) + "_emissive_";
+						std::string texName;
+						if (!img.name.empty())
+							texName = prefix + img.name;
+						else if (!img.uri.empty() && img.uri.find("data:") != 0)
+							texName = prefix + img.uri;
+						else
+							texName = prefix + "__embedded_img_" + std::to_string(sourceImageIndex);
 
-							int indexInSystem = tManager
-							                        .generateTextureData(newTex->name.c_str(), img.width, img.height,
-							                                             rgbaPixels.data(), dSetComponent,
-							                                             dManager) // sRBG
-							                        .id;
-							material.emissiveIndex = indexInSystem;
+						if (tManager.isTextureLoaded(texName.c_str()))
+						{
+							material.emissiveIndex = tManager.texturePaths[texName].id;
+						}
+						else
+						{
+							auto rgbaPixels = ImageConverter::convertToRGBA(img);
+							if (!rgbaPixels.empty())
+							{
+								int indexInSystem = tManager
+								                        .generateTextureData(texName.c_str(), img.width, img.height,
+								                                             rgbaPixels.data(), dSetComponent,
+								                                             dManager) // sRBG
+								                        .id;
+								material.emissiveIndex = indexInSystem;
+							}
 						}
 					}
 				}
@@ -269,10 +287,6 @@ MaterialMaps GltfLoader::materialsParser(tinygltf::Model& model, TextureManager&
 				material.emissiveFactor = {static_cast<float>(factorVal[0]), static_cast<float>(factorVal[1]),
 				                           static_cast<float>(factorVal[2])};
 			}
-		}
-		else if (hasEmissiveTexture)
-		{
-			material.emissiveFactor = {1.0f, 1.0f, 1.0f};
 		}
 
 		// Emissive Strength (KHR_materials_emissive_strength)

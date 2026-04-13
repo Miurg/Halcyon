@@ -169,10 +169,6 @@ TextureHandle TextureManager::generateTextureData(const char texturePath[MAX_PAT
                                                   BindlessTextureDSetComponent& dSetComponent,
                                                   DescriptorManager& dManager, vk::Format format)
 {
-	if (isTextureLoaded(texturePath))
-	{
-		return texturePaths.find(texturePath)->second;
-	}
 	if (!pixels)
 	{
 		throw std::runtime_error("pixels data is null!");
