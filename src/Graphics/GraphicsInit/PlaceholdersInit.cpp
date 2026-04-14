@@ -76,6 +76,8 @@ void PlaceholdersInit::initPlaceholders(GeneralManager& gm)
 	glm::vec4 directLightAmbient = directLightColor; // Ambient component is 0.1% of the main light color
 	directLightAmbient.w *= 0.001f;
 	gm.addComponent<GlobalTransformComponent>(directLightEntity, directLightPos, directLightRot);
+	gm.addComponent<LocalTransformComponent>(directLightEntity, directLightPos, directLightRot);
+	gm.addComponent<RelationshipComponent>(directLightEntity);
 	gm.addComponent<DirectLightComponent>(directLightEntity, 4000, 4000, directLightColor, directLightAmbient);
 	gm.registerContext<SunContext>(directLightEntity);
 	CameraComponent* directLightCamera = gm.getContextComponent<SunContext, CameraComponent>();
