@@ -88,9 +88,9 @@ void ControlSystem::update(GeneralManager& gm)
 
 		//=== Keyboard ===
 		float velocity = mainCameraControl->movementSpeed * deltaTime;
-		if (keyboardState->keys[GLFW_KEY_W]) mainCameraTransform->globalPosition += mainCameraTransform->front * velocity;
-		if (keyboardState->keys[GLFW_KEY_S]) mainCameraTransform->globalPosition -= mainCameraTransform->front * velocity;
-		if (keyboardState->keys[GLFW_KEY_A]) mainCameraTransform->globalPosition -= mainCameraTransform->right * velocity;
-		if (keyboardState->keys[GLFW_KEY_D]) mainCameraTransform->globalPosition += mainCameraTransform->right * velocity;
+		if (keyboardState->keys[GLFW_KEY_W]) mainCameraTransform->moveGlobalPosition( mainCameraTransform->getFront() * velocity);
+		if (keyboardState->keys[GLFW_KEY_S]) mainCameraTransform->moveGlobalPosition(-mainCameraTransform->getFront() * velocity);
+		if (keyboardState->keys[GLFW_KEY_A]) mainCameraTransform->moveGlobalPosition(-mainCameraTransform->getRight() * velocity);
+		if (keyboardState->keys[GLFW_KEY_D]) mainCameraTransform->moveGlobalPosition( mainCameraTransform->getRight() * velocity);
 	}
 }
