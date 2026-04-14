@@ -173,9 +173,9 @@ void TextureUploader::uploadHdrTextureFromFile(const char* texturePath, Texture&
                                                VmaAllocator& allocator, VulkanDevice& vulkanDevice)
 {
 	int hdrWidth, hdrHeight, hdrChannels;
-	stbi_set_flip_vertically_on_load(true);
+	stbi_set_flip_vertically_on_load(true); 
 	float* hdrPixels = stbi_loadf(texturePath, &hdrWidth, &hdrHeight, &hdrChannels, STBI_rgb_alpha);
-	stbi_set_flip_vertically_on_load(false);
+	stbi_set_flip_vertically_on_load(false); // Duplication is intentional
 
 	float fallbackPixel[4] = {0.5f, 0.5f, 0.5f, 1.0f};
 	bool freePixels = true;

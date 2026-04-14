@@ -114,24 +114,16 @@ void ImGuiSystem::update(GeneralManager& gm)
 
 	if (mainCameraTransform && mainCamera)
 	{
-		bool transformChanged = false;
-
 		ImGui::SeparatorText("Transform");
-		if (ImGui::InputFloat3("Position", glm::value_ptr(mainCameraTransform->globalPosition)))
+		glm::vec3 camPos   = mainCameraTransform->getGlobalPosition();
+		glm::vec3 camEuler = glm::degrees(glm::eulerAngles(mainCameraTransform->getGlobalRotation()));
+		bool camChanged = false;
+		if (ImGui::InputFloat3("Position", glm::value_ptr(camPos)))   camChanged = true;
+		if (ImGui::InputFloat3("Rotation", glm::value_ptr(camEuler))) camChanged = true;
+		if (camChanged)
 		{
-			transformChanged = true;
-		}
-
-		glm::vec3 euler = glm::degrees(glm::eulerAngles(mainCameraTransform->globalRotation));
-		if (ImGui::InputFloat3("Rotation", glm::value_ptr(euler)))
-		{
-			mainCameraTransform->globalRotation = glm::quat(glm::radians(euler));
-			transformChanged = true;
-		}
-
-		if (transformChanged)
-		{
-			mainCameraTransform->updateDirectionVectors();
+			mainCameraTransform->setGlobalPosition(camPos);
+			mainCameraTransform->setGlobalRotation(glm::quat(glm::radians(camEuler)));
 		}
 
 		ImGui::SeparatorText("Camera Parameters");
@@ -233,30 +225,18 @@ void ImGuiSystem::update(GeneralManager& gm)
 		{
 			if (ImGui::CollapsingHeader("Global Transform", ImGuiTreeNodeFlags_DefaultOpen))
 			{
-				bool transformChanged = false;
-
-				if (ImGui::DragFloat3("G Position", glm::value_ptr(transform->globalPosition), 0.1f))
+				glm::vec3 gPos   = transform->getGlobalPosition();
+				glm::vec3 gEuler = glm::degrees(glm::eulerAngles(transform->getGlobalRotation()));
+				glm::vec3 gScale = transform->getGlobalScale();
+				bool gChanged = false;
+				if (ImGui::DragFloat3("G Position", glm::value_ptr(gPos),   0.1f)) gChanged = true;
+				if (ImGui::DragFloat3("G Rotation", glm::value_ptr(gEuler), 0.5f)) gChanged = true;
+				if (ImGui::DragFloat3("G Scale",    glm::value_ptr(gScale), 0.1f)) gChanged = true;
+				if (gChanged)
 				{
-					transformChanged = true;
-				}
-
-				glm::vec3 euler = glm::degrees(glm::eulerAngles(transform->globalRotation));
-				if (ImGui::DragFloat3("G Rotation", glm::value_ptr(euler), 0.5f))
-				{
-					transform->globalRotation = glm::quat(glm::radians(euler));
-					transformChanged = true;
-				}
-
-				if (ImGui::DragFloat3("G Scale", glm::value_ptr(transform->globalScale), 0.1f))
-				{
-					transformChanged = true;
-				}
-
-				if (transformChanged)
-				{
-					transform->updateDirectionVectors();
-					transform->isModelDirty = true;
-					transform->isViewDirty = true;
+					transform->setGlobalPosition(gPos);
+					transform->setGlobalRotation(glm::quat(glm::radians(gEuler)));
+					transform->setGlobalScale(gScale);
 				}
 			}
 		}
@@ -266,30 +246,18 @@ void ImGuiSystem::update(GeneralManager& gm)
 		{
 			if (ImGui::CollapsingHeader("Local Transform", ImGuiTreeNodeFlags_DefaultOpen))
 			{
-				bool localTransformChanged = false;
-
-				if (ImGui::DragFloat3("L Position", glm::value_ptr(localTransform->localPosition), 0.1f))
+				glm::vec3 lPos   = localTransform->getLocalPosition();
+				glm::vec3 lEuler = glm::degrees(glm::eulerAngles(localTransform->getLocalRotation()));
+				glm::vec3 lScale = localTransform->getLocalScale();
+				bool lChanged = false;
+				if (ImGui::DragFloat3("L Position", glm::value_ptr(lPos),   0.1f)) lChanged = true;
+				if (ImGui::DragFloat3("L Rotation", glm::value_ptr(lEuler), 0.5f)) lChanged = true;
+				if (ImGui::DragFloat3("L Scale",    glm::value_ptr(lScale), 0.1f)) lChanged = true;
+				if (lChanged)
 				{
-					localTransformChanged = true;
-				}
-
-				glm::vec3 localEuler = glm::degrees(glm::eulerAngles(localTransform->localRotation));
-				if (ImGui::DragFloat3("L Rotation", glm::value_ptr(localEuler), 0.5f))
-				{
-					localTransform->localRotation = glm::quat(glm::radians(localEuler));
-					localTransformChanged = true;
-				}
-
-				if (ImGui::DragFloat3("L Scale", glm::value_ptr(localTransform->localScale), 0.1f))
-				{
-					localTransformChanged = true;
-				}
-
-				if (localTransformChanged)
-				{
-					localTransform->updateDirectionVectors();
-					localTransform->isModelDirty = true;
-					localTransform->isViewDirty = true;
+					localTransform->setLocalPosition(lPos);
+					localTransform->setLocalRotation(glm::quat(glm::radians(lEuler)));
+					localTransform->setLocalScale(lScale);
 				}
 			}
 		}

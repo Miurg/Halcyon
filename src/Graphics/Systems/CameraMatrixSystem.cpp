@@ -70,7 +70,7 @@ void CameraMatrixSystem::update(GeneralManager& gm)
 	cameraUbo.viewMatrix = view;
 	cameraUbo.projMatrix = proj;
 	cameraUbo.invViewProj = glm::inverse(cameraSpaceMatrix);
-	cameraUbo.cameraPositionAndPadding = glm::vec4(mainCameraTransform->globalPosition, 0.0f);
+	cameraUbo.cameraPositionAndPadding = glm::vec4(mainCameraTransform->getGlobalPosition(), 0.0f);
 	for (int i = 0; i < 6; ++i) cameraUbo.frustumPlanes[i] = frustumPlanes[i];
 
 	memcpy(bufferManager.buffers[globalDSetComponent->cameraBuffers.id].bufferMapped[currentFrame], &cameraUbo,
@@ -126,7 +126,7 @@ void CameraMatrixSystem::update(GeneralManager& gm)
 	sunCamera->orthoSize = radius;
 
 	// Calculate light view matrix
-	glm::vec3 lightDir = glm::normalize(sunCameraTransform->front);
+	glm::vec3 lightDir = glm::normalize(sunCameraTransform->getFront());
 	float zOffset = radius + lightComponent->shadowCasterRange;
 	glm::vec3 lightPos = center - lightDir * zOffset;
 	glm::mat4 lightView = glm::lookAt(lightPos, center, glm::vec3(0.0f, 1.0f, 0.0f));

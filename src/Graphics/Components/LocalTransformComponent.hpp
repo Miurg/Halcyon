@@ -6,136 +6,193 @@
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtx/quaternion.hpp>
 
+class TransformSystem;
+
 struct LocalTransformComponent
 {
-	glm::vec3 localPosition = {0.0f, 0.0f, 0.0f};
-	glm::quat localRotation = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
-	glm::vec3 localScale = {1.0f, 1.0f, 1.0f};
-
-	glm::vec3 front = {1.0f, 0.0f, 0.0f};
-	glm::vec3 up = {0.0f, 1.0f, 0.0f};
-	glm::vec3 right = {0.0f, 0.0f, 1.0f};
-
-	// mutable glm::mat4 localModel = glm::mat4(1.0f);
-	mutable glm::mat4 view = glm::mat4(1.0f);
-	mutable bool isModelDirty = true;
-	mutable bool isViewDirty = true;
-
+public:
 	LocalTransformComponent() = default;
 
-	LocalTransformComponent(glm::vec3 pos) : localPosition(pos)
+	LocalTransformComponent(glm::vec3 pos) : _localPosition(pos)
 	{
-		updateDirectionVectors();
+		_updateDirectionVectors();
 	}
 
 	// Eulers
 	LocalTransformComponent(glm::vec3 pos, glm::vec3 rotEuler)
-	    : localPosition(pos), localRotation(glm::quat(glm::radians(rotEuler)))
+	    : _localPosition(pos), _localRotation(glm::quat(glm::radians(rotEuler)))
 	{
-		updateDirectionVectors();
+		_updateDirectionVectors();
 	}
 
-	LocalTransformComponent(glm::vec3 pos, glm::quat rot) : localPosition(pos), localRotation(rot)
+	LocalTransformComponent(glm::vec3 pos, glm::quat rot) : _localPosition(pos), _localRotation(rot)
 	{
-		updateDirectionVectors();
+		_updateDirectionVectors();
 	}
 
 	LocalTransformComponent(glm::vec3 pos, glm::vec3 rotEuler, glm::vec3 scl)
-	    : localPosition(pos), localRotation(glm::quat(glm::radians(rotEuler))), localScale(scl)
+	    : _localPosition(pos), _localRotation(glm::quat(glm::radians(rotEuler))), _localScale(scl)
 	{
-		updateDirectionVectors();
+		_updateDirectionVectors();
 	}
 
 	LocalTransformComponent(glm::vec3 pos, glm::quat rot, glm::vec3 scl)
-	    : localPosition(pos), localRotation(rot), localScale(scl)
+	    : _localPosition(pos), _localRotation(rot), _localScale(scl)
 	{
-		updateDirectionVectors();
+		_updateDirectionVectors();
 	}
 
-	LocalTransformComponent(float x, float y, float z) : localPosition(glm::vec3(x, y, z))
+	LocalTransformComponent(float x, float y, float z) : _localPosition(glm::vec3(x, y, z))
 	{
-		updateDirectionVectors();
+		_updateDirectionVectors();
 	}
 
 	LocalTransformComponent(float px, float py, float pz, float rx, float ry, float rz)
-	    : localPosition(glm::vec3(px, py, pz)), localRotation(glm::quat(glm::radians(glm::vec3(rx, ry, rz))))
+	    : _localPosition(glm::vec3(px, py, pz)), _localRotation(glm::quat(glm::radians(glm::vec3(rx, ry, rz))))
 	{
-		updateDirectionVectors();
+		_updateDirectionVectors();
 	}
 
 	LocalTransformComponent(float px, float py, float pz, float rx, float ry, float rz, float sx, float sy, float sz)
-	    : localPosition(glm::vec3(px, py, pz)), localRotation(glm::quat(glm::radians(glm::vec3(rx, ry, rz)))),
-	      localScale(glm::vec3(sx, sy, sz))
+	    : _localPosition(glm::vec3(px, py, pz)), _localRotation(glm::quat(glm::radians(glm::vec3(rx, ry, rz)))),
+	      _localScale(glm::vec3(sx, sy, sz))
 	{
-		updateDirectionVectors();
+		_updateDirectionVectors();
 	}
 
 	LocalTransformComponent(const LocalTransformComponent& other)
-	    : localPosition(other.localPosition), localRotation(other.localRotation), localScale(other.localScale)
+	    : _localPosition(other._localPosition), _localRotation(other._localRotation), _localScale(other._localScale)
 	{
-		updateDirectionVectors();
+		_updateDirectionVectors();
 	}
 
-	void updateDirectionVectors()
-	{
-		front = glm::rotate(localRotation, glm::vec3(0.0f, 0.0f, -1.0f));
-		up = glm::rotate(localRotation, glm::vec3(0.0f, 1.0f, 0.0f));
-		right = glm::rotate(localRotation, glm::vec3(1.0f, 0.0f, 0.0f));
-		isModelDirty = true;
-		isViewDirty = true;
-	}
+	// === Getters ===
 
+	const glm::vec3& getLocalPosition() const
+	{
+		return _localPosition;
+	}
+	const glm::quat& getLocalRotation() const
+	{
+		return _localRotation;
+	}
+	const glm::vec3& getLocalScale() const
+	{
+		return _localScale;
+	}
+	const glm::vec3& getFront() const
+	{
+		return _front;
+	}
+	const glm::vec3& getUp() const
+	{
+		return _up;
+	}
+	const glm::vec3& getRight() const
+	{
+		return _right;
+	}
 
 	const glm::mat4& getViewMatrix() const
 	{
-		if (isViewDirty)
+		if (_isViewDirty)
 		{
-			// R^T * -T
-			glm::mat3 R = glm::mat3_cast(localRotation);
+			glm::mat3 R = glm::mat3_cast(_localRotation);
 			glm::mat3 R_view = glm::transpose(R);
-			// Construct view matrix
-			view = glm::mat4(R_view);
-			// Position
-			view[3] = glm::vec4(R_view * (-localPosition), 1.0f);
-
-			isViewDirty = false;
+			_view = glm::mat4(R_view);
+			_view[3] = glm::vec4(R_view * (-_localPosition), 1.0f);
+			_isViewDirty = false;
 		}
-		return view;
+		return _view;
 	}
 
-	// Local euler
-	void rotateLocal(const glm::vec3& eulerAngles)
+	// === Pending mutations ===
+
+	void setLocalPosition(const glm::vec3& pos)
 	{
-		glm::quat q = glm::quat(eulerAngles);
-		localRotation = localRotation * q;
-		localRotation = glm::normalize(localRotation);
-		updateDirectionVectors();
+		_pendingPositionDelta = pos - _localPosition; // delta to target, OVERWRITES
+		_isModelDirty = true;
 	}
 
-	// Local
+	void moveLocalPosition(const glm::vec3& delta)
+	{
+		_pendingPositionDelta += delta; // ACCUMULATES
+		_isModelDirty = true;
+	}
+
+	void setLocalRotation(const glm::quat& rot)
+	{
+		_pendingRotationDelta = glm::normalize(glm::inverse(_localRotation) * rot); // OVERWRITES
+		_isModelDirty = true;
+	}
+
+	void setLocalRotation(const glm::vec3& eulerDeg)
+	{
+		setLocalRotation(glm::quat(glm::radians(eulerDeg)));
+	}
+
+	// Accumulates as rot = rot * q
 	void rotateLocal(float angle, const glm::vec3& axis)
 	{
 		glm::quat q = glm::angleAxis(angle, glm::normalize(axis));
-		localRotation = localRotation * q;
-		localRotation = glm::normalize(localRotation);
-		updateDirectionVectors();
+		_pendingRotationDelta = glm::normalize(_pendingRotationDelta * q);
+		_isModelDirty = true;
 	}
 
-	// Global euler
-	void rotateGlobal(const glm::vec3& eulerAngles)
-	{
-		glm::quat q = glm::quat(eulerAngles);
-		localRotation = q * localRotation;
-		localRotation = glm::normalize(localRotation);
-		updateDirectionVectors();
-	}
-
-	// Global
+	// Converts to local-space delta lq = R^-1 * q * R
 	void rotateGlobal(float angle, const glm::vec3& axis)
 	{
 		glm::quat q = glm::angleAxis(angle, glm::normalize(axis));
-		localRotation = q * localRotation;
-		localRotation = glm::normalize(localRotation);
-		updateDirectionVectors();
+		glm::quat lq = glm::normalize(glm::inverse(_localRotation) * q * _localRotation);
+		_pendingRotationDelta = glm::normalize(_pendingRotationDelta * lq);
+		_isModelDirty = true;
 	}
+
+	void setLocalScale(const glm::vec3& scale)
+	{
+		_pendingScale = scale;
+		_hasPendingScale = true;
+		_isModelDirty = true;
+	}
+
+private:
+
+	glm::vec3 _localPosition = {0.0f, 0.0f, 0.0f};
+	glm::quat _localRotation = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
+	glm::vec3 _localScale = {1.0f, 1.0f, 1.0f};
+
+	glm::vec3 _front = {1.0f, 0.0f, 0.0f};
+	glm::vec3 _up = {0.0f, 1.0f, 0.0f};
+	glm::vec3 _right = {0.0f, 0.0f, 1.0f};
+
+	mutable glm::mat4 _view = glm::mat4(1.0f);
+	mutable bool _isModelDirty = true;
+	mutable bool _isViewDirty = true;
+
+	// == Deltas ===
+
+	glm::vec3 _pendingPositionDelta = {0.0f, 0.0f, 0.0f};
+	glm::quat _pendingRotationDelta = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
+	bool _hasPendingScale = false;
+	glm::vec3 _pendingScale = {1.0f, 1.0f, 1.0f};
+
+
+	void _updateDirectionVectors()
+	{
+		_front = glm::rotate(_localRotation, glm::vec3(0.0f, 0.0f, -1.0f));
+		_up = glm::rotate(_localRotation, glm::vec3(0.0f, 1.0f, 0.0f));
+		_right = glm::rotate(_localRotation, glm::vec3(1.0f, 0.0f, 0.0f));
+		_isModelDirty = true;
+		_isViewDirty = true;
+	}
+
+	void _clearPending()
+	{
+		_pendingPositionDelta = {0.0f, 0.0f, 0.0f};
+		_pendingRotationDelta = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
+		_hasPendingScale = false;
+		_isModelDirty = false;
+	}
+
+	friend class TransformSystem;
 };

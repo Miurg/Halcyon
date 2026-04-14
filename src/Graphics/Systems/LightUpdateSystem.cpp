@@ -72,7 +72,7 @@ void LightUpdateSystem::update(GeneralManager& gm)
 		spotLightPtr[i].outerConeAngle = glm::cos(glm::radians(_agents[i].lightInfo->outerConeAngle));
 		spotLightPtr[i].type = _agents[i].lightInfo->type;
 
-		spotLightPtr[i].position = _agents[i].transform->globalPosition;
+		spotLightPtr[i].position = _agents[i].transform->getGlobalPosition();
 	}
 
 	auto* pointLightCountPtr = static_cast<uint32_t*>(

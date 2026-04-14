@@ -13,7 +13,6 @@ using Orhescyon::GeneralManager;
 class TransformSystem : public Orhescyon::SystemCore<TransformSystem, GlobalTransformComponent, LocalTransformComponent,
                                                    RelationshipComponent>
 {
-private:
 public:
 	struct Agent
 	{
@@ -30,4 +29,8 @@ public:
 	void onShutdown(GeneralManager& gm) override;
 	void onEntitySubscribed(Entity entity, GeneralManager& gm) override;
 	void onEntityUnsubscribed(Entity entity, GeneralManager& gm) override;
+
+private:
+	static void applyPendingToLocal(LocalTransformComponent* local);
+	static void applyPendingToGlobal(GlobalTransformComponent* global);
 };

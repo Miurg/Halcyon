@@ -18,6 +18,7 @@
 #include "../Components/DirectLightComponent.hpp"
 #include "../Components/LocalTransformComponent.hpp"
 #include "../Components/GlobalTransformComponent.hpp"
+#include "../Components/RelationshipComponent.hpp"
 #include "../Components/SkyboxComponent.hpp"
 #include "../VulkanDevice.hpp"
 #include "../SwapChain.hpp"
@@ -60,6 +61,8 @@ void PlaceholdersInit::initPlaceholders(GeneralManager& gm)
 	gm.addComponent<NameComponent>(cameraEntity, "Main Camera");
 	gm.addComponent<CameraComponent>(cameraEntity);
 	gm.addComponent<GlobalTransformComponent>(cameraEntity, glm::vec3(-5.0f, 5.0f, 3.0f));
+	gm.addComponent<LocalTransformComponent>(cameraEntity);
+	gm.addComponent<RelationshipComponent>(cameraEntity);
 	gm.registerContext<MainCameraContext>(cameraEntity);
 	CameraComponent* camera = gm.getContextComponent<MainCameraContext, CameraComponent>();
 
