@@ -102,6 +102,7 @@ struct MaterialData
 	uint alphaMode;
 	float emissiveStrength;
 	uint doubleSided;
+	float4 baseColorFactor;  // offset 32 — matches alignas(16) glm::vec4 in C++ struct
 	float3 emissiveFactor;
 	float emissivePadding;
 	float roughnessFactor;
@@ -170,7 +171,15 @@ VSOutput vertMain(VSInput input, uint instanceID: SV_InstanceID, uint baseInstan
 
 	float3 N = normalize(mul(normalMatrix, input.inNormal));
 	float3 T = normalize(mul(normalMatrix, input.inTangent.xyz));
-	T = normalize(T - dot(T, N) * N);
+	float3 tOrtho = T - dot(T, N) * N;
+	float tLen = length(tOrtho);
+	if (tLen > 1e-6)
+		T = tOrtho / tLen;
+	else
+	{
+		float3 up = abs(N.y) < 0.9 ? float3(0.0, 1.0, 0.0) : float3(1.0, 0.0, 0.0);
+		T = normalize(cross(N, up));
+	}
 	float3 B = cross(N, T) * input.inTangent.w;
 
 	VSOutput output;
@@ -464,7 +473,8 @@ FragOutput fragMain(VSOutput input, bool isFrontFace: SV_IsFrontFace)
 	float2 dy = ddy(input.fragTexCoord);
 
 	// === MATERIAL SAMPLING ===
-	float4 albedo = textureArray[NonUniformResourceIndex(mat.textureIndex)].SampleGrad(input.fragTexCoord, dx, dy) * float4(input.fragColor.xyz, 1.0);
+	float4 albedo = textureArray[NonUniformResourceIndex(mat.textureIndex)].SampleGrad(input.fragTexCoord, dx, dy)
+	              * mat.baseColorFactor * float4(input.fragColor.xyz, 1.0);
 
 	if (ALPHA_TEST_ENABLED == 1)
 	{
