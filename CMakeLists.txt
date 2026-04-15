@@ -1,4 +1,4 @@
-cmake_minimum_required (VERSION 3.20)
+ cmake_minimum_required (VERSION 3.20)
 
 if (POLICY CMP0141)
   cmake_policy(SET CMP0141 NEW)
@@ -23,6 +23,8 @@ find_path(TINYGLTF_INCLUDE_DIRS "tiny_gltf.h")
 find_path(STB_INCLUDE_DIRS "stb_image.h") 
 find_package(VulkanMemoryAllocator CONFIG REQUIRED)
 find_package(imgui CONFIG REQUIRED)
+find_package(Jolt CONFIG REQUIRED)
+find_package(Ktx CONFIG REQUIRED)
 
 FetchContent_Declare(
     Orhescyon
@@ -42,6 +44,8 @@ target_link_libraries("${CMAKE_PROJECT_NAME}" PRIVATE tinyobjloader::tinyobjload
 target_include_directories("${CMAKE_PROJECT_NAME}" PRIVATE ${STB_INCLUDE_DIRS})
 target_link_libraries("${CMAKE_PROJECT_NAME}" PRIVATE GPUOpen::VulkanMemoryAllocator)
 target_link_libraries("${CMAKE_PROJECT_NAME}" PRIVATE imgui::imgui)
+target_link_libraries("${CMAKE_PROJECT_NAME}" PRIVATE Jolt::Jolt)
+target_link_libraries("${CMAKE_PROJECT_NAME}" PRIVATE KTX::ktx)
 
 target_link_libraries("${CMAKE_PROJECT_NAME}" PRIVATE Orhescyon)
 target_compile_definitions("${CMAKE_PROJECT_NAME}" PRIVATE ORHESCYON_HIGH_CHECK)

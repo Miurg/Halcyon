@@ -52,7 +52,7 @@ void TextureManager::destroyTexture(TextureHandle handle)
 	if (texture.textureImage)
 	{
 		vmaDestroyImage(allocator, texture.textureImage, texture.textureImageAllocation);
-		texture.textureImage     = nullptr;
+		texture.textureImage = nullptr;
 		texture.textureImageAllocation = nullptr;
 	}
 }
@@ -188,6 +188,24 @@ TextureHandle TextureManager::generateTextureData(const char texturePath[MAX_PAT
 	TextureUploader::uploadTextureFromBuffer(pixels, texWidth, texHeight, texture, allocator, vulkanDevice);
 	TextureManager::createImageView(texture, format, vk::ImageAspectFlagBits::eColor);
 	TextureManager::createTextureSampler(texture);
+
+	TextureHandle handle{static_cast<int>(textures.size() - 1)};
+	texturePaths[std::string(texturePath)] = handle;
+	dManager.updateBindlessTextureSet(texture.textureImageView, texture.textureSampler, dSetComponent, handle.id);
+	return handle;
+}
+
+TextureHandle TextureManager::generateTextureDataFromKtx(const char texturePath[MAX_PATH_LEN],
+                                                         const unsigned char* ktxData, size_t dataSize,
+                                                         BindlessTextureDSetComponent& dSetComponent,
+                                                         DescriptorManager& dManager, bool isSrgb)
+{
+	textures.push_back(Texture());
+	Texture& texture = textures.back();
+
+	TextureUploader::uploadKtxTextureData(ktxData, dataSize, texture, isSrgb, allocator, vulkanDevice);
+	createImageView(texture, texture.format, vk::ImageAspectFlagBits::eColor);
+	createTextureSampler(texture); // maxLod uses texture.mipLevels set inside uploadKtxTextureData
 
 	TextureHandle handle{static_cast<int>(textures.size() - 1)};
 	texturePaths[std::string(texturePath)] = handle;
@@ -400,8 +418,7 @@ void TextureManager::resizeTexture(TextureHandle handle, uint32_t newWidth, uint
 	TextureManager::createImageView(texture, texture.format, texture.aspectFlags);
 }
 
-TextureHandle TextureManager::generateCubemapFromHdr(TextureHandle hdrTexture,
-                                                     DescriptorManager& dManager,
+TextureHandle TextureManager::generateCubemapFromHdr(TextureHandle hdrTexture, DescriptorManager& dManager,
                                                      BindlessTextureDSetComponent& dSetComponent,
                                                      PipelineManager& pManager)
 {
@@ -443,7 +460,7 @@ TextureHandle TextureManager::generateCubemapFromHdr(TextureHandle hdrTexture,
 	cmd.pushConstants<uint32_t>(*pManager.pipelines["equirect_to_cube"].layout, vk::ShaderStageFlagBits::eCompute, 0,
 	                            pushConstants);
 
-	cmd.dispatch(1024 / 8, 1024 / 8, 6); //TODO: Get rid of hardcoded resolution. Same in SH compute.
+	cmd.dispatch(1024 / 8, 1024 / 8, 6); // TODO: Get rid of hardcoded resolution. Same in SH compute.
 
 	VulkanUtils::transitionImageLayout(
 	    cmd, cubemapTexture.textureImage, vk::ImageLayout::eGeneral, vk::ImageLayout::eShaderReadOnlyOptimal,
@@ -455,8 +472,7 @@ TextureHandle TextureManager::generateCubemapFromHdr(TextureHandle hdrTexture,
 	return cubemapHandle;
 }
 
-TextureHandle TextureManager::generatePrefilteredEnvMap(TextureHandle envCubemap,
-                                                        DescriptorManager& dManager,
+TextureHandle TextureManager::generatePrefilteredEnvMap(TextureHandle envCubemap, DescriptorManager& dManager,
                                                         BindlessTextureDSetComponent& dSetComponent,
                                                         PipelineManager& pManager)
 {

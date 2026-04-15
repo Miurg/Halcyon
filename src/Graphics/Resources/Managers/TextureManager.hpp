@@ -29,6 +29,9 @@ public:
 	TextureHandle generateTextureData(const char texturePath[MAX_PATH_LEN], int texWidth, int texHeight,
 	                                  const unsigned char* pixels, BindlessTextureDSetComponent& dSetComponent,
 	                                  DescriptorManager& dManager, vk::Format format = vk::Format::eR8G8B8A8Srgb);
+	TextureHandle generateTextureDataFromKtx(const char texturePath[MAX_PATH_LEN], const unsigned char* ktxData,
+	                                         size_t dataSize, BindlessTextureDSetComponent& dSetComponent,
+	                                         DescriptorManager& dManager, bool isSrgb);
 	bool isTextureLoaded(const char texturePath[MAX_PATH_LEN]);
 	void resizeTexture(TextureHandle handle, uint32_t newWidth, uint32_t newHeight);
 	TextureHandle createDepthImage(uint32_t resolutionWidth, uint32_t resolutionHeight);

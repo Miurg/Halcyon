@@ -3,6 +3,7 @@
 #include "../../VulkanUtils.hpp"
 #include "../Managers/TextureManager.hpp"
 #include <stb_image.h>
+#include <ktx.h>
 #include <iostream>
 
 void TextureUploader::uploadTextureFromFile(const char* texturePath, Texture& texture, VmaAllocator& allocator,
@@ -173,7 +174,7 @@ void TextureUploader::uploadHdrTextureFromFile(const char* texturePath, Texture&
                                                VmaAllocator& allocator, VulkanDevice& vulkanDevice)
 {
 	int hdrWidth, hdrHeight, hdrChannels;
-	stbi_set_flip_vertically_on_load(true); 
+	stbi_set_flip_vertically_on_load(true);
 	float* hdrPixels = stbi_loadf(texturePath, &hdrWidth, &hdrHeight, &hdrChannels, STBI_rgb_alpha);
 	stbi_set_flip_vertically_on_load(false); // Duplication is intentional
 
@@ -204,6 +205,130 @@ void TextureUploader::uploadHdrTextureFromFile(const char* texturePath, Texture&
 	{
 		stbi_image_free(hdrPixels);
 	}
+}
+
+void TextureUploader::uploadKtxTextureData(const unsigned char* ktxData, size_t dataSize, Texture& texture, bool isSrgb,
+                                           VmaAllocator& allocator, VulkanDevice& vulkanDevice)
+{
+	ktxTexture2* ktxTex = nullptr;
+	KTX_error_code res =
+	    ktxTexture2_CreateFromMemory(ktxData, dataSize, KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT, &ktxTex);
+	if (res != KTX_SUCCESS) throw std::runtime_error("ktxTexture2_CreateFromMemory failed: " + std::to_string(res));
+
+	if (ktxTexture2_NeedsTranscoding(ktxTex))
+	{
+		res = ktxTexture2_TranscodeBasis(ktxTex, KTX_TTF_BC7_RGBA, 0);
+		if (res != KTX_SUCCESS)
+		{
+			ktxTexture_Destroy(ktxTexture(ktxTex));
+			throw std::runtime_error("ktxTexture2_TranscodeBasis failed: " + std::to_string(res));
+		}
+		// libktx sets vkFormat to BC7_UNORM_BLOCK after transcoding — promote to sRGB variant if needed
+		if (isSrgb) ktxTex->vkFormat = VK_FORMAT_BC7_SRGB_BLOCK;
+	}
+
+	vk::Format vkFmt = static_cast<vk::Format>(ktxTex->vkFormat);
+	uint32_t mipLevels = ktxTex->numLevels;
+	uint32_t width = ktxTex->baseWidth;
+	uint32_t height = ktxTex->baseHeight;
+
+	// Create VkImage — pre-computed mipmaps, no eTransferSrc needed
+	VkImageCreateInfo imageInfo{VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO};
+	imageInfo.imageType = VK_IMAGE_TYPE_2D;
+	imageInfo.extent = {width, height, 1};
+	imageInfo.mipLevels = mipLevels;
+	imageInfo.arrayLayers = 1;
+	imageInfo.format = static_cast<VkFormat>(vkFmt);
+	imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+	imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+	imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+	imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+	imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+
+	VmaAllocationCreateInfo vmaAllocInfo{};
+	vmaAllocInfo.usage = VMA_MEMORY_USAGE_AUTO;
+	VkImage imageRaw;
+	VmaAllocation vmaAlloc;
+	if (vmaCreateImage(allocator, &imageInfo, &vmaAllocInfo, &imageRaw, &vmaAlloc, nullptr) != VK_SUCCESS)
+	{
+		ktxTexture_Destroy(ktxTexture(ktxTex));
+		throw std::runtime_error("Failed to create VkImage for KTX2 texture");
+	}
+	texture.textureImage = vk::Image(imageRaw);
+	texture.textureImageAllocation = vmaAlloc;
+	texture.width = width;
+	texture.height = height;
+	texture.format = vkFmt;
+	texture.tiling = vk::ImageTiling::eOptimal;
+	texture.usage = vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled;
+	texture.memoryUsage = VMA_MEMORY_USAGE_AUTO;
+	texture.mipLevels = mipLevels;
+
+	// Staging buffer — copy the full KTX data blob (all mip levels contiguous)
+	ktx_size_t totalSize = ktxTexture_GetDataSize(ktxTexture(ktxTex));
+	ktx_uint8_t* dataPtr = ktxTexture_GetData(ktxTexture(ktxTex));
+
+	VkBufferCreateInfo bufInfo{VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO};
+	bufInfo.size = totalSize;
+	bufInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+	VmaAllocationCreateInfo stagingInfo{};
+	stagingInfo.usage = VMA_MEMORY_USAGE_AUTO;
+	stagingInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
+	VkBuffer stagingBuf;
+	VmaAllocation stagingAlloc;
+	VmaAllocationInfo stagingAllocInfo;
+	if (vmaCreateBuffer(allocator, &bufInfo, &stagingInfo, &stagingBuf, &stagingAlloc, &stagingAllocInfo) != VK_SUCCESS)
+	{
+		ktxTexture_Destroy(ktxTexture(ktxTex));
+		throw std::runtime_error("Failed to create staging buffer for KTX2 texture");
+	}
+	memcpy(stagingAllocInfo.pMappedData, dataPtr, totalSize);
+
+	auto cmd = VulkanUtils::beginSingleTimeCommands(vulkanDevice);
+
+	// Transition all mip levels: undefined -> transfer dst
+	vk::ImageMemoryBarrier barrier;
+	barrier.oldLayout = vk::ImageLayout::eUndefined;
+	barrier.newLayout = vk::ImageLayout::eTransferDstOptimal;
+	barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+	barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+	barrier.image = texture.textureImage;
+	barrier.subresourceRange = {vk::ImageAspectFlagBits::eColor, 0, mipLevels, 0, 1};
+	barrier.srcAccessMask = {};
+	barrier.dstAccessMask = vk::AccessFlagBits::eTransferWrite;
+	cmd.pipelineBarrier(vk::PipelineStageFlagBits::eTopOfPipe, vk::PipelineStageFlagBits::eTransfer, {}, {}, {},
+	                    barrier);
+
+	// One VkBufferImageCopy per mip level
+	std::vector<vk::BufferImageCopy> regions;
+	regions.reserve(mipLevels);
+	for (uint32_t mip = 0; mip < mipLevels; mip++)
+	{
+		ktx_size_t offset;
+		ktxTexture_GetImageOffset(ktxTexture(ktxTex), mip, 0, 0, &offset);
+
+		vk::BufferImageCopy region;
+		region.bufferOffset = offset;
+		region.bufferRowLength = 0;
+		region.bufferImageHeight = 0;
+		region.imageSubresource = {vk::ImageAspectFlagBits::eColor, mip, 0, 1};
+		region.imageOffset = vk::Offset3D{0, 0, 0};
+		region.imageExtent = vk::Extent3D{std::max(1u, width >> mip), std::max(1u, height >> mip), 1};
+		regions.push_back(region);
+	}
+	cmd.copyBufferToImage(stagingBuf, texture.textureImage, vk::ImageLayout::eTransferDstOptimal, regions);
+
+	// Transition all mip levels: transfer dst -> shader read only
+	barrier.oldLayout = vk::ImageLayout::eTransferDstOptimal;
+	barrier.newLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
+	barrier.srcAccessMask = vk::AccessFlagBits::eTransferWrite;
+	barrier.dstAccessMask = vk::AccessFlagBits::eShaderRead;
+	cmd.pipelineBarrier(vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eFragmentShader, {}, {}, {},
+	                    barrier);
+
+	VulkanUtils::endSingleTimeCommands(cmd, vulkanDevice);
+	vmaDestroyBuffer(allocator, stagingBuf, stagingAlloc);
+	ktxTexture_Destroy(ktxTexture(ktxTex));
 }
 
 void TextureUploader::generateMipmaps(vk::Image image, vk::Format imageFormat, int32_t texWidth, int32_t texHeight,

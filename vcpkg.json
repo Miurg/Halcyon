@@ -6,6 +6,8 @@
     "stb",
     "vulkan-memory-allocator",
     "tinygltf",
+    "joltphysics",
+    "ktx",
     {
       "name": "imgui",
       "features": [

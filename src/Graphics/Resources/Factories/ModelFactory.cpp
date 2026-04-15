@@ -1,4 +1,6 @@
 #include "ModelFactory.hpp"
+#include <ktx.h>
+#include <stb_image.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #define GLM_ENABLE_EXPERIMENTAL
@@ -150,6 +152,32 @@ Entity ModelFactory::loadModel(const char path[MAX_PATH_LEN], int vertexIndexBIn
 	tinygltf::TinyGLTF loader;
 	std::string err, warn;
 	bool ret = false;
+
+	// Preserve KTX2 raw bytes; decode PNG/JPEG normally via stb_image
+	loader.SetImageLoader(
+	    [](tinygltf::Image* image, const int, std::string*, std::string*, int, int, const unsigned char* bytes, int size,
+	       void*) -> bool
+	    {
+		    if (image->mimeType == "image/ktx2")
+		    {
+			    image->image.assign(bytes, bytes + size);
+			    image->as_is = true;
+			    return true;
+		    }
+		    int w, h, comp;
+		    unsigned char* data = stbi_load_from_memory(bytes, size, &w, &h, &comp, STBI_rgb_alpha);
+		    if (!data)
+			    return false;
+		    image->width      = w;
+		    image->height     = h;
+		    image->component  = 4;
+		    image->bits       = 8;
+		    image->pixel_type = TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE;
+		    image->image.assign(data, data + static_cast<size_t>(w * h * 4));
+		    stbi_image_free(data);
+		    return true;
+	    },
+	    nullptr);
 
 	std::string pathStr = path;
 	if (pathStr.size() >= 4 && pathStr.substr(pathStr.size() - 4) == ".glb")

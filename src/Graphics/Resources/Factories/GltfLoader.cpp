@@ -82,8 +82,9 @@ MaterialMaps GltfLoader::materialsParser(tinygltf::Model& model, TextureManager&
 			const auto& colorVal = colorIt->second.ColorFactor();
 			colorFactor = {static_cast<float>(colorVal[0]), static_cast<float>(colorVal[1]),
 			               static_cast<float>(colorVal[2]), static_cast<float>(colorVal[3])};
+			material.baseColorFactor = colorFactor;
 		}
-
+		
 		material.textureIndex = whiteTexture; // Default fallback
 		// Base color texture
 		auto texIt = model.materials[i].values.find("baseColorTexture");
@@ -94,35 +95,42 @@ MaterialMaps GltfLoader::materialsParser(tinygltf::Model& model, TextureManager&
 			{
 				const tinygltf::Texture& tex = model.textures[textureIndex];
 				int sourceImageIndex = tex.source;
+				auto basisuIt = tex.extensions.find("KHR_texture_basisu");
+				if (basisuIt != tex.extensions.end() && basisuIt->second.Has("source"))
+					sourceImageIndex = basisuIt->second.Get("source").GetNumberAsInt();
 				if (sourceImageIndex >= 0 && sourceImageIndex < model.images.size())
 				{
 					tinygltf::Image& img = model.images[sourceImageIndex];
-					if (!img.image.empty() && img.width > 0 && img.height > 0)
-					{
-						std::string prefix = "model_" + std::string(filePath) + "_basecolor_";
-						std::string texName;
-						if (!img.name.empty())
-							texName = prefix + img.name;
-						else if (!img.uri.empty() && img.uri.find("data:") != 0)
-							texName = prefix + img.uri;
-						else
-							texName = prefix + "__embedded_img_" + std::to_string(sourceImageIndex);
+					std::string prefix = "model_" + std::string(filePath) + "_basecolor_";
+					std::string texName;
+					if (!img.name.empty())
+						texName = prefix + img.name;
+					else if (!img.uri.empty() && img.uri.find("data:") != 0)
+						texName = prefix + img.uri;
+					else
+						texName = prefix + "__embedded_img_" + std::to_string(sourceImageIndex);
 
-						if (tManager.isTextureLoaded(texName.c_str()))
+					if (tManager.isTextureLoaded(texName.c_str()))
+					{
+						material.textureIndex = tManager.texturePaths[texName].id;
+					}
+					else if (img.as_is && img.mimeType == "image/ktx2" && !img.image.empty())
+					{
+						material.textureIndex =
+						    tManager
+						        .generateTextureDataFromKtx(texName.c_str(), img.image.data(), img.image.size(),
+						                                    dSetComponent, dManager, /*isSrgb*/ true)
+						        .id;
+					}
+					else if (!img.image.empty() && img.width > 0 && img.height > 0)
+					{
+						auto rgbaPixels = ImageConverter::convertToRGBA(img);
+						if (!rgbaPixels.empty())
 						{
-							material.textureIndex = tManager.texturePaths[texName].id;
-						}
-						else
-						{
-							auto rgbaPixels = ImageConverter::convertToRGBA(img);
-							if (!rgbaPixels.empty())
-							{
-								int indexInSystem = tManager
-								                        .generateTextureData(texName.c_str(), img.width, img.height,
-								                                             rgbaPixels.data(), dSetComponent, dManager)
-								                        .id;
-								material.textureIndex = indexInSystem;
-							}
+							material.textureIndex = tManager
+							                            .generateTextureData(texName.c_str(), img.width, img.height,
+							                                                 rgbaPixels.data(), dSetComponent, dManager)
+							                            .id;
 						}
 					}
 				}
@@ -138,36 +146,43 @@ MaterialMaps GltfLoader::materialsParser(tinygltf::Model& model, TextureManager&
 			{
 				const tinygltf::Texture& tex = model.textures[textureIndex];
 				int sourceImageIndex = tex.source;
+				auto basisuIt = tex.extensions.find("KHR_texture_basisu");
+				if (basisuIt != tex.extensions.end() && basisuIt->second.Has("source"))
+					sourceImageIndex = basisuIt->second.Get("source").GetNumberAsInt();
 				if (sourceImageIndex >= 0 && sourceImageIndex < model.images.size())
 				{
 					tinygltf::Image& img = model.images[sourceImageIndex];
-					if (!img.image.empty() && img.width > 0 && img.height > 0)
-					{
-						std::string prefix = "model_" + std::string(filePath) + "_normal_";
-						std::string texName;
-						if (!img.name.empty())
-							texName = prefix + img.name;
-						else if (!img.uri.empty() && img.uri.find("data:") != 0)
-							texName = prefix + img.uri;
-						else
-							texName = prefix + "__embedded_img_" + std::to_string(sourceImageIndex);
+					std::string prefix = "model_" + std::string(filePath) + "_normal_";
+					std::string texName;
+					if (!img.name.empty())
+						texName = prefix + img.name;
+					else if (!img.uri.empty() && img.uri.find("data:") != 0)
+						texName = prefix + img.uri;
+					else
+						texName = prefix + "__embedded_img_" + std::to_string(sourceImageIndex);
 
-						if (tManager.isTextureLoaded(texName.c_str()))
+					if (tManager.isTextureLoaded(texName.c_str()))
+					{
+						material.normalMapIndex = tManager.texturePaths[texName].id;
+					}
+					else if (img.as_is && img.mimeType == "image/ktx2" && !img.image.empty())
+					{
+						material.normalMapIndex =
+						    tManager
+						        .generateTextureDataFromKtx(texName.c_str(), img.image.data(), img.image.size(),
+						                                    dSetComponent, dManager, /*isSrgb*/ false)
+						        .id;
+					}
+					else if (!img.image.empty() && img.width > 0 && img.height > 0)
+					{
+						auto rgbaPixels = ImageConverter::convertToRGBA(img);
+						if (!rgbaPixels.empty())
 						{
-							material.normalMapIndex = tManager.texturePaths[texName].id;
-						}
-						else
-						{
-							auto rgbaPixels = ImageConverter::convertToRGBA(img);
-							if (!rgbaPixels.empty())
-							{
-								int indexInSystem =
-								    tManager
-								        .generateTextureData(texName.c_str(), img.width, img.height, rgbaPixels.data(),
-								                             dSetComponent, dManager, vk::Format::eR8G8B8A8Unorm)
-								        .id;
-								material.normalMapIndex = indexInSystem;
-							}
+							material.normalMapIndex =
+							    tManager
+							        .generateTextureData(texName.c_str(), img.width, img.height, rgbaPixels.data(),
+							                             dSetComponent, dManager, vk::Format::eR8G8B8A8Unorm)
+							        .id;
 						}
 					}
 				}
@@ -183,36 +198,43 @@ MaterialMaps GltfLoader::materialsParser(tinygltf::Model& model, TextureManager&
 			{
 				const tinygltf::Texture& tex = model.textures[textureIndex];
 				int sourceImageIndex = tex.source;
+				auto basisuIt = tex.extensions.find("KHR_texture_basisu");
+				if (basisuIt != tex.extensions.end() && basisuIt->second.Has("source"))
+					sourceImageIndex = basisuIt->second.Get("source").GetNumberAsInt();
 				if (sourceImageIndex >= 0 && sourceImageIndex < (int)model.images.size())
 				{
 					tinygltf::Image& img = model.images[sourceImageIndex];
-					if (!img.image.empty() && img.width > 0 && img.height > 0)
-					{
-						std::string prefix = "model_" + std::string(filePath) + "_mr_";
-						std::string texName;
-						if (!img.name.empty())
-							texName = prefix + img.name;
-						else if (!img.uri.empty() && img.uri.find("data:") != 0)
-							texName = prefix + img.uri;
-						else
-							texName = prefix + "__embedded_img_" + std::to_string(sourceImageIndex);
+					std::string prefix = "model_" + std::string(filePath) + "_mr_";
+					std::string texName;
+					if (!img.name.empty())
+						texName = prefix + img.name;
+					else if (!img.uri.empty() && img.uri.find("data:") != 0)
+						texName = prefix + img.uri;
+					else
+						texName = prefix + "__embedded_img_" + std::to_string(sourceImageIndex);
 
-						if (tManager.isTextureLoaded(texName.c_str()))
+					if (tManager.isTextureLoaded(texName.c_str()))
+					{
+						material.metallicRoughnessIndex = tManager.texturePaths[texName].id;
+					}
+					else if (img.as_is && img.mimeType == "image/ktx2" && !img.image.empty())
+					{
+						material.metallicRoughnessIndex =
+						    tManager
+						        .generateTextureDataFromKtx(texName.c_str(), img.image.data(), img.image.size(),
+						                                    dSetComponent, dManager, /*isSrgb*/ false)
+						        .id;
+					}
+					else if (!img.image.empty() && img.width > 0 && img.height > 0)
+					{
+						auto rgbaPixels = ImageConverter::convertToRGBA(img);
+						if (!rgbaPixels.empty())
 						{
-							material.metallicRoughnessIndex = tManager.texturePaths[texName].id;
-						}
-						else
-						{
-							auto rgbaPixels = ImageConverter::convertToRGBA(img);
-							if (!rgbaPixels.empty())
-							{
-								int indexInSystem =
-								    tManager
-								        .generateTextureData(texName.c_str(), img.width, img.height, rgbaPixels.data(),
-								                             dSetComponent, dManager, vk::Format::eR8G8B8A8Unorm)
-								        .id;
-								material.metallicRoughnessIndex = indexInSystem;
-							}
+							material.metallicRoughnessIndex =
+							    tManager
+							        .generateTextureData(texName.c_str(), img.width, img.height, rgbaPixels.data(),
+							                             dSetComponent, dManager, vk::Format::eR8G8B8A8Unorm)
+							        .id;
 						}
 					}
 				}
@@ -241,36 +263,43 @@ MaterialMaps GltfLoader::materialsParser(tinygltf::Model& model, TextureManager&
 			{
 				const tinygltf::Texture& tex = model.textures[textureIndex];
 				int sourceImageIndex = tex.source;
+				auto basisuIt = tex.extensions.find("KHR_texture_basisu");
+				if (basisuIt != tex.extensions.end() && basisuIt->second.Has("source"))
+					sourceImageIndex = basisuIt->second.Get("source").GetNumberAsInt();
 				if (sourceImageIndex >= 0 && sourceImageIndex < (int)model.images.size())
 				{
 					tinygltf::Image& img = model.images[sourceImageIndex];
-					if (!img.image.empty() && img.width > 0 && img.height > 0)
-					{
-						std::string prefix = "model_" + std::string(filePath) + "_emissive_";
-						std::string texName;
-						if (!img.name.empty())
-							texName = prefix + img.name;
-						else if (!img.uri.empty() && img.uri.find("data:") != 0)
-							texName = prefix + img.uri;
-						else
-							texName = prefix + "__embedded_img_" + std::to_string(sourceImageIndex);
+					std::string prefix = "model_" + std::string(filePath) + "_emissive_";
+					std::string texName;
+					if (!img.name.empty())
+						texName = prefix + img.name;
+					else if (!img.uri.empty() && img.uri.find("data:") != 0)
+						texName = prefix + img.uri;
+					else
+						texName = prefix + "__embedded_img_" + std::to_string(sourceImageIndex);
 
-						if (tManager.isTextureLoaded(texName.c_str()))
+					if (tManager.isTextureLoaded(texName.c_str()))
+					{
+						material.emissiveIndex = tManager.texturePaths[texName].id;
+					}
+					else if (img.as_is && img.mimeType == "image/ktx2" && !img.image.empty())
+					{
+						material.emissiveIndex =
+						    tManager
+						        .generateTextureDataFromKtx(texName.c_str(), img.image.data(), img.image.size(),
+						                                    dSetComponent, dManager, /*isSrgb*/ true)
+						        .id;
+					}
+					else if (!img.image.empty() && img.width > 0 && img.height > 0)
+					{
+						auto rgbaPixels = ImageConverter::convertToRGBA(img);
+						if (!rgbaPixels.empty())
 						{
-							material.emissiveIndex = tManager.texturePaths[texName].id;
-						}
-						else
-						{
-							auto rgbaPixels = ImageConverter::convertToRGBA(img);
-							if (!rgbaPixels.empty())
-							{
-								int indexInSystem = tManager
-								                        .generateTextureData(texName.c_str(), img.width, img.height,
-								                                             rgbaPixels.data(), dSetComponent,
-								                                             dManager) // sRBG
-								                        .id;
-								material.emissiveIndex = indexInSystem;
-							}
+							material.emissiveIndex = tManager
+							                             .generateTextureData(texName.c_str(), img.width, img.height,
+							                                                  rgbaPixels.data(), dSetComponent,
+							                                                  dManager) // sRGB
+							                             .id;
 						}
 					}
 				}
