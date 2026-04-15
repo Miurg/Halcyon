@@ -417,6 +417,18 @@ void ImGuiSystem::update(GeneralManager& gm)
 		{
 			if (ImGui::CollapsingHeader("Global Illumination Component", ImGuiTreeNodeFlags_DefaultOpen))
 			{
+				ImGui::DragFloat3("Origin", &globalIllumination->origin.x, 0.1f);
+
+				int count[3] = { globalIllumination->count.x, globalIllumination->count.y, globalIllumination->count.z };
+				if (ImGui::DragInt3("Count", count, 1, 1, 64))
+				{
+					globalIllumination->count.x = glm::max(count[0], 1);
+					globalIllumination->count.y = glm::max(count[1], 1);
+					globalIllumination->count.z = glm::max(count[2], 1);
+				}
+
+				ImGui::DragFloat("Spacing", &globalIllumination->spacing, 0.05f, 0.01f, 10.0f);
+
 				if (ImGui::Button("Bake Global Illumination", ImVec2(200, 20)))
 				{
 					globalIllumination->needBake = true;
