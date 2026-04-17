@@ -180,7 +180,9 @@ void ImGuiSystem::update(GeneralManager& gm)
 	}
 
 	if (auto* gs = gm.getContextComponent<GraphicsSettingsContext, GraphicsSettingsComponent>())
+	{
 		ImGui::Checkbox("Draw AABB boxes on top", &gs->aabbAlwaysOnTop);
+	}
 
 	ImGui::End();
 
@@ -433,6 +435,10 @@ void ImGuiSystem::update(GeneralManager& gm)
 				{
 					globalIllumination->needBake = true;
 				}
+
+				ImGui::Checkbox("Visualize Probes", &globalIllumination->debugVisualize);
+				if (globalIllumination->debugVisualize)
+					ImGui::SliderFloat("Probe Scale", &globalIllumination->debugScale, 0.05f, 2.0f);
 			}
 		}
 

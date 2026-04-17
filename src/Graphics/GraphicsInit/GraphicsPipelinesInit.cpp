@@ -458,6 +458,23 @@ void GraphicsPipelinesInit::initPipelines(GeneralManager& gm)
 	        .pushConstants = {{vk::ShaderStageFlagBits::eVertex, 0, 96u}},
 	    },
 	    "aabb_debug_ontop");
+
+	// === GI Probe debug visualization ===
+	pManager->build(
+	    PipelineDescription{
+	        .shaderPath = "shaders/gi_probe_debug.spv",
+	        .topology = vk::PrimitiveTopology::eTriangleList,
+	        .cullMode = vk::CullModeFlagBits::eBack,
+	        .depthTest = true,
+	        .depthWrite = false,
+	        .depthOp = vk::CompareOp::eGreater,
+	        .colorAttachments = {PipelineFactory::opaqueAttachment()},
+	        .colorFormats = {swapChain->hdrFormat},
+	        .depthFormat = depthFormat,
+	        .setLayoutNames = {"globalSet"},
+	        .pushConstants = {{vk::ShaderStageFlagBits::eVertex, 0, 32u}}, // GIProbePush: 2×(float3+float) = 32 bytes
+	    },
+	    "gi_probe_debug");
 #pragma endregion
 
 #ifdef _DEBUG
