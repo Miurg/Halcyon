@@ -34,7 +34,7 @@ void ShaderReloader::scanDirectory()
 		return;
 	}
 
-	for (const auto& entry : std::filesystem::directory_iterator(shadersDir))
+	for (const auto& entry : std::filesystem::recursive_directory_iterator(shadersDir))
 	{
 		if (entry.is_regular_file() && entry.path().extension() == ".slang")
 		{
