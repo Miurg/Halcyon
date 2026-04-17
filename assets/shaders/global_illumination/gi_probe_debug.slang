@@ -126,7 +126,7 @@ float4 fragMain(float3 normal : TEXCOORD0, nointerpolation uint probeIdx : TEXCO
 {
     float3 n   = normalize(normal);
     float3 irr = computeIrradiance(n, shProbes[probeIdx]);
-    // Reinhard tonemapping so HDR irradiance values map to visible range
-    irr = irr / (irr + float3(1.0f, 1.0f, 1.0f));
+    // Reinhard with white point = PI
+    irr = irr / (irr + float3(PI, PI, PI));
     return float4(irr, 1.0f);
 }

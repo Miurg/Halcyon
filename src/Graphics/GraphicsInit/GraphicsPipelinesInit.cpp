@@ -475,6 +475,23 @@ void GraphicsPipelinesInit::initPipelines(GeneralManager& gm)
 	        .pushConstants = {{vk::ShaderStageFlagBits::eVertex, 0, 32u}}, // GIProbePush: 2×(float3+float) = 32 bytes
 	    },
 	    "gi_probe_debug");
+
+	// === GI light source bake ===
+	pManager->build(
+	    PipelineDescription{
+	        .shaderPath = "shaders/gi_light_source_bake.spv",
+	        .topology = vk::PrimitiveTopology::eTriangleList,
+	        .cullMode = vk::CullModeFlagBits::eBack,
+	        .depthTest = true,
+	        .depthWrite = true,
+	        .depthOp = vk::CompareOp::eGreater,
+	        .colorAttachments = {PipelineFactory::opaqueAttachment()},
+	        .colorFormats = {swapChain->hdrFormat},
+	        .depthFormat = depthFormat,
+	        .setLayoutNames = {"globalSet"},
+	        .pushConstants = {{vk::ShaderStageFlagBits::eVertex, 0, 4u}}, // float scale
+	    },
+	    "gi_light_source_bake");
 #pragma endregion
 
 #ifdef _DEBUG

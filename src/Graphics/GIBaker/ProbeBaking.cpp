@@ -138,6 +138,25 @@ static void drawGeometry(vk::raii::CommandBuffer& cmd, const BakeContext& ctx)
 	}
 }
 
+static void drawLightSources(vk::raii::CommandBuffer& cmd, const BakeContext& ctx)
+{
+	const uint32_t lightCount = *static_cast<const uint32_t*>(
+	    ctx.bufferManager->buffers[ctx.globalDSet->pointLightCountBuffer.id].bufferMapped[0]);
+	if (lightCount == 0) return;
+
+	struct LightSourcePush { float scale; };
+	constexpr LightSourcePush push{0.15f};
+
+	auto& pip = ctx.pipelineManager->pipelines["gi_light_source_bake"];
+	cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pip.pipeline);
+	cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pip.layout, 0,
+	                       ctx.descriptorManagerComponent->descriptorManager->getSet(ctx.globalDSet->globalDSets, 0),
+	                       nullptr);
+	cmd.setCullMode(vk::CullModeFlagBits::eBack);
+	cmd.pushConstants<LightSourcePush>(*pip.layout, vk::ShaderStageFlagBits::eVertex, 0, push);
+	cmd.draw(384u, lightCount, 0u, 0u);
+}
+
 static void renderFace(const BakeContext& ctx, const TempImages& tmp, int faceIdx, glm::vec3 probePos,
                        const FaceDesc& face)
 {
@@ -207,6 +226,7 @@ static void renderFace(const BakeContext& ctx, const TempImages& tmp, int faceId
 	cmd.setScissor(0, vk::Rect2D({0, 0}, {kCaptureSize, kCaptureSize}));
 
 	drawGeometry(cmd, ctx);
+	drawLightSources(cmd, ctx);
 
 	cmd.endRendering();
 
