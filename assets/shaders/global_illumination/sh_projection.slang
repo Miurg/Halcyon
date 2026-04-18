@@ -76,13 +76,15 @@ struct SHCoefficients
 SHCoefficients convolveWithCosineLobe(SHCoefficients SHIn)
 {
     SHCoefficients sh = SHIn;
+    // Ramamoorthi cosine-lobe convolution: A0=pi, A1=2pi/3, A2=pi/4
     // L0
-    sh.coefficient[0].x *= 1.0f;
-    sh.coefficient[0].y *= 1.0f;
-    sh.coefficient[0].z *= 1.0f;
+    const float f0 = F_PI;
+    sh.coefficient[0].x *= f0;
+    sh.coefficient[0].y *= f0;
+    sh.coefficient[0].z *= f0;
 
     // L1
-    const float f1 = 2.0f / 3.0f;
+    const float f1 = 2.0f * F_PI / 3.0f;
     for (int i = 1; i <= 3; ++i)
     {
         sh.coefficient[i].x *= f1;
@@ -91,7 +93,7 @@ SHCoefficients convolveWithCosineLobe(SHCoefficients SHIn)
     }
 
     // L2
-    const float f2 = 0.25f;
+    const float f2 = F_PI * 0.25f;
     for (int i = 4; i <= 8; ++i)
     {
         sh.coefficient[i].x *= f2;

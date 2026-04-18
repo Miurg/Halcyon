@@ -50,22 +50,6 @@ VSOutput vertMain(uint vertexID: SV_VertexID)
 	return output;
 }
 
-float3 ComputeAnalyticalSun(float3 viewDir, float3 lightDir, float3 sunColor, float sunIntensity)
-{
-    float cosTheta = dot(viewDir, lightDir);
-
-    float sunAngularRadius = 0.9998;
-    float sunGlowRadius = 0.9980;
-
-    float sunDisc = smoothstep(sunAngularRadius - 0.0001, sunAngularRadius + 0.0001, cosTheta);
-    float sunGlow = smoothstep(sunGlowRadius, 1.0, cosTheta);
-    sunGlow = pow(sunGlow, 3.0);
-
-    float totalSun = max(sunDisc, sunGlow * 0.4);
-
-    return sunColor * totalSun * sunIntensity;
-}
-
 struct FragOutput
 {
 	float4 color : SV_Target0;
@@ -76,16 +60,10 @@ FragOutput fragMain(VSOutput input)
 {
     FragOutput output;
 
-    // Just in case
     float3 viewDir = normalize(input.localPos);
-    float3 lightDir = normalize(directionalLight[0].direction.xyz);
-    float3 sunColor = directionalLight[0].color.rgb;
-    float sunIntensity = directionalLight[0].color.a * 100.0f;
-    float3 sun = ComputeAnalyticalSun(viewDir, lightDir, sunColor, sunIntensity);
+    float3 envColor = skyboxMap.Sample(viewDir).rgb;
 
-    float3 envColor = skyboxMap.Sample(input.localPos).rgb;
-    
-    output.color = float4(envColor + sun, 1.0);
+    output.color = float4(envColor, 1.0);
 
     return output;
 }

@@ -126,7 +126,6 @@ Entity ModelFactory::createEntityHierarchy(int parentEntity, tinygltf::Model& mo
 				else
 					comp->type = 0;
 
-				// Направление из ротации ноды
 				if (node.rotation.size() == 4)
 				{
 					glm::quat rot((float)node.rotation[3], (float)node.rotation[0], (float)node.rotation[1],

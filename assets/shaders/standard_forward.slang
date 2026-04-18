@@ -568,7 +568,7 @@ FragOutput fragMain(VSOutput input, bool isFrontFace: SV_IsFrontFace)
     {
         startAmbient = directionalLight[0].ambient.a * directionalLight[0].ambient.rgb;
 	}
-    
+
 	if (SKYBOX_ENABLED == 1)
     {
         float3 irradiance = sampleSHProbes(input.fragWorldPos, finalNormal);
@@ -583,7 +583,7 @@ FragOutput fragMain(VSOutput input, bool isFrontFace: SV_IsFrontFace)
 			iblSpecular         = prefiltColor * (F_ibl * brdfLut.x + brdfLut.y);
 		}
 
-        ambient = (iblDiffuse + iblSpecular) * startAmbient;
+        ambient = (iblDiffuse + iblSpecular) + startAmbient;
 	}
 	else
 	{

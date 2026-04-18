@@ -109,6 +109,7 @@ void LightProbeGIBaking::bakeAll(GeneralManager& gm)
 	vk::ImageView skyboxView = skyboxTex.textureImageView;
 	vk::Sampler skyboxSampler = skyboxTex.textureSampler;
 
+	ctx.device->device.waitIdle();
 	TempImages tempImages = createTempImages(ctx);
 
 	// Render the shadow map once for the full grid.
@@ -128,6 +129,9 @@ void LightProbeGIBaking::bakeAll(GeneralManager& gm)
 
 	writeFinalProbeCount(ctx, totalProbes);
 	restoreSkyboxSampler(ctx, skyboxView, skyboxSampler);
+
+	// All per-probe submissions must finish before we free temp cubemap/depth.
+	ctx.device->device.waitIdle();
 	destroyTempImages(ctx, tempImages);
 
 #ifdef _DEBUG
