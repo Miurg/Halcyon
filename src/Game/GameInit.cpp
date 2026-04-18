@@ -22,6 +22,7 @@
 #include "../Platform/PlatformContexts.hpp"
 #include "../Graphics/Components/PointLightComponent.hpp"
 #include "../Graphics/Systems/LightUpdateSystem.hpp"
+#include "../Graphics/Components/LightProbeGridComponent.hpp"
 
 void GameInit::gameInitStart(GeneralManager& gm)
 {
@@ -35,33 +36,24 @@ void GameInit::gameInitStart(GeneralManager& gm)
 	    gm.getContextComponent<DescriptorManagerContext, DescriptorManagerComponent>()->descriptorManager;
 
 	gm.addComponent<ControlComponent>(gm.getContext<MainCameraContext>());
+	gm.subscribeEntity<TransformSystem>(gm.getContext<MainCameraContext>());
+	gm.subscribeEntity<TransformSystem>(gm.getContext<SunContext>());
 
 	SkyboxFactory::loadSkybox("assets/textures/spree_bank_4k.hdr", gm);
 
 	Entity gameObjectEntity1 = gm.createEntity();
-	gm.addComponent<NameComponent>(gameObjectEntity1, "Bistro Model");
+	gm.addComponent<NameComponent>(gameObjectEntity1, "Bistro_Godot");
 	gm.addComponent<GlobalTransformComponent>(gameObjectEntity1);
-	gm.addComponent<LocalTransformComponent>(gameObjectEntity1, -5.0f, 0.0f, 0.0f);
+	gm.addComponent<LocalTransformComponent>(gameObjectEntity1, 0.0f, 0.0f, 0.0f);
 	gm.addComponent<RelationshipComponent>(gameObjectEntity1);
 
-	Entity dautherEntity = ModelFactory::loadModel("assets/models/SunTemple.glb", 0, *bufferManager, *dSetComponent,
+	Entity dautherEntity = ModelFactory::loadModel("assets/models/Sponza.glb", 0, *bufferManager, *dSetComponent,
 	                                               *dManager, gm, *textureManager, *modelManager);
 
 	gm.subscribeEntity<TransformSystem>(gameObjectEntity1);
 
 	RelationshipComponent* real = gm.getComponent<RelationshipComponent>(gameObjectEntity1);
 	real->addChild(gameObjectEntity1, dautherEntity, gm);
-
-	Entity pontLightEntity = gm.createEntity();
-	gm.addComponent<PointLightComponent>(pontLightEntity);
-	gm.addComponent<GlobalTransformComponent>(pontLightEntity, -5.0f, 5.0f, 10.0f);
-	PointLightComponent* pointLightInst = gm.getComponent<PointLightComponent>(pontLightEntity);
-	pointLightInst->color = glm::vec3(1.0f, 0.0f, 0.0f);
-	pointLightInst->direction = glm::vec3(0.0f, -1.0f, 0.0f);
-	pointLightInst->intensity = 100.0f;
-	pointLightInst->radius = 40.0f;
-	pointLightInst->type = 0; // Point light
-	gm.subscribeEntity<LightUpdateSystem>(pontLightEntity);
 
 	//Entity gameObjectEntity2 = gm.createEntity();
 	//gm.addComponent<NameComponent>(gameObjectEntity2, "Emissive Model");
@@ -77,17 +69,32 @@ void GameInit::gameInitStart(GeneralManager& gm)
 	//RelationshipComponent* real2 = gm.getComponent<RelationshipComponent>(gameObjectEntity2);
 	//real2->addChild(gameObjectEntity2, dautherEntity2, gm);
 
-	//Entity gameObjectEntity3 = gm.createEntity();
-	//gm.addComponent<NameComponent>(gameObjectEntity3, "Emissive Model");
-	//gm.addComponent<GlobalTransformComponent>(gameObjectEntity3);
-	//gm.addComponent<LocalTransformComponent>(gameObjectEntity3, 0.0f, 5.0f, 0.0f);
-	//gm.addComponent<RelationshipComponent>(gameObjectEntity3);
+	Entity gameObjectEntity3 = gm.createEntity();
+	gm.addComponent<NameComponent>(gameObjectEntity3, "Emissive Model");
+	gm.addComponent<GlobalTransformComponent>(gameObjectEntity3);
+	gm.addComponent<LocalTransformComponent>(gameObjectEntity3, 0.0f, 0.0f, 0.0f);
+	gm.addComponent<RelationshipComponent>(gameObjectEntity3);
 
-	//Entity dautherEntity3 = ModelFactory::loadModel("assets/models/CompareRoughness.glb", 0, *bufferManager,
-	//                                                *dSetComponent, *dManager, gm, *textureManager, *modelManager);
+	Entity dautherEntity3 = ModelFactory::loadModel("assets/models/DamagedHelmet.glb", 0, *bufferManager,
+	                                                *dSetComponent, *dManager, gm, *textureManager, *modelManager);
 
-	//gm.subscribeEntity<TransformSystem>(gameObjectEntity3);
+	gm.subscribeEntity<TransformSystem>(gameObjectEntity3);
 	//gm.subscribeEntity<RotationSystem>(gameObjectEntity3);
-	//RelationshipComponent* real3 = gm.getComponent<RelationshipComponent>(gameObjectEntity3);
-	//real3->addChild(gameObjectEntity3, dautherEntity3, gm);
+	RelationshipComponent* real3 = gm.getComponent<RelationshipComponent>(gameObjectEntity3);
+	real3->addChild(gameObjectEntity3, dautherEntity3, gm);
+
+	//Configure the probe grid.
+	LightProbeGridComponent* probeGrid = gm.getContextComponent<LightProbeGridContext, LightProbeGridComponent>();
+	probeGrid->origin  = glm::vec3(-16.0f, 1.0f, -4.0f);
+	probeGrid->count   = glm::ivec3(6, 3, 4);
+	probeGrid->spacing = 2.6f;
+	gm.addComponent<NameComponent>(gm.getContext<LightProbeGridContext>(), "GI Grid");
+
+	Entity emissiveLight = gm.createEntity();
+	gm.addComponent<PointLightComponent>(emissiveLight);
+	gm.addComponent<GlobalTransformComponent>(emissiveLight);
+	gm.addComponent<LocalTransformComponent>(emissiveLight, 0.0f, 5.0f, 0.0f);
+	gm.addComponent<RelationshipComponent>(emissiveLight);
+	gm.subscribeEntity<TransformSystem>(emissiveLight);
+	gm.subscribeEntity<LightUpdateSystem>(emissiveLight);
 }

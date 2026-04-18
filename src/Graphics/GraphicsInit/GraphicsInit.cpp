@@ -184,13 +184,6 @@ void GraphicsInit::initFrameData(GeneralManager& gm)
 }
 #pragma endregion
 
-#pragma region initScene
-void GraphicsInit::initScene(GeneralManager& gm)
-{
-
-}
-#pragma endregion // initScene
-
 #pragma region initImGui
 void GraphicsInit::initImGui(GeneralManager& gm)
 {

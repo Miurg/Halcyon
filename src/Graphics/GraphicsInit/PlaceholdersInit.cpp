@@ -33,6 +33,7 @@
 #include "../Resources/Managers/Bindings.hpp"
 #include "../Components/PipelineManagerComponent.hpp"
 #include "../Resources/Factories/GltfLoader.hpp"
+#include "../Components/LightProbeGridComponent.hpp"
 
 void PlaceholdersInit::initPlaceholders(GeneralManager& gm) 
 {
@@ -336,6 +337,17 @@ void PlaceholdersInit::initPlaceholders(GeneralManager& gm)
 	gm.addComponent<NameComponent>(ssaoSettingsEntity, "SSAO Settings");
 	gm.registerContext<SsaoSettingsContext>(ssaoSettingsEntity);
 	gm.addComponent<SsaoSettingsComponent>(ssaoSettingsEntity);
+#pragma endregion
+
+#pragma region Light Probe Grid
+	Entity probeGridEntity = gm.createEntity();
+	gm.registerContext<LightProbeGridContext>(probeGridEntity);
+	gm.addComponent<LightProbeGridComponent>(probeGridEntity, LightProbeGridComponent{
+	    .origin  = glm::vec3(0.0f),
+	    .count   = glm::ivec3(0),
+	    .spacing = 0.0f
+	});
+	gm.addComponent<NameComponent>(probeGridEntity, "SYSTEM Light Probe Grid");
 #pragma endregion
 
 #ifdef _DEBUG
