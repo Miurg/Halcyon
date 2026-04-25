@@ -23,6 +23,10 @@
 #include "../Graphics/Components/PointLightComponent.hpp"
 #include "../Graphics/Systems/LightUpdateSystem.hpp"
 #include "../Graphics/Components/LightProbeGridComponent.hpp"
+#include "../PhysicsCore/Components/PhysBodyComponent.hpp"
+#include "../PhysicsCore/Components/PhysManagerComponent.hpp"
+#include "../PhysicsCore/PhysContexts.hpp"
+#include "../Graphics/Systems/PhysSyncSystem.hpp"
 
 void GameInit::gameInitStart(GeneralManager& gm)
 {
@@ -34,6 +38,7 @@ void GameInit::gameInitStart(GeneralManager& gm)
 	    gm.getContextComponent<MainDSetsContext, BindlessTextureDSetComponent>();
 	DescriptorManager* dManager =
 	    gm.getContextComponent<DescriptorManagerContext, DescriptorManagerComponent>()->descriptorManager;
+	PhysManager* physManager = gm.getContextComponent<PhysManagerContext, PhysManagerComponent>()->physManager;
 
 	gm.addComponent<ControlComponent>(gm.getContext<MainCameraContext>());
 	gm.subscribeEntity<TransformSystem>(gm.getContext<MainCameraContext>());
@@ -46,47 +51,51 @@ void GameInit::gameInitStart(GeneralManager& gm)
 	gm.addComponent<GlobalTransformComponent>(gameObjectEntity1);
 	gm.addComponent<LocalTransformComponent>(gameObjectEntity1, 0.0f, 0.0f, 0.0f);
 	gm.addComponent<RelationshipComponent>(gameObjectEntity1);
+	gm.addComponent<PhysBodyComponent>(
+	    gameObjectEntity1, physManager->createStaticBox(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(50.0f, 0.5f, 50.0f)));
 
 	Entity dautherEntity = ModelFactory::loadModel("assets/models/Sponza.glb", 0, *bufferManager, *dSetComponent,
 	                                               *dManager, gm, *textureManager, *modelManager);
 
 	gm.subscribeEntity<TransformSystem>(gameObjectEntity1);
+	gm.subscribeEntity<PhysSyncSystem>(gameObjectEntity1);
 
 	RelationshipComponent* real = gm.getComponent<RelationshipComponent>(gameObjectEntity1);
 	real->addChild(gameObjectEntity1, dautherEntity, gm);
 
-	//Entity gameObjectEntity2 = gm.createEntity();
-	//gm.addComponent<NameComponent>(gameObjectEntity2, "Emissive Model");
-	//gm.addComponent<GlobalTransformComponent>(gameObjectEntity2);
-	//gm.addComponent<LocalTransformComponent>(gameObjectEntity2, -5.0f, 5.0f, 3.0f);
-	//gm.addComponent<RelationshipComponent>(gameObjectEntity2);
+	// Entity gameObjectEntity2 = gm.createEntity();
+	// gm.addComponent<NameComponent>(gameObjectEntity2, "Emissive Model");
+	// gm.addComponent<GlobalTransformComponent>(gameObjectEntity2);
+	// gm.addComponent<LocalTransformComponent>(gameObjectEntity2, -5.0f, 5.0f, 3.0f);
+	// gm.addComponent<RelationshipComponent>(gameObjectEntity2);
 
-	//Entity dautherEntity2 = ModelFactory::loadModel("assets/models/DamagedHelmet.glb", 0, *bufferManager,
-	//                                                *dSetComponent, *dManager, gm, *textureManager, *modelManager);
+	// Entity dautherEntity2 = ModelFactory::loadModel("assets/models/DamagedHelmet.glb", 0, *bufferManager,
+	//                                                 *dSetComponent, *dManager, gm, *textureManager, *modelManager);
 
-	//gm.subscribeEntity<TransformSystem>(gameObjectEntity2);
+	// gm.subscribeEntity<TransformSystem>(gameObjectEntity2);
 	////gm.subscribeEntity<RotationSystem>(gameObjectEntity2);
-	//RelationshipComponent* real2 = gm.getComponent<RelationshipComponent>(gameObjectEntity2);
-	//real2->addChild(gameObjectEntity2, dautherEntity2, gm);
+	// RelationshipComponent* real2 = gm.getComponent<RelationshipComponent>(gameObjectEntity2);
+	// real2->addChild(gameObjectEntity2, dautherEntity2, gm);
 
 	Entity gameObjectEntity3 = gm.createEntity();
 	gm.addComponent<NameComponent>(gameObjectEntity3, "Emissive Model");
 	gm.addComponent<GlobalTransformComponent>(gameObjectEntity3);
-	gm.addComponent<LocalTransformComponent>(gameObjectEntity3, 0.0f, 0.0f, 0.0f);
+	gm.addComponent<LocalTransformComponent>(gameObjectEntity3, 0.0f, 10.0f, 0.0f);
 	gm.addComponent<RelationshipComponent>(gameObjectEntity3);
-
-	Entity dautherEntity3 = ModelFactory::loadModel("assets/models/DamagedHelmet.glb", 0, *bufferManager,
-	                                                *dSetComponent, *dManager, gm, *textureManager, *modelManager);
-
+	gm.addComponent<PhysBodyComponent>(gameObjectEntity3,
+	                                   physManager->createDynamicSphere(glm::vec3(0.0f, 10.0f, 0.0f), 0.5f));
+	Entity dautherEntity3 = ModelFactory::loadModel("assets/models/DamagedHelmet.glb", 0, *bufferManager, *dSetComponent,
+	                                                *dManager, gm, *textureManager, *modelManager);
+	gm.subscribeEntity<PhysSyncSystem>(gameObjectEntity3);
 	gm.subscribeEntity<TransformSystem>(gameObjectEntity3);
-	//gm.subscribeEntity<RotationSystem>(gameObjectEntity3);
+	// gm.subscribeEntity<RotationSystem>(gameObjectEntity3);
 	RelationshipComponent* real3 = gm.getComponent<RelationshipComponent>(gameObjectEntity3);
 	real3->addChild(gameObjectEntity3, dautherEntity3, gm);
 
-	//Configure the probe grid.
+	// Configure the probe grid.
 	LightProbeGridComponent* probeGrid = gm.getContextComponent<LightProbeGridContext, LightProbeGridComponent>();
-	probeGrid->origin  = glm::vec3(-16.0f, 1.0f, -4.0f);
-	probeGrid->count   = glm::ivec3(6, 3, 4);
+	probeGrid->origin = glm::vec3(-16.0f, 1.0f, -4.0f);
+	probeGrid->count = glm::ivec3(6, 3, 4);
 	probeGrid->spacing = 2.6f;
 	gm.addComponent<NameComponent>(gm.getContext<LightProbeGridContext>(), "GI Grid");
 
@@ -97,4 +106,24 @@ void GameInit::gameInitStart(GeneralManager& gm)
 	gm.addComponent<RelationshipComponent>(emissiveLight);
 	gm.subscribeEntity<TransformSystem>(emissiveLight);
 	gm.subscribeEntity<LightUpdateSystem>(emissiveLight);
+
+	Entity gameObjectEntity4 = gm.createEntity();
+	gm.addComponent<NameComponent>(gameObjectEntity4, "Emissive Model");
+	gm.addComponent<GlobalTransformComponent>(gameObjectEntity4);
+	gm.addComponent<LocalTransformComponent>(gameObjectEntity4, 0.0f, 12.0f, 0.1f);
+	gm.addComponent<RelationshipComponent>(gameObjectEntity4);
+	gm.addComponent<PhysBodyComponent>(gameObjectEntity4,
+	                                   physManager->createDynamicSphere(glm::vec3(0.0f, 12.0f, 0.1f), 0.5f));
+	Entity dautherEntity4 = ModelFactory::loadModel("assets/models/DamagedHelmet.glb", 0, *bufferManager, *dSetComponent,
+	                                                *dManager, gm, *textureManager, *modelManager);
+	gm.subscribeEntity<PhysSyncSystem>(gameObjectEntity4);
+	gm.subscribeEntity<TransformSystem>(gameObjectEntity4);
+	// gm.subscribeEntity<RotationSystem>(gameObjectEntity3);
+	RelationshipComponent* real4 = gm.getComponent<RelationshipComponent>(gameObjectEntity4);
+	real4->addChild(gameObjectEntity4, dautherEntity4, gm);
+
+
+
+
+	physManager->physicsSystem->OptimizeBroadPhase();
 }

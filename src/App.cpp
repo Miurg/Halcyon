@@ -15,6 +15,7 @@
 #include "MainLoop.hpp"
 #include <exception>
 #include <Orhescyon/GeneralManager.hpp>
+#include "PhysicsCore/PhysicsInit.hpp"
 App::App() {}
 using Orhescyon::GeneralManager;
 int App::run()
@@ -24,6 +25,7 @@ int App::run()
 	{
 		CoreInit::Run(gm);
 		GraphicsInit::Run(gm);
+		PhysicsInit::Run(gm);
 		GameInit::gameInitStart(gm);
 	}
 	catch (const std::exception& e)

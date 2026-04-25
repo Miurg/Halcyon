@@ -13,6 +13,8 @@
 #include "Graphics/Systems/ImGuiSystem.hpp"
 #include "Platform/Systems/DeltaTimeSystem.hpp"
 #include "Graphics/Systems/LightUpdateSystem.hpp"
+#include "PhysicsCore/Systems/PhysUpdateSystem.hpp"
+#include "Graphics/Systems/PhysSyncSystem.hpp"
 
 using Orhescyon::GeneralManager;
 class CoreInit
@@ -25,6 +27,9 @@ public:
 #endif //_DEBUG
 
 		gm.registerSystem<DeltaTimeSystem>();
+
+		gm.registerSystem<PhysUpdateSystem>();
+
 		gm.registerSystem<InputSolverSystem>();
 		gm.registerSystem<ControlSystem>();
 		gm.registerSystem<RotationSystem>();
@@ -33,6 +38,7 @@ public:
 
 		gm.registerSystem<FrameBeginSystem>();
 		gm.registerSystem<ImGuiSystem>();
+		gm.registerSystem<PhysSyncSystem>();
 		gm.registerSystem<CameraMatrixSystem>();
 		gm.registerSystem<BufferUpdateSystem>();
 		gm.registerSystem<LightUpdateSystem>();
