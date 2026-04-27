@@ -29,7 +29,7 @@ find_package(Ktx CONFIG REQUIRED)
 FetchContent_Declare(
     Orhescyon
     GIT_REPOSITORY https://github.com/Miurg/Orhescyon.git
-    GIT_TAG v0.0.1
+    GIT_TAG v0.1.0
 )
 FetchContent_MakeAvailable(Orhescyon)
 

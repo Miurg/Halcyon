@@ -1,8 +1,13 @@
+#pragma once
 
 #include <vector>
 #include "../../Graphics/Components/LocalTransformComponent.hpp"
+#include "../../Platform/Components/DeltaTimeComponent.hpp"
 #include <Orhescyon/GeneralManager.hpp>
 #include <Orhescyon/Systems/SystemCore.hpp>
+#include "../../Platform/Systems/DeltaTimeSystem.hpp"
+#include "../../Graphics/Systems/FrameBeginSystem.hpp"
+
 using Orhescyon::GeneralManager;
 class SpawnSystem : public Orhescyon::SystemCore<SpawnSystem>
 {
@@ -22,5 +27,17 @@ public:
 	void onEntityUnsubscribed(Entity entity, GeneralManager& gm) override
 	{
 		entities.erase(std::remove(entities.begin(), entities.end(), entity), entities.end());
+	}
+	std::vector<std::type_index> getAfterSystems() override
+	{
+		return {typeid(DeltaTimeSystem)};
+	}
+	std::vector<std::type_index> getBeforeSystems() override
+	{
+		return {typeid(FrameBeginSystem)};
+	}
+	std::vector<std::type_index> getReadComponents() override
+	{
+		return {typeid(DeltaTimeComponent)};
 	}
 };

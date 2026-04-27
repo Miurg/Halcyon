@@ -71,6 +71,7 @@ Entity ModelFactory::createEntityHierarchy(int parentEntity, tinygltf::Model& mo
 	{
 		gm.addComponent<MeshInfoComponent>(entity, offset + node.mesh);
 		gm.subscribeEntity<RenderSystem>(entity);
+		gm.subscribeEntity<BufferUpdateSystem>(entity);
 	}
 	gm.subscribeEntity<TransformSystem>(entity);
 

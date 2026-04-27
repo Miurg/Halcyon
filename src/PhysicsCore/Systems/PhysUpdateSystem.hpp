@@ -5,6 +5,8 @@
 #include <Orhescyon/Systems/SystemCore.hpp>
 
 #include "../Components/PhysBodyComponent.hpp"
+#include "../../Graphics/Systems/FrameBeginSystem.hpp"
+#include "../../Platform/Systems/DeltaTimeSystem.hpp"
 
 using Orhescyon::GeneralManager;
 class PhysUpdateSystem : public Orhescyon::SystemCore<PhysUpdateSystem>
@@ -13,4 +15,12 @@ public:
 	void update(GeneralManager& gm) override;
 	void onRegistered(GeneralManager& gm) override;
 	void onShutdown(GeneralManager& gm) override;
+	std::vector<std::type_index> getAfterSystems() override
+	{
+		return {typeid(DeltaTimeSystem)};
+	}
+	std::vector<std::type_index> getBeforeSystems() override
+	{
+		return {typeid(FrameBeginSystem)};
+	}
 };

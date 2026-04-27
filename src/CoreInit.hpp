@@ -34,14 +34,15 @@ public:
 		gm.registerSystem<ControlSystem>();
 		gm.registerSystem<RotationSystem>();
 		gm.registerSystem<SpawnSystem>();
+
 		gm.registerSystem<TransformSystem>();
 
 		gm.registerSystem<FrameBeginSystem>();
-		gm.registerSystem<ImGuiSystem>();
 		gm.registerSystem<PhysSyncSystem>();
+		gm.registerSystem<ImGuiSystem>();
 		gm.registerSystem<CameraMatrixSystem>();
-		gm.registerSystem<BufferUpdateSystem>();
 		gm.registerSystem<LightUpdateSystem>();
+		gm.registerSystem<BufferUpdateSystem>();
 		gm.registerSystem<RenderSystem>();
 		gm.registerSystem<FrameEndSystem>();
 
