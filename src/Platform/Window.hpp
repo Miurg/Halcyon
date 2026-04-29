@@ -1,6 +1,9 @@
 #pragma once
 #include <queue>
 #include <vector>
+#include <functional>
+#include <mutex>
+#include <string>
 #include "InputEvent.hpp"
 #include <vulkan/vulkan.hpp>
 
@@ -10,6 +13,8 @@ class Window
 {
 private:
 	GLFWwindow* _GLFWwindow;
+	mutable std::mutex _actionQueueMutex;
+	mutable std::vector<std::function<void()>> _deferredActions;
 
 public:
 	Window(const char* title);

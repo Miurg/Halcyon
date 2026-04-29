@@ -60,12 +60,26 @@ bool Window::shouldClose() const
 
 void Window::setShouldClose(bool value)
 {
-	glfwSetWindowShouldClose(_GLFWwindow, value ? GLFW_TRUE : GLFW_FALSE);
+	std::lock_guard<std::mutex> lock(_actionQueueMutex);
+	_deferredActions.push_back([this, value]() {
+		glfwSetWindowShouldClose(_GLFWwindow, value ? GLFW_TRUE : GLFW_FALSE);
+	});
 }
 
 void Window::pollEvents() const
 {
 	glfwPollEvents();
+
+	std::vector<std::function<void()>> actionsToExecute;
+	{
+		std::lock_guard<std::mutex> lock(_actionQueueMutex);
+		actionsToExecute = std::move(_deferredActions);
+	}
+
+	for (const auto& action : actionsToExecute)
+	{
+		action();
+	}
 }
 
 void Window::swapBuffers() const
@@ -111,12 +125,19 @@ void Window::setTime(double time)
 
 void Window::setTitle(const char* title)
 {
-	glfwSetWindowTitle(_GLFWwindow, title);
+	std::string titleStr = title;
+	std::lock_guard<std::mutex> lock(_actionQueueMutex);
+	_deferredActions.push_back([this, titleStr]() {
+		glfwSetWindowTitle(_GLFWwindow, titleStr.c_str());
+	});
 }
 
 void Window::setWindowSize(int w, int h)
 {
-	glfwSetWindowSize(_GLFWwindow, w, h);
+	std::lock_guard<std::mutex> lock(_actionQueueMutex);
+	_deferredActions.push_back([this, w, h]() {
+		glfwSetWindowSize(_GLFWwindow, w, h);
+	});
 }
 
 void Window::getWindowSize(int* w, int* h) const
@@ -141,7 +162,10 @@ bool Window::isMinimized() const
 
 void Window::setCursorMode(int mode)
 {
-	glfwSetInputMode(_GLFWwindow, GLFW_CURSOR, mode);
+	std::lock_guard<std::mutex> lock(_actionQueueMutex);
+	_deferredActions.push_back([this, mode]() {
+		glfwSetInputMode(_GLFWwindow, GLFW_CURSOR, mode);
+	});
 }
 
 int Window::getCursorMode() const
@@ -166,7 +190,10 @@ void Window::getCursorPos(double* x, double* y) const
 
 void Window::setCursorPos(double x, double y)
 {
-	glfwSetCursorPos(_GLFWwindow, x, y);
+	std::lock_guard<std::mutex> lock(_actionQueueMutex);
+	_deferredActions.push_back([this, x, y]() {
+		glfwSetCursorPos(_GLFWwindow, x, y);
+	});
 }
 
 void Window::getMonitorSize(int* w, int* h)
