@@ -20,11 +20,11 @@ void PhysSyncSystem::onShutdown(GeneralManager& gm)
 void PhysSyncSystem::onEntitySubscribed(Entity entity, GeneralManager& gm)
 {
 	GlobalTransformComponent* transform = gm.getComponent<GlobalTransformComponent>(entity);
-	PhysBodyComponent* physBody = gm.getComponent<PhysBodyComponent>(entity);
+	PhysTransformSnapshot* physSnap = gm.getComponent<PhysTransformSnapshot>(entity);
 
-	if (transform && physBody)
+	if (transform && physSnap)
 	{
-		_agents.push_back({entity, transform, physBody});
+		_agents.push_back({entity, transform, physSnap});
 	}
 }
 
@@ -37,14 +37,15 @@ void PhysSyncSystem::onEntityUnsubscribed(Entity entity, GeneralManager& gm)
 
 void PhysSyncSystem::update(GeneralManager& gm) 
 {
-	JPH::PhysicsSystem& physicsSystem = *gm.getContextComponent<PhysManagerContext, PhysManagerComponent>()->physManager->physicsSystem;
-	JPH::BodyInterface& bi = physicsSystem.GetBodyInterface();
+	PhysManager& physManager = *gm.getContextComponent<PhysManagerContext, PhysManagerComponent>()->physManager;
+
+	SnapshotIndices indicies = physManager.physSnapshot.load(std::memory_order_acquire);
 
 	for (auto& agent : _agents)
 	{
-		JPH::BodyID body = agent.physBody->bodyID;
-		JPH::RVec3 physPosition = bi.GetCenterOfMassPosition(body);
-		JPH::Quat physRotation = bi.GetRotation(body);
+		PhysTransformSnapshot* physSnap = agent.physSnap;
+		JPH::RVec3 physPosition = physSnap->positionSnap[indicies.previous];
+		JPH::Quat physRotation = physSnap->rotationSnap[indicies.previous];
 
 		GlobalTransformComponent& global = *agent.transform; 
 		global.setGlobalPosition(toGlm(physPosition));

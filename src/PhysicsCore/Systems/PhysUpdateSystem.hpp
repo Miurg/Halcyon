@@ -15,12 +15,8 @@ public:
 	void update(GeneralManager& gm) override;
 	void onRegistered(GeneralManager& gm) override;
 	void onShutdown(GeneralManager& gm) override;
-	std::vector<std::type_index> getAfterSystems() override
+	std::string_view getSystemManagerName() const override
 	{
-		return {typeid(DeltaTimeSystem)};
-	}
-	std::vector<std::type_index> getBeforeSystems() override
-	{
-		return {typeid(FrameBeginSystem)};
+		return "physics";
 	}
 };

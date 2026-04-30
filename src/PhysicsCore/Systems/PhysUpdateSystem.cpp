@@ -17,7 +17,7 @@ void PhysUpdateSystem::onShutdown(GeneralManager& gm)
 
 void PhysUpdateSystem::update(GeneralManager& gm)
 {
-	float deltaTime = 1.0f / 600.0f;
+	float deltaTime = 1.0f / 6000.0f;
 	JPH::PhysicsSystem* physicsSystem =
 	    gm.getContextComponent<PhysManagerContext, PhysManagerComponent>()->physManager->physicsSystem;
 	JPH::TempAllocatorImpl* tempAllocator =

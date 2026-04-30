@@ -15,6 +15,7 @@
 #include "Graphics/Systems/LightUpdateSystem.hpp"
 #include "PhysicsCore/Systems/PhysUpdateSystem.hpp"
 #include "Graphics/Systems/PhysSyncSystem.hpp"
+#include "PhysicsCore/Systems/PhysSnapshotSystem.hpp"
 
 using Orhescyon::GeneralManager;
 class CoreInit
@@ -25,10 +26,12 @@ public:
 #ifdef _DEBUG
 		std::cout << "COREINIT::RUN::Start init" << std::endl;
 #endif //_DEBUG
-
-		gm.registerSystem<DeltaTimeSystem>();
+		gm.registerSystemManager("physics");
 
 		gm.registerSystem<PhysUpdateSystem>();
+		gm.registerSystem<PhysSnapshotSystem>();
+
+		gm.registerSystem<DeltaTimeSystem>();
 
 		gm.registerSystem<InputSolverSystem>();
 		gm.registerSystem<ControlSystem>();

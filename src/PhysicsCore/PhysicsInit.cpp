@@ -36,4 +36,3 @@ void PhysicsInit::Run(Orhescyon::GeneralManager& gm)
 	gm.addComponent<PhysManagerComponent>(physManagerEntity, physManager);
 	gm.registerContext<PhysManagerContext>(physManagerEntity);
 }
-

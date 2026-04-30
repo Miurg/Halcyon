@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../PhysicsCore/Components/PhysBodyComponent.hpp"
+#include "../../PhysicsCore/Components/PhysTransformSnapshot.hpp"
 #include "../Components/GlobalTransformComponent.hpp"
 #include <Orhescyon/GeneralManager.hpp>
 #include <Orhescyon/Systems/SystemCore.hpp>
@@ -8,14 +8,14 @@
 #include "BufferUpdateSystem.hpp"
 
 using Orhescyon::GeneralManager;
-class PhysSyncSystem : public Orhescyon::SystemCore<PhysSyncSystem, GlobalTransformComponent, PhysBodyComponent>
+class PhysSyncSystem : public Orhescyon::SystemCore<PhysSyncSystem, GlobalTransformComponent, PhysTransformSnapshot>
 {
 public:
 	struct Agent
 	{
 		Entity entity;
 		GlobalTransformComponent* transform;
-		PhysBodyComponent* physBody;
+		PhysTransformSnapshot* physSnap;
 	};
 
 	std::vector<Agent> _agents;
@@ -35,7 +35,7 @@ public:
 	}
 	std::vector<std::type_index> getReadComponents() override
 	{
-		return {typeid(PhysBodyComponent)};
+		return {typeid(PhysTransformSnapshot)};
 	}
 	std::vector<std::type_index> getWriteComponents() override
 	{
