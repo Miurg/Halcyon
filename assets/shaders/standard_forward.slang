@@ -129,10 +129,6 @@ const int ALPHA_TEST_ENABLED = 0;
 [[vk::constant_id(1)]]
 const int SKYBOX_ENABLED = 1;
 
-// For SH probes bake.
-[[vk::constant_id(2)]]
-const int CAPTURE_PASS = 0;
-
 // === Vertex I/O ===
 struct VSInput
 {
@@ -166,21 +162,29 @@ VSOutput vertMain(VSInput input, uint instanceID: SV_InstanceID, uint baseInstan
 	float4x4 modelMatrix = transformBuffer[model.transformIndex].model;
 
 	float4 worldPos = mul(modelMatrix, float4(input.inPosition, 1.0));
-
-	float3x3 normalMatrix = (float3x3)modelMatrix;
+	float3x3 M = (float3x3)modelMatrix;
+	float3x3 normalMatrix = float3x3(
+		cross(M[1], M[2]),
+		cross(M[2], M[0]),
+		cross(M[0], M[1]));
 
 	float3 N = normalize(mul(normalMatrix, input.inNormal));
-	float3 T = normalize(mul(normalMatrix, input.inTangent.xyz));
+	// Tangents transform with the model matrix itself, not the cofactor.
+	float3 T = normalize(mul(M, input.inTangent.xyz));
 	float3 tOrtho = T - dot(T, N) * N;
 	float tLen = length(tOrtho);
+	float3 B;
 	if (tLen > 1e-6)
+	{
 		T = tOrtho / tLen;
+		B = cross(N, T) * input.inTangent.w;
+	}
 	else
 	{
 		float3 up = abs(N.y) < 0.9 ? float3(0.0, 1.0, 0.0) : float3(1.0, 0.0, 0.0);
 		T = normalize(cross(N, up));
+		B = cross(N, T);
 	}
-	float3 B = cross(N, T) * input.inTangent.w;
 
 	VSOutput output;
 	output.pos = mul(camera[0].cameraSpaceMatrix, worldPos);
@@ -320,7 +324,7 @@ float3 DiffuseOrenNayarIBL(float3 albedo, float NdotV, float roughness)
     float sigma2 = roughness * roughness;
     float A = 1.0 - 0.5 * sigma2 / (sigma2 + 0.57);
     // Without B, we dont have L in ambient
-    return albedo * A;
+    return albedo / PI * A;
 }
 
 // Disney diffuse BRDF with retroreflection and grazing darkening.
@@ -373,7 +377,7 @@ LightingVectors ComputeLightingVectors(float3 L, float3 V, float3 N)
 {
 	LightingVectors lv;
 	lv.H     = normalize(L + V);
-	lv.NdotL = max(dot(N, L), 1e-4);
+	lv.NdotL = max(dot(N, L), 0.0);
 	lv.NdotH = max(dot(N, lv.H), 0.0);
 	lv.HdotV = max(dot(lv.H, V), 0.0);
 	return lv;
@@ -560,14 +564,7 @@ FragOutput fragMain(VSOutput input, bool isFrontFace: SV_IsFrontFace)
     float3 ambient;
     float3 startAmbient;
 
-    if (CAPTURE_PASS == 1)
-    {
-        startAmbient = float3(1.0,1.0,1.0);
-    }
-    else
-    {
-        startAmbient = directionalLight[0].ambient.a * directionalLight[0].ambient.rgb;
-	}
+    startAmbient = directionalLight[0].ambient.a * directionalLight[0].ambient.rgb;
 
 	if (SKYBOX_ENABLED == 1)
     {
