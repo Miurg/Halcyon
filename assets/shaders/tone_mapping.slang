@@ -18,7 +18,7 @@ VSOutput vertMain(uint vertexID: SV_VertexID)
 
 // TODO: Add Reinhard, Uncharted 2, Hable, etc. tone mapping operators for comparison.
 
-// --- Tone Mapping ---
+// === Tone Mapping ===
 // ACES Filmic (Narkowicz 2015)
 float3 ACESFilm(float3 x)
 {
@@ -34,7 +34,7 @@ float3 ACESFilm(float3 x)
 // Maybe I messed up the matrices, or maybe it's just not a good fit for real-time rendering.
 // Keep for future. 
 
-// --- AgX Tone Mapping ---
+// === AgX Tone Mapping ===
 // Based on Troy Lim's AgX, GLSL reference by bwrensch
 static const float3x3 AgXInputMatrix = float3x3(
 	0.856627153315983, 0.137318972929847, 0.11189821299995,

@@ -159,31 +159,32 @@ VSOutput vertMain(VSInput input, uint instanceID: SV_InstanceID, uint baseInstan
 {
 	uint objectIndex = visibleIndicesBuffer[baseInstance + instanceID];
 	ModelData model = objectBuffer[objectIndex];
-	float4x4 modelMatrix = transformBuffer[model.transformIndex].model;
+    float4x4 modelMatrix = transformBuffer[model.transformIndex].model;
+    float3x3 modelMatrix3x3 = (float3x3)modelMatrix;
 
 	float4 worldPos = mul(modelMatrix, float4(input.inPosition, 1.0));
-	float3x3 M = (float3x3)modelMatrix;
-	float3x3 normalMatrix = float3x3(
-		cross(M[1], M[2]),
-		cross(M[2], M[0]),
-		cross(M[0], M[1]));
 
-	float3 N = normalize(mul(normalMatrix, input.inNormal));
+	float3x3 normalMatrix = float3x3(
+		cross(modelMatrix3x3[1], modelMatrix3x3[2]),
+		cross(modelMatrix3x3[2], modelMatrix3x3[0]),
+		cross(modelMatrix3x3[0], modelMatrix3x3[1]));
+	float3 worldNormal = normalize(mul(normalMatrix, input.inNormal));
+
 	// Tangents transform with the model matrix itself, not the cofactor.
-	float3 T = normalize(mul(M, input.inTangent.xyz));
-	float3 tOrtho = T - dot(T, N) * N;
-	float tLen = length(tOrtho);
-	float3 B;
-	if (tLen > 1e-6)
+	float3 worldTangent = normalize(mul(modelMatrix3x3, input.inTangent.xyz));
+	float3 orthoTangent = worldTangent - dot(worldTangent, worldNormal) * worldNormal;
+	float orthoTangentLength = length(orthoTangent);
+	float3 worldBitangent;
+	if (orthoTangentLength > 1e-6)
 	{
-		T = tOrtho / tLen;
-		B = cross(N, T) * input.inTangent.w;
+		worldTangent = orthoTangent / orthoTangentLength;
+		worldBitangent = cross(worldNormal, worldTangent) * input.inTangent.w;
 	}
 	else
 	{
-		float3 up = abs(N.y) < 0.9 ? float3(0.0, 1.0, 0.0) : float3(1.0, 0.0, 0.0);
-		T = normalize(cross(N, up));
-		B = cross(N, T);
+		float3 fallbackUp = abs(worldNormal.y) < 0.9 ? float3(0.0, 1.0, 0.0) : float3(1.0, 0.0, 0.0);
+		worldTangent = normalize(cross(worldNormal, fallbackUp));
+		worldBitangent = cross(worldNormal, worldTangent);
 	}
 
 	VSOutput output;
@@ -192,9 +193,9 @@ VSOutput vertMain(VSInput input, uint instanceID: SV_InstanceID, uint baseInstan
 	output.shadowCoord = mul(directionalLight[0].lightSpaceMatrix, worldPos);
 	output.fragColor = input.inColor;
 	output.fragTexCoord = input.inTexCoord;
-	output.fragNormal = N;
-	output.fragTangent = T;
-	output.fragBitangent = B;
+	output.fragNormal = worldNormal;
+	output.fragTangent = worldTangent;
+	output.fragBitangent = worldBitangent;
 	output.fragWorldPos = worldPos.xyz;
 	output.materialIndex = model.materialIndex;
 
