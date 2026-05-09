@@ -364,6 +364,10 @@ void RenderGraph::execute(vk::raii::CommandBuffer& cmd)
 	cmd.begin({});
 	for (const auto& compiled : compiledPasses)
 	{
+#ifdef TRACY_ENABLE
+		TracyVkZoneTransient(vulkanDevice.tracyContext, gpuZone, static_cast<VkCommandBuffer>(*cmd),
+		                     compiled.pass->name.c_str(), true);
+#endif
 		// Emit barriers
 		if (!compiled.barriers.empty())
 		{
@@ -516,6 +520,14 @@ void RenderGraph::execute(vk::raii::CommandBuffer& cmd)
 			cmd.endRendering();
 		}
 	}
+
+#ifdef TRACY_ENABLE
+	if (vulkanDevice.tracyContext)
+	{
+		TracyVkCollect(vulkanDevice.tracyContext, static_cast<VkCommandBuffer>(*cmd));
+	}
+#endif
+
 	cmd.end();
 }
 

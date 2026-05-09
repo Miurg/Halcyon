@@ -19,6 +19,10 @@
 #include "../RenderGraph/RenderGraph.hpp"
 #include "../Components/GraphicsSettingsComponent.hpp"
 
+#ifdef TRACY_ENABLE
+#include <tracy/Tracy.hpp>
+#endif
+
 void FrameBeginSystem::onRegistered(GeneralManager& gm)
 {
 	std::cout << "FrameBeginSystem registered!" << std::endl;
@@ -31,6 +35,10 @@ void FrameBeginSystem::onShutdown(GeneralManager& gm)
 
 void FrameBeginSystem::update(GeneralManager& gm)
 {
+#ifdef TRACY_ENABLE
+	ZoneScopedN("FrameBeginSystem");
+#endif
+
 	VulkanDevice& vulkanDevice =
 	    *gm.getContextComponent<MainVulkanDeviceContext, VulkanDeviceComponent>()->vulkanDeviceInstance;
 	SwapChain& swapChain = *gm.getContextComponent<MainSwapChainContext, SwapChainComponent>()->swapChainInstance;

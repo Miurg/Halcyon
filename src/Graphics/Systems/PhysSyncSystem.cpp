@@ -7,6 +7,10 @@
 #include "../../PhysicsCore/Components/PhysBodyComponent.hpp"
 #include "../../PhysicsCore/JoltGlm.hpp"
 
+#ifdef TRACY_ENABLE
+#include <tracy/Tracy.hpp>
+#endif
+
 void PhysSyncSystem::onRegistered(GeneralManager& gm)
 {
 	std::cout << "PhysSyncSystem registered!" << std::endl;
@@ -37,6 +41,10 @@ void PhysSyncSystem::onEntityUnsubscribed(Entity entity, GeneralManager& gm)
 
 void PhysSyncSystem::update(GeneralManager& gm) 
 {
+#ifdef TRACY_ENABLE
+	ZoneScopedN("PhysSyncSystem");
+#endif
+
 	PhysManager& physManager = *gm.getContextComponent<PhysManagerContext, PhysManagerComponent>()->physManager;
 
 	SnapshotIndices indicies = physManager.physSnapshot.load(std::memory_order_acquire);

@@ -5,6 +5,10 @@
 #include "../GraphicsContexts.hpp"
 #include "../Components/RelationshipComponent.hpp"
 
+#ifdef TRACY_ENABLE
+#include <tracy/Tracy.hpp>
+#endif
+
 void TransformSystem::onRegistered(GeneralManager& gm)
 {
 	std::cout << "TransformSystem registered!" << std::endl;
@@ -52,6 +56,10 @@ void TransformSystem::applyPendingToGlobal(GlobalTransformComponent* global)
 
 void TransformSystem::update(GeneralManager& gm)
 {
+#ifdef TRACY_ENABLE
+	ZoneScopedN("TransformSystem");
+#endif
+
 	struct StackItem
 	{
 		Entity entity;

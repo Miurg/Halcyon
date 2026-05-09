@@ -20,6 +20,10 @@
 #include "Graphics/Managers/PipelineManager.hpp"
 #include "Graphics/Components/PipelineManagerComponent.hpp"
 
+#ifdef TRACY_ENABLE
+#include <tracy/TracyVulkan.hpp>
+#endif
+
 void Cleanup::cleanup(GeneralManager& gm)
 {
 	DescriptorManager* dManager =
@@ -37,6 +41,14 @@ void Cleanup::cleanup(GeneralManager& gm)
 	    gm.getContextComponent<PipelineManagerContext, PipelineManagerComponent>()->pipelineManager;
 
 	vulkanDevice->device.waitIdle();
+
+	#ifdef TRACY_ENABLE
+	if (vulkanDevice && vulkanDevice->tracyContext)
+	{
+		TracyVkDestroy(vulkanDevice->tracyContext);
+		vulkanDevice->tracyContext = nullptr;
+	}
+#endif
 
 	ImGui_ImplVulkan_Shutdown();
 	ImGui_ImplGlfw_Shutdown();

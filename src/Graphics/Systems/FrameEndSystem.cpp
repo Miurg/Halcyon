@@ -21,6 +21,10 @@
 #include "../Components/LightProbeGridComponent.hpp"
 #include "../GIBaker/LightProbeGIBaking.hpp"
 
+#ifdef TRACY_ENABLE
+#include <tracy/Tracy.hpp>
+#endif
+
 void FrameEndSystem::onRegistered(GeneralManager& gm)
 {
 	std::cout << "FrameEndSystem registered!" << std::endl;
@@ -33,6 +37,10 @@ void FrameEndSystem::onShutdown(GeneralManager& gm)
 
 void FrameEndSystem::update(GeneralManager& gm)
 {
+#ifdef TRACY_ENABLE
+	ZoneScopedN("FrameEndSystem");
+#endif
+
 	VulkanDevice& vulkanDevice =
 	    *gm.getContextComponent<MainVulkanDeviceContext, VulkanDeviceComponent>()->vulkanDeviceInstance;
 	SwapChain& swapChain = *gm.getContextComponent<MainSwapChainContext, SwapChainComponent>()->swapChainInstance;

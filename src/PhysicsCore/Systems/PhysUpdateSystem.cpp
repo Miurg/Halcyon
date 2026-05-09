@@ -5,6 +5,10 @@
 #include "../../Platform/Components/DeltaTimeComponent.hpp"
 #include "../../Platform/PlatformContexts.hpp"
 
+#ifdef TRACY_ENABLE
+#include <tracy/Tracy.hpp>
+#endif
+
 void PhysUpdateSystem::onRegistered(GeneralManager& gm)
 {
 	std::cout << "PhysicsUpdateSystem registered!" << std::endl;
@@ -17,6 +21,10 @@ void PhysUpdateSystem::onShutdown(GeneralManager& gm)
 
 void PhysUpdateSystem::update(GeneralManager& gm)
 {
+#ifdef TRACY_ENABLE
+	ZoneScopedN("PhysUpdateSystem");
+#endif
+
 	float deltaTime = 1.0f / 6000.0f;
 	JPH::PhysicsSystem* physicsSystem =
 	    gm.getContextComponent<PhysManagerContext, PhysManagerComponent>()->physManager->physicsSystem;

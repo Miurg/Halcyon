@@ -4,8 +4,17 @@
 #include "../Window.hpp"
 #include "../../Graphics/Components/NameComponent.hpp"
 
+#ifdef TRACY_ENABLE
+#include <tracy/Tracy.hpp>
+#endif
+
 void DeltaTimeSystem::update(GeneralManager& gm)
 {
+#ifdef TRACY_ENABLE
+	ZoneScopedN("DeltaTimeSystem");
+#endif
+
+
 	DeltaTimeComponent* dt = gm.getContextComponent<DeltaTimeContext, DeltaTimeComponent>();
 	float currentTime = static_cast<float>(Window::getTime());
 	dt->deltaTime = currentTime - dt->lastFrameTime;

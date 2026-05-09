@@ -5,6 +5,10 @@
 #include <vector>
 #include <unordered_map>
 
+#ifdef TRACY_ENABLE
+#include <tracy/TracyVulkan.hpp>
+#endif
+
 struct VulkanDevice;
 struct GlobalDSetComponent;
 struct GraphicsSettingsComponent;

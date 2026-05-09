@@ -2,6 +2,10 @@
 
 #include <vulkan/vulkan_raii.hpp>
 
+#ifdef TRACY_ENABLE
+#include <tracy/TracyVulkan.hpp>
+#endif
+
 struct VulkanDevice
 {
 public:
@@ -16,4 +20,8 @@ public:
 	vk::raii::SurfaceKHR surface = nullptr;
 	vk::raii::CommandPool commandPool = nullptr;
 	vk::SampleCountFlagBits maxMsaaSamples = vk::SampleCountFlagBits::e1;
+
+#ifdef TRACY_ENABLE
+	TracyVkCtx tracyContext = nullptr;
+#endif
 };

@@ -7,9 +7,24 @@
 #include <stdexcept>
 #include <GLFW/glfw3.h>
 
-inline const std::vector<const char*> deviceExtensions = {vk::KHRSwapchainExtensionName, vk::KHRSpirv14ExtensionName,
-                                                          vk::KHRSynchronization2ExtensionName,
-                                                          vk::KHRCreateRenderpass2ExtensionName};
+#ifdef TRACY_ENABLE
+#include <tracy/TracyVulkan.hpp>
+#endif
+
+inline std::vector<const char*> buildDeviceExtensions()
+{
+	std::vector<const char*> ext = {
+	    vk::KHRSwapchainExtensionName,
+	    vk::KHRSpirv14ExtensionName,
+	    vk::KHRSynchronization2ExtensionName,
+	    vk::KHRCreateRenderpass2ExtensionName,
+	};
+#ifdef TRACY_ENABLE
+	ext.push_back(VK_EXT_CALIBRATED_TIMESTAMPS_EXTENSION_NAME);
+#endif
+	return ext;
+}
+inline const std::vector<const char*> deviceExtensions = buildDeviceExtensions();
 
 void VulkanDeviceFactory::createVulkanDevice(Window& window, VulkanDevice& vulkanDevice)
 {
@@ -18,6 +33,7 @@ void VulkanDeviceFactory::createVulkanDevice(Window& window, VulkanDevice& vulka
 	pickPhysicalDevice(vulkanDevice);
 	createLogicalDevice(vulkanDevice);
 	createCommandPool(vulkanDevice);
+	createTracyContext(vulkanDevice);
 }
 
 void VulkanDeviceFactory::createInstance(Window& window, VulkanDevice& vulkanDevice)
@@ -213,8 +229,8 @@ void VulkanDeviceFactory::createLogicalDevice(VulkanDevice& vulkanDevice)
 	}
 
 	vk::StructureChain<vk::PhysicalDeviceFeatures2, vk::PhysicalDeviceVulkan13Features,
-	                   vk::PhysicalDeviceVulkan12Features,
-	                   vk::PhysicalDeviceExtendedDynamicStateFeaturesEXT, vk::PhysicalDeviceVulkan11Features>
+	                   vk::PhysicalDeviceVulkan12Features, vk::PhysicalDeviceExtendedDynamicStateFeaturesEXT,
+	                   vk::PhysicalDeviceVulkan11Features>
 	    featureChain{};
 	featureChain.get<vk::PhysicalDeviceVulkan13Features>().dynamicRendering = true;
 	featureChain.get<vk::PhysicalDeviceVulkan13Features>().synchronization2 = true;
@@ -228,6 +244,7 @@ void VulkanDeviceFactory::createLogicalDevice(VulkanDevice& vulkanDevice)
 	featureChain.get<vk::PhysicalDeviceVulkan12Features>().descriptorBindingSampledImageUpdateAfterBind = true;
 	featureChain.get<vk::PhysicalDeviceVulkan12Features>().shaderSampledImageArrayNonUniformIndexing = true;
 	featureChain.get<vk::PhysicalDeviceVulkan12Features>().drawIndirectCount = true;
+	featureChain.get<vk::PhysicalDeviceVulkan12Features>().hostQueryReset = true;
 
 	vk::DeviceCreateInfo deviceCreateInfo{};
 	deviceCreateInfo.pNext = &featureChain.get<vk::PhysicalDeviceFeatures2>();
@@ -255,4 +272,39 @@ void VulkanDeviceFactory::createCommandPool(VulkanDevice& vulkanDevice)
 	poolInfo.flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer;
 	poolInfo.queueFamilyIndex = vulkanDevice.graphicsIndex;
 	vulkanDevice.commandPool = vk::raii::CommandPool(vulkanDevice.device, poolInfo);
+}
+void VulkanDeviceFactory::createTracyContext(VulkanDevice& vulkanDevice)
+{
+#ifdef TRACY_ENABLE
+	vk::CommandBufferAllocateInfo allocInfo;
+	allocInfo.commandPool = *vulkanDevice.commandPool;
+	allocInfo.level = vk::CommandBufferLevel::ePrimary;
+	allocInfo.commandBufferCount = 1;
+
+	auto cmdBuffers = (*vulkanDevice.device).allocateCommandBuffers(allocInfo);
+	VkCommandBuffer rawCmd = cmdBuffers[0];
+
+	PFN_vkGetInstanceProcAddr getInstanceProcAddr = vulkanDevice.context.getDispatcher()->vkGetInstanceProcAddr;
+
+	auto pfnGetCalibrateableTimeDomains = reinterpret_cast<PFN_vkGetPhysicalDeviceCalibrateableTimeDomainsEXT>(
+	    getInstanceProcAddr(*vulkanDevice.instance, "vkGetPhysicalDeviceCalibrateableTimeDomainsEXT"));
+	auto pfnGetCalibratedTimestamps = reinterpret_cast<PFN_vkGetCalibratedTimestampsEXT>(
+	    getInstanceProcAddr(*vulkanDevice.instance, "vkGetCalibratedTimestampsEXT"));
+
+	if (pfnGetCalibrateableTimeDomains && pfnGetCalibratedTimestamps)
+	{
+		vulkanDevice.tracyContext =
+		    TracyVkContextCalibrated(*vulkanDevice.physicalDevice, *vulkanDevice.device, *vulkanDevice.graphicsQueue,
+		                             rawCmd, pfnGetCalibrateableTimeDomains, pfnGetCalibratedTimestamps);
+	}
+	else
+	{
+		vulkanDevice.tracyContext =
+		    TracyVkContext(*vulkanDevice.physicalDevice, *vulkanDevice.device, *vulkanDevice.graphicsQueue, rawCmd);
+	}
+
+	(*vulkanDevice.device).freeCommandBuffers(*vulkanDevice.commandPool, vk::CommandBuffer(rawCmd));
+#else
+	(void)vulkanDevice;
+#endif
 }

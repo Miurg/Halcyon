@@ -26,6 +26,11 @@ find_package(imgui CONFIG REQUIRED)
 find_package(Jolt CONFIG REQUIRED)
 find_package(Ktx CONFIG REQUIRED)
 
+option(HALCYON_TRACY "Enable Tracy profiler" ON)
+if(HALCYON_TRACY)
+    find_package(Tracy CONFIG REQUIRED)
+endif()
+
 FetchContent_Declare(
     Orhescyon
     GIT_REPOSITORY https://github.com/Miurg/Orhescyon.git
@@ -46,6 +51,11 @@ target_link_libraries("${CMAKE_PROJECT_NAME}" PRIVATE GPUOpen::VulkanMemoryAlloc
 target_link_libraries("${CMAKE_PROJECT_NAME}" PRIVATE imgui::imgui)
 target_link_libraries("${CMAKE_PROJECT_NAME}" PRIVATE Jolt::Jolt)
 target_link_libraries("${CMAKE_PROJECT_NAME}" PRIVATE KTX::ktx)
+
+if(HALCYON_TRACY)
+    target_link_libraries("${CMAKE_PROJECT_NAME}" PRIVATE Tracy::TracyClient)
+    target_compile_definitions("${CMAKE_PROJECT_NAME}" PRIVATE TRACY_ENABLE)
+endif()
 
 target_link_libraries("${CMAKE_PROJECT_NAME}" PRIVATE Orhescyon)
 target_compile_definitions("${CMAKE_PROJECT_NAME}" PRIVATE ORHESCYON_HIGH_CHECK)

@@ -31,6 +31,10 @@
 #include "../Passes/RenderPasses.hpp"
 #include <imgui_impl_vulkan.h>
 
+#ifdef TRACY_ENABLE
+#include <tracy/Tracy.hpp>
+#endif
+
 void RenderSystem::onRegistered(GeneralManager& gm)
 {
 	std::cout << "RenderSystem registered!" << std::endl;
@@ -43,6 +47,10 @@ void RenderSystem::onShutdown(GeneralManager& gm)
 
 void RenderSystem::update(GeneralManager& gm)
 {
+#ifdef TRACY_ENABLE
+	ZoneScopedN("RenderSystem");
+#endif
+
 	SwapChain& swapChain = *gm.getContextComponent<MainSwapChainContext, SwapChainComponent>()->swapChainInstance;
 	BufferManager& bufferManager =
 	    *gm.getContextComponent<BufferManagerContext, BufferManagerComponent>()->bufferManager;

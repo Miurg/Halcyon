@@ -29,6 +29,10 @@
 #include "../Components/GraphicsSettingsComponent.hpp"
 #include "../Components/LightProbeGridComponent.hpp"
 
+#ifdef TRACY_ENABLE
+#include <tracy/Tracy.hpp>
+#endif
+
 void ImGuiSystem::onRegistered(GeneralManager& gm)
 {
 	std::cout << "ImGuiSystem registered!" << std::endl;
@@ -98,6 +102,11 @@ void ImGuiSystem::drawEntityNode(Entity entity, GeneralManager& gm)
 
 void ImGuiSystem::update(GeneralManager& gm)
 {
+
+#ifdef TRACY_ENABLE
+	ZoneScopedN("ImGuiSystem");
+#endif
+
 	CurrentFrameComponent* currentFrameComp = gm.getContextComponent<CurrentFrameContext, CurrentFrameComponent>();
 	if (!currentFrameComp || !currentFrameComp->frameValid)
 	{

@@ -12,6 +12,10 @@
 #include "../../Platform/Window.hpp"
 #include "../../Graphics/Components/GlobalTransformComponent.hpp"
 
+#ifdef TRACY_ENABLE
+#include <tracy/Tracy.hpp>
+#endif
+
 void ControlSystem::cursorDisableToggle(Window* window)
 {
 	if (cursorDisable)
@@ -31,6 +35,11 @@ void ControlSystem::cursorDisableToggle(Window* window)
 
 void ControlSystem::update(GeneralManager& gm)
 {
+#ifdef TRACY_ENABLE
+	ZoneScopedN("ControlSystem");
+#endif
+
+
 	float deltaTime = gm.getContextComponent<DeltaTimeContext, DeltaTimeComponent>()->deltaTime;
 	KeyboardStateComponent* keyboardState = gm.getContextComponent<InputDataContext, KeyboardStateComponent>();
 	CursorPositionComponent* cursorPositionState = gm.getContextComponent<InputDataContext, CursorPositionComponent>();

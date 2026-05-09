@@ -4,6 +4,10 @@
 #include "../PhysContexts.hpp"
 #include "../Managers/PhysManager.hpp"
 
+#ifdef TRACY_ENABLE
+#include <tracy/Tracy.hpp>
+#endif
+
 void PhysSnapshotSystem::onRegistered(GeneralManager& gm)
 {
 	std::cout << "PhysSnapshotSystem registered!" << std::endl;
@@ -34,6 +38,10 @@ void PhysSnapshotSystem::onEntityUnsubscribed(Entity entity, GeneralManager& gm)
 
 void PhysSnapshotSystem::update(GeneralManager& gm) 
 {
+#ifdef TRACY_ENABLE
+	ZoneScopedN("PhysSnapshotSystem");
+#endif
+
 	PhysManager& physManager =
 	    *gm.getContextComponent<PhysManagerContext, PhysManagerComponent>()->physManager;
 	JPH::BodyInterface& bi = physManager.physicsSystem->GetBodyInterface();

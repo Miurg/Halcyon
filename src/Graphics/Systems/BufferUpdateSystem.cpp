@@ -16,6 +16,10 @@
 #include "../Resources/Managers/TextureManager.hpp"
 #include "../Resources/ResourceStructures.hpp"
 
+#ifdef TRACY_ENABLE
+#include <tracy/Tracy.hpp>
+#endif
+
 void BufferUpdateSystem::onRegistered(GeneralManager& gm)
 {
 	std::cout << "BufferUpdateSystem registered!" << std::endl;
@@ -46,6 +50,11 @@ void BufferUpdateSystem::onEntityUnsubscribed(Entity entity, GeneralManager& gm)
 
 void BufferUpdateSystem::update(GeneralManager& gm)
 {
+#ifdef TRACY_ENABLE
+	ZoneScopedN("BufferUpdateSystem");
+#endif
+
+
 	CurrentFrameComponent* currentFrameComp = gm.getContextComponent<CurrentFrameContext, CurrentFrameComponent>();
 	uint32_t currentFrame = currentFrameComp->currentFrame;
 	SwapChain& swapChain = *gm.getContextComponent<MainSwapChainContext, SwapChainComponent>()->swapChainInstance;

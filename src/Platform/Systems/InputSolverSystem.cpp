@@ -4,8 +4,16 @@
 #include "../PlatformContexts.hpp"
 #include "../../Graphics/Components/NameComponent.hpp"
 
+#ifdef TRACY_ENABLE
+#include <tracy/Tracy.hpp>
+#endif
+
 void InputSolverSystem::update(GeneralManager& gm)
 {
+#ifdef TRACY_ENABLE
+	ZoneScopedN("InputSolverSystem");
+#endif
+
 	for (auto entity : entities)
 	{
 		CursorPositionComponent* cursorPosition = gm.getComponent<CursorPositionComponent>(entity);

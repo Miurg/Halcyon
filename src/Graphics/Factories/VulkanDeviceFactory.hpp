@@ -14,4 +14,5 @@ public:
 	static void pickPhysicalDevice(VulkanDevice& vulkanDevice);
 	static void createLogicalDevice(VulkanDevice& vulkanDevice);
 	static void createCommandPool(VulkanDevice& vulkanDevice);
+	static void createTracyContext(VulkanDevice& vulkanDevice);
 };

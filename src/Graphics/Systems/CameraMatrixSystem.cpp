@@ -15,6 +15,10 @@
 #include "../Components/DirectLightComponent.hpp"
 #include "../Resources/ResourceStructures.hpp"
 
+#ifdef TRACY_ENABLE
+#include <tracy/Tracy.hpp>
+#endif
+
 void CameraMatrixSystem::onRegistered(GeneralManager& gm)
 {
 	std::cout << "CameraMatrixSystem registered!" << std::endl;
@@ -27,6 +31,10 @@ void CameraMatrixSystem::onShutdown(GeneralManager& gm)
 
 void CameraMatrixSystem::update(GeneralManager& gm)
 {
+#ifdef TRACY_ENABLE
+	ZoneScopedN("CameraMatrixSystem");
+#endif
+
 	CurrentFrameComponent* currentFrameComp = gm.getContextComponent<CurrentFrameContext, CurrentFrameComponent>();
 	uint32_t currentFrame = currentFrameComp->currentFrame;
 	BufferManager& bufferManager =

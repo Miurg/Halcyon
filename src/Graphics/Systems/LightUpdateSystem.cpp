@@ -17,6 +17,10 @@
 #include "../Resources/ResourceStructures.hpp"
 #include "../Resources/Components/GlobalDSetComponent.hpp"
 
+#ifdef TRACY_ENABLE
+#include <tracy/Tracy.hpp>
+#endif
+
 void LightUpdateSystem::onRegistered(GeneralManager& gm)
 {
 	std::cout << "LightUpdateSystem registered!" << std::endl;
@@ -47,6 +51,10 @@ void LightUpdateSystem::onEntityUnsubscribed(Entity entity, GeneralManager& gm)
 
 void LightUpdateSystem::update(GeneralManager& gm)
 {
+#ifdef TRACY_ENABLE
+	ZoneScopedN("LightUpdateSystem");
+#endif
+
 	CurrentFrameComponent* currentFrameComp = gm.getContextComponent<CurrentFrameContext, CurrentFrameComponent>();
 	uint32_t currentFrame = currentFrameComp->currentFrame;
 	SwapChain& swapChain = *gm.getContextComponent<MainSwapChainContext, SwapChainComponent>()->swapChainInstance;
