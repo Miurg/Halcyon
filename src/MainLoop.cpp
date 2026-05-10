@@ -1,6 +1,10 @@
-#include "MainLoop.hpp"
-#include <iostream>
+﻿#include "MainLoop.hpp"
+#include <chrono>
 #include <exception>
+#include <iostream>
+#include <thread>
+#include "PhysicsCore/Components/PhysTickRateComponent.hpp"
+#include "PhysicsCore/PhysContexts.hpp"
 #include "Platform/Components/WindowComponent.hpp"
 #include "Platform/PlatformContexts.hpp"
 #include "Platform/Window.hpp"
@@ -24,11 +28,36 @@ void MainLoop::startLoop(GeneralManager& gm)
 #ifdef TRACY_ENABLE
 		    tracy::SetThreadName("Physics");
 #endif
+		    const auto* tickRate = gm.getContextComponent<PhysTickRateContext, PhysTickRateComponent>();
+
+		    using clock = std::chrono::steady_clock;
+		    auto nextStepTime = clock::now() + std::chrono::duration_cast<clock::duration>(
+		                                           std::chrono::duration<double>(1.0 / tickRate->rate));
+		    int missedSteps = 0;
 		    try
 		    {
 			    while (physRunning.load(std::memory_order_relaxed))
 			    {
+				    std::this_thread::sleep_until(nextStepTime);
 				    gm.update("physics");
+
+				    const auto interval =
+				        std::chrono::duration_cast<clock::duration>(std::chrono::duration<double>(1.0 / tickRate->rate));
+				    nextStepTime += interval;
+				    const auto now = clock::now();
+
+				    if (now > nextStepTime + interval)
+				    {
+					    if (++missedSteps >= tickRate->maxConsecutiveMissedSteps)
+					    {
+						    nextStepTime = now + interval;
+						    missedSteps = 0;
+					    }
+				    }
+				    else
+				    {
+					    missedSteps = 0;
+				    }
 			    }
 		    }
 		    catch (...)

@@ -3,3 +3,7 @@
 struct PhysManagerContext
 {
 };
+
+struct PhysTickRateContext
+{
+};

@@ -1,6 +1,7 @@
 #include "PhysUpdateSystem.hpp"
 #include "../PhysContexts.hpp"
 #include "../Components/PhysManagerComponent.hpp"
+#include "../Components/PhysTickRateComponent.hpp"
 #include <Jolt/Jolt.h>
 #include "../../Platform/Components/DeltaTimeComponent.hpp"
 #include "../../Platform/PlatformContexts.hpp"
@@ -25,7 +26,8 @@ void PhysUpdateSystem::update(GeneralManager& gm)
 	ZoneScopedN("PhysUpdateSystem");
 #endif
 
-	float deltaTime = 1.0f / 6000.0f;
+	const float deltaTime =
+	    1.0f / gm.getContextComponent<PhysTickRateContext, PhysTickRateComponent>()->rate;
 	JPH::PhysicsSystem* physicsSystem =
 	    gm.getContextComponent<PhysManagerContext, PhysManagerComponent>()->physManager->physicsSystem;
 	JPH::TempAllocatorImpl* tempAllocator =

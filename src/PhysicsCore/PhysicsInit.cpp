@@ -15,6 +15,7 @@
 #include <Jolt/Physics/Collision/Shape/SphereShape.h>
 #include "Components/PhysManagerComponent.hpp"
 #include "Components/PhysBodyComponent.hpp"
+#include "Components/PhysTickRateComponent.hpp"
 #include "PhysContexts.hpp"
 #include "Systems/PhysUpdateSystem.hpp"
 #include "Systems/PhysSnapshotSystem.hpp"
@@ -64,5 +65,9 @@ void PhysicsInit::initPhysics(Orhescyon::GeneralManager& gm)
 	PhysManager* physManager = new PhysManager(gm);
 	gm.addComponent<PhysManagerComponent>(physManagerEntity, physManager);
 	gm.registerContext<PhysManagerContext>(physManagerEntity);
+
+	Entity tickRateEntity = gm.createEntity();
+	gm.addComponent<PhysTickRateComponent>(tickRateEntity);
+	gm.registerContext<PhysTickRateContext>(tickRateEntity);
 }
 #pragma endregion
