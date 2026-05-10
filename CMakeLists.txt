@@ -34,7 +34,7 @@ endif()
 FetchContent_Declare(
     Orhescyon
     GIT_REPOSITORY https://github.com/Miurg/Orhescyon.git
-    GIT_TAG v0.1.1
+    GIT_TAG v0.1.2
 )
 FetchContent_MakeAvailable(Orhescyon)
 
