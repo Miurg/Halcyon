@@ -303,6 +303,7 @@ void VulkanDeviceFactory::createTracyContext(VulkanDevice& vulkanDevice)
 		    TracyVkContext(*vulkanDevice.physicalDevice, *vulkanDevice.device, *vulkanDevice.graphicsQueue, rawCmd);
 	}
 
+	vulkanDevice.graphicsQueue.waitIdle();
 	(*vulkanDevice.device).freeCommandBuffers(*vulkanDevice.commandPool, vk::CommandBuffer(rawCmd));
 #else
 	(void)vulkanDevice;
