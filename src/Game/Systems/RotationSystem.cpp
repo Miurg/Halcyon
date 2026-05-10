@@ -2,8 +2,8 @@
 #include <iostream>
 #include "../../Graphics/Components/LocalTransformComponent.hpp"
 #include "../../Graphics/Components/GlobalTransformComponent.hpp"
-#include "../../Platform/PlatformContexts.hpp"
-#include "../../Platform/Components/DeltaTimeComponent.hpp"
+#include "../../Graphics/GraphicsContexts.hpp"
+#include "../../Graphics/Components/DeltaTimeComponent.hpp"
 
 #ifdef TRACY_ENABLE
 #include <tracy/Tracy.hpp>

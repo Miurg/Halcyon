@@ -1,10 +1,8 @@
 #include "PlatformInit.hpp"
 #include <iostream>
-#include "Systems/DeltaTimeSystem.hpp"
 #include "Systems/InputSolverSystem.hpp"
 #include "PlatformContexts.hpp"
 #include "Window.hpp"
-#include "Components/DeltaTimeComponent.hpp"
 #include "Components/WindowComponent.hpp"
 #include "Components/KeyboardStateComponent.hpp"
 #include "Components/MouseStateComponent.hpp"
@@ -32,7 +30,6 @@ void PlatformInit::Run(Orhescyon::GeneralManager& gm)
 #pragma region coreInit
 void PlatformInit::coreInit(Orhescyon::GeneralManager& gm)
 {
-	gm.registerSystem<DeltaTimeSystem>();
 	gm.registerSystem<InputSolverSystem>();
 }
 #pragma endregion
@@ -40,11 +37,6 @@ void PlatformInit::coreInit(Orhescyon::GeneralManager& gm)
 #pragma region initPlatform
 void PlatformInit::initPlatform(Orhescyon::GeneralManager& gm)
 {
-	Entity deltaTimeEntity = gm.createEntity();
-	gm.registerContext<DeltaTimeContext>(deltaTimeEntity);
-	gm.addComponent<DeltaTimeComponent>(deltaTimeEntity);
-	gm.addComponent<NameComponent>(deltaTimeEntity, "SYSTEM::PLATFORM Delta Time");
-
 	Entity windowAndInputEntity = gm.createEntity();
 	gm.registerContext<InputDataContext>(windowAndInputEntity);
 	gm.registerContext<MainWindowContext>(windowAndInputEntity);

@@ -2,9 +2,9 @@
 #include <Orhescyon/GeneralManager.hpp>
 #include <Orhescyon/Systems/SystemCore.hpp>
 #include "../../Platform/Window.hpp"
-#include "../../Platform/Systems/DeltaTimeSystem.hpp"
+#include "../../Graphics/Systems/DeltaTimeSystem.hpp"
 #include "../../Graphics/Systems/FrameBeginSystem.hpp"
-#include "../../Platform/Components/DeltaTimeComponent.hpp"
+#include "../../Graphics/Components/DeltaTimeComponent.hpp"
 #include "../../Platform/Components/KeyboardStateComponent.hpp"
 #include "../../Platform/Components/CursorPositionComponent.hpp"
 #include "../../Graphics/Components/CameraComponent.hpp"

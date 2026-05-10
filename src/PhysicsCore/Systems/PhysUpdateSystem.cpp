@@ -3,8 +3,8 @@
 #include "../Components/PhysManagerComponent.hpp"
 #include "../Components/PhysTickRateComponent.hpp"
 #include <Jolt/Jolt.h>
-#include "../../Platform/Components/DeltaTimeComponent.hpp"
-#include "../../Platform/PlatformContexts.hpp"
+#include "../../Graphics/Components/DeltaTimeComponent.hpp"
+#include "../../Graphics/GraphicsContexts.hpp"
 
 #ifdef TRACY_ENABLE
 #include <tracy/Tracy.hpp>

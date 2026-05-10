@@ -41,6 +41,7 @@ void Cleanup::cleanup(GeneralManager& gm)
 	RenderGraph* rg = gm.getContextComponent<RenderGraphContext, RenderGraphComponent>()->renderGraph;
 	PipelineManager* pManager =
 	    gm.getContextComponent<PipelineManagerContext, PipelineManagerComponent>()->pipelineManager;
+	WindowComponent* windowComp = gm.getContextComponent<MainWindowContext, WindowComponent>();
 
 	vulkanDevice->device.waitIdle();
 
@@ -107,8 +108,6 @@ void Cleanup::cleanup(GeneralManager& gm)
 		delete vulkanDevice;
 		vulkanDevice = nullptr;
 	}
-
-	WindowComponent* windowComp = gm.getContextComponent<MainWindowContext, WindowComponent>();
 	if (windowComp && windowComp->windowInstance)
 	{
 		delete windowComp->windowInstance;

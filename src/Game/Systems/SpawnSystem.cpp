@@ -1,6 +1,5 @@
 #include "SpawnSystem.hpp"
-#include "../../Platform/PlatformContexts.hpp"
-#include "../../Platform/Components/DeltaTimeComponent.hpp"
+#include "../../Graphics/Components/DeltaTimeComponent.hpp"
 #include <iostream>
 #include "../../Graphics/Components/LocalTransformComponent.hpp"
 #include "../../Graphics/Components/GlobalTransformComponent.hpp"

@@ -33,6 +33,7 @@
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_vulkan.h>
 #include "PlaceholdersInit.hpp"
+#include "../Systems/DeltaTimeSystem.hpp"
 #include "../Systems/TransformSystem.hpp"
 #include "../Systems/FrameBeginSystem.hpp"
 #include "../Systems/PhysSyncSystem.hpp"
@@ -42,6 +43,7 @@
 #include "../Systems/BufferUpdateSystem.hpp"
 #include "../Systems/RenderSystem.hpp"
 #include "../Systems/FrameEndSystem.hpp"
+#include "../Components/DeltaTimeComponent.hpp"
 
 #pragma region Run
 void GraphicsInit::Run(GeneralManager& gm)
@@ -67,6 +69,7 @@ void GraphicsInit::Run(GeneralManager& gm)
 #pragma region coreInit
 void GraphicsInit::coreInit(GeneralManager& gm)
 {
+	gm.registerSystem<DeltaTimeSystem>();
 	gm.registerSystem<TransformSystem>();
 
 	gm.registerSystem<FrameBeginSystem>();
@@ -77,6 +80,11 @@ void GraphicsInit::coreInit(GeneralManager& gm)
 	gm.registerSystem<BufferUpdateSystem>();
 	gm.registerSystem<RenderSystem>();
 	gm.registerSystem<FrameEndSystem>();
+
+	Entity deltaTimeEntity = gm.createEntity();
+	gm.registerContext<DeltaTimeContext>(deltaTimeEntity);
+	gm.addComponent<DeltaTimeComponent>(deltaTimeEntity);
+	gm.addComponent<NameComponent>(deltaTimeEntity, "SYSTEM::GRAPHICS Delta Time");
 }
 #pragma endregion
 

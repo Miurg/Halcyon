@@ -16,8 +16,7 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <functional>
 #include "../Components/CurrentFrameComponent.hpp"
-#include "../../Platform/PlatformContexts.hpp"
-#include "../../Platform/Components/DeltaTimeComponent.hpp"
+#include "../Components/DeltaTimeComponent.hpp"
 #include "../Components/SsaoSettingsComponent.hpp"
 #include "../Components/GraphicsSettingsComponent.hpp"
 #include "../Components/VulkanDeviceComponent.hpp"

@@ -8,7 +8,7 @@
 #include "../Components/MouseStateComponent.hpp"
 #include "../Components/ScrollDeltaComponent.hpp"
 #include "../Components/WindowComponent.hpp"
-#include "DeltaTimeSystem.hpp"
+#include "../../Graphics/Systems/DeltaTimeSystem.hpp"
 #include "../../Graphics/Systems/FrameBeginSystem.hpp"
 
 using Orhescyon::GeneralManager;

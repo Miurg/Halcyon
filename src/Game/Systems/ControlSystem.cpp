@@ -6,7 +6,7 @@
 #include <GLFW/glfw3.h>
 #include "../../Graphics/GraphicsContexts.hpp"
 #include "../../Platform/PlatformContexts.hpp"
-#include "../../Platform/Components/DeltaTimeComponent.hpp"
+#include "../../Graphics/Components/DeltaTimeComponent.hpp"
 #include "../Components/ControlComponent.hpp"
 #include "../../Platform/Components/WindowComponent.hpp"
 #include "../../Platform/Window.hpp"

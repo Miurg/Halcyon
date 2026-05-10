@@ -71,3 +71,6 @@ class ShaderReloaderContext
 class LightProbeGridContext
 {
 };
+class DeltaTimeContext
+{
+};

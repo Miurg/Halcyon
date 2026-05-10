@@ -6,7 +6,7 @@
 
 #include "../Components/PhysBodyComponent.hpp"
 #include "../../Graphics/Systems/FrameBeginSystem.hpp"
-#include "../../Platform/Systems/DeltaTimeSystem.hpp"
+#include "../../Graphics/Systems/DeltaTimeSystem.hpp"
 
 using Orhescyon::GeneralManager;
 class PhysUpdateSystem : public Orhescyon::SystemCore<PhysUpdateSystem>

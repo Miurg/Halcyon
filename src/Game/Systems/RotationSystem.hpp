@@ -2,10 +2,10 @@
 
 #include <vector>
 #include "../../Graphics/Components/LocalTransformComponent.hpp"
-#include "../../Platform/Components/DeltaTimeComponent.hpp"
+#include "../../Graphics/Components/DeltaTimeComponent.hpp"
 #include <Orhescyon/GeneralManager.hpp>
 #include <Orhescyon/Systems/SystemCore.hpp>
-#include "../../Platform/Systems/DeltaTimeSystem.hpp"
+#include "../../Graphics/Systems/DeltaTimeSystem.hpp"
 #include "../../Graphics/Systems/FrameBeginSystem.hpp"
 
 using Orhescyon::GeneralManager;

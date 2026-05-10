@@ -3,7 +3,7 @@
 #include <Orhescyon/GeneralManager.hpp>
 #include <Orhescyon/Systems/SystemCore.hpp>
 #include "FrameEndSystem.hpp"
-#include "../../Platform/Systems/DeltaTimeSystem.hpp"
+#include "DeltaTimeSystem.hpp"
 #include "../Components/CurrentFrameComponent.hpp"
 #include "../Components/FrameImageComponent.hpp"
 

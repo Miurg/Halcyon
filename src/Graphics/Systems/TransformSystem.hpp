@@ -10,7 +10,7 @@
 #include "../Components/GlobalTransformComponent.hpp"
 #include "../Components/RelationshipComponent.hpp"
 #include "FrameBeginSystem.hpp"
-#include "../../Platform/Systems/DeltaTimeSystem.hpp"
+#include "DeltaTimeSystem.hpp"
 
 using Orhescyon::GeneralManager;
 class TransformSystem : public Orhescyon::SystemCore<TransformSystem, GlobalTransformComponent, LocalTransformComponent,

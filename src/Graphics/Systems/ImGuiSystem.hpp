@@ -15,7 +15,7 @@
 #include "../Components/GraphicsSettingsComponent.hpp"
 #include "../Components/LightProbeGridComponent.hpp"
 #include "../../Game/Components/ControlComponent.hpp"
-#include "../../Platform/Components/DeltaTimeComponent.hpp"
+#include "../Components/DeltaTimeComponent.hpp"
 
 using Orhescyon::GeneralManager;
 class ImGuiSystem : public Orhescyon::SystemCore<ImGuiSystem>
