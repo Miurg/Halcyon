@@ -7,4 +7,5 @@ public:
 	static void Run(Orhescyon::GeneralManager& gm);
 private:
 	static void coreInit(Orhescyon::GeneralManager& gm);
+	static void initPlatform(Orhescyon::GeneralManager& gm);
 };

@@ -13,6 +13,8 @@
 #include "Graphics/Components/RenderGraphComponent.hpp"
 #include "Graphics/RenderGraph/RenderGraph.hpp"
 #include "Platform/PlatformContexts.hpp"
+#include "Platform/Components/WindowComponent.hpp"
+#include "Platform/Window.hpp"
 
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
@@ -104,5 +106,12 @@ void Cleanup::cleanup(GeneralManager& gm)
 	{
 		delete vulkanDevice;
 		vulkanDevice = nullptr;
+	}
+
+	WindowComponent* windowComp = gm.getContextComponent<MainWindowContext, WindowComponent>();
+	if (windowComp && windowComp->windowInstance)
+	{
+		delete windowComp->windowInstance;
+		windowComp->windowInstance = nullptr;
 	}
 }
