@@ -1,4 +1,6 @@
 #include "MainLoop.hpp"
+#include <iostream>
+#include <exception>
 #include "Platform/Components/WindowComponent.hpp"
 #include "Platform/PlatformContexts.hpp"
 #include "Platform/Window.hpp"
@@ -14,27 +16,52 @@ void MainLoop::startLoop(GeneralManager& gm)
 #endif
 	Window* window = gm.getContextComponent<MainWindowContext, WindowComponent>()->windowInstance;
 	std::atomic<bool> physRunning{true};
+	std::exception_ptr physException;
+
 	std::jthread physThread(
 	    [&]
 	    {
 #ifdef TRACY_ENABLE
 		    tracy::SetThreadName("Physics");
 #endif
-		    while (physRunning.load(std::memory_order_relaxed))
+		    try
 		    {
-			    gm.update("physics");
+			    while (physRunning.load(std::memory_order_relaxed))
+			    {
+				    gm.update("physics");
+			    }
+		    }
+		    catch (...)
+		    {
+			    physException = std::current_exception();
+			    physRunning.store(false, std::memory_order_relaxed);
+			    window->setShouldClose(true);
 		    }
 	    });
 
-	while (!window->shouldClose())
+	try
 	{
-		window->pollEvents();
-		gm.update();
+		while (!window->shouldClose())
+		{
+			window->pollEvents();
+			gm.update();
 #ifdef TRACY_ENABLE
-		FrameMark;
+			FrameMark;
 #endif
+		}
+	}
+	catch (...)
+	{
+		physRunning.store(false, std::memory_order_relaxed);
+		physThread.join();
+		throw;
 	}
 
 	physRunning.store(false, std::memory_order_relaxed);
 	physThread.join();
+
+	if (physException)
+	{
+		std::rethrow_exception(physException);
+	}
 }
