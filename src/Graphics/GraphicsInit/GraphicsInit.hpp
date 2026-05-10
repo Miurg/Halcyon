@@ -9,6 +9,7 @@ class GraphicsInit
 public:
 	static void Run(GeneralManager& gm);
 private:
+	static void coreInit(GeneralManager& gm);
 	static void initVulkanCore(GeneralManager& gm);
 	static void initManagers(GeneralManager& gm);
 	static void initFrameData(GeneralManager& gm);

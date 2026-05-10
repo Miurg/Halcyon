@@ -33,6 +33,15 @@
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_vulkan.h>
 #include "PlaceholdersInit.hpp"
+#include "../Systems/TransformSystem.hpp"
+#include "../Systems/FrameBeginSystem.hpp"
+#include "../Systems/PhysSyncSystem.hpp"
+#include "../Systems/ImGuiSystem.hpp"
+#include "../Systems/CameraMatrixSystem.hpp"
+#include "../Systems/LightUpdateSystem.hpp"
+#include "../Systems/BufferUpdateSystem.hpp"
+#include "../Systems/RenderSystem.hpp"
+#include "../Systems/FrameEndSystem.hpp"
 
 #pragma region Run
 void GraphicsInit::Run(GeneralManager& gm)
@@ -41,6 +50,7 @@ void GraphicsInit::Run(GeneralManager& gm)
 	std::cout << "GRAPHICSINIT::RUN::Start init" << std::endl;
 #endif //_DEBUG
 
+	coreInit(gm);
 	initVulkanCore(gm);
 	initManagers(gm);
 	initFrameData(gm);
@@ -51,6 +61,22 @@ void GraphicsInit::Run(GeneralManager& gm)
 #ifdef _DEBUG
 	std::cout << "GRAPHICSINIT::RUN::Succes!" << std::endl;
 #endif //_DEBUG
+}
+#pragma endregion
+
+#pragma region coreInit
+void GraphicsInit::coreInit(GeneralManager& gm)
+{
+	gm.registerSystem<TransformSystem>();
+
+	gm.registerSystem<FrameBeginSystem>();
+	gm.registerSystem<PhysSyncSystem>();
+	gm.registerSystem<ImGuiSystem>();
+	gm.registerSystem<CameraMatrixSystem>();
+	gm.registerSystem<LightUpdateSystem>();
+	gm.registerSystem<BufferUpdateSystem>();
+	gm.registerSystem<RenderSystem>();
+	gm.registerSystem<FrameEndSystem>();
 }
 #pragma endregion
 

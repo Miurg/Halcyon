@@ -347,6 +347,10 @@ void RenderGraph::compile()
 	// Now that everything is mapped, update descriptors if necessary
 	if (needsDescriptorUpdate)
 	{
+#ifdef TRACY_ENABLE
+		ZoneScopedN("RG::waitIdle+updateDescriptors");
+		TracyPlot("RG descriptor updates", 1.0);
+#endif
 		(*vulkanDevice.device).waitIdle();
 		for (const auto& pass : passes)
 		{

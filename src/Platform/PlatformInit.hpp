@@ -1,11 +1,10 @@
 #pragma once
 #include <Orhescyon/GeneralManager.hpp>
 
-class PhysicsInit
+class PlatformInit
 {
 public:
 	static void Run(Orhescyon::GeneralManager& gm);
 private:
 	static void coreInit(Orhescyon::GeneralManager& gm);
-	static void initPhysics(Orhescyon::GeneralManager& gm);
 };

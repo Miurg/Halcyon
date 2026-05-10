@@ -2,7 +2,11 @@
 
 #include <Orhescyon/GeneralManager.hpp>
 using Orhescyon::GeneralManager;
-struct GameInit
+class GameInit
 {
-	static void gameInitStart(GeneralManager& gm);
+public:
+	static void Run(GeneralManager& gm);
+private:
+	static void coreInit(GeneralManager& gm);
+	static void initScene(GeneralManager& gm);
 };

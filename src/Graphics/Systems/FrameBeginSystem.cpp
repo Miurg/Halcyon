@@ -53,8 +53,13 @@ void FrameBeginSystem::update(GeneralManager& gm)
 	GraphicsSettingsComponent* settings =
 	    gm.getContextComponent<GraphicsSettingsContext, GraphicsSettingsComponent>();
 
-	vulkanDevice.device.waitForFences(*frameManager->frames[currentFrameComp->currentFrame].inFlightFence, vk::True,
-	                                  UINT64_MAX);
+	
+	{
+		ZoneScopedN("waitForFences");
+		vulkanDevice.device.waitForFences(*frameManager->frames[currentFrameComp->currentFrame].inFlightFence, vk::True,
+		                                  UINT64_MAX);
+	}
+	
 	// Handle window resize
 	if (window.framebufferResized)
 	{
@@ -65,34 +70,38 @@ void FrameBeginSystem::update(GeneralManager& gm)
 	}
 
 	// Acquire the next image from the swap chain
-	auto [result, imageIndex] = swapChain.swapChainHandle.acquireNextImage(
-	    UINT64_MAX, *frameManager->frames[currentFrameComp->currentFrame].presentCompleteSemaphore, nullptr);
-	try
 	{
-		if (result == vk::Result::eErrorOutOfDateKHR)
+		ZoneScopedN("acquireNextImage");
+		auto [result, imageIndex] = swapChain.swapChainHandle.acquireNextImage(
+		    UINT64_MAX, *frameManager->frames[currentFrameComp->currentFrame].presentCompleteSemaphore, nullptr);
+
+		try
 		{
-			window.framebufferResized = false;
+			if (result == vk::Result::eErrorOutOfDateKHR)
+			{
+				window.framebufferResized = false;
+				SwapChainFactory::recreateSwapChain(swapChain, vulkanDevice, window, *rg, *dManager, *globalDSetComponent,
+				                                    *settings);
+				return;
+			}
+		}
+		catch (vk::OutOfDateKHRError&)
+		{
 			SwapChainFactory::recreateSwapChain(swapChain, vulkanDevice, window, *rg, *dManager, *globalDSetComponent,
 			                                    *settings);
 			return;
 		}
-	}
-	catch (vk::OutOfDateKHRError&)
-	{
-		SwapChainFactory::recreateSwapChain(swapChain, vulkanDevice, window, *rg, *dManager, *globalDSetComponent,
-		                                    *settings);
-		return;
-	}
-	catch (vk::SystemError& e)
-	{
-		throw std::runtime_error("failed to acquire swap chain image!");
-	}
+		catch (vk::SystemError& e)
+		{
+			throw std::runtime_error("failed to acquire swap chain image!");
+		}
 
-	vulkanDevice.device.resetFences(*frameManager->frames[currentFrameComp->currentFrame].inFlightFence);
-	frameManager->frames[currentFrameComp->currentFrame].commandBuffer.reset();
+		vulkanDevice.device.resetFences(*frameManager->frames[currentFrameComp->currentFrame].inFlightFence);
+		frameManager->frames[currentFrameComp->currentFrame].commandBuffer.reset();
 
-	FrameImageComponent* frameImageComponent = gm.getContextComponent<FrameImageContext, FrameImageComponent>();
-	frameImageComponent->imageIndex = imageIndex;
+		FrameImageComponent* frameImageComponent = gm.getContextComponent<FrameImageContext, FrameImageComponent>();
+		frameImageComponent->imageIndex = imageIndex;
+	}
 	
 	currentFrameComp->frameValid = true;
 	rg->clearFrame();

@@ -1,4 +1,5 @@
 #include "GameInit.hpp"
+#include <iostream>
 #include "../Graphics/Resources/Factories/SkyboxFactory.hpp"
 #include "../Graphics/Resources/Components/MeshInfoComponent.hpp"
 #include "../Graphics/Resources/Managers/BufferManager.hpp"
@@ -11,7 +12,9 @@
 #include "../Graphics/Components/LocalTransformComponent.hpp"
 #include "../Graphics/Components/RelationshipComponent.hpp"
 #include "../Graphics/Systems/TransformSystem.hpp"
+#include "Systems/ControlSystem.hpp"
 #include "Systems/RotationSystem.hpp"
+#include "Systems/SpawnSystem.hpp"
 #include "../Graphics/Systems/RenderSystem.hpp"
 #include "../Graphics/Resources/Factories/ModelFactory.hpp"
 #include "../Graphics/Components/TextureManagerComponent.hpp"
@@ -30,7 +33,33 @@
 #include "../PhysicsCore/Components/PhysTransformSnapshot.hpp"
 #include "../PhysicsCore/Systems/PhysSnapshotSystem.hpp"
 
-void GameInit::gameInitStart(GeneralManager& gm)
+#pragma region Run
+void GameInit::Run(GeneralManager& gm)
+{
+#ifdef _DEBUG
+	std::cout << "GAMEINIT::RUN::Start init" << std::endl;
+#endif //_DEBUG
+
+	coreInit(gm);
+	initScene(gm);
+
+#ifdef _DEBUG
+	std::cout << "GAMEINIT::RUN::Succes!" << std::endl;
+#endif //_DEBUG
+}
+#pragma endregion
+
+#pragma region coreInit
+void GameInit::coreInit(GeneralManager& gm)
+{
+	gm.registerSystem<ControlSystem>();
+	gm.registerSystem<RotationSystem>();
+	gm.registerSystem<SpawnSystem>();
+}
+#pragma endregion
+
+#pragma region initScene
+void GameInit::initScene(GeneralManager& gm)
 {
 	BufferManager* bufferManager = gm.getContextComponent<BufferManagerContext, BufferManagerComponent>()->bufferManager;
 	TextureManager* textureManager =
@@ -63,7 +92,7 @@ void GameInit::gameInitStart(GeneralManager& gm)
 		gm.subscribeEntity<PhysSnapshotSystem>(gameObjectEntity1);
 		gm.subscribeEntity<TransformSystem>(gameObjectEntity1);
 		gm.subscribeEntity<PhysSyncSystem>(gameObjectEntity1);
-		
+
 		RelationshipComponent* real = gm.getComponent<RelationshipComponent>(gameObjectEntity1);
 		real->addChild(gameObjectEntity1, dautherEntity, gm);
 	}
@@ -119,7 +148,7 @@ void GameInit::gameInitStart(GeneralManager& gm)
 		RelationshipComponent* real4 = gm.getComponent<RelationshipComponent>(gameObjectEntity4);
 		real4->addChild(gameObjectEntity4, dautherEntity4, gm);
 	}
-		// Configure the probe grid.
+	// Configure the probe grid.
 	LightProbeGridComponent* probeGrid = gm.getContextComponent<LightProbeGridContext, LightProbeGridComponent>();
 	probeGrid->origin = glm::vec3(-16.0f, 1.0f, -4.0f);
 	probeGrid->count = glm::ivec3(6, 3, 4);
@@ -128,3 +157,4 @@ void GameInit::gameInitStart(GeneralManager& gm)
 
 	physManager->physicsSystem->OptimizeBroadPhase();
 }
+#pragma endregion

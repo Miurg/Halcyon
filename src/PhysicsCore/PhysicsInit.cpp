@@ -1,4 +1,5 @@
 #include "PhysicsInit.hpp"
+#include <iostream>
 #include <Jolt/Jolt.h>
 
 #include <Jolt/Core/Factory.h>
@@ -16,14 +17,42 @@
 #include "Components/PhysBodyComponent.hpp"
 #include "PhysContexts.hpp"
 #include "Systems/PhysUpdateSystem.hpp"
+#include "Systems/PhysSnapshotSystem.hpp"
 #include "PhysLayers.hpp"
 
 static JPH::Factory* sFactory = nullptr;
 
+#pragma region Run
 void PhysicsInit::Run(Orhescyon::GeneralManager& gm)
 {
+#ifdef _DEBUG
+	std::cout << "PHYSICSINIT::RUN::Start init" << std::endl;
+#endif //_DEBUG
+
+	coreInit(gm);
+	initPhysics(gm);
+
+#ifdef _DEBUG
+	std::cout << "PHYSICSINIT::RUN::Succes!" << std::endl;
+#endif //_DEBUG
+}
+#pragma endregion
+
+#pragma region coreInit
+void PhysicsInit::coreInit(Orhescyon::GeneralManager& gm)
+{
+	gm.registerSystemManager("physics");
+
+	gm.registerSystem<PhysUpdateSystem>();
+	gm.registerSystem<PhysSnapshotSystem>();
+}
+#pragma endregion
+
+#pragma region initPhysics
+void PhysicsInit::initPhysics(Orhescyon::GeneralManager& gm)
+{
 	JPH::RegisterDefaultAllocator();
-	
+
 	if (sFactory == nullptr)
 	{
 		sFactory = new JPH::Factory();
@@ -36,3 +65,4 @@ void PhysicsInit::Run(Orhescyon::GeneralManager& gm)
 	gm.addComponent<PhysManagerComponent>(physManagerEntity, physManager);
 	gm.registerContext<PhysManagerContext>(physManagerEntity);
 }
+#pragma endregion

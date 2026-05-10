@@ -62,7 +62,7 @@ void PlaceholdersInit::initPlaceholders(GeneralManager& gm)
 	gm.addComponent<NameComponent>(cameraEntity, "Main Camera");
 	gm.addComponent<CameraComponent>(cameraEntity);
 	gm.addComponent<GlobalTransformComponent>(cameraEntity, glm::vec3(-5.0f, 5.0f, 3.0f));
-	gm.addComponent<LocalTransformComponent>(cameraEntity);
+	gm.addComponent<LocalTransformComponent>(cameraEntity, glm::vec3(-5.0f, 5.0f, 3.0f));
 	gm.addComponent<RelationshipComponent>(cameraEntity);
 	gm.registerContext<MainCameraContext>(cameraEntity);
 	CameraComponent* camera = gm.getContextComponent<MainCameraContext, CameraComponent>();

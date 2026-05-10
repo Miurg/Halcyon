@@ -8,7 +8,6 @@
 #define STB_IMAGE_IMPLEMENTATION
 #define VMA_IMPLEMENTATION
 #include "vk_mem_alloc.h"
-#include "CoreInit.hpp"
 #include "Game/GameInit.hpp"
 #include "Graphics/GraphicsInit/GraphicsInit.hpp"
 #include "Cleanup.hpp"
@@ -16,6 +15,7 @@
 #include <exception>
 #include <Orhescyon/GeneralManager.hpp>
 #include "PhysicsCore/PhysicsInit.hpp"
+#include "Platform/PlatformInit.hpp"
 App::App() {}
 using Orhescyon::GeneralManager;
 int App::run()
@@ -23,10 +23,10 @@ int App::run()
 	GeneralManager gm;
 	try
 	{
-		CoreInit::Run(gm);
-		GraphicsInit::Run(gm);
 		PhysicsInit::Run(gm);
-		GameInit::gameInitStart(gm);
+		PlatformInit::Run(gm);
+		GraphicsInit::Run(gm);
+		GameInit::Run(gm);
 	}
 	catch (const std::exception& e)
 	{
