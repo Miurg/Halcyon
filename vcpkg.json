@@ -8,7 +8,6 @@
     "tinygltf",
     "joltphysics",
     "ktx",
-    "tracy",
     {
       "name": "imgui",
       "features": [
