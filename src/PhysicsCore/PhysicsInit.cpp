@@ -61,12 +61,12 @@ void PhysicsInit::initPhysics(Orhescyon::GeneralManager& gm)
 	}
 
 	JPH::RegisterTypes();
-	Entity physManagerEntity = gm.createEntity();
+	Orhescyon::Entity physManagerEntity = gm.createEntity();
 	PhysManager* physManager = new PhysManager(gm);
 	gm.addComponent<PhysManagerComponent>(physManagerEntity, physManager);
 	gm.registerContext<PhysManagerContext>(physManagerEntity);
 
-	Entity tickRateEntity = gm.createEntity();
+	Orhescyon::Entity tickRateEntity = gm.createEntity();
 	gm.addComponent<PhysTickRateComponent>(tickRateEntity);
 	gm.registerContext<PhysTickRateContext>(tickRateEntity);
 }

@@ -30,7 +30,7 @@ void BufferUpdateSystem::onShutdown(GeneralManager& gm)
 	std::cout << "BufferUpdateSystem shutdown!" << std::endl;
 }
 
-void BufferUpdateSystem::onEntitySubscribed(Entity entity, GeneralManager& gm)
+void BufferUpdateSystem::onEntitySubscribed(Orhescyon::Entity entity, GeneralManager& gm)
 {
 	GlobalTransformComponent* transform = gm.getComponent<GlobalTransformComponent>(entity);
 	MeshInfoComponent* meshInfo = gm.getComponent<MeshInfoComponent>(entity);
@@ -41,7 +41,7 @@ void BufferUpdateSystem::onEntitySubscribed(Entity entity, GeneralManager& gm)
 	}
 }
 
-void BufferUpdateSystem::onEntityUnsubscribed(Entity entity, GeneralManager& gm)
+void BufferUpdateSystem::onEntityUnsubscribed(Orhescyon::Entity entity, GeneralManager& gm)
 {
 	auto it =
 	    std::remove_if(_agents.begin(), _agents.end(), [entity](const Agent& agent) { return agent.entity == entity; });

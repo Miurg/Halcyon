@@ -19,7 +19,7 @@ void RotationSystem::onShutdown(GeneralManager& gm)
 	std::cout << "RotationSystem shutdown!" << std::endl;
 }
 
-void RotationSystem::onEntitySubscribed(Entity entity, GeneralManager& gm)
+void RotationSystem::onEntitySubscribed(Orhescyon::Entity entity, GeneralManager& gm)
 {
 	LocalTransformComponent* transform = gm.getComponent<LocalTransformComponent>(entity);
 	if (transform)
@@ -28,7 +28,7 @@ void RotationSystem::onEntitySubscribed(Entity entity, GeneralManager& gm)
 	}
 }
 
-void RotationSystem::onEntityUnsubscribed(Entity entity, GeneralManager& gm)
+void RotationSystem::onEntityUnsubscribed(Orhescyon::Entity entity, GeneralManager& gm)
 {
 	auto it =
 	    std::remove_if(_agents.begin(), _agents.end(), [entity](const Agent& agent) { return agent.entity == entity; });

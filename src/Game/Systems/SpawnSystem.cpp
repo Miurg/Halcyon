@@ -39,7 +39,7 @@ void SpawnSystem::update(GeneralManager& gm)
 	//	    gm.getContextComponent<MainDSetsContext, BindlessTextureDSetComponent>();
 	//	DescriptorManager* dManager =
 	//	    gm.getContextComponent<DescriptorManagerContext, DescriptorManagerComponent>()->descriptorManager;
-	//	Entity gameObjectEntity1 = gm.createEntity();
+	//	Orhescyon::Entity gameObjectEntity1 = gm.createEntity();
 	//	MeshInfoComponent meshInfo;
 	//	int numberTexture;
 	//	if (j % 2 == 0)

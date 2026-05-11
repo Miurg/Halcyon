@@ -31,7 +31,7 @@ void LightUpdateSystem::onShutdown(GeneralManager& gm)
 	std::cout << "LightUpdateSystem shutdown!" << std::endl;
 }
 
-void LightUpdateSystem::onEntitySubscribed(Entity entity, GeneralManager& gm)
+void LightUpdateSystem::onEntitySubscribed(Orhescyon::Entity entity, GeneralManager& gm)
 {
 	GlobalTransformComponent* transform = gm.getComponent<GlobalTransformComponent>(entity);
 	PointLightComponent* lightInfo = gm.getComponent<PointLightComponent>(entity);
@@ -42,7 +42,7 @@ void LightUpdateSystem::onEntitySubscribed(Entity entity, GeneralManager& gm)
 	}
 }
 
-void LightUpdateSystem::onEntityUnsubscribed(Entity entity, GeneralManager& gm)
+void LightUpdateSystem::onEntityUnsubscribed(Orhescyon::Entity entity, GeneralManager& gm)
 {
 	auto it =
 	    std::remove_if(_agents.begin(), _agents.end(), [entity](const Agent& agent) { return agent.entity == entity; });

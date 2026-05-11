@@ -46,7 +46,7 @@ void GraphicsPipelinesInit::initPipelines(GeneralManager& gm)
 
 #pragma region RenderGraph
 
-	Entity rgEntity = gm.createEntity();
+	Orhescyon::Entity rgEntity = gm.createEntity();
 	RenderGraph* rg = new RenderGraph(*vulkanDevice, vmaAlloc);
 	gm.registerContext<RenderGraphContext>(rgEntity);
 	gm.addComponent<RenderGraphComponent>(rgEntity, rg);
@@ -106,13 +106,13 @@ void GraphicsPipelinesInit::initPipelines(GeneralManager& gm)
 #pragma endregion
 
 	ShaderReloader* shaderReloader = new ShaderReloader(HALCYON_SHADER_SRC_DIR, "shaders");
-	Entity shaderReloaderEntity = gm.createEntity();
+	Orhescyon::Entity shaderReloaderEntity = gm.createEntity();
 	gm.registerContext<ShaderReloaderContext>(shaderReloaderEntity);
 	gm.addComponent<ShaderReloaderComponent>(shaderReloaderEntity, shaderReloader);
 	gm.addComponent<NameComponent>(shaderReloaderEntity, "SYSTEM Shader Reloader");
 
 #pragma region Pipelines
-	Entity pManagerEntity = gm.createEntity();
+	Orhescyon::Entity pManagerEntity = gm.createEntity();
 	gm.registerContext<PipelineManagerContext>(pManagerEntity);
 	PipelineManager* pManager = new PipelineManager(*vulkanDevice, *dManager);
 	gm.addComponent<PipelineManagerComponent>(pManagerEntity, pManager);

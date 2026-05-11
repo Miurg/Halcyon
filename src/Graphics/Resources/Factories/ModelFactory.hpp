@@ -15,9 +15,9 @@ using Orhescyon::GeneralManager;
 class ModelFactory
 {
 public:
-	static Entity createEntityHierarchy(int parentEntity, tinygltf::Model& model, GeneralManager& gm, int offset,
+	static Orhescyon::Entity createEntityHierarchy(int parentEntity, tinygltf::Model& model, GeneralManager& gm, int offset,
 	                                  BufferManager& bManager, int nodeIndex);
-	static Entity loadModel(const char path[MAX_PATH_LEN], int vertexIndexBInt, BufferManager& bManager,
+	static Orhescyon::Entity loadModel(const char path[MAX_PATH_LEN], int vertexIndexBInt, BufferManager& bManager,
 	                        BindlessTextureDSetComponent& dSetComponent, DescriptorManager& dManager,
 	                        GeneralManager& gm, TextureManager& tManager, ModelManager& mManager);
 };

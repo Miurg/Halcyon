@@ -15,7 +15,6 @@
 #include <vulkan/vulkan_raii.hpp>
 
 #include <Orhescyon/Entitys/Entity.hpp>
-using Orhescyon::Entity;
 
 #ifdef TRACY_ENABLE
 #include <tracy/Tracy.hpp>

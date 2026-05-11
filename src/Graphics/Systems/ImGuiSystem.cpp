@@ -42,7 +42,7 @@ void ImGuiSystem::onShutdown(GeneralManager& gm)
 	std::cout << "ImGuiSystem shutdown!" << std::endl;
 }
 
-void ImGuiSystem::drawEntityNode(Entity entity, GeneralManager& gm)
+void ImGuiSystem::drawEntityNode(Orhescyon::Entity entity, GeneralManager& gm)
 {
 	std::string entityName = "Entity " + std::to_string(entity);
 	auto* nameComp = gm.getComponent<NameComponent>(entity);
@@ -77,7 +77,7 @@ void ImGuiSystem::drawEntityNode(Entity entity, GeneralManager& gm)
 	{
 		if (!isLeaf)
 		{
-			Entity child = relComp->firstChild;
+			Orhescyon::Entity child = relComp->firstChild;
 			while (child != NULL_ENTITY)
 			{
 				if (gm.isActive(child))
@@ -203,7 +203,7 @@ void ImGuiSystem::update(GeneralManager& gm)
 	ImGui::Separator();
 
 	const auto& activeEntities = gm.getActiveEntities();
-	for (Entity entity : activeEntities)
+	for (Orhescyon::Entity entity : activeEntities)
 	{
 		auto* relComp = gm.getComponent<RelationshipComponent>(entity);
 		// Top-level entities are those with no parent or no relationship component
@@ -218,7 +218,7 @@ void ImGuiSystem::update(GeneralManager& gm)
 
 	// Right Pane: Component Details
 	ImGui::BeginChild("ComponentDetails", ImVec2(0, 0), true);
-	if (selectedEntity != static_cast<Entity>(-1) && gm.isActive(selectedEntity))
+	if (selectedEntity != static_cast<Orhescyon::Entity>(-1) && gm.isActive(selectedEntity))
 	{
 		ImGui::Text("Inspecting Entity %u", selectedEntity);
 		auto* nameComp = gm.getComponent<NameComponent>(selectedEntity);

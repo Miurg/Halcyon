@@ -15,7 +15,7 @@ void RenderPasses::DebugPass(SwapChain& swapChain, DescriptorManagerComponent& d
                              RenderGraph& rg, GeneralManager& gm, GraphicsSettingsComponent& graphicsSettings,
                              ModelManager& mManager)
 {
-	std::function<void(Entity, std::vector<AABBPush>&)> draw = [&](Entity e, std::vector<AABBPush>& pushData)
+	std::function<void(Orhescyon::Entity, std::vector<AABBPush>&)> draw = [&](Orhescyon::Entity e, std::vector<AABBPush>& pushData)
 	{
 		if (!gm.isActive(e)) return;
 		if (auto* meshComponent = gm.getComponent<MeshInfoComponent>(e))
@@ -32,7 +32,7 @@ void RenderPasses::DebugPass(SwapChain& swapChain, DescriptorManagerComponent& d
 			}
 		if (auto* rel = gm.getComponent<RelationshipComponent>(e))
 		{
-			Entity child = rel->firstChild;
+			Orhescyon::Entity child = rel->firstChild;
 			while (child != NULL_ENTITY)
 			{
 				draw(child, pushData);

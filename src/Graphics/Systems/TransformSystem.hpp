@@ -19,7 +19,7 @@ class TransformSystem : public Orhescyon::SystemCore<TransformSystem, GlobalTran
 public:
 	struct Agent
 	{
-		Entity entity;
+		Orhescyon::Entity entity;
 		GlobalTransformComponent* global;
 		LocalTransformComponent* local;
 		RelationshipComponent* relationship;
@@ -30,8 +30,8 @@ public:
 	void update(GeneralManager& gm) override;
 	void onRegistered(GeneralManager& gm) override;
 	void onShutdown(GeneralManager& gm) override;
-	void onEntitySubscribed(Entity entity, GeneralManager& gm) override;
-	void onEntityUnsubscribed(Entity entity, GeneralManager& gm) override;
+	void onEntitySubscribed(Orhescyon::Entity entity, GeneralManager& gm) override;
+	void onEntityUnsubscribed(Orhescyon::Entity entity, GeneralManager& gm) override;
 	std::vector<std::type_index> getAfterSystems() override
 	{
 		return {typeid(DeltaTimeSystem)};

@@ -16,15 +16,15 @@ public:
 	int j = 0;
 	int k = 0;
 	float time = 0;
-	std::vector<Entity> entities;
+	std::vector<Orhescyon::Entity> entities;
 	void update(GeneralManager& gm) override;
 	void onRegistered(GeneralManager& gm) override;
 	void onShutdown(GeneralManager& gm) override;
-	void onEntitySubscribed(Entity entity, GeneralManager& gm) override
+	void onEntitySubscribed(Orhescyon::Entity entity, GeneralManager& gm) override
 	{
 		entities.push_back(entity);
 	}
-	void onEntityUnsubscribed(Entity entity, GeneralManager& gm) override
+	void onEntityUnsubscribed(Orhescyon::Entity entity, GeneralManager& gm) override
 	{
 		entities.erase(std::remove(entities.begin(), entities.end(), entity), entities.end());
 	}

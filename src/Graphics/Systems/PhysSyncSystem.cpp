@@ -21,7 +21,7 @@ void PhysSyncSystem::onShutdown(GeneralManager& gm)
 	std::cout << "PhysSyncSystem shutdown!" << std::endl;
 }
 
-void PhysSyncSystem::onEntitySubscribed(Entity entity, GeneralManager& gm)
+void PhysSyncSystem::onEntitySubscribed(Orhescyon::Entity entity, GeneralManager& gm)
 {
 	GlobalTransformComponent* transform = gm.getComponent<GlobalTransformComponent>(entity);
 	PhysTransformSnapshot* physSnap = gm.getComponent<PhysTransformSnapshot>(entity);
@@ -32,7 +32,7 @@ void PhysSyncSystem::onEntitySubscribed(Entity entity, GeneralManager& gm)
 	}
 }
 
-void PhysSyncSystem::onEntityUnsubscribed(Entity entity, GeneralManager& gm)
+void PhysSyncSystem::onEntityUnsubscribed(Orhescyon::Entity entity, GeneralManager& gm)
 {
 	auto it =
 	    std::remove_if(_agents.begin(), _agents.end(), [entity](const Agent& agent) { return agent.entity == entity; });

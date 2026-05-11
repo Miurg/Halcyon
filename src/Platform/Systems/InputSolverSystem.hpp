@@ -17,11 +17,11 @@ class InputSolverSystem
                         KeyboardStateComponent, MouseStateComponent, ScrollDeltaComponent>
 {
 public:
-	std::vector<Entity> entities;
+	std::vector<Orhescyon::Entity> entities;
 	void update(GeneralManager& gm) override;
 	void onRegistered(GeneralManager& gm) override;
 	void onShutdown(GeneralManager& gm) override;
-	void onEntitySubscribed(Entity entity, GeneralManager& gm) override
+	void onEntitySubscribed(Orhescyon::Entity entity, GeneralManager& gm) override
 	{
 		entities.push_back(entity);
 	}

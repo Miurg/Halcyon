@@ -47,7 +47,7 @@ public:
 	uint32_t frameCount = 0;
 	float time = 0;
 	uint32_t fps = 0;
-	Entity selectedEntity = static_cast<Entity>(-1);
+	Orhescyon::Entity selectedEntity = static_cast<Orhescyon::Entity>(-1);
 
 	std::vector<float> frameTimes;
 	float avgFrameTime = 0.0f;
@@ -56,5 +56,5 @@ public:
 	bool autoShaderReload = false;
 
 private:
-	void drawEntityNode(Entity entity, GeneralManager& gm);
+	void drawEntityNode(Orhescyon::Entity entity, GeneralManager& gm);
 };

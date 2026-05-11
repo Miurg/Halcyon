@@ -19,7 +19,7 @@ void TransformSystem::onShutdown(GeneralManager& gm)
 	std::cout << "TransformSystem shutdown!" << std::endl;
 }
 
-void TransformSystem::onEntitySubscribed(Entity entity, GeneralManager& gm)
+void TransformSystem::onEntitySubscribed(Orhescyon::Entity entity, GeneralManager& gm)
 {
 	GlobalTransformComponent* global = gm.getComponent<GlobalTransformComponent>(entity);
 	LocalTransformComponent* local = gm.getComponent<LocalTransformComponent>(entity);
@@ -31,7 +31,7 @@ void TransformSystem::onEntitySubscribed(Entity entity, GeneralManager& gm)
 	}
 }
 
-void TransformSystem::onEntityUnsubscribed(Entity entity, GeneralManager& gm)
+void TransformSystem::onEntityUnsubscribed(Orhescyon::Entity entity, GeneralManager& gm)
 {
 	auto it =
 	    std::remove_if(_agents.begin(), _agents.end(), [entity](const Agent& agent) { return agent.entity == entity; });
@@ -62,7 +62,7 @@ void TransformSystem::update(GeneralManager& gm)
 
 	struct StackItem
 	{
-		Entity entity;
+		Orhescyon::Entity entity;
 		bool isParentDirty;
 	};
 

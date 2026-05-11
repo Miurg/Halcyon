@@ -1,16 +1,16 @@
 #pragma once
 #include <Orhescyon/GeneralManager.hpp>
 
-const Entity NULL_ENTITY = 0;
+const Orhescyon::Entity NULL_ENTITY = 0;
 // Intrusive linked-list scene hierarchy. addChild() prepends to sibling list.
 struct RelationshipComponent
 {
-	Entity parent = NULL_ENTITY;
-	Entity firstChild = NULL_ENTITY;
-	Entity nextSibling = NULL_ENTITY;
-	Entity prevSibling = NULL_ENTITY;
+	Orhescyon::Entity parent = NULL_ENTITY;
+	Orhescyon::Entity firstChild = NULL_ENTITY;
+	Orhescyon::Entity nextSibling = NULL_ENTITY;
+	Orhescyon::Entity prevSibling = NULL_ENTITY;
 
-	void addChild(Entity myEntity, Entity childEntity, GeneralManager& gm)
+	void addChild(Orhescyon::Entity myEntity, Orhescyon::Entity childEntity, GeneralManager& gm)
 	{
 		auto* childRel = gm.getComponent<RelationshipComponent>(childEntity);
 		if (childRel == nullptr)

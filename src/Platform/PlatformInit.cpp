@@ -37,7 +37,7 @@ void PlatformInit::coreInit(Orhescyon::GeneralManager& gm)
 #pragma region initPlatform
 void PlatformInit::initPlatform(Orhescyon::GeneralManager& gm)
 {
-	Entity windowAndInputEntity = gm.createEntity();
+	Orhescyon::Entity windowAndInputEntity = gm.createEntity();
 	gm.registerContext<InputDataContext>(windowAndInputEntity);
 	gm.registerContext<MainWindowContext>(windowAndInputEntity);
 	Window* window = new Window("Halcyon");

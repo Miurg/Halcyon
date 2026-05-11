@@ -58,7 +58,7 @@ void PlaceholdersInit::initPlaceholders(GeneralManager& gm)
 
 #pragma region Scene Entities (Camera, DirectLight, Skybox)
 	// === Camera ===
-	Entity cameraEntity = gm.createEntity();
+	Orhescyon::Entity cameraEntity = gm.createEntity();
 	gm.addComponent<NameComponent>(cameraEntity, "Main Camera");
 	gm.addComponent<CameraComponent>(cameraEntity);
 	gm.addComponent<GlobalTransformComponent>(cameraEntity, glm::vec3(-5.0f, 5.0f, 3.0f));
@@ -68,7 +68,7 @@ void PlaceholdersInit::initPlaceholders(GeneralManager& gm)
 	CameraComponent* camera = gm.getContextComponent<MainCameraContext, CameraComponent>();
 
 	// === DirectLight ===
-	Entity directLightEntity = gm.createEntity();
+	Orhescyon::Entity directLightEntity = gm.createEntity();
 	gm.addComponent<NameComponent>(directLightEntity, "Directional Light (Sun)");
 	gm.addComponent<CameraComponent>(directLightEntity);
 	glm::vec3 directLightPos = glm::vec3(10.0f, 20.0f, 10.0f);
@@ -87,7 +87,7 @@ void PlaceholdersInit::initPlaceholders(GeneralManager& gm)
 
 #pragma endregion
 	// === Graphics Settings ===
-	Entity settingsEntity = gm.createEntity();
+	Orhescyon::Entity settingsEntity = gm.createEntity();
 	gm.addComponent<NameComponent>(settingsEntity, "Graphics Settings");
 	gm.addComponent<GraphicsSettingsComponent>(settingsEntity);
 	gm.registerContext<GraphicsSettingsContext>(settingsEntity);
@@ -193,7 +193,7 @@ void PlaceholdersInit::initPlaceholders(GeneralManager& gm)
 	tManager->generateTextureData(path, texWidth, texHeight, data, *bTextureDSetComponent, *dManager);
 
 	// White placeholder Skybox (can be replaced by SkyboxFactory::loadSkybox)
-	Entity skyboxEntity = gm.createEntity();
+	Orhescyon::Entity skyboxEntity = gm.createEntity();
 	gm.addComponent<NameComponent>(skyboxEntity, "Skybox");
 	gm.addComponent<SkyboxComponent>(skyboxEntity);
 	gm.registerContext<SkyBoxContext>(skyboxEntity);
@@ -333,14 +333,14 @@ void PlaceholdersInit::initPlaceholders(GeneralManager& gm)
 #pragma endregion
 
 #pragma region SSAO Settings
-	Entity ssaoSettingsEntity = gm.createEntity();
+	Orhescyon::Entity ssaoSettingsEntity = gm.createEntity();
 	gm.addComponent<NameComponent>(ssaoSettingsEntity, "SSAO Settings");
 	gm.registerContext<SsaoSettingsContext>(ssaoSettingsEntity);
 	gm.addComponent<SsaoSettingsComponent>(ssaoSettingsEntity);
 #pragma endregion
 
 #pragma region Light Probe Grid
-	Entity probeGridEntity = gm.createEntity();
+	Orhescyon::Entity probeGridEntity = gm.createEntity();
 	gm.registerContext<LightProbeGridContext>(probeGridEntity);
 	gm.addComponent<LightProbeGridComponent>(probeGridEntity, LightProbeGridComponent{
 	    .origin  = glm::vec3(0.0f),

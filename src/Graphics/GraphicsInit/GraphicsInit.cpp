@@ -81,7 +81,7 @@ void GraphicsInit::coreInit(GeneralManager& gm)
 	gm.registerSystem<RenderSystem>();
 	gm.registerSystem<FrameEndSystem>();
 
-	Entity deltaTimeEntity = gm.createEntity();
+	Orhescyon::Entity deltaTimeEntity = gm.createEntity();
 	gm.registerContext<DeltaTimeContext>(deltaTimeEntity);
 	gm.addComponent<DeltaTimeComponent>(deltaTimeEntity);
 	gm.addComponent<NameComponent>(deltaTimeEntity, "SYSTEM::GRAPHICS Delta Time");
@@ -98,7 +98,7 @@ void GraphicsInit::initVulkanCore(GeneralManager& gm)
 	Window* window = gm.getContextComponent<MainWindowContext, WindowComponent>()->windowInstance;
 
 	// Vulkan Device
-	Entity vulkanDeviceEntity = gm.createEntity();
+	Orhescyon::Entity vulkanDeviceEntity = gm.createEntity();
 	gm.registerContext<MainVulkanDeviceContext>(vulkanDeviceEntity);
 	VulkanDevice* vulkanDevice = new VulkanDevice();
 	VulkanDeviceFactory::createVulkanDevice(*window, *vulkanDevice);
@@ -106,7 +106,7 @@ void GraphicsInit::initVulkanCore(GeneralManager& gm)
 	gm.addComponent<NameComponent>(vulkanDeviceEntity, "SYSTEM Vulkan Device");
 
 	// VMA Allocator
-	Entity vmaAllocatorEntity = gm.createEntity();
+	Orhescyon::Entity vmaAllocatorEntity = gm.createEntity();
 	gm.registerContext<VMAllocatorContext>(vmaAllocatorEntity);
 	VmaAllocator allocator;
 	VmaAllocatorCreateInfo allocatorInfo = {};
@@ -137,35 +137,35 @@ void GraphicsInit::initManagers(GeneralManager& gm)
 	VmaAllocator allocator = gm.getContextComponent<VMAllocatorContext, VMAllocatorComponent>()->allocator;
 
 	// Texture Manager
-	Entity textureManagerEntity = gm.createEntity();
+	Orhescyon::Entity textureManagerEntity = gm.createEntity();
 	gm.registerContext<TextureManagerContext>(textureManagerEntity);
 	TextureManager* textureManager = new TextureManager(*vulkanDevice, allocator);
 	gm.addComponent<TextureManagerComponent>(textureManagerEntity, textureManager);
 	gm.addComponent<NameComponent>(textureManagerEntity, "SYSTEM Texture Manager");
 
 	// Buffer Manager
-	Entity bufferManagerEntity = gm.createEntity();
+	Orhescyon::Entity bufferManagerEntity = gm.createEntity();
 	gm.registerContext<BufferManagerContext>(bufferManagerEntity);
 	BufferManager* bManager = new BufferManager(*vulkanDevice, allocator);
 	gm.addComponent<BufferManagerComponent>(bufferManagerEntity, bManager);
 	gm.addComponent<NameComponent>(bufferManagerEntity, "SYSTEM Buffer Manager");
 
 	// Model Manager
-	Entity modelManagerEntity = gm.createEntity();
+	Orhescyon::Entity modelManagerEntity = gm.createEntity();
 	gm.registerContext<ModelManagerContext>(modelManagerEntity);
 	ModelManager* mManager = new ModelManager(*vulkanDevice, allocator);
 	gm.addComponent<ModelManagerComponent>(modelManagerEntity, mManager);
 	gm.addComponent<NameComponent>(modelManagerEntity, "SYSTEM Model Manager");
 
 	// Descriptor Manager
-	Entity descriptorManagerEntity = gm.createEntity();
+	Orhescyon::Entity descriptorManagerEntity = gm.createEntity();
 	gm.registerContext<DescriptorManagerContext>(descriptorManagerEntity);
 	DescriptorManager* dManager = new DescriptorManager(*vulkanDevice);
 	gm.addComponent<DescriptorManagerComponent>(descriptorManagerEntity, dManager);
 	gm.addComponent<NameComponent>(descriptorManagerEntity, "SYSTEM Descriptor Manager");
 
 	// Frame Manager
-	Entity frameManagerEntity = gm.createEntity();
+	Orhescyon::Entity frameManagerEntity = gm.createEntity();
 	gm.registerContext<FrameManagerContext>(frameManagerEntity);
 	FrameManager* fManager = new FrameManager(*vulkanDevice);
 	gm.addComponent<FrameManagerComponent>(frameManagerEntity, fManager);
@@ -182,7 +182,7 @@ void GraphicsInit::initFrameData(GeneralManager& gm)
 	Window* window = gm.getContextComponent<MainWindowContext, WindowComponent>()->windowInstance;
 	TextureManager* tManager = gm.getContextComponent<TextureManagerContext, TextureManagerComponent>()->textureManager;
 
-	Entity frameDataEntity = gm.createEntity();
+	Orhescyon::Entity frameDataEntity = gm.createEntity();
 	gm.registerContext<MainFrameDataContext>(frameDataEntity);
 	gm.registerContext<CurrentFrameContext>(frameDataEntity);
 	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
@@ -195,13 +195,13 @@ void GraphicsInit::initFrameData(GeneralManager& gm)
 	gm.addComponent<NameComponent>(frameDataEntity, "SYSTEM Frame Data");
 
 	// Frame Images
-	Entity frameImageEntity = gm.createEntity();
+	Orhescyon::Entity frameImageEntity = gm.createEntity();
 	gm.registerContext<FrameImageContext>(frameImageEntity);
 	gm.addComponent<FrameImageComponent>(frameImageEntity);
 	gm.addComponent<NameComponent>(frameImageEntity, "SYSTEM Frame Image");
 
 	// Swap Chain
-	Entity swapChainEntity = gm.createEntity();
+	Orhescyon::Entity swapChainEntity = gm.createEntity();
 	gm.registerContext<MainSwapChainContext>(swapChainEntity);
 	SwapChain* swapChain = new SwapChain();
 	SwapChainFactory::createSwapChain(*swapChain, *vulkanDevice, *window);
@@ -209,7 +209,7 @@ void GraphicsInit::initFrameData(GeneralManager& gm)
 	gm.addComponent<NameComponent>(swapChainEntity, "SYSTEM Swap Chain");
 
 	// Main Descriptor Sets
-	Entity mainDSetsEntity = gm.createEntity();
+	Orhescyon::Entity mainDSetsEntity = gm.createEntity();
 	gm.registerContext<MainDSetsContext>(mainDSetsEntity);
 	gm.addComponent<BindlessTextureDSetComponent>(mainDSetsEntity);
 	gm.addComponent<GlobalDSetComponent>(mainDSetsEntity);

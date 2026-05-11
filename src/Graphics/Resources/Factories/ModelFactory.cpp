@@ -25,7 +25,7 @@ glm::mat4 convertGLTFMatrix(const std::vector<double>& matrix)
 
 	return glm::make_mat4(m);
 }
-Entity ModelFactory::createEntityHierarchy(int parentEntity, tinygltf::Model& model, GeneralManager& gm, int offset,
+Orhescyon::Entity ModelFactory::createEntityHierarchy(int parentEntity, tinygltf::Model& model, GeneralManager& gm, int offset,
                                            BufferManager& bManager, int nodeIndex)
 {
 	tinygltf::Node& node = model.nodes[nodeIndex];
@@ -61,7 +61,7 @@ Entity ModelFactory::createEntityHierarchy(int parentEntity, tinygltf::Model& mo
 		}
 	}
 
-	Entity entity = gm.createEntity();
+	Orhescyon::Entity entity = gm.createEntity();
 	std::string nodeName = node.name.empty() ? "Node " + std::to_string(nodeIndex) : node.name;
 	gm.addComponent<NameComponent>(entity, nodeName);
 	gm.addComponent<GlobalTransformComponent>(entity);
@@ -144,7 +144,7 @@ Entity ModelFactory::createEntityHierarchy(int parentEntity, tinygltf::Model& mo
 	return entity;
 }
 
-Entity ModelFactory::loadModel(const char path[MAX_PATH_LEN], int vertexIndexBInt, BufferManager& bManager,
+Orhescyon::Entity ModelFactory::loadModel(const char path[MAX_PATH_LEN], int vertexIndexBInt, BufferManager& bManager,
                                BindlessTextureDSetComponent& dSetComponent, DescriptorManager& dManager,
                                GeneralManager& gm, TextureManager& tManager, ModelManager& mManager)
 {
@@ -205,7 +205,7 @@ Entity ModelFactory::loadModel(const char path[MAX_PATH_LEN], int vertexIndexBIn
 	mManager.createIndexBuffer(mManager.vertexIndexBuffers[vertexIndexBInt]);
 
 	// Create root entity for the model
-	Entity modelRootEntity = gm.createEntity();
+	Orhescyon::Entity modelRootEntity = gm.createEntity();
 	std::string pathString = path;
 	size_t lastSlash = pathString.find_last_of("/\\");
 	std::string filename = (lastSlash == std::string::npos) ? pathString : pathString.substr(lastSlash + 1);
