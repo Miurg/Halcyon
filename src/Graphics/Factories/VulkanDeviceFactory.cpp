@@ -19,9 +19,6 @@ inline std::vector<const char*> buildDeviceExtensions()
 	    vk::KHRSynchronization2ExtensionName,
 	    vk::KHRCreateRenderpass2ExtensionName,
 	};
-#ifdef TRACY_ENABLE
-	ext.push_back(VK_EXT_CALIBRATED_TIMESTAMPS_EXTENSION_NAME);
-#endif
 	return ext;
 }
 inline const std::vector<const char*> deviceExtensions = buildDeviceExtensions();
@@ -284,24 +281,10 @@ void VulkanDeviceFactory::createTracyContext(VulkanDevice& vulkanDevice)
 	auto cmdBuffers = (*vulkanDevice.device).allocateCommandBuffers(allocInfo);
 	VkCommandBuffer rawCmd = cmdBuffers[0];
 
-	PFN_vkGetInstanceProcAddr getInstanceProcAddr = vulkanDevice.context.getDispatcher()->vkGetInstanceProcAddr;
-
-	auto pfnGetCalibrateableTimeDomains = reinterpret_cast<PFN_vkGetPhysicalDeviceCalibrateableTimeDomainsEXT>(
-	    getInstanceProcAddr(*vulkanDevice.instance, "vkGetPhysicalDeviceCalibrateableTimeDomainsEXT"));
-	auto pfnGetCalibratedTimestamps = reinterpret_cast<PFN_vkGetCalibratedTimestampsEXT>(
-	    getInstanceProcAddr(*vulkanDevice.instance, "vkGetCalibratedTimestampsEXT"));
-
-	if (pfnGetCalibrateableTimeDomains && pfnGetCalibratedTimestamps)
-	{
-		vulkanDevice.tracyContext =
-		    TracyVkContextCalibrated(*vulkanDevice.physicalDevice, *vulkanDevice.device, *vulkanDevice.graphicsQueue,
-		                             rawCmd, pfnGetCalibrateableTimeDomains, pfnGetCalibratedTimestamps);
-	}
-	else
-	{
-		vulkanDevice.tracyContext =
-		    TracyVkContext(*vulkanDevice.physicalDevice, *vulkanDevice.device, *vulkanDevice.graphicsQueue, rawCmd);
-	}
+	// TracyVkContextCalibrated can spin forever in Calibrate() when
+	// vkGetCalibratedTimestampsEXT always reports deviation > m_deviation (seen on some Windows/GPU drivers).
+	vulkanDevice.tracyContext =
+	    TracyVkContext(*vulkanDevice.physicalDevice, *vulkanDevice.device, *vulkanDevice.graphicsQueue, rawCmd);
 
 	vulkanDevice.graphicsQueue.waitIdle();
 	(*vulkanDevice.device).freeCommandBuffers(*vulkanDevice.commandPool, vk::CommandBuffer(rawCmd));

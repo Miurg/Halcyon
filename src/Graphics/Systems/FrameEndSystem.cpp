@@ -56,8 +56,11 @@ void FrameEndSystem::update(GeneralManager& gm)
 	// Rebake grid if need.
 	if (probesGrid != nullptr && probesGrid->needBake)
 	{
-		LightProbeGIBaking::bakeAll(gm);
-		probesGrid->needBake = false;
+		if (probesGrid->count.x + probesGrid->count.y + probesGrid->count.z > 0)
+		{
+			LightProbeGIBaking::bakeAll(gm);
+			probesGrid->needBake = false;
+		}
 	}
 
 	RenderGraph* rg = gm.getContextComponent<RenderGraphContext, RenderGraphComponent>()->renderGraph;

@@ -55,7 +55,9 @@ void FrameBeginSystem::update(GeneralManager& gm)
 
 	
 	{
+#ifdef TRACY_ENABLE
 		ZoneScopedN("waitForFences");
+#endif
 		vulkanDevice.device.waitForFences(*frameManager->frames[currentFrameComp->currentFrame].inFlightFence, vk::True,
 		                                  UINT64_MAX);
 	}
@@ -71,7 +73,9 @@ void FrameBeginSystem::update(GeneralManager& gm)
 
 	// Acquire the next image from the swap chain
 	{
+#ifdef TRACY_ENABLE
 		ZoneScopedN("acquireNextImage");
+#endif
 		auto [result, imageIndex] = swapChain.swapChainHandle.acquireNextImage(
 		    UINT64_MAX, *frameManager->frames[currentFrameComp->currentFrame].presentCompleteSemaphore, nullptr);
 
