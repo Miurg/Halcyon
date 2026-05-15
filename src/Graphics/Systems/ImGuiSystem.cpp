@@ -27,6 +27,12 @@
 #include "../Components/PipelineManagerComponent.hpp"
 #include "../Components/GraphicsSettingsComponent.hpp"
 #include "../Components/LightProbeGridComponent.hpp"
+#include <Jolt/Jolt.h>
+#include <Jolt/Physics/PhysicsSystem.h>
+#include "../../PhysicsCore/PhysContexts.hpp"
+#include "../../PhysicsCore/Components/PhysManagerComponent.hpp"
+#include "../../PhysicsCore/Components/PhysBodyComponent.hpp"
+#include "../../PhysicsCore/JoltGlm.hpp"
 
 #ifdef TRACY_ENABLE
 #include <tracy/Tracy.hpp>
@@ -244,9 +250,21 @@ void ImGuiSystem::update(GeneralManager& gm)
 				if (ImGui::DragFloat3("G Scale",    glm::value_ptr(gScale), 0.1f)) gChanged = true;
 				if (gChanged)
 				{
+					glm::quat newRot = glm::quat(glm::radians(gEuler));
 					transform->setGlobalPosition(gPos);
-					transform->setGlobalRotation(glm::quat(glm::radians(gEuler)));
+					transform->setGlobalRotation(newRot);
 					transform->setGlobalScale(gScale);
+
+					if (auto* physBody = gm.getComponent<PhysBodyComponent>(selectedEntity))
+					{
+						auto* physMgrComp = gm.getContextComponent<PhysManagerContext, PhysManagerComponent>();
+						JPH::BodyInterface& bi = physMgrComp->physManager->physicsSystem->GetBodyInterface();
+						bi.SetPositionAndRotation(
+						    physBody->bodyID,
+						    JPH::RVec3(gPos.x, gPos.y, gPos.z),
+						    toJolt(newRot),
+						    JPH::EActivation::Activate);
+					}
 				}
 			}
 		}
@@ -265,9 +283,34 @@ void ImGuiSystem::update(GeneralManager& gm)
 				if (ImGui::DragFloat3("L Scale",    glm::value_ptr(lScale), 0.1f)) lChanged = true;
 				if (lChanged)
 				{
+					glm::quat newLocalRot = glm::quat(glm::radians(lEuler));
 					localTransform->setLocalPosition(lPos);
-					localTransform->setLocalRotation(glm::quat(glm::radians(lEuler)));
+					localTransform->setLocalRotation(newLocalRot);
 					localTransform->setLocalScale(lScale);
+
+					if (auto* physBody = gm.getComponent<PhysBodyComponent>(selectedEntity))
+					{
+						auto* physMgrComp = gm.getContextComponent<PhysManagerContext, PhysManagerComponent>();
+						JPH::BodyInterface& bi = physMgrComp->physManager->physicsSystem->GetBodyInterface();
+
+						glm::vec3 worldPos = lPos;
+						glm::quat worldRot = newLocalRot;
+						if (auto* rel = gm.getComponent<RelationshipComponent>(selectedEntity))
+						{
+							if (rel->parent != NULL_ENTITY)
+							{
+								auto* pg = gm.getComponent<GlobalTransformComponent>(rel->parent);
+								worldPos = pg->getGlobalPosition() + pg->getGlobalRotation() * (pg->getGlobalScale() * lPos);
+								worldRot = pg->getGlobalRotation() * newLocalRot;
+							}
+						}
+
+						bi.SetPositionAndRotation(
+						    physBody->bodyID,
+						    JPH::RVec3(worldPos.x, worldPos.y, worldPos.z),
+						    toJolt(worldRot),
+						    JPH::EActivation::Activate);
+					}
 				}
 			}
 		}

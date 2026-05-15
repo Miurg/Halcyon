@@ -16,6 +16,7 @@
 #include "../Components/LightProbeGridComponent.hpp"
 #include "../../Game/Components/ControlComponent.hpp"
 #include "../Components/DeltaTimeComponent.hpp"
+#include "../../PhysicsCore/Components/PhysBodyComponent.hpp"
 
 using Orhescyon::GeneralManager;
 class ImGuiSystem : public Orhescyon::SystemCore<ImGuiSystem>
@@ -36,7 +37,7 @@ public:
 	{
 		return {typeid(NameComponent),     typeid(RelationshipComponent), typeid(CameraComponent),
 		        typeid(ControlComponent),  typeid(GraphicsSettingsComponent),
-		        typeid(DeltaTimeComponent)};
+		        typeid(DeltaTimeComponent), typeid(PhysBodyComponent)};
 	}
 	std::vector<std::type_index> getWriteComponents() override
 	{
