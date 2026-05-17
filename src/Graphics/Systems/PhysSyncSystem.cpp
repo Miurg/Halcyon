@@ -24,7 +24,7 @@ void PhysSyncSystem::onShutdown(GeneralManager& gm)
 void PhysSyncSystem::onEntitySubscribed(Orhescyon::Entity entity, GeneralManager& gm)
 {
 	GlobalTransformComponent* transform = gm.getComponent<GlobalTransformComponent>(entity);
-	PhysTransformSnapshot* physSnap = gm.getComponent<PhysTransformSnapshot>(entity);
+	PhysTransformSnapshotComponent* physSnap = gm.getComponent<PhysTransformSnapshotComponent>(entity);
 
 	if (transform && physSnap)
 	{
@@ -51,7 +51,7 @@ void PhysSyncSystem::update(GeneralManager& gm)
 
 	for (auto& agent : _agents)
 	{
-		PhysTransformSnapshot* physSnap = agent.physSnap;
+		PhysTransformSnapshotComponent* physSnap = agent.physSnap;
 		JPH::RVec3 physPosition = physSnap->positionSnap[indicies.previous];
 		JPH::Quat physRotation = physSnap->rotationSnap[indicies.previous];
 

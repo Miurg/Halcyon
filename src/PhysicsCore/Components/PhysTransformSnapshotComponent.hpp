@@ -6,7 +6,7 @@
 
 const int maxSnapshots = 3;
 
-struct PhysTransformSnapshot
+struct PhysTransformSnapshotComponent
 {
 	JPH::Vec3 positionSnap[maxSnapshots] = {JPH::Vec3::sZero(), JPH::Vec3::sZero(), JPH::Vec3::sZero()};
 	JPH::Quat rotationSnap[maxSnapshots] = {JPH::Quat::sIdentity(), JPH::Quat::sIdentity(), JPH::Quat::sIdentity()};

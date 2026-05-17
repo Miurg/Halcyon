@@ -30,8 +30,11 @@
 #include "../PhysicsCore/Components/PhysManagerComponent.hpp"
 #include "../PhysicsCore/PhysContexts.hpp"
 #include "../Graphics/Systems/PhysSyncSystem.hpp"
-#include "../PhysicsCore/Components/PhysTransformSnapshot.hpp"
+#include "../PhysicsCore/Components/PhysTransformSnapshotComponent.hpp"
 #include "../PhysicsCore/Systems/PhysSnapshotSystem.hpp"
+#include "../SmithCore/Phys.hpp"
+#include "../SmithCore/Renderables.hpp"
+#include "../PhysicsCore/PhysShapes.hpp"
 
 #pragma region Run
 void GameInit::Run(GeneralManager& gm)
@@ -80,18 +83,14 @@ void GameInit::initScene(GeneralManager& gm)
 	{
 		Orhescyon::Entity gameObjectEntity1 = gm.createEntity();
 		gm.addComponent<NameComponent>(gameObjectEntity1, "Bistro_Godot");
-		gm.addComponent<GlobalTransformComponent>(gameObjectEntity1);
-		gm.addComponent<LocalTransformComponent>(gameObjectEntity1, 0.0f, 0.0f, 0.0f);
-		gm.addComponent<RelationshipComponent>(gameObjectEntity1);
-		gm.addComponent<PhysBodyComponent>(
-		    gameObjectEntity1, physManager->createStaticBox(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(50.0f, 0.5f, 50.0f)));
-		gm.addComponent<PhysTransformSnapshot>(gameObjectEntity1);
+		Smith::Renderables::forgeTransform(gm, gameObjectEntity1, glm::vec3(0.0f, 0.0f, 0.0f),
+		                                   glm::quat{1.0f, 0.0f, 0.0f, 0.0f});
 
-		Orhescyon::Entity dautherEntity = ModelFactory::loadModel("assets/models/Sponza.glb", 0, *bufferManager, *dSetComponent,
+		Body body1{.pos = glm::vec3(0.0f, 0.0f, 0.0f), .motion = Motion::Static, .layer = Layers::NON_MOVING};
+		Smith::Phys::forgeBody(gm, gameObjectEntity1, body1, Box{.halfExtents = {50.0f, 0.5f, 50.0f}});
+
+		Orhescyon::Entity dautherEntity = ModelFactory::loadModel("assets/models/Bistro_Godot.glb", 0, *bufferManager, *dSetComponent,
 		                                               *dManager, gm, *textureManager, *modelManager);
-		gm.subscribeEntity<PhysSnapshotSystem>(gameObjectEntity1);
-		gm.subscribeEntity<TransformSystem>(gameObjectEntity1);
-		gm.subscribeEntity<PhysSyncSystem>(gameObjectEntity1);
 
 		RelationshipComponent* real = gm.getComponent<RelationshipComponent>(gameObjectEntity1);
 		real->addChild(gameObjectEntity1, dautherEntity, gm);
@@ -113,19 +112,15 @@ void GameInit::initScene(GeneralManager& gm)
 	{
 		Orhescyon::Entity gameObjectEntity3 = gm.createEntity();
 		gm.addComponent<NameComponent>(gameObjectEntity3, "Emissive Model");
-		gm.addComponent<GlobalTransformComponent>(gameObjectEntity3);
-		gm.addComponent<LocalTransformComponent>(gameObjectEntity3, 0.0f, 10.0f, 0.0f);
-		gm.addComponent<RelationshipComponent>(gameObjectEntity3);
-		gm.addComponent<PhysBodyComponent>(gameObjectEntity3,
-		                                   physManager->createDynamicSphere(glm::vec3(0.0f, 10.0f, 0.0f), 0.5f));
-		gm.addComponent<PhysTransformSnapshot>(gameObjectEntity3);
-		Orhescyon::Entity dautherEntity3 = ModelFactory::loadModel("assets/models/DamagedHelmet.glb", 0, *bufferManager,
-		                                                *dSetComponent, *dManager, gm, *textureManager, *modelManager);
+		Smith::Renderables::forgeTransform(gm, gameObjectEntity3, glm::vec3(0.0f, 10.0f, 0.0f),
+		                                   glm::quat{1.0f, 0.0f, 0.0f, 0.0f});
 
-		gm.subscribeEntity<PhysSyncSystem>(gameObjectEntity3);
-		gm.subscribeEntity<TransformSystem>(gameObjectEntity3);
-		gm.subscribeEntity<PhysSnapshotSystem>(gameObjectEntity3);
-		// gm.subscribeEntity<RotationSystem>(gameObjectEntity3);
+		Body body{.pos = glm::vec3(0.0f, 10.0f, 0.0f), .motion = Motion::Dynamic, .friction = 0.5f, .restitution = 0.1f};
+		Smith::Phys::forgeBody(gm, gameObjectEntity3, body, Sphere{0.5f});
+
+		Orhescyon::Entity dautherEntity3 =
+		    ModelFactory::loadModel("assets/models/DamagedHelmet.glb", 0, *bufferManager, *dSetComponent, *dManager, gm,
+		                            *textureManager, *modelManager);
 		RelationshipComponent* real3 = gm.getComponent<RelationshipComponent>(gameObjectEntity3);
 		real3->addChild(gameObjectEntity3, dautherEntity3, gm);
 	}
@@ -133,27 +128,24 @@ void GameInit::initScene(GeneralManager& gm)
 	{
 		Orhescyon::Entity gameObjectEntity4 = gm.createEntity();
 		gm.addComponent<NameComponent>(gameObjectEntity4, "Emissive Model");
-		gm.addComponent<GlobalTransformComponent>(gameObjectEntity4);
-		gm.addComponent<LocalTransformComponent>(gameObjectEntity4, 0.0f, 12.0f, 0.1f);
-		gm.addComponent<RelationshipComponent>(gameObjectEntity4);
-		gm.addComponent<PhysBodyComponent>(gameObjectEntity4,
-		                                   physManager->createDynamicSphere(glm::vec3(0.0f, 12.0f, 0.1f), 0.5f));
-		gm.addComponent<PhysTransformSnapshot>(gameObjectEntity4);
+		Smith::Renderables::forgeTransform(gm, gameObjectEntity4, glm::vec3(0.0f, 12.0f, 0.1f),
+		                                   glm::quat{1.0f, 0.0f, 0.0f, 0.0f});
+
+		Body body4{.pos = glm::vec3(0.0f, 12.0f, 0.1f), .motion = Motion::Dynamic};
+		Smith::Phys::forgeBody(gm, gameObjectEntity4, body4, Sphere{0.5f});
+
 		Orhescyon::Entity dautherEntity4 = ModelFactory::loadModel("assets/models/DamagedHelmet.glb", 0, *bufferManager,
 		                                                *dSetComponent, *dManager, gm, *textureManager, *modelManager);
-		gm.subscribeEntity<PhysSyncSystem>(gameObjectEntity4);
-		gm.subscribeEntity<TransformSystem>(gameObjectEntity4);
-		gm.subscribeEntity<PhysSnapshotSystem>(gameObjectEntity4);
-		// gm.subscribeEntity<RotationSystem>(gameObjectEntity3);
+		// gm.subscribeEntity<RotationSystem>(gameObjectEntity4);
 		RelationshipComponent* real4 = gm.getComponent<RelationshipComponent>(gameObjectEntity4);
 		real4->addChild(gameObjectEntity4, dautherEntity4, gm);
 	}
 	// Configure the probe grid.
-	LightProbeGridComponent* probeGrid = gm.getContextComponent<LightProbeGridContext, LightProbeGridComponent>();
-	probeGrid->origin = glm::vec3(-16.0f, 1.0f, -4.0f);
-	probeGrid->count = glm::ivec3(6, 3, 4);
-	probeGrid->spacing = 2.6f;
-	gm.addComponent<NameComponent>(gm.getContext<LightProbeGridContext>(), "GI Grid");
+	//LightProbeGridComponent* probeGrid = gm.getContextComponent<LightProbeGridContext, LightProbeGridComponent>();
+	//probeGrid->origin = glm::vec3(-16.0f, 1.0f, -4.0f);
+	//probeGrid->count = glm::ivec3(6, 3, 4);
+	//probeGrid->spacing = 2.6f;
+	//gm.addComponent<NameComponent>(gm.getContext<LightProbeGridContext>(), "GI Grid");
 
 	physManager->physicsSystem->OptimizeBroadPhase();
 }

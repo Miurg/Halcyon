@@ -10,7 +10,7 @@ struct RelationshipComponent
 	Orhescyon::Entity nextSibling = NULL_ENTITY;
 	Orhescyon::Entity prevSibling = NULL_ENTITY;
 
-	void addChild(Orhescyon::Entity myEntity, Orhescyon::Entity childEntity, GeneralManager& gm)
+	void addChild(Orhescyon::Entity myEntity, Orhescyon::Entity childEntity, Orhescyon::GeneralManager& gm)
 	{
 		auto* childRel = gm.getComponent<RelationshipComponent>(childEntity);
 		if (childRel == nullptr)

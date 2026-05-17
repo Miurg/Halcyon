@@ -3,9 +3,11 @@
 #include <Orhescyon/GeneralManager.hpp>
 #include <Jolt/Jolt.h>
 #include <Jolt/Physics/PhysicsSystem.h>
+#include <Jolt/Physics/Collision/Shape/Shape.h>
 #include <Jolt/Core/TempAllocator.h>
 #include <Jolt/Core/JobSystemThreadPool.h>
 #include "../PhysLayers.hpp"
+#include "../PhysShapes.hpp"
 #include <glm/ext/vector_float3.hpp>
 
 struct SnapshotIndices
@@ -35,6 +37,10 @@ public:
 	JPH::BodyID createDynamicSphere(glm::vec3 pos, float radius);
 	JPH::BodyID createStaticBox(glm::vec3 pos, glm::vec3 halfExtents);
 
+	JPH::BodyID createBody(const Body& body, const Shape& shape);
+
 private:
+	static JPH::Shape* makeJoltShape(const Shape& shape);
+
 	GeneralManager* gm;
 };

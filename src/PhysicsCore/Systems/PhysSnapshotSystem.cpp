@@ -21,7 +21,7 @@ void PhysSnapshotSystem::onShutdown(GeneralManager& gm)
 void PhysSnapshotSystem::onEntitySubscribed(Orhescyon::Entity entity, GeneralManager& gm)
 {
 	PhysBodyComponent* physBody = gm.getComponent<PhysBodyComponent>(entity);
-	PhysTransformSnapshot* transSnapshot = gm.getComponent<PhysTransformSnapshot>(entity);
+	PhysTransformSnapshotComponent* transSnapshot = gm.getComponent<PhysTransformSnapshotComponent>(entity);
 	
 	if (transSnapshot && physBody)
 	{
@@ -51,7 +51,7 @@ void PhysSnapshotSystem::update(GeneralManager& gm)
 	for (auto& agent : _agents)
 	{
 		JPH::BodyID body = agent.physBody->bodyID;
-		PhysTransformSnapshot& snap = *agent.transSnapshot;
+		PhysTransformSnapshotComponent& snap = *agent.transSnapshot;
 		snap.positionSnap[indicies.writing] = bi.GetCenterOfMassPosition(body);
 		snap.rotationSnap[indicies.writing] = bi.GetRotation(body);
 	}

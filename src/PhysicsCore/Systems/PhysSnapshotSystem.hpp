@@ -4,19 +4,20 @@
 #include <Orhescyon/GeneralManager.hpp>
 #include <Orhescyon/Systems/SystemCore.hpp>
 
-#include "../Components/PhysTransformSnapshot.hpp"
+#include "../Components/PhysTransformSnapshotComponent.hpp"
 #include "../Components/PhysBodyComponent.hpp"
 #include "../../Graphics/Systems/TransformSystem.hpp"
 #include "PhysUpdateSystem.hpp"
 
 using Orhescyon::GeneralManager;
-class PhysSnapshotSystem : public Orhescyon::SystemCore<PhysSnapshotSystem, PhysTransformSnapshot, PhysBodyComponent>
+class PhysSnapshotSystem
+    : public Orhescyon::SystemCore<PhysSnapshotSystem, PhysTransformSnapshotComponent, PhysBodyComponent>
 {
 public:
 	struct Agent
 	{
 		Orhescyon::Entity entity;
-		PhysTransformSnapshot* transSnapshot;
+		PhysTransformSnapshotComponent* transSnapshot;
 		PhysBodyComponent* physBody;
 	};
 
@@ -37,7 +38,7 @@ public:
 	}
 	std::vector<std::type_index> getWriteComponents() override
 	{
-		return {typeid(PhysTransformSnapshot)};
+		return {typeid(PhysTransformSnapshotComponent)};
 	}
 	std::string_view getSystemManagerName() const override
 	{
