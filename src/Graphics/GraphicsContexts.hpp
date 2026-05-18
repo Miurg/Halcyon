@@ -48,7 +48,7 @@ class ModelManagerContext
 class FrameManagerContext
 {
 };
-class SsaoSettingsContext
+class GtaoSettingsContext
 {
 };
 class SkyBoxContext

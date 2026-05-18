@@ -9,7 +9,7 @@
 #include "../Resources/Managers/TextureManager.hpp"
 #include "../Resources/Managers/ModelManager.hpp"
 #include "../Components/DrawInfoComponent.hpp"
-#include "../Components/SsaoSettingsComponent.hpp"
+#include "../Components/GtaoSettingsComponent.hpp"
 #include "../Managers/PipelineManager.hpp"
 #include <Orhescyon/Entitys/EntityManager.hpp>
 #include <iostream>
@@ -28,7 +28,7 @@
 #include "../Managers/FrameManager.hpp"
 #include "../Components/FrameManagerComponent.hpp"
 #include "../Components/DrawInfoComponent.hpp"
-#include "../Components/SsaoSettingsComponent.hpp"
+#include "../Components/GtaoSettingsComponent.hpp"
 #include "../Components/RenderGraphComponent.hpp"
 #include "../RenderGraph/RenderGraph.hpp"
 #include "../Components/GraphicsSettingsComponent.hpp"
@@ -83,10 +83,10 @@ public:
 	                      GlobalDSetComponent& globalDSetComponent, PipelineManager& pManager, uint32_t currentFrame,
 	                      RenderGraph& rg, GeneralManager& gm, GraphicsSettingsComponent& graphicsSettings,
 	                      ModelManager& mManager);
-	static void SSAOPass(SwapChain& swapChain, CurrentFrameComponent& currentFrameComp,
+	static void GTAOPass(SwapChain& swapChain, CurrentFrameComponent& currentFrameComp,
 	                     BindlessTextureDSetComponent& bindlessTextureDSetComponent,
 	                     DescriptorManagerComponent& dManager, GlobalDSetComponent& globalDSetComponent,
-	                     PipelineManager& pManager, RenderGraph& rg, SsaoSettingsComponent& ssaoSettings);
+	                     PipelineManager& pManager, RenderGraph& rg, GtaoSettingsComponent& gtaoSettings);
 	static void BloomPass(SwapChain& swapChain, DescriptorManagerComponent& dManager,
 	                      GlobalDSetComponent& globalDSetComponent, PipelineManager& pManager, RenderGraph& rg,
 	                      GraphicsSettingsComponent& graphicsSettings);

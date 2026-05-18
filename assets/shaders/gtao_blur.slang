@@ -1,5 +1,5 @@
 [[vk::binding(0, 0)]]
-Sampler2D ssaoTexture;
+Sampler2D gtaoTexture;
 [[vk::binding(1, 0)]]
 Sampler2D depthTexture;
 [[vk::binding(2, 0)]]
@@ -31,7 +31,7 @@ VSOutput vertMain(uint vertexID: SV_VertexID)
 [shader("fragment")]
 float4 fragMain(VSOutput input) : SV_Target
 {
-    float centerSsao = ssaoTexture.SampleLevel(input.uv, 0).r;
+    float centerGtao = gtaoTexture.SampleLevel(input.uv, 0).r;
     float centerDepth = depthTexture.SampleLevel(input.uv, 0).r;
 
     // Dont blur background
@@ -39,7 +39,7 @@ float4 fragMain(VSOutput input) : SV_Target
 
     float3 centerNormal = normalsTexture.SampleLevel(input.uv, 0).xyz;
 
-    float combinedSsao = 0.0;
+    float combinedGtao = 0.0;
     float totalWeight = 0.0;
 
     const float weights[5] = { 0.061, 0.242, 0.383, 0.242, 0.061 };
@@ -52,7 +52,7 @@ float4 fragMain(VSOutput input) : SV_Target
 
         float sampleDepth = depthTexture.SampleLevel(sampleUV, 0).r;
         float3 sampleNormal = normalsTexture.SampleLevel(sampleUV, 0).xyz;
-        float sampleSsao = ssaoTexture.SampleLevel(sampleUV, 0).r;
+        float sampleGtao = gtaoTexture.SampleLevel(sampleUV, 0).r;
 
         float depthDiff = abs(centerDepth - sampleDepth);
         float depthWeight = exp(-depthDiff * 100.0);
@@ -63,11 +63,11 @@ float4 fragMain(VSOutput input) : SV_Target
         float spatialWeight = weights[i + 2];
         float finalWeight = spatialWeight * depthWeight * normalWeight;
 
-        combinedSsao += sampleSsao * finalWeight;
+        combinedGtao += sampleGtao * finalWeight;
         totalWeight += finalWeight;
     }
 
-    float result = (totalWeight > 0.0001) ? (combinedSsao / totalWeight) : centerSsao;
+    float result = (totalWeight > 0.0001) ? (combinedGtao / totalWeight) : centerGtao;
 
     return float4(result.xxx, 1.0);
 }

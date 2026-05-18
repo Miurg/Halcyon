@@ -1,7 +1,7 @@
 [vk::binding(0, 0)]
 Sampler2D sourceTexture;
 [vk::binding(1, 0)]
-Sampler2D ssaoTexture;
+Sampler2D gtaoTexture;
 
 struct VSOutput
 {
@@ -23,7 +23,7 @@ float4 fragMain(VSOutput input) : SV_Target
 {
 	float3 mapped = sourceTexture.SampleLevel(input.uv, 0).rgb;
 
-	float ao = ssaoTexture.SampleLevel(input.uv, 0).r;
+	float ao = gtaoTexture.SampleLevel(input.uv, 0).r;
 	mapped *= ao;
 
 	return float4(mapped, 1.0);

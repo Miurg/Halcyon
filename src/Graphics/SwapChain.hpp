@@ -12,6 +12,6 @@ public:
 	std::vector<vk::Image> swapChainImages;
 	std::vector<vk::raii::ImageView> swapChainImageViews;
 
-	TextureHandle ssaoNoiseTextureHandle;
+	TextureHandle gtaoNoiseTextureHandle;
 	vk::Format hdrFormat = vk::Format::eR16G16B16A16Sfloat;
 };

@@ -15,7 +15,7 @@
 #include "../Managers/FrameManager.hpp"
 #include "../Components/FrameManagerComponent.hpp"
 #include "../Components/DrawInfoComponent.hpp"
-#include "../Components/SsaoSettingsComponent.hpp"
+#include "../Components/GtaoSettingsComponent.hpp"
 #include "../Components/RenderGraphComponent.hpp"
 #include "../RenderGraph/RenderGraph.hpp"
 #include "../Components/GraphicsSettingsComponent.hpp"
@@ -68,7 +68,7 @@ void RenderSystem::update(GeneralManager& gm)
 	DrawInfoComponent& drawInfo = *gm.getContextComponent<CurrentFrameContext, DrawInfoComponent>();
 	SkyboxComponent& skyboxComp = *gm.getContextComponent<SkyBoxContext, SkyboxComponent>();
 	bool hasSkybox = skyboxComp.hasSkybox;
-	SsaoSettingsComponent& ssaoSettings = *gm.getContextComponent<SsaoSettingsContext, SsaoSettingsComponent>();
+	GtaoSettingsComponent& gtaoSettings = *gm.getContextComponent<GtaoSettingsContext, GtaoSettingsComponent>();
 	RenderGraph& rg = *gm.getContextComponent<RenderGraphContext, RenderGraphComponent>()->renderGraph;
 	GraphicsSettingsComponent& graphicsSettings =
 	    *gm.getContextComponent<GraphicsSettingsContext, GraphicsSettingsComponent>();
@@ -90,8 +90,8 @@ void RenderSystem::update(GeneralManager& gm)
 	auto swapChainHandle = rg.importImage("swapChainImage", swapChain.swapChainImages[imageIndex],
 	                                      swapChain.swapChainImageViews[imageIndex], vk::ImageAspectFlagBits::eColor);
 	auto noiseHandle =
-	    rg.importImage("NoiseImage", textureManager.textures[swapChain.ssaoNoiseTextureHandle.id].textureImage,
-	                   textureManager.textures[swapChain.ssaoNoiseTextureHandle.id].textureImageView,
+	    rg.importImage("NoiseImage", textureManager.textures[swapChain.gtaoNoiseTextureHandle.id].textureImage,
+	                   textureManager.textures[swapChain.gtaoNoiseTextureHandle.id].textureImageView,
 	                   vk::ImageAspectFlagBits::eColor, vk::ImageLayout::eShaderReadOnlyOptimal);
 
 	if (graphicsSettings.msaaSamples != graphicsSettings.appliedMsaaSamples)
@@ -114,10 +114,10 @@ void RenderSystem::update(GeneralManager& gm)
 	RenderPasses::DebugPass(swapChain, dManager, globalDSetComponent, pManager, currentFrame, rg, gm, graphicsSettings,
 	                        modelManager);
 
-	if (graphicsSettings.enableSsao)
+	if (graphicsSettings.enableGtao)
 	{
-		RenderPasses::SSAOPass(swapChain, currentFrameComp, materialDSetComponent, dManager, globalDSetComponent,
-		                       pManager, rg, ssaoSettings);
+		RenderPasses::GTAOPass(swapChain, currentFrameComp, materialDSetComponent, dManager, globalDSetComponent,
+		                       pManager, rg, gtaoSettings);
 	}
 
 	if (graphicsSettings.enableBloom)

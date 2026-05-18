@@ -17,7 +17,7 @@
 #include <functional>
 #include "../Components/CurrentFrameComponent.hpp"
 #include "../Components/DeltaTimeComponent.hpp"
-#include "../Components/SsaoSettingsComponent.hpp"
+#include "../Components/GtaoSettingsComponent.hpp"
 #include "../Components/GraphicsSettingsComponent.hpp"
 #include "../Components/VulkanDeviceComponent.hpp"
 #include "../VulkanDevice.hpp"
@@ -356,19 +356,19 @@ void ImGuiSystem::update(GeneralManager& gm)
 			}
 		}
 
-		// SSAO Settings Component
-		if (auto* ssao = gm.getComponent<SsaoSettingsComponent>(selectedEntity))
+		// GTAO Settings Component
+		if (auto* gtao = gm.getComponent<GtaoSettingsComponent>(selectedEntity))
 		{
-			if (ImGui::CollapsingHeader("SSAO Settings", ImGuiTreeNodeFlags_DefaultOpen))
+			if (ImGui::CollapsingHeader("GTAO Settings", ImGuiTreeNodeFlags_DefaultOpen))
 			{
-				ImGui::SliderInt("Kernel Size", &ssao->kernelSize, 1, 32);
-				ImGui::DragFloat("Radius", &ssao->radius, 0.1f, 0.1f, 50.0f);
-				ImGui::DragFloat("Bias", &ssao->bias, 0.01f, 0.0f, 1.0f);
-				ImGui::DragFloat("Power", &ssao->power, 0.1f, 0.1f, 20.0f);
-				ImGui::SliderInt("Num Directions", &ssao->numDirections, 1, 16);
-				ImGui::DragFloat("Max Screen Radius", &ssao->maxScreenRadius, 0.01f, 0.01f, 1.0f);
-				ImGui::DragFloat("Fade start", &ssao->fadeStart, 10.0f, 1000.0f);
-				ImGui::DragFloat("Fade end", &ssao->fadeEnd, 10.0f, 1000.0f);
+				ImGui::SliderInt("Kernel Size", &gtao->kernelSize, 1, 32);
+				ImGui::DragFloat("Radius", &gtao->radius, 0.1f, 0.1f, 50.0f);
+				ImGui::DragFloat("Bias", &gtao->bias, 0.01f, 0.0f, 1.0f);
+				ImGui::DragFloat("Power", &gtao->power, 0.1f, 0.1f, 20.0f);
+				ImGui::SliderInt("Num Directions", &gtao->numDirections, 1, 16);
+				ImGui::DragFloat("Max Screen Radius", &gtao->maxScreenRadius, 0.01f, 0.01f, 1.0f);
+				ImGui::DragFloat("Fade start", &gtao->fadeStart, 10.0f, 1000.0f);
+				ImGui::DragFloat("Fade end", &gtao->fadeEnd, 10.0f, 1000.0f);
 			}
 		}
 
@@ -377,7 +377,7 @@ void ImGuiSystem::update(GeneralManager& gm)
 		{
 			if (ImGui::CollapsingHeader("Graphics Settings", ImGuiTreeNodeFlags_DefaultOpen))
 			{
-				ImGui::Checkbox("Enable SSAO", &settings->enableSsao);
+				ImGui::Checkbox("Enable GTAO", &settings->enableGtao);
 				ImGui::Checkbox("Enable FXAA", &settings->enableFxaa);
 				ImGui::Checkbox("Enable Bloom", &settings->enableBloom);
 				ImGui::Checkbox("Enable Vignette", &settings->enableVignette);

@@ -11,7 +11,7 @@
 #include "../Components/CameraComponent.hpp"
 #include "../Components/DirectLightComponent.hpp"
 #include "../Components/PointLightComponent.hpp"
-#include "../Components/SsaoSettingsComponent.hpp"
+#include "../Components/GtaoSettingsComponent.hpp"
 #include "../Components/GraphicsSettingsComponent.hpp"
 #include "../Components/LightProbeGridComponent.hpp"
 #include "../../Game/Components/ControlComponent.hpp"
@@ -42,7 +42,7 @@ public:
 	std::vector<std::type_index> getWriteComponents() override
 	{
 		return {typeid(GlobalTransformComponent), typeid(LocalTransformComponent), typeid(DirectLightComponent),
-		        typeid(PointLightComponent),      typeid(SsaoSettingsComponent),   typeid(LightProbeGridComponent)};
+		        typeid(PointLightComponent),      typeid(GtaoSettingsComponent),   typeid(LightProbeGridComponent)};
 	}
 
 	uint32_t frameCount = 0;

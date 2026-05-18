@@ -10,7 +10,7 @@
 #include "../Components/GraphicsSettingsComponent.hpp"
 #include "../Resources/Components/GlobalDSetComponent.hpp"
 #include "../Resources/Components/ModelDSetComponent.hpp"
-#include "../Components/SsaoSettingsComponent.hpp"
+#include "../Components/GtaoSettingsComponent.hpp"
 #include "../Components/RenderGraphComponent.hpp"
 #include "../RenderGraph/RenderGraph.hpp"
 #include "../Components/NameComponent.hpp"
@@ -279,13 +279,13 @@ void PlaceholdersInit::initPlaceholders(GeneralManager& gm)
 	                                         objectDSetComponent->modelBufferDSet, 5);
 #pragma endregion
 
-#pragma region Post-Processing & SSAO Descriptor Sets
+#pragma region Post-Processing & GTAO Descriptor Sets
 	RenderGraph* rg = gm.getContextComponent<RenderGraphContext, RenderGraphComponent>()->renderGraph;
 	globalDSetComponent->fxaaDSets        = dManager->allocateOffscreenDescriptorSet("screenSpaceSet");
-	globalDSetComponent->ssaoDSets        = dManager->allocateOffscreenDescriptorSet("screenSpaceSet");
-	globalDSetComponent->ssaoBlurHDSets   = dManager->allocateOffscreenDescriptorSet("screenSpaceSet");
-	globalDSetComponent->ssaoBlurVDSets   = dManager->allocateOffscreenDescriptorSet("screenSpaceSet");
-	globalDSetComponent->ssaoApplyDSets   = dManager->allocateOffscreenDescriptorSet("screenSpaceSet");
+	globalDSetComponent->gtaoDSets        = dManager->allocateOffscreenDescriptorSet("screenSpaceSet");
+	globalDSetComponent->gtaoBlurHDSets   = dManager->allocateOffscreenDescriptorSet("screenSpaceSet");
+	globalDSetComponent->gtaoBlurVDSets   = dManager->allocateOffscreenDescriptorSet("screenSpaceSet");
+	globalDSetComponent->gtaoApplyDSets   = dManager->allocateOffscreenDescriptorSet("screenSpaceSet");
 	globalDSetComponent->toneMappingDSets = dManager->allocateOffscreenDescriptorSet("screenSpaceSet");
 	globalDSetComponent->vignetteDSets    = dManager->allocateOffscreenDescriptorSet("screenSpaceSet");
 
@@ -298,7 +298,7 @@ void PlaceholdersInit::initPlaceholders(GeneralManager& gm)
 		    dManager->allocateOffscreenDescriptorSet("screenSpaceSet");
 	}
 
-	// SSAO NoiseInput is a static texture — write it manually.
+	// GTAO NoiseInput is a static texture — write it manually.
 	tManager->textures.push_back(Texture());
 	Texture& noiseTexture = tManager->textures.back();
 	tManager->createImage(64, 64, vk::Format::eR8G8B8A8Unorm, vk::ImageTiling::eOptimal,
@@ -323,20 +323,20 @@ void PlaceholdersInit::initPlaceholders(GeneralManager& gm)
 
 	noiseTexture.textureSampler = (*vulkanDevice->device).createSampler(samplerInfo);
 	int noiseIndex = static_cast<int>(tManager->textures.size() - 1);
-	swap->ssaoNoiseTextureHandle.id = noiseIndex;
+	swap->gtaoNoiseTextureHandle.id = noiseIndex;
 	TextureUploader::uploadTextureFromFile("assets/textures/LDR_RG01_56.png",
-	                                       tManager->textures[swap->ssaoNoiseTextureHandle.id], allocator,
+	                                       tManager->textures[swap->gtaoNoiseTextureHandle.id], allocator,
 	                                       *vulkanDevice);
-	dManager->updateSingleTextureDSet(globalDSetComponent->ssaoDSets, Bindings::SSAO::NoiseInput,
-	                                  tManager->textures[swap->ssaoNoiseTextureHandle.id].textureImageView,
-	                                  tManager->textures[swap->ssaoNoiseTextureHandle.id].textureSampler);
+	dManager->updateSingleTextureDSet(globalDSetComponent->gtaoDSets, Bindings::GTAO::NoiseInput,
+	                                  tManager->textures[swap->gtaoNoiseTextureHandle.id].textureImageView,
+	                                  tManager->textures[swap->gtaoNoiseTextureHandle.id].textureSampler);
 #pragma endregion
 
-#pragma region SSAO Settings
-	Orhescyon::Entity ssaoSettingsEntity = gm.createEntity();
-	gm.addComponent<NameComponent>(ssaoSettingsEntity, "SSAO Settings");
-	gm.registerContext<SsaoSettingsContext>(ssaoSettingsEntity);
-	gm.addComponent<SsaoSettingsComponent>(ssaoSettingsEntity);
+#pragma region GTAO Settings
+	Orhescyon::Entity gtaoSettingsEntity = gm.createEntity();
+	gm.addComponent<NameComponent>(gtaoSettingsEntity, "GTAO Settings");
+	gm.registerContext<GtaoSettingsContext>(gtaoSettingsEntity);
+	gm.addComponent<GtaoSettingsComponent>(gtaoSettingsEntity);
 #pragma endregion
 
 #pragma region Light Probe Grid

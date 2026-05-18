@@ -37,28 +37,28 @@ constexpr uint32_t BrdfLut = 7;
 namespace FXAA
 {
 constexpr uint32_t ColorInput = 0;
-constexpr uint32_t SsaoInput = 1;
+constexpr uint32_t GtaoInput = 1;
 constexpr uint32_t ColorInput2 = 2;
 } // namespace FXAA
 
-namespace SSAO
+namespace GTAO
 {
 constexpr uint32_t DepthInput = 0;
 constexpr uint32_t NormalsInput = 1;
 constexpr uint32_t NoiseInput = 2;
-} // namespace SSAO
+} // namespace GTAO
 
-namespace SSAOBlur
+namespace GTAOBlur
 {
-constexpr uint32_t SsaoInput = 0;
+constexpr uint32_t GtaoInput = 0;
 constexpr uint32_t DepthInput = 1;
 constexpr uint32_t NormalsInput = 2;
-} // namespace SSAOBlur
-namespace SSAOApply
+} // namespace GTAOBlur
+namespace GTAOApply
 {
 constexpr uint32_t ColorInput = 0;
-constexpr uint32_t SsaoInput = 1;
-} // namespace SSAOApply
+constexpr uint32_t GtaoInput = 1;
+} // namespace GTAOApply
 namespace ToneMapping
 {
 constexpr uint32_t OffscreenInput = 0;

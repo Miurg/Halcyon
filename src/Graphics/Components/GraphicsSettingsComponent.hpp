@@ -7,7 +7,7 @@ struct GraphicsSettingsComponent
 {
 	//bool enableFrustumCulling = true;
 	//bool enableShadowCulling = true;
-	bool enableSsao = true;
+	bool enableGtao = true;
 	bool enableFxaa = true;
 	bool enableBloom = true;
 	bool enableVignette = true;

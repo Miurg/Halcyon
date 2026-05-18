@@ -80,12 +80,12 @@ void GraphicsPipelinesInit::initPipelines(GeneralManager& gm)
 	                         {swapChain->hdrFormat, RGSizeMode::FullExtent, vk::ImageAspectFlagBits::eColor});
 	rg->declareLogicalStream("ViewNormals",
 	                         {vk::Format::eR16G16B16A16Sfloat, RGSizeMode::FullExtent, vk::ImageAspectFlagBits::eColor});
-	rg->declareLogicalStream("SSAOTexture",
-	                         {vk::Format::eR8Unorm, RGSizeMode::HalfExtent, vk::ImageAspectFlagBits::eColor});
-	rg->declareLogicalStream("SSAOBlurTempTexture",
-	                         {vk::Format::eR8Unorm, RGSizeMode::HalfExtent, vk::ImageAspectFlagBits::eColor});
-	rg->declareLogicalStream("SSAOBlurTexture",
-	                         {vk::Format::eR8Unorm, RGSizeMode::HalfExtent, vk::ImageAspectFlagBits::eColor});
+	rg->declareLogicalStream("GTAOTexture",
+	                         {vk::Format::eR8Unorm, RGSizeMode::FullExtent, vk::ImageAspectFlagBits::eColor});
+	rg->declareLogicalStream("GTAOBlurTempTexture",
+	                         {vk::Format::eR8Unorm, RGSizeMode::FullExtent, vk::ImageAspectFlagBits::eColor});
+	rg->declareLogicalStream("GTAOBlurTexture",
+	                         {vk::Format::eR8Unorm, RGSizeMode::FullExtent, vk::ImageAspectFlagBits::eColor});
 	rg->declareLogicalStream("PostProcessColor",
 	                         {swapChain->swapChainImageFormat, RGSizeMode::FullExtent, vk::ImageAspectFlagBits::eColor});
 	rg->declareLogicalStream("BloomMip0",
@@ -327,15 +327,15 @@ void GraphicsPipelinesInit::initPipelines(GeneralManager& gm)
 	    .pushConstants = {{vk::ShaderStageFlagBits::eFragment, 0, sizeof(float) * 2}},
 	});
 	pManager->build(PipelineDescription{
-	    .shaderPath = "shaders/ssao.spv",
+	    .shaderPath = "shaders/gtao.spv",
 	    .cullMode = vk::CullModeFlagBits::eNone,
 	    .colorAttachments = {PipelineFactory::opaqueAttachment()},
 	    .colorFormats = {vk::Format::eR8Unorm},
 	    .setLayoutNames = {"screenSpaceSet", "globalSet"},
-	    .pushConstants = {{vk::ShaderStageFlagBits::eFragment, 0, 44u}},
+	    .pushConstants = {{vk::ShaderStageFlagBits::eFragment, 0, 40u}},
 	});
 	pManager->build(PipelineDescription{
-	    .shaderPath = "shaders/ssao_blur.spv",
+	    .shaderPath = "shaders/gtao_blur.spv",
 	    .cullMode = vk::CullModeFlagBits::eNone,
 	    .colorAttachments = {PipelineFactory::opaqueAttachment()},
 	    .colorFormats = {vk::Format::eR8Unorm},
@@ -343,7 +343,7 @@ void GraphicsPipelinesInit::initPipelines(GeneralManager& gm)
 	    .pushConstants = {{vk::ShaderStageFlagBits::eFragment, 0, sizeof(float) * 4}},
 	});
 	pManager->build(PipelineDescription{
-	    .shaderPath = "shaders/ssao_apply.spv",
+	    .shaderPath = "shaders/gtao_apply.spv",
 	    .cullMode = vk::CullModeFlagBits::eNone,
 	    .colorAttachments = {PipelineFactory::opaqueAttachment()},
 	    .colorFormats = {swapChain->hdrFormat},
