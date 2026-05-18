@@ -47,19 +47,13 @@ VSOutput vertMain(uint vertexID: SV_VertexID)
 	return output;
 }
 
-float3 reconstructViewPos(float2 uv, float depth)
+float3 reconstructViewPos(float2 uv, float depth, float invP00, float invP11, float p22, float p32)
 {
-	float4x4 proj = camera[0].projMatrix;
-	float viewZ = proj[3][2] / (-depth - proj[2][2]);
+	float viewZ = p32 / (-depth - p22);
 	viewZ = -abs(viewZ);
 	float negViewZ = -viewZ;
-
 	float2 ndc = uv * 2.0 - 1.0;
-	float3 viewPos;
-	viewPos.x = ndc.x * negViewZ / proj[0][0];
-	viewPos.y = ndc.y * negViewZ / proj[1][1];
-	viewPos.z = viewZ;
-	return viewPos;
+	return float3(ndc.x * negViewZ * invP00, ndc.y * negViewZ * invP11, viewZ);
 }
 
 static const float PI = 3.14159265;
@@ -71,15 +65,20 @@ float4 fragMain(VSOutput input) : SV_Target
 	float depth = depthTexture.SampleLevel(input.uv, 0).r;
 	if (depth <= 0.0) return float4(1.0, 1.0, 1.0, 1.0);
 
-	float3 P = reconstructViewPos(input.uv, depth);
+	// Cache all needed projection scalars once — reconstructViewPos is called per-sample.
+	float4x4 proj = camera[0].projMatrix;
+	float p00 = proj[0][0], p11 = proj[1][1];
+	float invP00 = 1.0 / p00, invP11 = 1.0 / p11;
+	float p22 = proj[2][2], p32 = proj[3][2];
+
+	float3 P = reconstructViewPos(input.uv, depth, invP00, invP11, p22, p32);
 
 	float fade = smoothstep(-pc.fadeEnd, -pc.fadeStart, P.z);
 	if (fade <= 0.001) return float4(1.0, 1.0, 1.0, 1.0);
 
 	float3 N = normalize(normalsTexture.SampleLevel(input.uv, 0).xyz);
 
-	float4x4 proj = camera[0].projMatrix;
-	float screenRadius = (pc.radius * proj[0][0]) / abs(P.z);
+	float screenRadius = (pc.radius * p00) / abs(P.z);
 	screenRadius = min(screenRadius, pc.maxScreenRadius);
 	if (screenRadius < 0.001) return float4(1.0, 1.0, 1.0, 1.0);
 
@@ -98,6 +97,11 @@ float4 fragMain(VSOutput input) : SV_Target
 	float visibility = 0.0;
 	// PI not 2*PI: each slice already covers both +d and -d.
 	float dirAngle = PI / float(pc.numDirections);
+	float invNumDirs = 1.0 / float(pc.numDirections);
+
+	float radius2 = pc.radius * pc.radius;
+	float thicknessLimit = pc.radius * 1.5;
+	float jitterOffset = jitter * 0.5 + 0.1;
 
 	for (int d = 0; d < pc.numDirections; d++)
 	{
@@ -112,11 +116,11 @@ float4 fragMain(VSOutput input) : SV_Target
 
 		// Init to -1 so absence of occluder yields visibility >= 1 (saturated to 1 later);
 		// init at 0 would clip the arc at the view tangent and darken tilted flat surfaces.
-		float hCosForward = -1.0;
+		float hCosForward  = -1.0;
 		float hCosBackward = -1.0;
 
-		float2 sampleUVF = input.uv + stepVec * (jitter * 0.5 + 0.1);
-		float2 sampleUVB = input.uv - stepVec * (jitter * 0.5 + 0.1);
+		float2 sampleUVF = input.uv + stepVec * jitterOffset;
+		float2 sampleUVB = input.uv - stepVec * jitterOffset;
 
 		for (int s = 0; s < numSteps; s++)
 		{
@@ -125,11 +129,11 @@ float4 fragMain(VSOutput input) : SV_Target
 				float depthF = depthTexture.SampleLevel(sampleUVF, 0).r;
 				if (depthF > 0.0)
 				{
-					float3 SF = reconstructViewPos(sampleUVF, depthF);
+					float3 SF = reconstructViewPos(sampleUVF, depthF, invP00, invP11, p22, p32);
 					float3 HF = SF - P;
-					float distF = length(HF);
-					if (distF > 0.001 && distF < pc.radius && abs(HF.z) < pc.radius * 1.5)
-						hCosForward = max(hCosForward, dot(HF, V) / distF);
+					float dist2F = dot(HF, HF);
+					if (dist2F > 1e-6 && dist2F < radius2 && abs(HF.z) < thicknessLimit)
+						hCosForward = max(hCosForward, dot(HF, V) * rsqrt(dist2F));
 				}
 			}
 
@@ -138,11 +142,11 @@ float4 fragMain(VSOutput input) : SV_Target
 				float depthB = depthTexture.SampleLevel(sampleUVB, 0).r;
 				if (depthB > 0.0)
 				{
-					float3 SB = reconstructViewPos(sampleUVB, depthB);
+					float3 SB = reconstructViewPos(sampleUVB, depthB, invP00, invP11, p22, p32);
 					float3 HB = SB - P;
-					float distB = length(HB);
-					if (distB > 0.001 && distB < pc.radius && abs(HB.z) < pc.radius * 1.5)
-						hCosBackward = max(hCosBackward, dot(HB, V) / distB);
+					float dist2B = dot(HB, HB);
+					if (dist2B > 1e-6 && dist2B < radius2 && abs(HB.z) < thicknessLimit)
+						hCosBackward = max(hCosBackward, dot(HB, V) * rsqrt(dist2B));
 				}
 			}
 
@@ -150,7 +154,7 @@ float4 fragMain(VSOutput input) : SV_Target
 			sampleUVB -= stepVec;
 		}
 
-		float3 d_vs = normalize(float3(rotatedDir.x / proj[0][0], rotatedDir.y / proj[1][1], 0.0));
+		float3 d_vs = normalize(float3(rotatedDir.x * invP00, rotatedDir.y * invP11, 0.0));
 		float3 sliceN = cross(V, d_vs);
 		float sliceNLen = length(sliceN);
 		if (sliceNLen < 0.001) continue;
@@ -177,12 +181,15 @@ float4 fragMain(VSOutput input) : SV_Target
 		h2 = min(h2, n + HALF_PI);
 
 		// Jimenez 2016, eq. 10.
-		float arc1 = -cos(2.0 * h1 - n) + cos(n) + 2.0 * h1 * sin(n);
-		float arc2 = -cos(2.0 * h2 - n) + cos(n) + 2.0 * h2 * sin(n);
+		// cos(signN * acos(cosN)) == cosN by definition; sin derived via Pythagorean identity —
+		// avoids two extra transcendental calls per direction.
+		float sinN = signN * sqrt(max(0.0, 1.0 - cosN * cosN));
+		float arc1 = -cos(2.0 * h1 - n) + cosN + 2.0 * h1 * sinN;
+		float arc2 = -cos(2.0 * h2 - n) + cosN + 2.0 * h2 * sinN;
 		visibility += projNLen * (arc1 + arc2) * 0.25;
 	}
 
-	visibility /= float(pc.numDirections);
+	visibility *= invNumDirs;
 	// Saturate before pow: tilted flat surfaces produce arc-integral > 1; without clipping
 	// pow would only kick in for real occluders, leaving flat surfaces brighter than 1.
 	visibility = saturate(visibility);
