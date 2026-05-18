@@ -655,7 +655,9 @@ void RenderGraph::createSampler(RGResourceEntry& res)
 		samplerInfo.maxAnisotropy = properties.limits.maxSamplerAnisotropy;
 		samplerInfo.compareOp = vk::CompareOp::eAlways;
 		samplerInfo.compareEnable = vk::True;
-		samplerInfo.borderColor = vk::BorderColor::eIntOpaqueBlack;
+		samplerInfo.addressModeU = vk::SamplerAddressMode::eClampToBorder;
+		samplerInfo.addressModeV = vk::SamplerAddressMode::eClampToBorder;
+		samplerInfo.borderColor = vk::BorderColor::eFloatTransparentBlack;
 	}
 	else
 	{

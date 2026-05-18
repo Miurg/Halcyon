@@ -124,30 +124,24 @@ float4 fragMain(VSOutput input) : SV_Target
 
 		for (int s = 0; s < numSteps; s++)
 		{
-			if (all(saturate(sampleUVF) == sampleUVF))
+			float depthF = depthTexture.SampleLevel(sampleUVF, 0).r;
+			if (depthF > 0.0)
 			{
-				float depthF = depthTexture.SampleLevel(sampleUVF, 0).r;
-				if (depthF > 0.0)
-				{
-					float3 SF = reconstructViewPos(sampleUVF, depthF, invP00, invP11, p22, p32);
-					float3 HF = SF - P;
-					float dist2F = dot(HF, HF);
-					if (dist2F > 1e-6 && dist2F < radius2 && abs(HF.z) < thicknessLimit)
-						hCosForward = max(hCosForward, dot(HF, V) * rsqrt(dist2F));
-				}
+				float3 SF = reconstructViewPos(sampleUVF, depthF, invP00, invP11, p22, p32);
+				float3 HF = SF - P;
+				float dist2F = dot(HF, HF);
+				if (dist2F > 1e-6 && dist2F < radius2 && abs(HF.z) < thicknessLimit)
+					hCosForward = max(hCosForward, dot(HF, V) * rsqrt(dist2F));
 			}
 
-			if (all(saturate(sampleUVB) == sampleUVB))
+			float depthB = depthTexture.SampleLevel(sampleUVB, 0).r;
+			if (depthB > 0.0)
 			{
-				float depthB = depthTexture.SampleLevel(sampleUVB, 0).r;
-				if (depthB > 0.0)
-				{
-					float3 SB = reconstructViewPos(sampleUVB, depthB, invP00, invP11, p22, p32);
-					float3 HB = SB - P;
-					float dist2B = dot(HB, HB);
-					if (dist2B > 1e-6 && dist2B < radius2 && abs(HB.z) < thicknessLimit)
-						hCosBackward = max(hCosBackward, dot(HB, V) * rsqrt(dist2B));
-				}
+				float3 SB = reconstructViewPos(sampleUVB, depthB, invP00, invP11, p22, p32);
+				float3 HB = SB - P;
+				float dist2B = dot(HB, HB);
+				if (dist2B > 1e-6 && dist2B < radius2 && abs(HB.z) < thicknessLimit)
+					hCosBackward = max(hCosBackward, dot(HB, V) * rsqrt(dist2B));
 			}
 
 			sampleUVF += stepVec;
