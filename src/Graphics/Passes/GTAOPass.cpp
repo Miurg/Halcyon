@@ -1,9 +1,27 @@
-#include "RenderPasses.hpp"
+#include "GTAOPass.hpp"
 
-void drawGtaoPass(vk::raii::CommandBuffer& cmd, SwapChain& swapChain,
-                                        DescriptorManagerComponent& dManager, DSetHandle& gtaoDescriptorSetIndex,
-                                        DSetHandle& globalDescriptorSetIndex, const GtaoSettingsComponent& gtaoSettings,
-                                        PipelineManager& pManager)
+#include <Orhescyon/GeneralManager.hpp>
+
+#include "../GraphicsContexts.hpp"
+#include "../SwapChain.hpp"
+#include "../Components/SwapChainComponent.hpp"
+#include "../Components/DescriptorManagerComponent.hpp"
+#include "../Components/PipelineManagerComponent.hpp"
+#include "../Components/GraphicsSettingsComponent.hpp"
+#include "../Components/GtaoSettingsComponent.hpp"
+#include "../Resources/Components/GlobalDSetComponent.hpp"
+#include "../Resources/Managers/Bindings.hpp"
+#include "../Managers/PipelineManager.hpp"
+#include "../RenderGraph/RenderGraph.hpp"
+
+bool GTAOPass::isEnabled(Orhescyon::GeneralManager& gm) const
+{
+	return gm.getContextComponent<GraphicsSettingsContext, GraphicsSettingsComponent>()->enableGtao;
+}
+
+void GTAOPass::drawGtao(vk::raii::CommandBuffer& cmd, SwapChain& swapChain, DescriptorManagerComponent& dManager,
+                        DSetHandle& gtaoDSet, DSetHandle& globalDSet, const GtaoSettingsComponent& gtaoSettings,
+                        PipelineManager& pManager)
 {
 	cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, pManager.pipelines["gtao"].pipeline);
 
@@ -12,10 +30,10 @@ void drawGtaoPass(vk::raii::CommandBuffer& cmd, SwapChain& swapChain,
 	cmd.setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), swapChain.swapChainExtent));
 
 	cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pManager.pipelines["gtao"].layout, 0,
-	                       dManager.descriptorManager->getSet(gtaoDescriptorSetIndex), nullptr);
+	                       dManager.descriptorManager->getSet(gtaoDSet), nullptr);
 
 	cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pManager.pipelines["gtao"].layout, 1,
-	                       dManager.descriptorManager->getSet(globalDescriptorSetIndex), nullptr);
+	                       dManager.descriptorManager->getSet(globalDSet), nullptr);
 
 	struct GtaoPushConstants
 	{
@@ -45,10 +63,8 @@ void drawGtaoPass(vk::raii::CommandBuffer& cmd, SwapChain& swapChain,
 	cmd.draw(3, 1, 0, 0);
 }
 
-void drawGtaoBlurPass(vk::raii::CommandBuffer& cmd, SwapChain& swapChain,
-                                            DescriptorManagerComponent& dManager,
-                                            DSetHandle& gtaoBlurDescriptorSetIndex, float dirX, float dirY,
-                                            PipelineManager& pManager)
+void GTAOPass::drawBlur(vk::raii::CommandBuffer& cmd, SwapChain& swapChain, DescriptorManagerComponent& dManager,
+                        DSetHandle& blurDSet, float dirX, float dirY, PipelineManager& pManager)
 {
 	cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pManager.pipelines["gtao_blur"].pipeline);
 
@@ -57,7 +73,7 @@ void drawGtaoBlurPass(vk::raii::CommandBuffer& cmd, SwapChain& swapChain,
 	cmd.setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), swapChain.swapChainExtent));
 
 	cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pManager.pipelines["gtao_blur"].layout, 0,
-	                       dManager.descriptorManager->getSet(gtaoBlurDescriptorSetIndex), nullptr);
+	                       dManager.descriptorManager->getSet(blurDSet), nullptr);
 	struct BlurPushConstants
 	{
 		float texelSize[2];
@@ -74,9 +90,8 @@ void drawGtaoBlurPass(vk::raii::CommandBuffer& cmd, SwapChain& swapChain,
 	cmd.draw(3, 1, 0, 0);
 }
 
-void drawGTAOApplyPass(vk::raii::CommandBuffer& cmd, SwapChain& swapChain,
-                                             DescriptorManagerComponent& dManager,
-                                             DSetHandle& gtaoApplyDescriptorSetIndex, PipelineManager& pManager)
+void GTAOPass::drawApply(vk::raii::CommandBuffer& cmd, SwapChain& swapChain, DescriptorManagerComponent& dManager,
+                         DSetHandle& applyDSet, PipelineManager& pManager)
 {
 	cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pManager.pipelines["gtao_apply"].pipeline);
 
@@ -85,17 +100,20 @@ void drawGTAOApplyPass(vk::raii::CommandBuffer& cmd, SwapChain& swapChain,
 	cmd.setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), swapChain.swapChainExtent));
 
 	cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pManager.pipelines["gtao_apply"].layout, 0,
-	                       dManager.descriptorManager->getSet(gtaoApplyDescriptorSetIndex), nullptr);
+	                       dManager.descriptorManager->getSet(applyDSet), nullptr);
 
 	cmd.setCullMode(vk::CullModeFlagBits::eNone);
 	cmd.draw(3, 1, 0, 0);
 }
 
-void RenderPasses::GTAOPass(SwapChain& swapChain, CurrentFrameComponent& currentFrameComp,
-                            BindlessTextureDSetComponent& bindlessTextureDSetComponent,
-                            DescriptorManagerComponent& dManager, GlobalDSetComponent& globalDSetComponent,
-                            PipelineManager& pManager, RenderGraph& rg, GtaoSettingsComponent& gtaoSettings)
+void GTAOPass::addToGraph(Orhescyon::GeneralManager& gm, RenderGraph& rg, uint32_t /*frame*/)
 {
+	auto& swapChain = *gm.getContextComponent<MainSwapChainContext, SwapChainComponent>()->swapChainInstance;
+	auto& dManager = *gm.getContextComponent<DescriptorManagerContext, DescriptorManagerComponent>();
+	auto& globalDSetComponent = *gm.getContextComponent<MainDSetsContext, GlobalDSetComponent>();
+	auto& pManager = *gm.getContextComponent<PipelineManagerContext, PipelineManagerComponent>()->pipelineManager;
+	auto& gtaoSettings = *gm.getContextComponent<GtaoSettingsContext, GtaoSettingsComponent>();
+
 	vk::ClearValue clearWhite = vk::ClearColorValue(1.0f, 1.0f, 1.0f, 1.0f);
 	vk::ClearValue clearBlack = vk::ClearColorValue(0.0f, 0.0f, 0.0f, 0.0f);
 	rg.addPass(
@@ -107,8 +125,8 @@ void RenderPasses::GTAOPass(SwapChain& swapChain, CurrentFrameComponent& current
 	    {{"GTAOTexture", RGResourceUsage::ColorAttachmentWrite}},
 	    [&](vk::raii::CommandBuffer& cmd)
 	    {
-		    drawGtaoPass(cmd, swapChain, dManager, globalDSetComponent.gtaoDSets,
-		                                       globalDSetComponent.globalDSets, gtaoSettings, pManager);
+		    drawGtao(cmd, swapChain, dManager, globalDSetComponent.gtaoDSets, globalDSetComponent.globalDSets,
+		             gtaoSettings, pManager);
 	    },
 	    [dManager, globalDSetComponent](const RenderGraph& graph, const RGPass& pass)
 	    {
@@ -130,8 +148,7 @@ void RenderPasses::GTAOPass(SwapChain& swapChain, CurrentFrameComponent& current
 	    {{"GTAOTexture", RGResourceUsage::ColorAttachmentWrite}},
 	    [&](vk::raii::CommandBuffer& cmd)
 	    {
-		    drawGtaoBlurPass(cmd, swapChain, dManager, globalDSetComponent.gtaoBlurHDSets, 1.0f,
-		                                           0.0f, pManager);
+		    drawBlur(cmd, swapChain, dManager, globalDSetComponent.gtaoBlurHDSets, 1.0f, 0.0f, pManager);
 	    },
 	    [dManager, globalDSetComponent](const RenderGraph& graph, const RGPass& pass)
 	    {
@@ -158,8 +175,7 @@ void RenderPasses::GTAOPass(SwapChain& swapChain, CurrentFrameComponent& current
 	    {{"GTAOTexture", RGResourceUsage::ColorAttachmentWrite}},
 	    [&](vk::raii::CommandBuffer& cmd)
 	    {
-		    drawGtaoBlurPass(cmd, swapChain, dManager, globalDSetComponent.gtaoBlurVDSets, 0.0f,
-		                                           1.0f, pManager);
+		    drawBlur(cmd, swapChain, dManager, globalDSetComponent.gtaoBlurVDSets, 0.0f, 1.0f, pManager);
 	    },
 	    [dManager, globalDSetComponent](const RenderGraph& graph, const RGPass& pass)
 	    {
@@ -181,11 +197,10 @@ void RenderPasses::GTAOPass(SwapChain& swapChain, CurrentFrameComponent& current
 	    "GTAOApply",
 	    {.colorAttachments = {{"MainColor", vk::AttachmentLoadOp::eLoad, vk::AttachmentStoreOp::eStore, clearBlack}}},
 	    {{"MainColor", RGResourceUsage::ShaderRead}, {"GTAOTexture", RGResourceUsage::ShaderRead}},
-	    {{"MainColor", RGResourceUsage::ColorAttachmentWrite}}, // Overwrites MainColor!
+	    {{"MainColor", RGResourceUsage::ColorAttachmentWrite}},
 	    [&](vk::raii::CommandBuffer& cmd)
 	    {
-		    drawGTAOApplyPass(cmd, swapChain, dManager, globalDSetComponent.gtaoApplyDSets,
-		                                            pManager);
+		    drawApply(cmd, swapChain, dManager, globalDSetComponent.gtaoApplyDSets, pManager);
 	    },
 	    [dManager, globalDSetComponent](const RenderGraph& graph, const RGPass& pass)
 	    {

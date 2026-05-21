@@ -12,6 +12,7 @@
 #include "../Components/DrawInfoComponent.hpp"
 #include "../Components/SkyboxComponent.hpp"
 #include "../Components/VMAllocatorComponent.hpp"
+#include "../Components/DirectLightComponent.hpp"
 #include "../Resources/Components/GlobalDSetComponent.hpp"
 #include "../Resources/Components/ModelDSetComponent.hpp"
 #include "../Resources/Components/BindlessTextureDSetComponent.hpp"
@@ -20,7 +21,7 @@
 #include "../Resources/Managers/TextureManager.hpp"
 #include "../Resources/Managers/DescriptorManager.hpp"
 #include "../Managers/PipelineManager.hpp"
-#include "../Passes/RenderPasses.hpp"
+#include "../Passes/PassCommands.hpp"
 #include "../VulkanUtils.hpp"
 #include "../VulkanConst.hpp"
 

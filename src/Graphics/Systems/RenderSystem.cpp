@@ -1,35 +1,33 @@
-﻿#include "RenderSystem.hpp"
+#include "RenderSystem.hpp"
+
 #include <iostream>
-#include "../GraphicsContexts.hpp"
 #include <imgui.h>
+
+#include "../GraphicsContexts.hpp"
 #include "../Components/SwapChainComponent.hpp"
-#include "../Components/BufferManagerComponent.hpp"
-#include "../FrameData.hpp"
-#include "../Components/FrameDataComponent.hpp"
 #include "../Components/CurrentFrameComponent.hpp"
-#include "../Components/DescriptorManagerComponent.hpp"
 #include "../Components/FrameImageComponent.hpp"
 #include "../Components/TextureManagerComponent.hpp"
-#include "../Resources/Managers/TextureManager.hpp"
-#include "../Components/ModelManagerComponent.hpp"
-#include "../Managers/FrameManager.hpp"
-#include "../Components/FrameManagerComponent.hpp"
-#include "../Components/DrawInfoComponent.hpp"
-#include "../Components/GtaoSettingsComponent.hpp"
+#include "../Components/DirectLightComponent.hpp"
 #include "../Components/RenderGraphComponent.hpp"
-#include "../RenderGraph/RenderGraph.hpp"
 #include "../Components/GraphicsSettingsComponent.hpp"
-#include "../Resources/Managers/Bindings.hpp"
+#include "../Resources/Managers/TextureManager.hpp"
+#include "../RenderGraph/RenderGraph.hpp"
 #include "../GraphicsInit/GraphicsPipelinesInit.hpp"
-#include "../Managers/PipelineManager.hpp"
-#include "../Components/PipelineManagerComponent.hpp"
-#include "../Components/SkyboxComponent.hpp"
-#include "../Resources/Components/MeshInfoComponent.hpp"
-#include "../Components/RelationshipComponent.hpp"
-#include "../Components/GlobalTransformComponent.hpp"
-#include <functional>
-#include "../Passes/RenderPasses.hpp"
-#include <imgui_impl_vulkan.h>
+
+#include "../Passes/IPass.hpp"
+#include "../Passes/DirectLightPass.hpp"
+#include "../Passes/CullPass.hpp"
+#include "../Passes/DepthPrepass.hpp"
+#include "../Passes/MainPass.hpp"
+#include "../Passes/DebugPass.hpp"
+#include "../Passes/GTAOPass.hpp"
+#include "../Passes/BloomPass.hpp"
+#include "../Passes/ToneMappingPass.hpp"
+#include "../Passes/FXAAPass.hpp"
+#include "../Passes/VignettePass.hpp"
+#include "../Passes/ImGuiPass.hpp"
+#include "../Passes/PresentPass.hpp"
 
 #ifdef TRACY_ENABLE
 #include <tracy/Tracy.hpp>
@@ -37,12 +35,52 @@
 
 void RenderSystem::onRegistered(GeneralManager& gm)
 {
+	m_passes.push_back(std::make_unique<DirectLightPass>());
+	m_passes.push_back(std::make_unique<CullPass>());
+	m_passes.push_back(std::make_unique<DepthPrepass>());
+	m_passes.push_back(std::make_unique<MainPass>());
+	m_passes.push_back(std::make_unique<DebugPass>());
+	m_passes.push_back(std::make_unique<GTAOPass>());
+	m_passes.push_back(std::make_unique<BloomPass>());
+	m_passes.push_back(std::make_unique<ToneMappingPass>());
+	m_passes.push_back(std::make_unique<FXAAPass>());
+	m_passes.push_back(std::make_unique<VignettePass>());
+	m_passes.push_back(std::make_unique<ImGuiPass>());
+	m_passes.push_back(std::make_unique<PresentPass>());
+
 	std::cout << "RenderSystem registered!" << std::endl;
 }
 
 void RenderSystem::onShutdown(GeneralManager& gm)
 {
+	m_passes.clear();
 	std::cout << "RenderSystem shutdown!" << std::endl;
+}
+
+void RenderSystem::importFrameResources(GeneralManager& gm, RenderGraph& rg, uint32_t imageIndex)
+{
+	auto& swapChain = *gm.getContextComponent<MainSwapChainContext, SwapChainComponent>()->swapChainInstance;
+	auto& textureManager = *gm.getContextComponent<TextureManagerContext, TextureManagerComponent>()->textureManager;
+	auto& lightTexture = *gm.getContextComponent<SunContext, DirectLightComponent>();
+
+	rg.importImage("shadowMap", textureManager.textures[lightTexture.textureShadowImage.id].textureImage,
+	               textureManager.textures[lightTexture.textureShadowImage.id].textureImageView,
+	               vk::ImageAspectFlagBits::eDepth);
+	rg.importImage("swapChainImage", swapChain.swapChainImages[imageIndex],
+	               swapChain.swapChainImageViews[imageIndex], vk::ImageAspectFlagBits::eColor);
+	rg.importImage("NoiseImage", textureManager.textures[swapChain.gtaoNoiseTextureHandle.id].textureImage,
+	               textureManager.textures[swapChain.gtaoNoiseTextureHandle.id].textureImageView,
+	               vk::ImageAspectFlagBits::eColor, vk::ImageLayout::eShaderReadOnlyOptimal);
+}
+
+void RenderSystem::applyPendingMsaaChange(GeneralManager& gm)
+{
+	auto& graphicsSettings = *gm.getContextComponent<GraphicsSettingsContext, GraphicsSettingsComponent>();
+	if (graphicsSettings.msaaSamples != graphicsSettings.appliedMsaaSamples)
+	{
+		GraphicsPipelinesInit::recreateMsaaPipelines(gm, graphicsSettings.msaaSamples);
+		graphicsSettings.appliedMsaaSamples = graphicsSettings.msaaSamples;
+	}
 }
 
 void RenderSystem::update(GeneralManager& gm)
@@ -51,106 +89,18 @@ void RenderSystem::update(GeneralManager& gm)
 	ZoneScopedN("RenderSystem");
 #endif
 
-	SwapChain& swapChain = *gm.getContextComponent<MainSwapChainContext, SwapChainComponent>()->swapChainInstance;
-	BufferManager& bufferManager =
-	    *gm.getContextComponent<BufferManagerContext, BufferManagerComponent>()->bufferManager;
-	TextureManager& textureManager =
-	    *gm.getContextComponent<TextureManagerContext, TextureManagerComponent>()->textureManager;
-	ModelManager& modelManager = *gm.getContextComponent<ModelManagerContext, ModelManagerComponent>()->modelManager;
-	CurrentFrameComponent& currentFrameComp = *gm.getContextComponent<CurrentFrameContext, CurrentFrameComponent>();
-	DirectLightComponent& lightTexture = *gm.getContextComponent<SunContext, DirectLightComponent>();
-	BindlessTextureDSetComponent& materialDSetComponent =
-	    *gm.getContextComponent<MainDSetsContext, BindlessTextureDSetComponent>();
-	DescriptorManagerComponent& dManager =
-	    *gm.getContextComponent<DescriptorManagerContext, DescriptorManagerComponent>();
-	GlobalDSetComponent& globalDSetComponent = *gm.getContextComponent<MainDSetsContext, GlobalDSetComponent>();
-	ModelDSetComponent& objectDSetComponent = *gm.getContextComponent<MainDSetsContext, ModelDSetComponent>();
-	DrawInfoComponent& drawInfo = *gm.getContextComponent<CurrentFrameContext, DrawInfoComponent>();
-	SkyboxComponent& skyboxComp = *gm.getContextComponent<SkyBoxContext, SkyboxComponent>();
-	bool hasSkybox = skyboxComp.hasSkybox;
-	GtaoSettingsComponent& gtaoSettings = *gm.getContextComponent<GtaoSettingsContext, GtaoSettingsComponent>();
-	RenderGraph& rg = *gm.getContextComponent<RenderGraphContext, RenderGraphComponent>()->renderGraph;
-	GraphicsSettingsComponent& graphicsSettings =
-	    *gm.getContextComponent<GraphicsSettingsContext, GraphicsSettingsComponent>();
-	uint32_t imageIndex = gm.getContextComponent<FrameImageContext, FrameImageComponent>()->imageIndex;
-	PipelineManager& pManager =
-	    *gm.getContextComponent<PipelineManagerContext, PipelineManagerComponent>()->pipelineManager;
-	
-
+	auto& currentFrameComp = *gm.getContextComponent<CurrentFrameContext, CurrentFrameComponent>();
 	if (!currentFrameComp.frameValid) return;
 
 	ImGui::Render();
 
-	uint32_t currentFrame = currentFrameComp.currentFrame;
+	auto& rg = *gm.getContextComponent<RenderGraphContext, RenderGraphComponent>()->renderGraph;
+	uint32_t frame = currentFrameComp.currentFrame;
+	uint32_t imageIndex = gm.getContextComponent<FrameImageContext, FrameImageComponent>()->imageIndex;
 
-	// Kainda static resources - imported each frame but same handles
-	auto shadowMapHandle = rg.importImage(
-	    "shadowMap", textureManager.textures[lightTexture.textureShadowImage.id].textureImage,
-	    textureManager.textures[lightTexture.textureShadowImage.id].textureImageView, vk::ImageAspectFlagBits::eDepth);
-	auto swapChainHandle = rg.importImage("swapChainImage", swapChain.swapChainImages[imageIndex],
-	                                      swapChain.swapChainImageViews[imageIndex], vk::ImageAspectFlagBits::eColor);
-	auto noiseHandle =
-	    rg.importImage("NoiseImage", textureManager.textures[swapChain.gtaoNoiseTextureHandle.id].textureImage,
-	                   textureManager.textures[swapChain.gtaoNoiseTextureHandle.id].textureImageView,
-	                   vk::ImageAspectFlagBits::eColor, vk::ImageLayout::eShaderReadOnlyOptimal);
+	importFrameResources(gm, rg, imageIndex);
+	applyPendingMsaaChange(gm);
 
-	if (graphicsSettings.msaaSamples != graphicsSettings.appliedMsaaSamples)
-	{
-		GraphicsPipelinesInit::recreateMsaaPipelines(gm, graphicsSettings.msaaSamples);
-		graphicsSettings.appliedMsaaSamples = graphicsSettings.msaaSamples;
-	}
-
-	RenderPasses::DirectLightPass(currentFrame, dManager, globalDSetComponent, bufferManager, objectDSetComponent,
-	                              modelManager, drawInfo, pManager, rg, textureManager, lightTexture);
-
-	RenderPasses::CullPass(currentFrame, dManager, globalDSetComponent, bufferManager, objectDSetComponent, modelManager,
-	                       drawInfo, pManager, rg);
-
-	RenderPasses::DepthPrepass(swapChain, currentFrame, materialDSetComponent, dManager, globalDSetComponent,
-	                           bufferManager, objectDSetComponent, modelManager, drawInfo, pManager, graphicsSettings,
-	                           rg);
-	RenderPasses::MainPass(swapChain, currentFrame, materialDSetComponent, dManager, globalDSetComponent, bufferManager,
-	                       objectDSetComponent, modelManager, drawInfo, pManager, hasSkybox, graphicsSettings, rg);
-	RenderPasses::DebugPass(swapChain, dManager, globalDSetComponent, pManager, currentFrame, rg, gm, graphicsSettings,
-	                        modelManager);
-
-	if (graphicsSettings.enableGtao)
-	{
-		RenderPasses::GTAOPass(swapChain, currentFrameComp, materialDSetComponent, dManager, globalDSetComponent,
-		                       pManager, rg, gtaoSettings);
-	}
-
-	if (graphicsSettings.enableBloom)
-	{
-		RenderPasses::BloomPass(swapChain, dManager, globalDSetComponent, pManager, rg, graphicsSettings);
-	}
-
-	RenderPasses::ToneMappingPass(swapChain, dManager, globalDSetComponent, pManager, rg);
-
-	if (graphicsSettings.enableFxaa)
-	{
-		RenderPasses::FXAAPass(swapChain, dManager, globalDSetComponent, pManager, rg);
-	}
-
-	if (graphicsSettings.enableVignette)
-	{
-		RenderPasses::VignettePass(swapChain, dManager, globalDSetComponent, pManager, rg);
-	}
-
-	rg.addPass("ImGui",
-	           {.colorAttachments = {{"PostProcessColor", vk::AttachmentLoadOp::eLoad, vk::AttachmentStoreOp::eStore}}},
-	           {}, // Keep it empty, we dont read PostProcessColor in the shader, we just bind it as a render target. The
-	               // ImGui writes to it directly.
-	           {{"PostProcessColor", RGResourceUsage::ColorAttachmentWrite}},
-	           [&](vk::raii::CommandBuffer& cmd)
-	           {
-		           ImDrawData* draw_data = ImGui::GetDrawData();
-		           if (draw_data)
-		           {
-			           ImGui_ImplVulkan_RenderDrawData(draw_data, *cmd);
-		           }
-	           });
-
-	// Present barrier
-	rg.addPass("Present", {}, {{"swapChainImage", RGResourceUsage::Present}}, {}, nullptr);
+	for (auto& pass : m_passes)
+		if (pass->isEnabled(gm)) pass->addToGraph(gm, rg, frame);
 }

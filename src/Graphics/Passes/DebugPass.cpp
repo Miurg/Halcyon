@@ -1,5 +1,23 @@
-#include "RenderPasses.hpp"
+#include "DebugPass.hpp"
+
+#include <Orhescyon/GeneralManager.hpp>
+#include <Orhescyon/Entitys/EntityManager.hpp>
+
+#include "../GraphicsContexts.hpp"
+#include "../SwapChain.hpp"
+#include "../Components/SwapChainComponent.hpp"
+#include "../Components/DescriptorManagerComponent.hpp"
+#include "../Components/PipelineManagerComponent.hpp"
+#include "../Components/GraphicsSettingsComponent.hpp"
+#include "../Components/ModelManagerComponent.hpp"
 #include "../Components/LightProbeGridComponent.hpp"
+#include "../Components/RelationshipComponent.hpp"
+#include "../Components/GlobalTransformComponent.hpp"
+#include "../Resources/Components/GlobalDSetComponent.hpp"
+#include "../Resources/Components/MeshInfoComponent.hpp"
+#include "../Resources/Managers/ModelManager.hpp"
+#include "../Managers/PipelineManager.hpp"
+#include "../RenderGraph/RenderGraph.hpp"
 
 struct AABBPush
 {
@@ -10,12 +28,17 @@ struct AABBPush
 	float p1 = 0.0f;
 };
 
-void RenderPasses::DebugPass(SwapChain& swapChain, DescriptorManagerComponent& dManager,
-                             GlobalDSetComponent& globalDSetComponent, PipelineManager& pManager, uint32_t currentFrame,
-                             RenderGraph& rg, GeneralManager& gm, GraphicsSettingsComponent& graphicsSettings,
-                             ModelManager& mManager)
+void DebugPass::addToGraph(Orhescyon::GeneralManager& gm, RenderGraph& rg, uint32_t frame)
 {
-	std::function<void(Orhescyon::Entity, std::vector<AABBPush>&)> draw = [&](Orhescyon::Entity e, std::vector<AABBPush>& pushData)
+	auto& swapChain = *gm.getContextComponent<MainSwapChainContext, SwapChainComponent>()->swapChainInstance;
+	auto& dManager = *gm.getContextComponent<DescriptorManagerContext, DescriptorManagerComponent>();
+	auto& globalDSetComponent = *gm.getContextComponent<MainDSetsContext, GlobalDSetComponent>();
+	auto& pManager = *gm.getContextComponent<PipelineManagerContext, PipelineManagerComponent>()->pipelineManager;
+	auto& graphicsSettings = *gm.getContextComponent<GraphicsSettingsContext, GraphicsSettingsComponent>();
+	auto& mManager = *gm.getContextComponent<ModelManagerContext, ModelManagerComponent>()->modelManager;
+
+	std::function<void(Orhescyon::Entity, std::vector<AABBPush>&)> draw =
+	    [&](Orhescyon::Entity e, std::vector<AABBPush>& pushData)
 	{
 		if (!gm.isActive(e)) return;
 		if (auto* meshComponent = gm.getComponent<MeshInfoComponent>(e))
@@ -51,7 +74,7 @@ void RenderPasses::DebugPass(SwapChain& swapChain, DescriptorManagerComponent& d
 	     .depthAttachment =
 	         RGAttachmentConfig{"Depth", vk::AttachmentLoadOp::eLoad, vk::AttachmentStoreOp::eStore, clearDepth0}},
 	    {}, {{"MainColor", RGResourceUsage::ColorAttachmentWrite}, {"Depth", RGResourceUsage::DepthAttachmentWrite}},
-	    [&, pushData, currentFrame](vk::raii::CommandBuffer& cmd)
+	    [&, pushData, frame](vk::raii::CommandBuffer& cmd)
 	    {
 		    auto& pip = pManager.pipelines[graphicsSettings.aabbAlwaysOnTop ? "aabb_debug_ontop" : "aabb_debug"];
 		    cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pip.pipeline);
@@ -60,8 +83,7 @@ void RenderPasses::DebugPass(SwapChain& swapChain, DescriptorManagerComponent& d
 		    cmd.setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), swapChain.swapChainExtent));
 		    cmd.setCullMode(vk::CullModeFlagBits::eNone);
 		    cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pip.layout, 0,
-		                           dManager.descriptorManager->getSet(globalDSetComponent.globalDSets, currentFrame),
-		                           nullptr);
+		                           dManager.descriptorManager->getSet(globalDSetComponent.globalDSets, frame), nullptr);
 		    for (int i = 0; i < pushData.size(); ++i)
 		    {
 			    cmd.pushConstants<AABBPush>(*pip.layout, vk::ShaderStageFlagBits::eVertex, 0, pushData[i]);
@@ -91,7 +113,7 @@ void RenderPasses::DebugPass(SwapChain& swapChain, DescriptorManagerComponent& d
 		    {.colorAttachments = {{"MainColor", vk::AttachmentLoadOp::eLoad, vk::AttachmentStoreOp::eStore}},
 		     .depthAttachment = RGAttachmentConfig{"Depth", vk::AttachmentLoadOp::eLoad, vk::AttachmentStoreOp::eStore}},
 		    {}, {{"MainColor", RGResourceUsage::ColorAttachmentWrite}, {"Depth", RGResourceUsage::DepthAttachmentWrite}},
-		    [&, push, probeCount, currentFrame](vk::raii::CommandBuffer& cmd)
+		    [&, push, probeCount, frame](vk::raii::CommandBuffer& cmd)
 		    {
 			    auto& pip = pManager.pipelines["gi_probe_debug"];
 			    cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pip.pipeline);
@@ -100,7 +122,7 @@ void RenderPasses::DebugPass(SwapChain& swapChain, DescriptorManagerComponent& d
 			                                    static_cast<float>(swapChain.swapChainExtent.height), 0.0f, 1.0f));
 			    cmd.setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), swapChain.swapChainExtent));
 			    cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pip.layout, 0,
-			                           dManager.descriptorManager->getSet(globalDSetComponent.globalDSets, currentFrame),
+			                           dManager.descriptorManager->getSet(globalDSetComponent.globalDSets, frame),
 			                           nullptr);
 			    cmd.pushConstants<GIProbePush>(*pip.layout, vk::ShaderStageFlagBits::eVertex, 0, push);
 			    cmd.draw(384u, probeCount, 0u, 0u);

@@ -1,8 +1,26 @@
-#include "RenderPasses.hpp"
+#include "BloomPass.hpp"
 
-void drawBloomDownsamplePass(vk::raii::CommandBuffer& cmd, DescriptorManagerComponent& dManager, DSetHandle& dSetHandle,
-                             PipelineManager& pManager, float texelSizeX, float texelSizeY, float threshold, float knee,
-                             int isFirstPass, vk::Extent2D extent)
+#include <Orhescyon/GeneralManager.hpp>
+
+#include "../GraphicsContexts.hpp"
+#include "../SwapChain.hpp"
+#include "../Components/SwapChainComponent.hpp"
+#include "../Components/DescriptorManagerComponent.hpp"
+#include "../Components/PipelineManagerComponent.hpp"
+#include "../Components/GraphicsSettingsComponent.hpp"
+#include "../Resources/Components/GlobalDSetComponent.hpp"
+#include "../Resources/Managers/Bindings.hpp"
+#include "../Managers/PipelineManager.hpp"
+#include "../RenderGraph/RenderGraph.hpp"
+
+bool BloomPass::isEnabled(Orhescyon::GeneralManager& gm) const
+{
+	return gm.getContextComponent<GraphicsSettingsContext, GraphicsSettingsComponent>()->enableBloom;
+}
+
+void BloomPass::drawDownsample(vk::raii::CommandBuffer& cmd, DescriptorManagerComponent& dManager,
+                               DSetHandle& dSetHandle, PipelineManager& pManager, float texelSizeX, float texelSizeY,
+                               float threshold, float knee, int isFirstPass, vk::Extent2D extent)
 {
 	cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pManager.pipelines["bloom_downsample"].pipeline);
 
@@ -32,9 +50,9 @@ void drawBloomDownsamplePass(vk::raii::CommandBuffer& cmd, DescriptorManagerComp
 	cmd.draw(3, 1, 0, 0);
 }
 
-void drawBloomUpsamplePass(vk::raii::CommandBuffer& cmd, DescriptorManagerComponent& dManager, DSetHandle& dSetHandle,
-                           PipelineManager& pManager, float texelSizeX, float texelSizeY, float blendFactor,
-                           int isLastPass, vk::Extent2D extent)
+void BloomPass::drawUpsample(vk::raii::CommandBuffer& cmd, DescriptorManagerComponent& dManager,
+                             DSetHandle& dSetHandle, PipelineManager& pManager, float texelSizeX, float texelSizeY,
+                             float blendFactor, int isLastPass, vk::Extent2D extent)
 {
 	cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pManager.pipelines["bloom_upsample"].pipeline);
 
@@ -62,22 +80,23 @@ void drawBloomUpsamplePass(vk::raii::CommandBuffer& cmd, DescriptorManagerCompon
 	cmd.draw(3, 1, 0, 0);
 }
 
-void RenderPasses::BloomPass(SwapChain& swapChain, DescriptorManagerComponent& dManager,
-                             GlobalDSetComponent& globalDSetComponent, PipelineManager& pManager, RenderGraph& rg,
-                             GraphicsSettingsComponent& graphicsSettings)
+void BloomPass::addToGraph(Orhescyon::GeneralManager& gm, RenderGraph& rg, uint32_t /*frame*/)
 {
-	vk::ClearValue clearBlack = vk::ClearColorValue(0.0f, 0.0f, 0.0f, 0.0f);
-	const std::string mipNames[5] = {"BloomMip0", "BloomMip1", "BloomMip2", "BloomMip3", "BloomMip4"};
-	const std::string downSource[5] = {"MainColor", "BloomMip0", "BloomMip1", "BloomMip2", "BloomMip3"};
+	auto& swapChain = *gm.getContextComponent<MainSwapChainContext, SwapChainComponent>()->swapChainInstance;
+	auto& dManager = *gm.getContextComponent<DescriptorManagerContext, DescriptorManagerComponent>();
+	auto& globalDSetComponent = *gm.getContextComponent<MainDSetsContext, GlobalDSetComponent>();
+	auto& pManager = *gm.getContextComponent<PipelineManagerContext, PipelineManagerComponent>()->pipelineManager;
+	auto& graphicsSettings = *gm.getContextComponent<GraphicsSettingsContext, GraphicsSettingsComponent>();
 
-	// Divisors matching the RGSizeMode of each mip level
-	const uint32_t divisors[5] = {2, 4, 8, 16, 32};
+	vk::ClearValue clearBlack = vk::ClearColorValue(0.0f, 0.0f, 0.0f, 0.0f);
+	static const std::string mipNames[5] = {"BloomMip0", "BloomMip1", "BloomMip2", "BloomMip3", "BloomMip4"};
+	static const std::string downSource[5] = {"MainColor", "BloomMip0", "BloomMip1", "BloomMip2", "BloomMip3"};
+	static const uint32_t divisors[5] = {2, 4, 8, 16, 32};
 
 	float threshold = graphicsSettings.bloomThreshold;
 	float knee = graphicsSettings.bloomKnee;
 	float intensity = graphicsSettings.bloomIntensity;
 
-	// Downsample
 	for (int i = 0; i < 5; i++)
 	{
 		uint32_t sourceDivision = (i == 0) ? 1 : divisors[i - 1];
@@ -98,11 +117,11 @@ void RenderPasses::BloomPass(SwapChain& swapChain, DescriptorManagerComponent& d
 		    {{downSource[i], RGResourceUsage::ShaderRead}}, {{mipNames[i], RGResourceUsage::ColorAttachmentWrite}},
 		    [&, texelX, texelY, threshold, knee, isFirst, dstW, dstH, passIdx](vk::raii::CommandBuffer& cmd)
 		    {
-			    drawBloomDownsamplePass(cmd, dManager, globalDSetComponent.bloomDownsampleDSets[passIdx], pManager, texelX,
-			                            texelY, threshold, knee, isFirst, vk::Extent2D{dstW, dstH});
+			    drawDownsample(cmd, dManager, globalDSetComponent.bloomDownsampleDSets[passIdx], pManager, texelX, texelY,
+			                   threshold, knee, isFirst, vk::Extent2D{dstW, dstH});
 		    },
 		    [dManager, globalDSetComponent, passIdx, srcName = downSource[i]](const RenderGraph& graph,
-		                                                                      const RGPass& pass)
+		                                                                     const RGPass& pass)
 		    {
 			    auto srcHnd = pass.getPhysicalRead(srcName);
 			    dManager.descriptorManager->updateSingleTextureDSet(globalDSetComponent.bloomDownsampleDSets[passIdx],
@@ -111,20 +130,16 @@ void RenderPasses::BloomPass(SwapChain& swapChain, DescriptorManagerComponent& d
 		    });
 	}
 
-	// Upsample
-	const std::string upCurrentSrc[5] = {"BloomMip4", "BloomMip3", "BloomMip2", "BloomMip1", "BloomMip0"};
-	const std::string upPrevDst[5] = {"BloomMip3", "BloomMip2", "BloomMip1", "BloomMip0", "MainColor"};
-
-	// Divisors for the destination (previous / target)
-	const uint32_t upDstDivisors[5] = {16, 8, 4, 2, 1};
+	static const std::string upCurrentSrc[5] = {"BloomMip4", "BloomMip3", "BloomMip2", "BloomMip1", "BloomMip0"};
+	static const std::string upPrevDst[5] = {"BloomMip3", "BloomMip2", "BloomMip1", "BloomMip0", "MainColor"};
+	static const uint32_t upDstDivisors[5] = {16, 8, 4, 2, 1};
 
 	for (int i = 0; i < 5; i++)
 	{
-		uint32_t currentDivision = (i == 0) ? 32 : upDstDivisors[i - 1]; // current = source being upsampled
+		uint32_t currentDivision = (i == 0) ? 32 : upDstDivisors[i - 1];
 		uint32_t dstDivision = upDstDivisors[i];
 		uint32_t dstW = swapChain.swapChainExtent.width / dstDivision;
 		uint32_t dstH = swapChain.swapChainExtent.height / dstDivision;
-		// Texel size of the CURRENT (lower-res source being upsampled)
 		float curW = static_cast<float>(swapChain.swapChainExtent.width / currentDivision);
 		float curH = static_cast<float>(swapChain.swapChainExtent.height / currentDivision);
 		float texelX = 1.0f / curW;
@@ -139,8 +154,8 @@ void RenderPasses::BloomPass(SwapChain& swapChain, DescriptorManagerComponent& d
 		    {{upPrevDst[i], RGResourceUsage::ColorAttachmentWrite}},
 		    [&, texelX, texelY, intensity, isLast, dstW, dstH, passIdx](vk::raii::CommandBuffer& cmd)
 		    {
-			    drawBloomUpsamplePass(cmd, dManager, globalDSetComponent.bloomUpsampleDSets[passIdx], pManager, texelX,
-			                          texelY, intensity, isLast, vk::Extent2D{dstW, dstH});
+			    drawUpsample(cmd, dManager, globalDSetComponent.bloomUpsampleDSets[passIdx], pManager, texelX, texelY,
+			                 intensity, isLast, vk::Extent2D{dstW, dstH});
 		    },
 		    [dManager, globalDSetComponent, passIdx, curName = upCurrentSrc[i],
 		     prevName = upPrevDst[i]](const RenderGraph& graph, const RGPass& pass)

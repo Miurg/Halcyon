@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include <vector>
 #include <Orhescyon/GeneralManager.hpp>
 #include <Orhescyon/Systems/SystemCore.hpp>
@@ -10,6 +11,9 @@
 #include "../Resources/Components/MeshInfoComponent.hpp"
 #include "BufferUpdateSystem.hpp"
 #include "FrameEndSystem.hpp"
+#include "../Passes/IPass.hpp"
+
+class RenderGraph;
 
 using Orhescyon::GeneralManager;
 class RenderSystem : public Orhescyon::SystemCore<RenderSystem, GlobalTransformComponent, MeshInfoComponent>
@@ -31,4 +35,10 @@ public:
 		return {typeid(GlobalTransformComponent), typeid(MeshInfoComponent), typeid(DrawInfoComponent),
 		        typeid(CurrentFrameComponent)};
 	}
+
+private:
+	void importFrameResources(GeneralManager& gm, RenderGraph& rg, uint32_t imageIndex);
+	void applyPendingMsaaChange(GeneralManager& gm);
+
+	std::vector<std::unique_ptr<IPass>> m_passes;
 };

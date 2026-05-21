@@ -1,9 +1,30 @@
-#include "RenderPasses.hpp"
-static void drawMainPass(vk::raii::CommandBuffer& cmd, SwapChain& swapChain, uint32_t currentFrame,
-                         BindlessTextureDSetComponent& bindlessTextureDSetComponent,
-                         DescriptorManagerComponent& dManager, GlobalDSetComponent& globalDSetComponent,
-                         BufferManager& bManager, ModelDSetComponent& objectDSetComponent, ModelManager& mManager,
-                         const DrawInfoComponent& drawInfo, PipelineManager& pManager, bool hasSkybox)
+#include "MainPass.hpp"
+
+#include <Orhescyon/GeneralManager.hpp>
+
+#include "../GraphicsContexts.hpp"
+#include "../SwapChain.hpp"
+#include "../Components/SwapChainComponent.hpp"
+#include "../Components/BufferManagerComponent.hpp"
+#include "../Components/ModelManagerComponent.hpp"
+#include "../Components/DescriptorManagerComponent.hpp"
+#include "../Components/PipelineManagerComponent.hpp"
+#include "../Components/GraphicsSettingsComponent.hpp"
+#include "../Components/SkyboxComponent.hpp"
+#include "../Components/DrawInfoComponent.hpp"
+#include "../Resources/Components/GlobalDSetComponent.hpp"
+#include "../Resources/Components/ModelDSetComponent.hpp"
+#include "../Resources/Components/BindlessTextureDSetComponent.hpp"
+#include "../Resources/Managers/BufferManager.hpp"
+#include "../Resources/Managers/ModelManager.hpp"
+#include "../Managers/PipelineManager.hpp"
+#include "../RenderGraph/RenderGraph.hpp"
+
+void MainPass::draw(vk::raii::CommandBuffer& cmd, SwapChain& swapChain, uint32_t frame,
+                    BindlessTextureDSetComponent& bindlessTextureDSetComponent, DescriptorManagerComponent& dManager,
+                    GlobalDSetComponent& globalDSetComponent, BufferManager& bManager,
+                    ModelDSetComponent& objectDSetComponent, ModelManager& mManager,
+                    const DrawInfoComponent& drawInfo, PipelineManager& pManager, bool hasSkybox)
 {
 	cmd.setViewport(0, vk::Viewport(0.0f, 0.0f, static_cast<float>(swapChain.swapChainExtent.width),
 	                                static_cast<float>(swapChain.swapChainExtent.height), 0.0f, 1.0f));
@@ -13,14 +34,11 @@ static void drawMainPass(vk::raii::CommandBuffer& cmd, SwapChain& swapChain, uin
 	const std::string alphaPipeline = hasSkybox ? "standard_forward_alpha" : "standard_forward_alpha_no_ibl";
 
 	cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pManager.pipelines[opaquePipeline].layout, 0,
-	                       dManager.descriptorManager->getSet(globalDSetComponent.globalDSets, currentFrame),
-	                       nullptr);
-	cmd.bindDescriptorSets(
-	    vk::PipelineBindPoint::eGraphics, *pManager.pipelines[opaquePipeline].layout, 1,
-	    dManager.descriptorManager->getSet(objectDSetComponent.modelBufferDSet, currentFrame), nullptr);
-	cmd.bindDescriptorSets(
-	    vk::PipelineBindPoint::eGraphics, *pManager.pipelines[opaquePipeline].layout, 2,
-	    dManager.descriptorManager->getSet(bindlessTextureDSetComponent.bindlessTextureSet), nullptr);
+	                       dManager.descriptorManager->getSet(globalDSetComponent.globalDSets, frame), nullptr);
+	cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pManager.pipelines[opaquePipeline].layout, 1,
+	                       dManager.descriptorManager->getSet(objectDSetComponent.modelBufferDSet, frame), nullptr);
+	cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pManager.pipelines[opaquePipeline].layout, 2,
+	                       dManager.descriptorManager->getSet(bindlessTextureDSetComponent.bindlessTextureSet), nullptr);
 
 	const uint32_t commandStride = sizeof(VkDrawIndexedIndirectCommand);
 	cmd.bindVertexBuffers(0, mManager.vertexIndexBuffers[mManager.meshes[0].vertexIndexBufferID].vertexBuffer, {0});
@@ -35,43 +53,38 @@ static void drawMainPass(vk::raii::CommandBuffer& cmd, SwapChain& swapChain, uin
 	uint32_t currentCommandOffset = 0;
 	uint32_t currentCountBufferOffset = 0;
 
-	// Opaque passes
 	if (opaqueSingleCount > 0 || opaqueDoubleCount > 0)
 	{
 		cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pManager.pipelines[opaquePipeline].pipeline);
 
-		// 1. Opaque Single-Sided
 		if (opaqueSingleCount > 0)
 		{
 			cmd.setCullMode(vk::CullModeFlagBits::eBack);
-			cmd.drawIndexedIndirectCount(
-			    bManager.buffers[objectDSetComponent.compactedDrawBuffer.id].buffer[currentFrame], currentCommandOffset,
-			    bManager.buffers[objectDSetComponent.drawCountBuffer.id].buffer[currentFrame], currentCountBufferOffset,
-			    opaqueSingleCount, commandStride);
+			cmd.drawIndexedIndirectCount(bManager.buffers[objectDSetComponent.compactedDrawBuffer.id].buffer[frame],
+			                             currentCommandOffset,
+			                             bManager.buffers[objectDSetComponent.drawCountBuffer.id].buffer[frame],
+			                             currentCountBufferOffset, opaqueSingleCount, commandStride);
 			currentCommandOffset += opaqueSingleCount * commandStride;
 		}
 		currentCountBufferOffset += sizeof(uint32_t);
 
-		// 2. Opaque Double-Sided
 		if (opaqueDoubleCount > 0)
 		{
 			cmd.setCullMode(vk::CullModeFlagBits::eNone);
-			cmd.drawIndexedIndirectCount(
-			    bManager.buffers[objectDSetComponent.compactedDrawBuffer.id].buffer[currentFrame], currentCommandOffset,
-			    bManager.buffers[objectDSetComponent.drawCountBuffer.id].buffer[currentFrame], currentCountBufferOffset,
-			    opaqueDoubleCount, commandStride);
+			cmd.drawIndexedIndirectCount(bManager.buffers[objectDSetComponent.compactedDrawBuffer.id].buffer[frame],
+			                             currentCommandOffset,
+			                             bManager.buffers[objectDSetComponent.drawCountBuffer.id].buffer[frame],
+			                             currentCountBufferOffset, opaqueDoubleCount, commandStride);
 			currentCommandOffset += opaqueDoubleCount * commandStride;
 		}
 		currentCountBufferOffset += sizeof(uint32_t);
 	}
 	else
 	{
-		// Advance offsets if opaque passes are entirely skipped but we need to reach alpha passes
 		currentCommandOffset += (opaqueSingleCount + opaqueDoubleCount) * commandStride;
 		currentCountBufferOffset += 2 * sizeof(uint32_t);
 	}
 
-	// Skybox pass
 	if (hasSkybox)
 	{
 		cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pManager.pipelines["skybox"].pipeline);
@@ -79,42 +92,47 @@ static void drawMainPass(vk::raii::CommandBuffer& cmd, SwapChain& swapChain, uin
 		cmd.draw(3, 1, 0, 0);
 	}
 
-	// Alpha test passes
 	if (alphaSingleCount > 0 || alphaDoubleCount > 0)
 	{
 		cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pManager.pipelines[alphaPipeline].pipeline);
 
-		// 3. Alpha Single-Sided
 		if (alphaSingleCount > 0)
 		{
 			cmd.setCullMode(vk::CullModeFlagBits::eBack);
-			cmd.drawIndexedIndirectCount(
-			    bManager.buffers[objectDSetComponent.compactedDrawBuffer.id].buffer[currentFrame], currentCommandOffset,
-			    bManager.buffers[objectDSetComponent.drawCountBuffer.id].buffer[currentFrame], currentCountBufferOffset,
-			    alphaSingleCount, commandStride);
+			cmd.drawIndexedIndirectCount(bManager.buffers[objectDSetComponent.compactedDrawBuffer.id].buffer[frame],
+			                             currentCommandOffset,
+			                             bManager.buffers[objectDSetComponent.drawCountBuffer.id].buffer[frame],
+			                             currentCountBufferOffset, alphaSingleCount, commandStride);
 			currentCommandOffset += alphaSingleCount * commandStride;
 		}
 		currentCountBufferOffset += sizeof(uint32_t);
 
-		// 4. Alpha Double-Sided
 		if (alphaDoubleCount > 0)
 		{
 			cmd.setCullMode(vk::CullModeFlagBits::eNone);
-			cmd.drawIndexedIndirectCount(
-			    bManager.buffers[objectDSetComponent.compactedDrawBuffer.id].buffer[currentFrame], currentCommandOffset,
-			    bManager.buffers[objectDSetComponent.drawCountBuffer.id].buffer[currentFrame], currentCountBufferOffset,
-			    alphaDoubleCount, commandStride);
+			cmd.drawIndexedIndirectCount(bManager.buffers[objectDSetComponent.compactedDrawBuffer.id].buffer[frame],
+			                             currentCommandOffset,
+			                             bManager.buffers[objectDSetComponent.drawCountBuffer.id].buffer[frame],
+			                             currentCountBufferOffset, alphaDoubleCount, commandStride);
 		}
 	}
 }
 
-void RenderPasses::MainPass(SwapChain& swapChain, uint32_t currentFrame,
-                            BindlessTextureDSetComponent& bindlessTextureDSetComponent,
-                            DescriptorManagerComponent& dManager, GlobalDSetComponent& globalDSetComponent,
-                            BufferManager& bManager, ModelDSetComponent& objectDSetComponent, ModelManager& mManager,
-                            const DrawInfoComponent& drawInfo, PipelineManager& pManager, bool hasSkybox,
-                            GraphicsSettingsComponent& graphicsSettings, RenderGraph& rg)
+void MainPass::addToGraph(Orhescyon::GeneralManager& gm, RenderGraph& rg, uint32_t frame)
 {
+	auto& swapChain = *gm.getContextComponent<MainSwapChainContext, SwapChainComponent>()->swapChainInstance;
+	auto& dManager = *gm.getContextComponent<DescriptorManagerContext, DescriptorManagerComponent>();
+	auto& globalDSetComponent = *gm.getContextComponent<MainDSetsContext, GlobalDSetComponent>();
+	auto& bManager = *gm.getContextComponent<BufferManagerContext, BufferManagerComponent>()->bufferManager;
+	auto& objectDSetComponent = *gm.getContextComponent<MainDSetsContext, ModelDSetComponent>();
+	auto& mManager = *gm.getContextComponent<ModelManagerContext, ModelManagerComponent>()->modelManager;
+	auto& drawInfo = *gm.getContextComponent<CurrentFrameContext, DrawInfoComponent>();
+	auto& pManager = *gm.getContextComponent<PipelineManagerContext, PipelineManagerComponent>()->pipelineManager;
+	auto& bindlessTextureDSetComponent =
+	    *gm.getContextComponent<MainDSetsContext, BindlessTextureDSetComponent>();
+	auto& graphicsSettings = *gm.getContextComponent<GraphicsSettingsContext, GraphicsSettingsComponent>();
+	bool hasSkybox = gm.getContextComponent<SkyBoxContext, SkyboxComponent>()->hasSkybox;
+
 	vk::ClearValue clearBlack = vk::ClearColorValue(0.0f, 0.0f, 0.0f, 0.0f);
 	vk::ClearValue clearSky = vk::ClearColorValue(0.0f, 0.637f, 1.0f, 1.0f);
 	vk::ClearValue clearDepth0 = vk::ClearDepthStencilValue(0.0f, 0);
@@ -131,11 +149,10 @@ void RenderPasses::MainPass(SwapChain& swapChain, uint32_t currentFrame,
 		     .depthAttachment =
 		         RGAttachmentConfig{"Depth", vk::AttachmentLoadOp::eLoad, vk::AttachmentStoreOp::eStore, clearDepth0}},
 		    {{"shadowMap", RGResourceUsage::ShaderRead}}, std::move(mainWrites),
-		    [&, currentFrame, hasSkybox](vk::raii::CommandBuffer& cmd)
+		    [&, frame, hasSkybox](vk::raii::CommandBuffer& cmd)
 		    {
-			    drawMainPass(cmd, swapChain, currentFrame, bindlessTextureDSetComponent, dManager,
-			                                       globalDSetComponent, bManager, objectDSetComponent, mManager,
-			                                       drawInfo, pManager, hasSkybox);
+			    draw(cmd, swapChain, frame, bindlessTextureDSetComponent, dManager, globalDSetComponent, bManager,
+			         objectDSetComponent, mManager, drawInfo, pManager, hasSkybox);
 		    });
 	}
 	else
@@ -158,11 +175,10 @@ void RenderPasses::MainPass(SwapChain& swapChain, uint32_t currentFrame,
 		     .depthAttachment = RGAttachmentConfig{"DepthMSAA", vk::AttachmentLoadOp::eLoad,
 		                                           vk::AttachmentStoreOp::eStore, clearDepth0, "Depth", depthResolve}},
 		    {{"shadowMap", RGResourceUsage::ShaderRead}}, std::move(mainWrites),
-		    [&, currentFrame, hasSkybox](vk::raii::CommandBuffer& cmd)
+		    [&, frame, hasSkybox](vk::raii::CommandBuffer& cmd)
 		    {
-			    drawMainPass(cmd, swapChain, currentFrame, bindlessTextureDSetComponent, dManager,
-			                                       globalDSetComponent, bManager, objectDSetComponent, mManager,
-			                                       drawInfo, pManager, hasSkybox);
+			    draw(cmd, swapChain, frame, bindlessTextureDSetComponent, dManager, globalDSetComponent, bManager,
+			         objectDSetComponent, mManager, drawInfo, pManager, hasSkybox);
 		    });
 	}
 }
