@@ -16,17 +16,18 @@
 
 ### Rendering
 - **Forward rendering** pipeline
-- **PBR (Cook-Torrance BRDF)** — metallic-roughness workflow with GGX distribution, correlated Smith-GGX visibility, Schlick Fresnel
-- **Image Based Lighting (IBL)** — irradiance maps, prefiltered environment maps, BRDF LUT (split-sum)
+- **PBR (Cook-Torrance BRDF)** - metallic-roughness workflow with GGX distribution, correlated Smith-GGX visibility, Schlick Fresnel
+- **Image Based Lighting (IBL)** - irradiance maps, prefiltered environment maps, BRDF LUT (split-sum)
 - **GPU Driven Rendering** with bindless textures
 - **Render Graph**
-- **HBAO**
-- **FXAA**
+- **GTAO**
+- **FXAA** with **MSAA**
 - **Directional shadows** with PCF 3×3 filtering
 
 ### Architecture
-- **ECS core** — POD components, explicit system subscriptions, zero overhead
-- **VMA** — Vulkan Memory Allocator for GPU memory management
+- **ECS core** - POD components, explicit system subscriptions, zero overhead
+- **VMA** - Vulkan Memory Allocator for GPU memory management
+- **Jolt** - as physics core
 
 ### Assets & Tooling
 - **glTF 2.0** model loading
