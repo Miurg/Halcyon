@@ -45,7 +45,7 @@ void Cleanup::cleanup(GeneralManager& gm)
 
 	vulkanDevice->device.waitIdle();
 
-	#ifdef TRACY_ENABLE
+#ifdef TRACY_ENABLE
 	if (vulkanDevice && vulkanDevice->tracyContext)
 	{
 		TracyVkDestroy(vulkanDevice->tracyContext);

@@ -64,6 +64,9 @@ StructuredBuffer<SHProbeEntry> shProbes;
 [[vk::binding(5, 0)]]
 StructuredBuffer<uint> shProbeCount;
 
+[[vk::binding(6, 0)]]
+Sampler2D gtaoTexture;
+
 // === SET 1 ===
 struct ModelData
 {
@@ -128,6 +131,9 @@ const int ALPHA_TEST_ENABLED = 0;
 
 [[vk::constant_id(1)]]
 const int SKYBOX_ENABLED = 1;
+
+[[vk::constant_id(2)]]
+const int GTAO_ENABLED = 1;
 
 // === Vertex I/O ===
 struct VSInput
@@ -538,7 +544,7 @@ float3 sampleSHProbes(float3 worldPos, float3 N)
 // split-sum IBL specular from prefiltered cubemap + BRDF LUT, plus a constant
 // ambient term from the directional light. Falls back to constant-only when
 // the skybox specialization constant is disabled.
-float3 ComputeAmbient(Surface s, MaterialData mat, float3 worldPos, float4 dirLightAmbient)
+float3 ComputeAmbient(Surface s, MaterialData mat, float3 worldPos, float4 dirLightAmbient, float ao)
 {
     float3 F_ibl        = F_SchlickRoughness(s.NdotV, s.F0, s.roughness);
     float3 startAmbient = dirLightAmbient.a * dirLightAmbient.rgb;
@@ -557,14 +563,14 @@ float3 ComputeAmbient(Surface s, MaterialData mat, float3 worldPos, float4 dirLi
             iblSpecular         = prefiltColor * (F_ibl * brdfLut.x + brdfLut.y);
         }
 
-        return iblDiffuse + iblSpecular + startAmbient;
+        return (iblDiffuse + iblSpecular + startAmbient) * ao;
     }
     else
     {
         // Fallback without skybox: ambient * Oren-Nayar lambertian only.
         return (1.0 - F_ibl) * (1.0 - s.metallic)
              * DiffuseOrenNayarIBL(s.albedo, s.NdotV, s.roughness)
-             * startAmbient;
+             * startAmbient * ao;
     }
 }
 
@@ -573,7 +579,6 @@ float3 ComputeAmbient(Surface s, MaterialData mat, float3 worldPos, float4 dirLi
 struct FragOutput
 {
 	float4 color    : SV_Target0;
-	float4 vsNormal : SV_Target1;
 };
 
 [shader("fragment")]
@@ -629,18 +634,24 @@ FragOutput fragMain(VSOutput input, bool isFrontFace: SV_IsFrontFace)
 	for (uint i = 0; i < lightCount[0]; i++)
 		litColorFromLights += EvaluatePunctualLight(lights[i], s, input.fragWorldPos);
 
+	float ao = 1.0;
+	if (GTAO_ENABLED == 1 && mat.alphaMode != 2)
+	{
+		uint2 dims;
+		gtaoTexture.GetDimensions(dims.x, dims.y);
+		float2 gtaoUV = input.pos.xy / float2(dims);
+		ao = gtaoTexture.SampleLevel(gtaoUV, 0).r;
+	}
+
 	// === IBL / Ambient ===
-	float3 ambient = ComputeAmbient(s, mat, input.fragWorldPos, directionalLight[0].ambient);
+	float3 ambient = ComputeAmbient(s, mat, input.fragWorldPos, directionalLight[0].ambient, ao);
 
 	float3 litColor = directLight + litColorFromLights + ambient + m.emissive;
 
 	// === FINAL OUTPUT ===
 	float outAlpha = (mat.alphaMode == 2) ? m.albedo.a : 1.0;
 
-	float3 viewNormal = mul((float3x3)camera[0].viewMatrix, finalNormal);
-
 	FragOutput output;
-	output.color    = float4(litColor, outAlpha);
-	output.vsNormal = float4(normalize(viewNormal), 1.0);
+	output.color = float4(litColor, outAlpha);
 	return output;
 }

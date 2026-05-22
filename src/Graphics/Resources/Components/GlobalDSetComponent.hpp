@@ -14,7 +14,6 @@ struct GlobalDSetComponent
 	DSetHandle gtaoDSets;
 	DSetHandle gtaoBlurHDSets;
 	DSetHandle gtaoBlurVDSets;
-	DSetHandle gtaoApplyDSets;
 	DSetHandle toneMappingDSets;
 	DSetHandle bloomDownsampleDSets[5];
 	DSetHandle bloomUpsampleDSets[5];

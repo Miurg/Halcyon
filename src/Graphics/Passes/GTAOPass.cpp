@@ -90,22 +90,6 @@ void GTAOPass::drawBlur(vk::raii::CommandBuffer& cmd, SwapChain& swapChain, Desc
 	cmd.draw(3, 1, 0, 0);
 }
 
-void GTAOPass::drawApply(vk::raii::CommandBuffer& cmd, SwapChain& swapChain, DescriptorManagerComponent& dManager,
-                         DSetHandle& applyDSet, PipelineManager& pManager)
-{
-	cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pManager.pipelines["gtao_apply"].pipeline);
-
-	cmd.setViewport(0, vk::Viewport(0.0f, 0.0f, static_cast<float>(swapChain.swapChainExtent.width),
-	                                static_cast<float>(swapChain.swapChainExtent.height), 0.0f, 1.0f));
-	cmd.setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), swapChain.swapChainExtent));
-
-	cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pManager.pipelines["gtao_apply"].layout, 0,
-	                       dManager.descriptorManager->getSet(applyDSet), nullptr);
-
-	cmd.setCullMode(vk::CullModeFlagBits::eNone);
-	cmd.draw(3, 1, 0, 0);
-}
-
 void GTAOPass::addToGraph(Orhescyon::GeneralManager& gm, RenderGraph& rg, uint32_t /*frame*/)
 {
 	auto& swapChain = *gm.getContextComponent<MainSwapChainContext, SwapChainComponent>()->swapChainInstance;
@@ -115,7 +99,6 @@ void GTAOPass::addToGraph(Orhescyon::GeneralManager& gm, RenderGraph& rg, uint32
 	auto& gtaoSettings = *gm.getContextComponent<GtaoSettingsContext, GtaoSettingsComponent>();
 
 	vk::ClearValue clearWhite = vk::ClearColorValue(1.0f, 1.0f, 1.0f, 1.0f);
-	vk::ClearValue clearBlack = vk::ClearColorValue(0.0f, 0.0f, 0.0f, 0.0f);
 	rg.addPass(
 	    "GTAO",
 	    {.colorAttachments = {{"GTAOTexture", vk::AttachmentLoadOp::eLoad, vk::AttachmentStoreOp::eStore, clearWhite}}},
@@ -128,7 +111,7 @@ void GTAOPass::addToGraph(Orhescyon::GeneralManager& gm, RenderGraph& rg, uint32
 		    drawGtao(cmd, swapChain, dManager, globalDSetComponent.gtaoDSets, globalDSetComponent.globalDSets,
 		             gtaoSettings, pManager);
 	    },
-	    [dManager, globalDSetComponent](const RenderGraph& graph, const RGPass& pass)
+	    [&dManager, &globalDSetComponent](const RenderGraph& graph, const RGPass& pass)
 	    {
 		    auto depthHnd = pass.getPhysicalRead("Depth");
 		    auto normHnd = pass.getPhysicalRead("ViewNormals");
@@ -150,7 +133,7 @@ void GTAOPass::addToGraph(Orhescyon::GeneralManager& gm, RenderGraph& rg, uint32
 	    {
 		    drawBlur(cmd, swapChain, dManager, globalDSetComponent.gtaoBlurHDSets, 1.0f, 0.0f, pManager);
 	    },
-	    [dManager, globalDSetComponent](const RenderGraph& graph, const RGPass& pass)
+	    [&dManager, &globalDSetComponent](const RenderGraph& graph, const RGPass& pass)
 	    {
 		    auto gtaoHnd = pass.getPhysicalRead("GTAOTexture");
 		    auto depthHnd = pass.getPhysicalRead("Depth");
@@ -177,7 +160,7 @@ void GTAOPass::addToGraph(Orhescyon::GeneralManager& gm, RenderGraph& rg, uint32
 	    {
 		    drawBlur(cmd, swapChain, dManager, globalDSetComponent.gtaoBlurVDSets, 0.0f, 1.0f, pManager);
 	    },
-	    [dManager, globalDSetComponent](const RenderGraph& graph, const RGPass& pass)
+	    [&dManager, &globalDSetComponent](const RenderGraph& graph, const RGPass& pass)
 	    {
 		    auto gtaoHnd = pass.getPhysicalRead("GTAOTexture");
 		    auto depthHnd = pass.getPhysicalRead("Depth");
@@ -193,24 +176,4 @@ void GTAOPass::addToGraph(Orhescyon::GeneralManager& gm, RenderGraph& rg, uint32
 		                                                        graph.getImageView(normHnd), graph.getSampler(normHnd));
 	    });
 
-	rg.addPass(
-	    "GTAOApply",
-	    {.colorAttachments = {{"MainColor", vk::AttachmentLoadOp::eLoad, vk::AttachmentStoreOp::eStore, clearBlack}}},
-	    {{"MainColor", RGResourceUsage::ShaderRead}, {"GTAOTexture", RGResourceUsage::ShaderRead}},
-	    {{"MainColor", RGResourceUsage::ColorAttachmentWrite}},
-	    [&](vk::raii::CommandBuffer& cmd)
-	    {
-		    drawApply(cmd, swapChain, dManager, globalDSetComponent.gtaoApplyDSets, pManager);
-	    },
-	    [dManager, globalDSetComponent](const RenderGraph& graph, const RGPass& pass)
-	    {
-		    auto colorHnd = pass.getPhysicalRead("MainColor");
-		    auto blurHnd = pass.getPhysicalRead("GTAOTexture");
-		    dManager.descriptorManager->updateSingleTextureDSet(globalDSetComponent.gtaoApplyDSets,
-		                                                        Bindings::GTAOApply::ColorInput,
-		                                                        graph.getImageView(colorHnd), graph.getSampler(colorHnd));
-		    dManager.descriptorManager->updateSingleTextureDSet(globalDSetComponent.gtaoApplyDSets,
-		                                                        Bindings::GTAOApply::GtaoInput,
-		                                                        graph.getImageView(blurHnd), graph.getSampler(blurHnd));
-	    });
 }

@@ -20,6 +20,4 @@ private:
 	              PipelineManager& pManager);
 	void drawBlur(vk::raii::CommandBuffer& cmd, SwapChain& swapChain, DescriptorManagerComponent& dManager,
 	              DSetHandle& blurDSet, float dirX, float dirY, PipelineManager& pManager);
-	void drawApply(vk::raii::CommandBuffer& cmd, SwapChain& swapChain, DescriptorManagerComponent& dManager,
-	               DSetHandle& applyDSet, PipelineManager& pManager);
 };

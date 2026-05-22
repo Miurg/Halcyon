@@ -285,7 +285,6 @@ void PlaceholdersInit::initPlaceholders(GeneralManager& gm)
 	globalDSetComponent->gtaoDSets        = dManager->allocateOffscreenDescriptorSet("screenSpaceSet");
 	globalDSetComponent->gtaoBlurHDSets   = dManager->allocateOffscreenDescriptorSet("screenSpaceSet");
 	globalDSetComponent->gtaoBlurVDSets   = dManager->allocateOffscreenDescriptorSet("screenSpaceSet");
-	globalDSetComponent->gtaoApplyDSets   = dManager->allocateOffscreenDescriptorSet("screenSpaceSet");
 	globalDSetComponent->toneMappingDSets = dManager->allocateOffscreenDescriptorSet("screenSpaceSet");
 	globalDSetComponent->vignetteDSets    = dManager->allocateOffscreenDescriptorSet("screenSpaceSet");
 

@@ -38,9 +38,9 @@ void RenderSystem::onRegistered(GeneralManager& gm)
 	m_passes.push_back(std::make_unique<DirectLightPass>());
 	m_passes.push_back(std::make_unique<CullPass>());
 	m_passes.push_back(std::make_unique<DepthPrepass>());
+	m_passes.push_back(std::make_unique<GTAOPass>());
 	m_passes.push_back(std::make_unique<MainPass>());
 	m_passes.push_back(std::make_unique<DebugPass>());
-	m_passes.push_back(std::make_unique<GTAOPass>());
 	m_passes.push_back(std::make_unique<BloomPass>());
 	m_passes.push_back(std::make_unique<ToneMappingPass>());
 	m_passes.push_back(std::make_unique<FXAAPass>());
@@ -61,10 +61,10 @@ void RenderSystem::importFrameResources(GeneralManager& gm, RenderGraph& rg, uin
 {
 	auto& swapChain = *gm.getContextComponent<MainSwapChainContext, SwapChainComponent>()->swapChainInstance;
 	auto& textureManager = *gm.getContextComponent<TextureManagerContext, TextureManagerComponent>()->textureManager;
-	auto& lightTexture = *gm.getContextComponent<SunContext, DirectLightComponent>();
+	auto& shadowMap = *gm.getContextComponent<SunContext, DirectLightComponent>();
 
-	rg.importImage("shadowMap", textureManager.textures[lightTexture.textureShadowImage.id].textureImage,
-	               textureManager.textures[lightTexture.textureShadowImage.id].textureImageView,
+	rg.importImage("shadowMap", textureManager.textures[shadowMap.textureShadowImage.id].textureImage,
+	               textureManager.textures[shadowMap.textureShadowImage.id].textureImageView,
 	               vk::ImageAspectFlagBits::eDepth);
 	rg.importImage("swapChainImage", swapChain.swapChainImages[imageIndex],
 	               swapChain.swapChainImageViews[imageIndex], vk::ImageAspectFlagBits::eColor);
@@ -76,10 +76,13 @@ void RenderSystem::importFrameResources(GeneralManager& gm, RenderGraph& rg, uin
 void RenderSystem::applyPendingMsaaChange(GeneralManager& gm)
 {
 	auto& graphicsSettings = *gm.getContextComponent<GraphicsSettingsContext, GraphicsSettingsComponent>();
-	if (graphicsSettings.msaaSamples != graphicsSettings.appliedMsaaSamples)
+	const bool msaaChanged = graphicsSettings.msaaSamples != graphicsSettings.appliedMsaaSamples;
+	const bool gtaoChanged = graphicsSettings.enableGtao != graphicsSettings.appliedGtao;
+	if (msaaChanged || gtaoChanged)
 	{
 		GraphicsPipelinesInit::recreateMsaaPipelines(gm, graphicsSettings.msaaSamples);
 		graphicsSettings.appliedMsaaSamples = graphicsSettings.msaaSamples;
+		graphicsSettings.appliedGtao = graphicsSettings.enableGtao;
 	}
 }
 

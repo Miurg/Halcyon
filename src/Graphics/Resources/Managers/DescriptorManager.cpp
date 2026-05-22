@@ -53,6 +53,8 @@ DescriptorManager::DescriptorManager(VulkanDevice& vulkanDevice)
 		    vk::DescriptorSetLayoutBinding(Bindings::Global::SHProbes, vk::DescriptorType::eStorageBuffer, 1, kAllStages),
 		    vk::DescriptorSetLayoutBinding(Bindings::Global::SHProbeCount, vk::DescriptorType::eStorageBuffer, 1,
 		                                   kAllStages),
+		    vk::DescriptorSetLayoutBinding(Bindings::Global::GtaoTexture, vk::DescriptorType::eCombinedImageSampler, 1,
+		                                   S::eFragment),
 		};
 		registerLayout("globalSet", globalBindings);
 	}

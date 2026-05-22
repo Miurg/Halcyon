@@ -11,6 +11,7 @@ constexpr uint32_t PointLights = 2;
 constexpr uint32_t PointLightCount = 3;
 constexpr uint32_t SHProbes = 4;
 constexpr uint32_t SHProbeCount = 5;
+constexpr uint32_t GtaoTexture = 6;
 } // namespace Global
 
 namespace Model
@@ -54,11 +55,6 @@ constexpr uint32_t GtaoInput = 0;
 constexpr uint32_t DepthInput = 1;
 constexpr uint32_t NormalsInput = 2;
 } // namespace GTAOBlur
-namespace GTAOApply
-{
-constexpr uint32_t ColorInput = 0;
-constexpr uint32_t GtaoInput = 1;
-} // namespace GTAOApply
 namespace ToneMapping
 {
 constexpr uint32_t OffscreenInput = 0;

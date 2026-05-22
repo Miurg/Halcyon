@@ -10,6 +10,7 @@
 #include "../Components/DescriptorManagerComponent.hpp"
 #include "../Components/RenderGraphComponent.hpp"
 #include "../Components/PipelineManagerComponent.hpp"
+#include "../Components/GraphicsSettingsComponent.hpp"
 #include "../RenderGraph/RenderGraph.hpp"
 #include "../Components/NameComponent.hpp"
 #include "../VulkanDevice.hpp"
@@ -122,8 +123,6 @@ void GraphicsPipelinesInit::initPipelines(GeneralManager& gm)
 	auto attrDescs = Vertex::getAttributeDescriptions();
 	auto depthFormat = tManager->findBestFormat();
 
-	std::vector<vk::Format> hdrFormats = {swapChain->hdrFormat, vk::Format::eR16G16B16A16Sfloat};
-
 	std::vector<std::string> mainLayouts = {"globalSet", "modelSet", "textureSet"};
 	// === Shadow (direct) ===
 	pManager->build(PipelineDescription{
@@ -141,21 +140,39 @@ void GraphicsPipelinesInit::initPipelines(GeneralManager& gm)
 	    .setLayoutNames = mainLayouts,
 	});
 
-	// === Depth prepass ===
+	// === Depth + view-normals prepass (Mini-G), opaque ===
 	pManager->build(PipelineDescription{
 	    .shaderPath = "shaders/depth_prepass.spv",
-	    .fragEntry = "", // vertex only
+	    .specializationValues = {0}, // ALPHA_TEST=0
 	    .vertexBindings = {bindingDesc},
 	    .vertexAttributes = std::vector<vk::VertexInputAttributeDescription>(attrDescs.begin(), attrDescs.end()),
 	    .cullMode = vk::CullModeFlagBits::eBack,
 	    .depthTest = true,
 	    .depthWrite = true,
 	    .depthOp = vk::CompareOp::eGreater,
-	    .colorFormats = {},
+	    .colorAttachments = {PipelineFactory::opaqueAttachment()},
+	    .colorFormats = {vk::Format::eR16G16B16A16Sfloat},
 	    .depthFormat = depthFormat,
 	    .rasterizationSamples = msaaSamples,
 	    .setLayoutNames = mainLayouts,
 	});
+
+	// === Depth + view-normals prepass (Mini-G), alpha cutout ===
+	pManager->build(PipelineDescription{
+	    .shaderPath = "shaders/depth_prepass.spv",
+	    .specializationValues = {1}, // ALPHA_TEST=1
+	    .vertexBindings = {bindingDesc},
+	    .vertexAttributes = std::vector<vk::VertexInputAttributeDescription>(attrDescs.begin(), attrDescs.end()),
+	    .cullMode = vk::CullModeFlagBits::eBack,
+	    .depthTest = true,
+	    .depthWrite = true,
+	    .depthOp = vk::CompareOp::eGreater,
+	    .colorAttachments = {PipelineFactory::opaqueAttachment()},
+	    .colorFormats = {vk::Format::eR16G16B16A16Sfloat},
+	    .depthFormat = depthFormat,
+	    .rasterizationSamples = msaaSamples,
+	    .setLayoutNames = mainLayouts,
+	}, "depth_prepass_alpha");
 
 	// === Graphics (opaque, IBL) ===
 	pManager->build(
@@ -168,8 +185,8 @@ void GraphicsPipelinesInit::initPipelines(GeneralManager& gm)
 	        .depthTest = true,
 	        .depthWrite = false,
 	        .depthOp = vk::CompareOp::eEqual,
-	        .colorAttachments = {PipelineFactory::blendedAttachment(), PipelineFactory::blendedAttachment()},
-	        .colorFormats = hdrFormats,
+	        .colorAttachments = {PipelineFactory::blendedAttachment()},
+	        .colorFormats = {swapChain->hdrFormat},
 	        .depthFormat = depthFormat,
 	        .rasterizationSamples = msaaSamples,
 	        .setLayoutNames = mainLayouts,
@@ -187,8 +204,8 @@ void GraphicsPipelinesInit::initPipelines(GeneralManager& gm)
 	        .depthTest = true,
 	        .depthWrite = false,
 	        .depthOp = vk::CompareOp::eEqual,
-	        .colorAttachments = {PipelineFactory::blendedAttachment(), PipelineFactory::blendedAttachment()},
-	        .colorFormats = hdrFormats,
+	        .colorAttachments = {PipelineFactory::blendedAttachment()},
+	        .colorFormats = {swapChain->hdrFormat},
 	        .depthFormat = depthFormat,
 	        .rasterizationSamples = msaaSamples,
 	        .setLayoutNames = mainLayouts,
@@ -204,10 +221,10 @@ void GraphicsPipelinesInit::initPipelines(GeneralManager& gm)
 	        .vertexAttributes = std::vector<vk::VertexInputAttributeDescription>(attrDescs.begin(), attrDescs.end()),
 	        .cullMode = vk::CullModeFlagBits::eBack,
 	        .depthTest = true,
-	        .depthWrite = true,
-	        .depthOp = vk::CompareOp::eGreater,
-	        .colorAttachments = {PipelineFactory::blendedAttachment(), PipelineFactory::blendedAttachment()},
-	        .colorFormats = hdrFormats,
+	        .depthWrite = false,
+	        .depthOp = vk::CompareOp::eGreaterOrEqual,
+	        .colorAttachments = {PipelineFactory::blendedAttachment()},
+	        .colorFormats = {swapChain->hdrFormat},
 	        .depthFormat = depthFormat,
 	        .rasterizationSamples = msaaSamples,
 	        .setLayoutNames = mainLayouts,
@@ -223,10 +240,10 @@ void GraphicsPipelinesInit::initPipelines(GeneralManager& gm)
 	        .vertexAttributes = std::vector<vk::VertexInputAttributeDescription>(attrDescs.begin(), attrDescs.end()),
 	        .cullMode = vk::CullModeFlagBits::eBack,
 	        .depthTest = true,
-	        .depthWrite = true,
-	        .depthOp = vk::CompareOp::eGreater,
-	        .colorAttachments = {PipelineFactory::blendedAttachment(), PipelineFactory::blendedAttachment()},
-	        .colorFormats = hdrFormats,
+	        .depthWrite = false,
+	        .depthOp = vk::CompareOp::eGreaterOrEqual,
+	        .colorAttachments = {PipelineFactory::blendedAttachment()},
+	        .colorFormats = {swapChain->hdrFormat},
 	        .depthFormat = depthFormat,
 	        .rasterizationSamples = msaaSamples,
 	        .setLayoutNames = mainLayouts,
@@ -261,8 +278,8 @@ void GraphicsPipelinesInit::initPipelines(GeneralManager& gm)
 	        .vertexAttributes = std::vector<vk::VertexInputAttributeDescription>(attrDescs.begin(), attrDescs.end()),
 	        .cullMode = vk::CullModeFlagBits::eBack,
 	        .depthTest = true,
-	        .depthWrite = true,
-	        .depthOp = vk::CompareOp::eGreater,
+	        .depthWrite = false,
+	        .depthOp = vk::CompareOp::eGreaterOrEqual,
 	        .colorAttachments = {PipelineFactory::blendedAttachment()},
 	        .colorFormats = {swapChain->hdrFormat},
 	        .depthFormat = depthFormat,
@@ -278,8 +295,8 @@ void GraphicsPipelinesInit::initPipelines(GeneralManager& gm)
 	    .depthTest = true,
 	    .depthWrite = false,
 	    .depthOp = vk::CompareOp::eEqual,
-	    .colorAttachments = {PipelineFactory::blendedAttachment(), PipelineFactory::blendedAttachment()},
-	    .colorFormats = hdrFormats,
+	    .colorAttachments = {PipelineFactory::blendedAttachment()},
+	    .colorFormats = {swapChain->hdrFormat},
 	    .depthFormat = depthFormat,
 	    .rasterizationSamples = msaaSamples,
 	    .setLayoutNames = mainLayouts,
@@ -342,15 +359,6 @@ void GraphicsPipelinesInit::initPipelines(GeneralManager& gm)
 	    .setLayoutNames = {"screenSpaceSet"},
 	    .pushConstants = {{vk::ShaderStageFlagBits::eFragment, 0, sizeof(float) * 4}},
 	});
-	pManager->build(PipelineDescription{
-	    .shaderPath = "shaders/gtao_apply.spv",
-	    .cullMode = vk::CullModeFlagBits::eNone,
-	    .colorAttachments = {PipelineFactory::opaqueAttachment()},
-	    .colorFormats = {swapChain->hdrFormat},
-	    .setLayoutNames = {"screenSpaceSet"},
-	    .pushConstants = {{vk::ShaderStageFlagBits::eFragment, 0, sizeof(float) * 2}},
-	});
-
 	pManager->build(PipelineDescription{
 	    .shaderPath = "shaders/bloom_downsample.spv",
 	    .cullMode = vk::CullModeFlagBits::eNone,
@@ -529,40 +537,60 @@ void GraphicsPipelinesInit::recreateMsaaPipelines(GeneralManager& gm, vk::Sample
 	auto attrDescs = Vertex::getAttributeDescriptions();
 	auto depthFmt = tManager->findBestFormat();
 
-	std::vector<vk::Format> hdrFormats = {swapChain->hdrFormat, vk::Format::eR16G16B16A16Sfloat};
+	auto* settings = gm.getContextComponent<GraphicsSettingsContext, GraphicsSettingsComponent>();
+	const int gtaoEnabled = (settings && settings->enableGtao) ? 1 : 0;
 
 	std::vector<std::string> mainLayouts = {"globalSet", "modelSet", "textureSet"};
 
 	pManager->rebuild(
 	    PipelineDescription{
 	        .shaderPath = "shaders/depth_prepass.spv",
-	        .fragEntry = "", // vertex only
+	        .specializationValues = {0}, // ALPHA_TEST=0
 	        .vertexBindings = {bindingDesc},
 	        .vertexAttributes = std::vector<vk::VertexInputAttributeDescription>(attrDescs.begin(), attrDescs.end()),
 	        .cullMode = vk::CullModeFlagBits::eBack,
 	        .depthTest = true,
 	        .depthWrite = true,
 	        .depthOp = vk::CompareOp::eGreater,
-	        .colorFormats = {},
+	        .colorAttachments = {PipelineFactory::opaqueAttachment()},
+	        .colorFormats = {vk::Format::eR16G16B16A16Sfloat},
 	        .depthFormat = depthFmt,
 	        .rasterizationSamples = msaaSamples,
 	        .setLayoutNames = mainLayouts,
 	    },
 	    "depth_prepass");
 
+	pManager->rebuild(
+	    PipelineDescription{
+	        .shaderPath = "shaders/depth_prepass.spv",
+	        .specializationValues = {1}, // ALPHA_TEST=1
+	        .vertexBindings = {bindingDesc},
+	        .vertexAttributes = std::vector<vk::VertexInputAttributeDescription>(attrDescs.begin(), attrDescs.end()),
+	        .cullMode = vk::CullModeFlagBits::eBack,
+	        .depthTest = true,
+	        .depthWrite = true,
+	        .depthOp = vk::CompareOp::eGreater,
+	        .colorAttachments = {PipelineFactory::opaqueAttachment()},
+	        .colorFormats = {vk::Format::eR16G16B16A16Sfloat},
+	        .depthFormat = depthFmt,
+	        .rasterizationSamples = msaaSamples,
+	        .setLayoutNames = mainLayouts,
+	    },
+	    "depth_prepass_alpha");
+
 	// === Graphics (opaque, IBL) ===
 	pManager->rebuild(
 	    PipelineDescription{
 	        .shaderPath = "shaders/standard_forward.spv",
-	        .specializationValues = {0, 1}, // ALPHA_TEST=0, IBL=1
+	        .specializationValues = {0, 1, gtaoEnabled}, // ALPHA_TEST=0, IBL=1, GTAO
 	        .vertexBindings = {bindingDesc},
 	        .vertexAttributes = std::vector<vk::VertexInputAttributeDescription>(attrDescs.begin(), attrDescs.end()),
 	        .cullMode = vk::CullModeFlagBits::eBack,
 	        .depthTest = true,
 	        .depthWrite = false,
 	        .depthOp = vk::CompareOp::eEqual,
-	        .colorAttachments = {PipelineFactory::blendedAttachment(), PipelineFactory::blendedAttachment()},
-	        .colorFormats = hdrFormats,
+	        .colorAttachments = {PipelineFactory::blendedAttachment()},
+	        .colorFormats = {swapChain->hdrFormat},
 	        .depthFormat = depthFmt,
 	        .rasterizationSamples = msaaSamples,
 	        .setLayoutNames = mainLayouts,
@@ -573,15 +601,15 @@ void GraphicsPipelinesInit::recreateMsaaPipelines(GeneralManager& gm, vk::Sample
 	pManager->rebuild(
 	    PipelineDescription{
 	        .shaderPath = "shaders/standard_forward.spv",
-	        .specializationValues = {0, 0}, // ALPHA_TEST=0, IBL=0
+	        .specializationValues = {0, 0, gtaoEnabled}, // ALPHA_TEST=0, IBL=0, GTAO
 	        .vertexBindings = {bindingDesc},
 	        .vertexAttributes = std::vector<vk::VertexInputAttributeDescription>(attrDescs.begin(), attrDescs.end()),
 	        .cullMode = vk::CullModeFlagBits::eBack,
 	        .depthTest = true,
 	        .depthWrite = false,
 	        .depthOp = vk::CompareOp::eEqual,
-	        .colorAttachments = {PipelineFactory::blendedAttachment(), PipelineFactory::blendedAttachment()},
-	        .colorFormats = hdrFormats,
+	        .colorAttachments = {PipelineFactory::blendedAttachment()},
+	        .colorFormats = {swapChain->hdrFormat},
 	        .depthFormat = depthFmt,
 	        .rasterizationSamples = msaaSamples,
 	        .setLayoutNames = mainLayouts,
@@ -592,15 +620,15 @@ void GraphicsPipelinesInit::recreateMsaaPipelines(GeneralManager& gm, vk::Sample
 	pManager->rebuild(
 	    PipelineDescription{
 	        .shaderPath = "shaders/standard_forward.spv",
-	        .specializationValues = {1, 1}, // ALPHA_TEST=1, IBL=1
+	        .specializationValues = {1, 1, gtaoEnabled}, // ALPHA_TEST=1, IBL=1, GTAO
 	        .vertexBindings = {bindingDesc},
 	        .vertexAttributes = std::vector<vk::VertexInputAttributeDescription>(attrDescs.begin(), attrDescs.end()),
 	        .cullMode = vk::CullModeFlagBits::eBack,
 	        .depthTest = true,
-	        .depthWrite = true,
-	        .depthOp = vk::CompareOp::eGreater,
-	        .colorAttachments = {PipelineFactory::blendedAttachment(), PipelineFactory::blendedAttachment()},
-	        .colorFormats = hdrFormats,
+	        .depthWrite = false,
+	        .depthOp = vk::CompareOp::eGreaterOrEqual,
+	        .colorAttachments = {PipelineFactory::blendedAttachment()},
+	        .colorFormats = {swapChain->hdrFormat},
 	        .depthFormat = depthFmt,
 	        .rasterizationSamples = msaaSamples,
 	        .setLayoutNames = mainLayouts,
@@ -611,15 +639,15 @@ void GraphicsPipelinesInit::recreateMsaaPipelines(GeneralManager& gm, vk::Sample
 	pManager->rebuild(
 	    PipelineDescription{
 	        .shaderPath = "shaders/standard_forward.spv",
-	        .specializationValues = {1, 0}, // ALPHA_TEST=1, IBL=0
+	        .specializationValues = {1, 0, gtaoEnabled}, // ALPHA_TEST=1, IBL=0, GTAO
 	        .vertexBindings = {bindingDesc},
 	        .vertexAttributes = std::vector<vk::VertexInputAttributeDescription>(attrDescs.begin(), attrDescs.end()),
 	        .cullMode = vk::CullModeFlagBits::eBack,
 	        .depthTest = true,
-	        .depthWrite = true,
-	        .depthOp = vk::CompareOp::eGreater,
-	        .colorAttachments = {PipelineFactory::blendedAttachment(), PipelineFactory::blendedAttachment()},
-	        .colorFormats = hdrFormats,
+	        .depthWrite = false,
+	        .depthOp = vk::CompareOp::eGreaterOrEqual,
+	        .colorAttachments = {PipelineFactory::blendedAttachment()},
+	        .colorFormats = {swapChain->hdrFormat},
 	        .depthFormat = depthFmt,
 	        .rasterizationSamples = msaaSamples,
 	        .setLayoutNames = mainLayouts,
@@ -633,8 +661,8 @@ void GraphicsPipelinesInit::recreateMsaaPipelines(GeneralManager& gm, vk::Sample
 	        .depthTest = true,
 	        .depthWrite = false,
 	        .depthOp = vk::CompareOp::eEqual,
-	        .colorAttachments = {PipelineFactory::blendedAttachment(), PipelineFactory::blendedAttachment()},
-	        .colorFormats = hdrFormats,
+	        .colorAttachments = {PipelineFactory::blendedAttachment()},
+	        .colorFormats = {swapChain->hdrFormat},
 	        .depthFormat = depthFmt,
 	        .rasterizationSamples = msaaSamples,
 	        .setLayoutNames = mainLayouts,

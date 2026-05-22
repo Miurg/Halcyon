@@ -66,18 +66,9 @@ float3 ComputeAnalyticalSun(float3 viewDir, float3 lightDir, float3 sunColor, fl
     return sunColor * totalSun * sunIntensity;
 }
 
-struct FragOutput
-{
-	float4 color : SV_Target0;
-	float4 normals : SV_Target1;
-};
-
 [shader("fragment")]
-FragOutput fragMain(VSOutput input)
+float4 fragMain(VSOutput input) : SV_Target0
 {
-    FragOutput output;
-
-    // Just in case
     float3 viewDir = normalize(input.localPos);
     float3 lightDir = normalize(directionalLight[0].direction.xyz);
     float3 sunColor = directionalLight[0].color.rgb;
@@ -85,9 +76,6 @@ FragOutput fragMain(VSOutput input)
     float3 sun = ComputeAnalyticalSun(viewDir, lightDir, sunColor, sunIntensity);
 
     float3 envColor = skyboxMap.Sample(input.localPos).rgb;
-    
-    output.color = float4(envColor + sun, 1.0);
-    output.normals = float4(0.0, 0.0, 0.0, 0.0); // Don't disrupt normals target
 
-    return output;
+    return float4(envColor + sun, 1.0);
 }

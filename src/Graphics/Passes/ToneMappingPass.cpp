@@ -39,7 +39,7 @@ void ToneMappingPass::addToGraph(Orhescyon::GeneralManager& gm, RenderGraph& rg,
 		    cmd.setCullMode(vk::CullModeFlagBits::eNone);
 		    cmd.draw(3, 1, 0, 0);
 	    },
-	    [dManager, globalDSetComponent](const RenderGraph& graph, const RGPass& pass)
+	    [&dManager, &globalDSetComponent](const RenderGraph& graph, const RGPass& pass)
 	    {
 		    auto colorHnd = pass.getPhysicalRead("MainColor");
 		    dManager.descriptorManager->updateSingleTextureDSet(globalDSetComponent.toneMappingDSets,

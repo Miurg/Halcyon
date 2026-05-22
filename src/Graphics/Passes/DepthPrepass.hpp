@@ -9,6 +9,7 @@ class PipelineManager;
 struct DescriptorManagerComponent;
 struct GlobalDSetComponent;
 struct ModelDSetComponent;
+struct BindlessTextureDSetComponent;
 struct DrawInfoComponent;
 
 class DepthPrepass : public IPass
@@ -19,6 +20,7 @@ public:
 private:
 	void draw(vk::raii::CommandBuffer& cmd, uint32_t frame, SwapChain& swapChain,
 	          DescriptorManagerComponent& dManager, GlobalDSetComponent& globalDSetComponent,
-	          BufferManager& bManager, ModelDSetComponent& objectDSetComponent, ModelManager& mManager,
+	          BufferManager& bManager, ModelDSetComponent& objectDSetComponent,
+	          BindlessTextureDSetComponent& bindlessTextureDSetComponent, ModelManager& mManager,
 	          const DrawInfoComponent& drawInfo, PipelineManager& pManager);
 };
