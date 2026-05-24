@@ -26,6 +26,13 @@ public:
 
 	DSetHandle allocate(const std::string& layoutName, uint32_t count = 1);
 
+	void update(DSetHandle dSet, uint32_t binding, uint32_t copyIndex, vk::DescriptorType type, vk::ImageView view,
+	            vk::Sampler sampler, vk::ImageLayout imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal,
+	            uint32_t arrayElement = 0);
+
+	void update(DSetHandle dSet, uint32_t binding, uint32_t copyIndex, vk::DescriptorType type, vk::Buffer buffer,
+	            vk::DeviceSize offset = 0, vk::DeviceSize range = VK_WHOLE_SIZE);
+
 	void updateBindlessTextureSet(vk::ImageView textureImageView, vk::Sampler textureSampler,
 	                              BindlessTextureDSetComponent& dSetComponent, int textureNumber);
 	void updateCubemapDescriptors(BindlessTextureDSetComponent& dSetComponent, vk::ImageView cubemapImageView,
