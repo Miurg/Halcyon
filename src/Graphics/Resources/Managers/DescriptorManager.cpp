@@ -147,39 +147,18 @@ vk::DescriptorSetLayout DescriptorManager::getLayout(const std::string& name) co
 	return layoutRegistry.get(name);
 }
 
-DSetHandle DescriptorManager::allocateBindlessTextureDSet()
-{
-	vk::DescriptorSetLayout layout = layoutRegistry.get("textureSet");
-	vk::DescriptorSetAllocateInfo allocInfo(*descriptorPool, layout);
-	auto allocatedSets = vulkanDevice.device.allocateDescriptorSets(allocInfo);
-	std::vector descriptors = {allocatedSets[0].release()};
-	descriptorSets.push_back(descriptors);
-	return DSetHandle{static_cast<int>(descriptorSets.size() - 1)};
-}
-
-DSetHandle DescriptorManager::allocateStorageBufferDSets(uint32_t count, const std::string& layoutName)
+DSetHandle DescriptorManager::allocate(const std::string& layoutName, uint32_t count)
 {
 	vk::DescriptorSetLayout layout = layoutRegistry.get(layoutName);
 	std::vector<vk::DescriptorSetLayout> layouts(count, layout);
+
 	vk::DescriptorSetAllocateInfo allocInfo{};
-	allocInfo.descriptorPool = descriptorPool;
+	allocInfo.descriptorPool     = descriptorPool;
 	allocInfo.descriptorSetCount = count;
-	allocInfo.pSetLayouts = layouts.data();
+	allocInfo.pSetLayouts        = layouts.data();
 
 	auto allocatedSets = (*vulkanDevice.device).allocateDescriptorSets(allocInfo);
-	descriptorSets.push_back(allocatedSets);
-	return DSetHandle{static_cast<int>(descriptorSets.size() - 1)};
-}
-
-DSetHandle DescriptorManager::allocateOffscreenDescriptorSet(const std::string& layoutName)
-{
-	vk::DescriptorSetLayout layout = layoutRegistry.get(layoutName);
-	vk::DescriptorSetAllocateInfo allocInfo(*descriptorPool, layout);
-	auto allocatedSets = vulkanDevice.device.allocateDescriptorSets(allocInfo);
-
-	std::vector<vk::DescriptorSet> descriptors = {allocatedSets[0].release()};
-	descriptorSets.push_back(descriptors);
-
+	descriptorSets.push_back(std::move(allocatedSets));
 	return DSetHandle{static_cast<int>(descriptorSets.size() - 1)};
 }
 

@@ -24,9 +24,7 @@ public:
 	// Resolve a layout name to a raw Vulkan handle.
 	vk::DescriptorSetLayout getLayout(const std::string& name) const;
 
-	DSetHandle allocateBindlessTextureDSet();
-	DSetHandle allocateStorageBufferDSets(uint32_t count, const std::string& layoutName);
-	DSetHandle allocateOffscreenDescriptorSet(const std::string& layoutName);
+	DSetHandle allocate(const std::string& layoutName, uint32_t count = 1);
 
 	void updateBindlessTextureSet(vk::ImageView textureImageView, vk::Sampler textureSampler,
 	                              BindlessTextureDSetComponent& dSetComponent, int textureNumber);

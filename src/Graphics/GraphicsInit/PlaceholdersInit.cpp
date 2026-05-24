@@ -108,8 +108,7 @@ void PlaceholdersInit::initPlaceholders(GeneralManager& gm)
 	settings->appliedMsaaSamples = settings->msaaSamples;
 
 #pragma region Global Descriptor Set (Set 0)
-	globalDSetComponent->globalDSets =
-	    dManager->allocateStorageBufferDSets(MAX_FRAMES_IN_FLIGHT, "globalSet");
+	globalDSetComponent->globalDSets = dManager->allocate("globalSet", MAX_FRAMES_IN_FLIGHT);
 
 	// Camera buffer
 	globalDSetComponent->cameraBuffers =
@@ -170,7 +169,7 @@ void PlaceholdersInit::initPlaceholders(GeneralManager& gm)
 #pragma endregion
 
 #pragma region Material & Texture System (Set 2)
-	bTextureDSetComponent->bindlessTextureSet = dManager->allocateBindlessTextureDSet();
+	bTextureDSetComponent->bindlessTextureSet = dManager->allocate("textureSet");
 
 	// Material Buffer
 	bTextureDSetComponent->materialBuffer =
@@ -233,8 +232,7 @@ void PlaceholdersInit::initPlaceholders(GeneralManager& gm)
 
 #pragma region Model & Frustum Culling Buffers (Set 1)
 	ModelDSetComponent* objectDSetComponent = gm.getContextComponent<MainDSetsContext, ModelDSetComponent>();
-	objectDSetComponent->modelBufferDSet =
-	    dManager->allocateStorageBufferDSets(MAX_FRAMES_IN_FLIGHT, "modelSet");
+	objectDSetComponent->modelBufferDSet = dManager->allocate("modelSet", MAX_FRAMES_IN_FLIGHT);
 
 	objectDSetComponent->primitiveBuffer =
 	    bManager->createBuffer((vk::MemoryPropertyFlagBits::eHostVisible), 10240 * sizeof(PrimitiveSctructure),
@@ -281,20 +279,18 @@ void PlaceholdersInit::initPlaceholders(GeneralManager& gm)
 
 #pragma region Post-Processing & GTAO Descriptor Sets
 	RenderGraph* rg = gm.getContextComponent<RenderGraphContext, RenderGraphComponent>()->renderGraph;
-	globalDSetComponent->fxaaDSets        = dManager->allocateOffscreenDescriptorSet("screenSpaceSet");
-	globalDSetComponent->gtaoDSets        = dManager->allocateOffscreenDescriptorSet("screenSpaceSet");
-	globalDSetComponent->gtaoBlurHDSets   = dManager->allocateOffscreenDescriptorSet("screenSpaceSet");
-	globalDSetComponent->gtaoBlurVDSets   = dManager->allocateOffscreenDescriptorSet("screenSpaceSet");
-	globalDSetComponent->toneMappingDSets = dManager->allocateOffscreenDescriptorSet("screenSpaceSet");
-	globalDSetComponent->vignetteDSets    = dManager->allocateOffscreenDescriptorSet("screenSpaceSet");
+	globalDSetComponent->fxaaDSets        = dManager->allocate("screenSpaceSet");
+	globalDSetComponent->gtaoDSets        = dManager->allocate("screenSpaceSet");
+	globalDSetComponent->gtaoBlurHDSets   = dManager->allocate("screenSpaceSet");
+	globalDSetComponent->gtaoBlurVDSets   = dManager->allocate("screenSpaceSet");
+	globalDSetComponent->toneMappingDSets = dManager->allocate("screenSpaceSet");
+	globalDSetComponent->vignetteDSets    = dManager->allocate("screenSpaceSet");
 
 	// Bloom descriptor sets (5 downsample + 5 upsample)
 	for (int i = 0; i < 5; i++)
 	{
-		globalDSetComponent->bloomDownsampleDSets[i] =
-		    dManager->allocateOffscreenDescriptorSet("screenSpaceSet");
-		globalDSetComponent->bloomUpsampleDSets[i] =
-		    dManager->allocateOffscreenDescriptorSet("screenSpaceSet");
+		globalDSetComponent->bloomDownsampleDSets[i] = dManager->allocate("screenSpaceSet");
+		globalDSetComponent->bloomUpsampleDSets[i]   = dManager->allocate("screenSpaceSet");
 	}
 
 	// GTAO NoiseInput is a static texture — write it manually.
