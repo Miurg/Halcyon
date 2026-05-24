@@ -51,6 +51,7 @@ struct RGImageDesc
 	vk::ImageAspectFlags aspectFlags = vk::ImageAspectFlagBits::eColor;
 	vk::SampleCountFlagBits samples = vk::SampleCountFlagBits::e1;
 	uint32_t mipLevels = 1;
+	vk::ImageUsageFlags extraUsage = {}; // e.g. eStorage for compute UAV writes
 };
 
 // Unified resource entry — covers both imported and transient resources
