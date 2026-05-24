@@ -17,6 +17,6 @@ private:
 	                    PipelineManager& pManager, float texelSizeX, float texelSizeY, float threshold, float knee,
 	                    int isFirstPass, vk::Extent2D extent);
 	void drawUpsample(vk::raii::CommandBuffer& cmd, DescriptorManagerComponent& dManager, DSetHandle& dSetHandle,
-	                  PipelineManager& pManager, float texelSizeX, float texelSizeY, float blendFactor, int isLastPass,
+	                  PipelineManager& pManager, float texelSizeX, float texelSizeY, float blendFactor,
 	                  vk::Extent2D extent);
 };

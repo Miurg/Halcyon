@@ -21,6 +21,19 @@ ColorBlendAttachmentDesc PipelineFactory::opaqueAttachment()
 	return ColorBlendAttachmentDesc{.blendEnable = false};
 }
 
+ColorBlendAttachmentDesc PipelineFactory::additiveAttachment()
+{
+	return ColorBlendAttachmentDesc{
+	    .blendEnable = true,
+	    .srcColor = vk::BlendFactor::eOne,
+	    .dstColor = vk::BlendFactor::eOne,
+	    .colorOp = vk::BlendOp::eAdd,
+	    .srcAlpha = vk::BlendFactor::eOne,
+	    .dstAlpha = vk::BlendFactor::eZero,
+	    .alphaOp = vk::BlendOp::eAdd,
+	};
+}
+
 vk::raii::ShaderModule PipelineFactory::loadShader(vk::raii::Device& device, const std::string& path)
 {
 	auto code = VulkanUtils::readFile(path);

@@ -71,6 +71,8 @@ public:
 	static ColorBlendAttachmentDesc blendedAttachment();
 	// Attachment without blend
 	static ColorBlendAttachmentDesc opaqueAttachment();
+	// Additive: dst + src
+	static ColorBlendAttachmentDesc additiveAttachment();
 
 private:
 	static vk::raii::ShaderModule loadShader(vk::raii::Device& device, const std::string& path);

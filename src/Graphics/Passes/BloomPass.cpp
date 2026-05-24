@@ -52,7 +52,7 @@ void BloomPass::drawDownsample(vk::raii::CommandBuffer& cmd, DescriptorManagerCo
 
 void BloomPass::drawUpsample(vk::raii::CommandBuffer& cmd, DescriptorManagerComponent& dManager,
                              DSetHandle& dSetHandle, PipelineManager& pManager, float texelSizeX, float texelSizeY,
-                             float blendFactor, int isLastPass, vk::Extent2D extent)
+                             float blendFactor, vk::Extent2D extent)
 {
 	cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pManager.pipelines["bloom_upsample"].pipeline);
 
@@ -67,12 +67,10 @@ void BloomPass::drawUpsample(vk::raii::CommandBuffer& cmd, DescriptorManagerComp
 	{
 		float texelSize[2];
 		float blendFactor;
-		int isLastPass;
 	} push;
 	push.texelSize[0] = texelSizeX;
 	push.texelSize[1] = texelSizeY;
 	push.blendFactor = blendFactor;
-	push.isLastPass = isLastPass;
 
 	cmd.pushConstants<PushConstants>(*pManager.pipelines["bloom_upsample"].layout, vk::ShaderStageFlagBits::eFragment, 0,
 	                                 push);
@@ -89,85 +87,90 @@ void BloomPass::addToGraph(Orhescyon::GeneralManager& gm, RenderGraph& rg, uint3
 	auto& graphicsSettings = *gm.getContextComponent<GraphicsSettingsContext, GraphicsSettingsComponent>();
 
 	vk::ClearValue clearBlack = vk::ClearColorValue(0.0f, 0.0f, 0.0f, 0.0f);
-	static const std::string mipNames[5] = {"BloomMip0", "BloomMip1", "BloomMip2", "BloomMip3", "BloomMip4"};
-	static const std::string downSource[5] = {"MainColor", "BloomMip0", "BloomMip1", "BloomMip2", "BloomMip3"};
-	static const uint32_t divisors[5] = {2, 4, 8, 16, 32};
+
+	constexpr uint32_t kMipCount = 5;
 
 	float threshold = graphicsSettings.bloomThreshold;
 	float knee = graphicsSettings.bloomKnee;
 	float intensity = graphicsSettings.bloomIntensity;
 
-	for (int i = 0; i < 5; i++)
+	auto mipExtent = [&](uint32_t mip)
 	{
-		uint32_t sourceDivision = (i == 0) ? 1 : divisors[i - 1];
-		uint32_t dstDivision = divisors[i];
-		float srcW = static_cast<float>(swapChain.swapChainExtent.width / sourceDivision);
-		float srcH = static_cast<float>(swapChain.swapChainExtent.height / sourceDivision);
-		uint32_t dstW = swapChain.swapChainExtent.width / dstDivision;
-		uint32_t dstH = swapChain.swapChainExtent.height / dstDivision;
-		float texelX = 1.0f / srcW;
-		float texelY = 1.0f / srcH;
+		uint32_t shift = mip + 1;
+		return vk::Extent2D{std::max(1u, swapChain.swapChainExtent.width >> shift),
+		                    std::max(1u, swapChain.swapChainExtent.height >> shift)};
+	};
+
+	// Downsample
+	for (uint32_t i = 0; i < kMipCount; ++i)
+	{
+		vk::Extent2D dstExt = mipExtent(i);
+		vk::Extent2D srcExt = (i == 0) ? swapChain.swapChainExtent : mipExtent(i - 1);
+		float texelX = 1.0f / static_cast<float>(srcExt.width);
+		float texelY = 1.0f / static_cast<float>(srcExt.height);
 		int isFirst = (i == 0) ? 1 : 0;
-		int passIdx = i;
+		uint32_t passIdx = i;
+
+		std::string srcName = (i == 0) ? "MainColor" : "BloomChain";
+		uint32_t srcMip = (i == 0) ? 0 : (i - 1);
+
+		RGAttachmentConfig colorAtt{
+		    .name = "BloomChain", .loadOp = vk::AttachmentLoadOp::eClear, .storeOp = vk::AttachmentStoreOp::eStore,
+		    .clearValue = clearBlack, .mipLevel = i};
 
 		rg.addPass(
 		    "BloomDown" + std::to_string(i),
-		    {.colorAttachments = {{mipNames[i], vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore,
-		                           clearBlack}}},
-		    {{downSource[i], RGResourceUsage::ShaderRead}}, {{mipNames[i], RGResourceUsage::ColorAttachmentWrite}},
-		    [&, texelX, texelY, threshold, knee, isFirst, dstW, dstH, passIdx](vk::raii::CommandBuffer& cmd)
+		    {.colorAttachments = {colorAtt}},
+		    {{srcName, RGResourceUsage::ShaderRead, srcMip, 1}},
+		    {{"BloomChain", RGResourceUsage::ColorAttachmentWrite, i, 1}},
+		    [&, texelX, texelY, threshold, knee, isFirst, dstExt, passIdx](vk::raii::CommandBuffer& cmd)
 		    {
-			    drawDownsample(cmd, dManager, globalDSetComponent.bloomDownsampleDSets[passIdx], pManager, texelX, texelY,
-			                   threshold, knee, isFirst, vk::Extent2D{dstW, dstH});
+			    drawDownsample(cmd, dManager, globalDSetComponent.bloomDownsampleDSets[passIdx], pManager, texelX,
+			                   texelY, threshold, knee, isFirst, dstExt);
 		    },
-		    [dManager, globalDSetComponent, passIdx, srcName = downSource[i]](const RenderGraph& graph,
-		                                                                     const RGPass& pass)
+		    [dManager, globalDSetComponent, passIdx, srcName, srcMip](const RenderGraph& graph, const RGPass& pass)
 		    {
 			    auto srcHnd = pass.getPhysicalRead(srcName);
-			    dManager.descriptorManager->updateSingleTextureDSet(globalDSetComponent.bloomDownsampleDSets[passIdx],
-			                                                        Bindings::BloomDownsample::InputTexture,
-			                                                        graph.getImageView(srcHnd), graph.getSampler(srcHnd));
+			    dManager.descriptorManager->updateSingleTextureDSet(
+			        globalDSetComponent.bloomDownsampleDSets[passIdx], Bindings::BloomDownsample::InputTexture,
+			        graph.getImageView(srcHnd, srcMip), graph.getSampler(srcHnd));
 		    });
 	}
 
-	static const std::string upCurrentSrc[5] = {"BloomMip4", "BloomMip3", "BloomMip2", "BloomMip1", "BloomMip0"};
-	static const std::string upPrevDst[5] = {"BloomMip3", "BloomMip2", "BloomMip1", "BloomMip0", "MainColor"};
-	static const uint32_t upDstDivisors[5] = {16, 8, 4, 2, 1};
-
-	for (int i = 0; i < 5; i++)
+	// Upsample 
+	for (uint32_t i = 0; i < kMipCount; ++i)
 	{
-		uint32_t currentDivision = (i == 0) ? 32 : upDstDivisors[i - 1];
-		uint32_t dstDivision = upDstDivisors[i];
-		uint32_t dstW = swapChain.swapChainExtent.width / dstDivision;
-		uint32_t dstH = swapChain.swapChainExtent.height / dstDivision;
-		float curW = static_cast<float>(swapChain.swapChainExtent.width / currentDivision);
-		float curH = static_cast<float>(swapChain.swapChainExtent.height / currentDivision);
-		float texelX = 1.0f / curW;
-		float texelY = 1.0f / curH;
-		int isLast = (i == 4) ? 1 : 0;
-		int passIdx = i;
+		uint32_t srcMip = kMipCount - 1 - i;
+		vk::Extent2D srcExt = mipExtent(srcMip);
+		float texelX = 1.0f / static_cast<float>(srcExt.width);
+		float texelY = 1.0f / static_cast<float>(srcExt.height);
+		uint32_t passIdx = i;
+
+		bool isLast = (i == kMipCount - 1);
+		std::string dstName = isLast ? "MainColor" : "BloomChain";
+		uint32_t dstMip = isLast ? 0 : (srcMip - 1);
+		vk::Extent2D dstExt = isLast ? swapChain.swapChainExtent : mipExtent(dstMip);
+
+		RGAttachmentConfig colorAtt{
+		    .name = dstName, .loadOp = vk::AttachmentLoadOp::eLoad, .storeOp = vk::AttachmentStoreOp::eStore,
+		    .mipLevel = dstMip};
 
 		rg.addPass(
 		    "BloomUp" + std::to_string(i),
-		    {.colorAttachments = {{upPrevDst[i], vk::AttachmentLoadOp::eLoad, vk::AttachmentStoreOp::eStore}}},
-		    {{upCurrentSrc[i], RGResourceUsage::ShaderRead}, {upPrevDst[i], RGResourceUsage::ShaderRead}},
-		    {{upPrevDst[i], RGResourceUsage::ColorAttachmentWrite}},
-		    [&, texelX, texelY, intensity, isLast, dstW, dstH, passIdx](vk::raii::CommandBuffer& cmd)
+		    {.colorAttachments = {colorAtt}},
+		    {{"BloomChain", RGResourceUsage::ShaderRead, srcMip, 1}},
+		    {{dstName, RGResourceUsage::ColorAttachmentWrite, dstMip, 1}},
+		    [&, texelX, texelY, intensity, dstExt, passIdx](vk::raii::CommandBuffer& cmd)
 		    {
 			    drawUpsample(cmd, dManager, globalDSetComponent.bloomUpsampleDSets[passIdx], pManager, texelX, texelY,
-			                 intensity, isLast, vk::Extent2D{dstW, dstH});
+			                 intensity, dstExt);
 		    },
-		    [dManager, globalDSetComponent, passIdx, curName = upCurrentSrc[i],
-		     prevName = upPrevDst[i]](const RenderGraph& graph, const RGPass& pass)
+		    [dManager, globalDSetComponent, passIdx, srcMip](const RenderGraph& graph, const RGPass& pass)
 		    {
-			    auto curHnd = pass.getPhysicalRead(curName);
-			    auto prevHnd = pass.getPhysicalRead(prevName);
-			    dManager.descriptorManager->updateSingleTextureDSet(globalDSetComponent.bloomUpsampleDSets[passIdx],
-			                                                        Bindings::BloomUpsample::CurrentTexture,
-			                                                        graph.getImageView(curHnd), graph.getSampler(curHnd));
+			    auto srcHnd = pass.getPhysicalRead("BloomChain");
 			    dManager.descriptorManager->updateSingleTextureDSet(
-			        globalDSetComponent.bloomUpsampleDSets[passIdx], Bindings::BloomUpsample::PreviousTexture,
-			        graph.getImageView(prevHnd), graph.getSampler(prevHnd));
+			        globalDSetComponent.bloomUpsampleDSets[passIdx], Bindings::BloomUpsample::CurrentTexture,
+			        graph.getImageView(srcHnd, srcMip), graph.getSampler(srcHnd));
 		    });
 	}
 }

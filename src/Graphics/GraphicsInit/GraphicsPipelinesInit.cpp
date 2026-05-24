@@ -89,16 +89,8 @@ void GraphicsPipelinesInit::initPipelines(GeneralManager& gm)
 	                         {vk::Format::eR8Unorm, RGSizeMode::FullExtent, vk::ImageAspectFlagBits::eColor});
 	rg->declareLogicalStream("PostProcessColor",
 	                         {swapChain->swapChainImageFormat, RGSizeMode::FullExtent, vk::ImageAspectFlagBits::eColor});
-	rg->declareLogicalStream("BloomMip0",
-	                         {swapChain->hdrFormat, RGSizeMode::HalfExtent, vk::ImageAspectFlagBits::eColor});
-	rg->declareLogicalStream("BloomMip1",
-	                         {swapChain->hdrFormat, RGSizeMode::QuarterExtent, vk::ImageAspectFlagBits::eColor});
-	rg->declareLogicalStream("BloomMip2",
-	                         {swapChain->hdrFormat, RGSizeMode::EighthExtent, vk::ImageAspectFlagBits::eColor});
-	rg->declareLogicalStream("BloomMip3",
-	                         {swapChain->hdrFormat, RGSizeMode::SixteenthExtent, vk::ImageAspectFlagBits::eColor});
-	rg->declareLogicalStream("BloomMip4",
-	                         {swapChain->hdrFormat, RGSizeMode::ThirtySecondExtent, vk::ImageAspectFlagBits::eColor});
+	rg->declareLogicalStream("BloomChain", {swapChain->hdrFormat, RGSizeMode::HalfExtent,
+	                                        vk::ImageAspectFlagBits::eColor, vk::SampleCountFlagBits::e1, 5});
 
 	rg->setTerminalOutput("PostProcessColor", "swapChainImage"); // The final target for post-process chains
 	rg->setTerminalOutput("shadowMap",
@@ -370,10 +362,10 @@ void GraphicsPipelinesInit::initPipelines(GeneralManager& gm)
 	pManager->build(PipelineDescription{
 	    .shaderPath = "shaders/bloom_upsample.spv",
 	    .cullMode = vk::CullModeFlagBits::eNone,
-	    .colorAttachments = {PipelineFactory::opaqueAttachment()},
+	    .colorAttachments = {PipelineFactory::additiveAttachment()},
 	    .colorFormats = {swapChain->hdrFormat},
 	    .setLayoutNames = {"screenSpaceSet"},
-	    .pushConstants = {{vk::ShaderStageFlagBits::eFragment, 0, 16u}},
+	    .pushConstants = {{vk::ShaderStageFlagBits::eFragment, 0, 12u}},
 	});
 
 	// === Compute pipelines ===

@@ -1,13 +1,10 @@
 [[vk::binding(0, 0)]]
 Sampler2D currentTexture;
-[[vk::binding(1, 0)]]
-Sampler2D previousTexture;
 
 struct PushConstants
 {
     float2 texelSize;
     float blendFactor;
-    int isLastPass; // 1 = mix with MainColor
 };
 [[vk::push_constant]]
 ConstantBuffer<PushConstants> pc;
@@ -47,10 +44,7 @@ float4 fragMain(VSOutput input) : SV_Target
                      + (b + d + f + h) * 0.125
                      + e * 0.25;
 
-    float3 prev = previousTexture.SampleLevel(input.uv, 0).rgb;
-    float3 result = lerp(prev, prev + upsampled, pc.blendFactor);
-
-    return float4(result, 1.0);
+    return float4(upsampled * pc.blendFactor, 1.0);
 }
 
 // ========================================================================================
