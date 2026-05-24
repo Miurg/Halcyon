@@ -20,6 +20,7 @@ struct RGAttachmentConfig
 	vk::ClearValue clearValue = {};
 	std::string resolveTarget = "";
 	vk::ResolveModeFlagBits resolveMode = vk::ResolveModeFlagBits::eNone;
+	uint32_t mipLevel = 0;
 };
 
 // Describes the rendering setup for a pass. RG uses this to auto-call beginRendering/endRendering.

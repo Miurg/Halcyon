@@ -5,6 +5,26 @@
 #include "../Resources/Managers/Bindings.hpp"
 #include "../Components/GraphicsSettingsComponent.hpp"
 
+#include <algorithm>
+
+namespace
+{
+	uint32_t mipsForExtent(uint32_t w, uint32_t h)
+	{
+		uint32_t m = std::max(w, h);
+		uint32_t count = 1;
+		while (m > 1) { m >>= 1; ++count; }
+		return count;
+	}
+
+	bool mipRangesOverlap(uint32_t baseA, uint32_t countA, uint32_t baseB, uint32_t countB)
+	{
+		uint64_t endA = (countA == RG_ALL_MIPS) ? UINT64_MAX : uint64_t(baseA) + countA;
+		uint64_t endB = (countB == RG_ALL_MIPS) ? UINT64_MAX : uint64_t(baseB) + countB;
+		return baseA < endB && baseB < endA;
+	}
+}
+
 RenderGraph::RenderGraph(VulkanDevice& device, VmaAllocator alloc) : vulkanDevice(device), allocator(alloc) {}
 
 RenderGraph::~RenderGraph()
@@ -154,8 +174,18 @@ void RenderGraph::compile()
 	for (const auto& pass : passes)
 	{
 		hash_combine(pass.name);
-		for (const auto& r : pass.reads) hash_combine(r.name);
-		for (const auto& w : pass.writes) hash_combine(w.name);
+		for (const auto& r : pass.reads)
+		{
+			hash_combine(r.name);
+			hash_combine(std::to_string(r.baseMip));
+			hash_combine(std::to_string(r.mipCount));
+		}
+		for (const auto& w : pass.writes)
+		{
+			hash_combine(w.name);
+			hash_combine(std::to_string(w.baseMip));
+			hash_combine(std::to_string(w.mipCount));
+		}
 	}
 
 	// If the hash differs from the last compiled version, we need to update descriptors (bindings might have changed)
@@ -247,12 +277,14 @@ void RenderGraph::compile()
 
 		// Handle reads: if a pass READS what it WRITES (ping-pong), the preceding pass MUST output a different physical
 		// version! Also, register what physical version the pass expects to read.
+		// Mip-aware: only treat as ping-pong when read and write subresource ranges overlap.
 		for (const auto& read : pass.reads)
 		{
 			bool isPingPong = false;
 			for (const auto& write : pass.writes)
 			{
-				if (write.name == read.name)
+				if (write.name == read.name &&
+				    mipRangesOverlap(read.baseMip, read.mipCount, write.baseMip, write.mipCount))
 				{
 					isPingPong = true;
 					break;
@@ -298,8 +330,9 @@ void RenderGraph::compile()
 	resourceStates.resize(resources.size());
 	for (uint32_t i = 0; i < resources.size(); ++i)
 	{
-		resourceStates[i] = RGResourceState{};
-		resourceStates[i].layout = resources[i].currentLayout;
+		uint32_t mips = std::max(1u, resources[i].mipLevels);
+		resourceStates[i].assign(mips, RGSubresourceState{});
+		for (auto& s : resourceStates[i]) s.layout = resources[i].currentLayout;
 	}
 
 	// With all logical names resolved to physical ones, we can determine barriers and final layouts for each pass.
@@ -308,38 +341,50 @@ void RenderGraph::compile()
 		RGCompiledPass compiled;
 		compiled.pass = &pass;
 
-		auto processAccess = [&](RGResourceHandle handle, RGResourceUsage usage)
+		auto processAccess = [&](RGResourceHandle handle, RGResourceUsage usage, uint32_t baseMip, uint32_t mipCount)
 		{
 			if (handle >= resources.size() || handle == RG_INVALID_HANDLE) return;
 
-			RGResourceState& state = resourceStates[handle];
+			uint32_t totalMips = std::max(1u, resources[handle].mipLevels);
+			if (baseMip >= totalMips) return;
+			uint32_t count = (mipCount == RG_ALL_MIPS) ? (totalMips - baseMip) : std::min(mipCount, totalMips - baseMip);
+
 			vk::ImageLayout requiredLayout = usageToLayout(usage);
 			vk::AccessFlags2 requiredAccess = usageToAccessMask(usage);
 			vk::PipelineStageFlags2 dstStage = usageToDstStageMask(usage);
 
-			if (state.layout != requiredLayout || state.accessMask != requiredAccess)
+			for (uint32_t mip = baseMip; mip < baseMip + count; ++mip)
 			{
-				RGBarrier barrier;
-				barrier.image = resources[handle].image;
-				barrier.oldLayout = state.layout;
-				barrier.newLayout = requiredLayout;
-				barrier.srcAccessMask = state.accessMask;
-				barrier.dstAccessMask = requiredAccess;
-				barrier.srcStageMask = state.stageMask;
-				barrier.dstStageMask = dstStage;
-				barrier.aspectFlags = resources[handle].aspectFlags;
-				compiled.barriers.push_back(barrier);
+				RGSubresourceState& state = resourceStates[handle][mip];
 
-				resources[handle].currentLayout = requiredLayout;
+				if (state.layout != requiredLayout || state.accessMask != requiredAccess)
+				{
+					RGBarrier barrier;
+					barrier.image = resources[handle].image;
+					barrier.oldLayout = state.layout;
+					barrier.newLayout = requiredLayout;
+					barrier.srcAccessMask = state.accessMask;
+					barrier.dstAccessMask = requiredAccess;
+					barrier.srcStageMask = state.stageMask;
+					barrier.dstStageMask = dstStage;
+					barrier.aspectFlags = resources[handle].aspectFlags;
+					barrier.baseMipLevel = mip;
+					barrier.levelCount = 1;
+					compiled.barriers.push_back(barrier);
+
+					resources[handle].currentLayout = requiredLayout;
+				}
+
+				state.layout = requiredLayout;
+				state.accessMask = requiredAccess;
+				state.stageMask = usageToCompleteStageMask(usage);
 			}
-
-			state.layout = requiredLayout;
-			state.accessMask = requiredAccess;
-			state.stageMask = usageToCompleteStageMask(usage);
 		};
 
-		for (const auto& read : pass.reads) processAccess(pass.resolvedReads[read.name], read.usage);
-		for (const auto& write : pass.writes) processAccess(pass.resolvedWrites[write.name], write.usage);
+		for (const auto& read : pass.reads)
+			processAccess(pass.resolvedReads[read.name], read.usage, read.baseMip, read.mipCount);
+		for (const auto& write : pass.writes)
+			processAccess(pass.resolvedWrites[write.name], write.usage, write.baseMip, write.mipCount);
 
 		compiledPasses.push_back(std::move(compiled));
 	}
@@ -391,8 +436,8 @@ void RenderGraph::execute(vk::raii::CommandBuffer& cmd)
 				barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 				barrier.image = b.image;
 				barrier.subresourceRange.aspectMask = b.aspectFlags;
-				barrier.subresourceRange.baseMipLevel = 0;
-				barrier.subresourceRange.levelCount = 1;
+				barrier.subresourceRange.baseMipLevel = b.baseMipLevel;
+				barrier.subresourceRange.levelCount = b.levelCount;
 				barrier.subresourceRange.baseArrayLayer = 0;
 				barrier.subresourceRange.layerCount = 1;
 
@@ -419,7 +464,7 @@ void RenderGraph::execute(vk::raii::CommandBuffer& cmd)
 				if (handle == RG_INVALID_HANDLE) continue;
 
 				vk::RenderingAttachmentInfo info;
-				info.imageView = resources[handle].imageView;
+				info.imageView = getImageView(handle, att.mipLevel);
 				info.imageLayout = vk::ImageLayout::eColorAttachmentOptimal;
 				info.loadOp = att.loadOp;
 				info.storeOp = att.storeOp;
@@ -431,7 +476,7 @@ void RenderGraph::execute(vk::raii::CommandBuffer& cmd)
 					if (resolveHnd != RG_INVALID_HANDLE)
 					{
 						info.resolveMode = att.resolveMode == vk::ResolveModeFlagBits::eNone ? vk::ResolveModeFlagBits::eAverage : att.resolveMode;
-						info.resolveImageView = resources[resolveHnd].imageView;
+						info.resolveImageView = getImageView(resolveHnd, att.mipLevel);
 						info.resolveImageLayout = vk::ImageLayout::eColorAttachmentOptimal;
 					}
 				}
@@ -447,7 +492,7 @@ void RenderGraph::execute(vk::raii::CommandBuffer& cmd)
 				if (handle == RG_INVALID_HANDLE) handle = compiled.pass->getPhysicalRead(da.name); // try read
 				if (handle != RG_INVALID_HANDLE)
 				{
-					depthInfo.imageView = resources[handle].imageView;
+					depthInfo.imageView = getImageView(handle, da.mipLevel);
 					depthInfo.imageLayout = vk::ImageLayout::eDepthAttachmentOptimal;
 					depthInfo.loadOp = da.loadOp;
 					depthInfo.storeOp = da.storeOp;
@@ -459,7 +504,7 @@ void RenderGraph::execute(vk::raii::CommandBuffer& cmd)
 						if (resolveHnd != RG_INVALID_HANDLE)
 						{
 							depthInfo.resolveMode = da.resolveMode == vk::ResolveModeFlagBits::eNone ? vk::ResolveModeFlagBits::eSampleZero : da.resolveMode;
-							depthInfo.resolveImageView = resources[resolveHnd].imageView;
+							depthInfo.resolveImageView = getImageView(resolveHnd, da.mipLevel);
 							depthInfo.resolveImageLayout = vk::ImageLayout::eDepthAttachmentOptimal;
 						}
 					}
@@ -476,22 +521,23 @@ void RenderGraph::execute(vk::raii::CommandBuffer& cmd)
 			{
 				// Use first attachment's actual dimensions.
 				RGResourceHandle firstHandle = RG_INVALID_HANDLE;
+				uint32_t firstMip = 0;
 				if (!desc.colorAttachments.empty())
+				{
 					firstHandle = compiled.pass->getPhysicalWrite(desc.colorAttachments[0].name);
+					firstMip = desc.colorAttachments[0].mipLevel;
+				}
 				else if (desc.depthAttachment.has_value())
 				{
 					firstHandle = compiled.pass->getPhysicalWrite(desc.depthAttachment->name);
 					if (firstHandle == RG_INVALID_HANDLE)
 						firstHandle = compiled.pass->getPhysicalRead(desc.depthAttachment->name);
+					firstMip = desc.depthAttachment->mipLevel;
 				}
 
 				if (firstHandle != RG_INVALID_HANDLE)
 				{
-					const auto& res = resources[firstHandle];
-					if (res.isTransient && res.currentWidth > 0)
-						extent = vk::Extent2D{res.currentWidth, res.currentHeight};
-					else
-						extent = vk::Extent2D{currentWidth, currentHeight};
+					extent = getMipExtent(firstHandle, firstMip);
 				}
 				else
 				{
@@ -554,6 +600,13 @@ vk::ImageView RenderGraph::getImageView(RGResourceHandle handle) const
 	return resources[handle].imageView;
 }
 
+vk::ImageView RenderGraph::getImageView(RGResourceHandle handle, uint32_t mip) const
+{
+	const auto& res = resources[handle];
+	if (mip < res.perMipViews.size() && res.perMipViews[mip]) return res.perMipViews[mip];
+	return res.imageView;
+}
+
 vk::Sampler RenderGraph::getSampler(RGResourceHandle handle) const
 {
 	return resources[handle].sampler;
@@ -562,6 +615,19 @@ vk::Sampler RenderGraph::getSampler(RGResourceHandle handle) const
 const RGImageDesc& RenderGraph::getDesc(RGResourceHandle handle) const
 {
 	return resources[handle].desc;
+}
+
+uint32_t RenderGraph::getMipLevels(RGResourceHandle handle) const
+{
+	return std::max(1u, resources[handle].mipLevels);
+}
+
+vk::Extent2D RenderGraph::getMipExtent(RGResourceHandle handle, uint32_t mip) const
+{
+	const auto& res = resources[handle];
+	uint32_t baseW = res.isTransient && res.currentWidth > 0 ? res.currentWidth : currentWidth;
+	uint32_t baseH = res.isTransient && res.currentHeight > 0 ? res.currentHeight : currentHeight;
+	return vk::Extent2D{std::max(1u, baseW >> mip), std::max(1u, baseH >> mip)};
 }
 
 RGResourceHandle RenderGraph::getHandle(const std::string& name) const
@@ -577,6 +643,14 @@ RGResourceHandle RenderGraph::getHandle(const std::string& name) const
 
 void RenderGraph::allocateTransientImage(RGResourceEntry& res)
 {
+	uint32_t mips = res.desc.mipLevels;
+	if (mips == RG_FULL_MIP_CHAIN)
+	{
+		mips = mipsForExtent(res.currentWidth, res.currentHeight);
+	}
+	mips = std::max(1u, mips);
+	res.mipLevels = mips;
+
 	vk::ImageUsageFlags usage;
 	if (res.desc.aspectFlags & vk::ImageAspectFlagBits::eDepth)
 	{
@@ -592,7 +666,7 @@ void RenderGraph::allocateTransientImage(RGResourceEntry& res)
 	imageInfo.extent.width = res.currentWidth;
 	imageInfo.extent.height = res.currentHeight;
 	imageInfo.extent.depth = 1;
-	imageInfo.mipLevels = 1;
+	imageInfo.mipLevels = mips;
 	imageInfo.arrayLayers = 1;
 	imageInfo.format = static_cast<VkFormat>(res.desc.format);
 	imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
@@ -618,15 +692,27 @@ void RenderGraph::allocateTransientImage(RGResourceEntry& res)
 	viewInfo.format = res.desc.format;
 	viewInfo.subresourceRange.aspectMask = res.desc.aspectFlags;
 	viewInfo.subresourceRange.baseMipLevel = 0;
-	viewInfo.subresourceRange.levelCount = 1;
+	viewInfo.subresourceRange.levelCount = mips;
 	viewInfo.subresourceRange.baseArrayLayer = 0;
 	viewInfo.subresourceRange.layerCount = 1;
-
 	res.imageView = (*vulkanDevice.device).createImageView(viewInfo);
+
+	res.perMipViews.assign(mips, vk::ImageView{});
+	for (uint32_t m = 0; m < mips; ++m)
+	{
+		viewInfo.subresourceRange.baseMipLevel = m;
+		viewInfo.subresourceRange.levelCount = 1;
+		res.perMipViews[m] = (*vulkanDevice.device).createImageView(viewInfo);
+	}
 }
 
 void RenderGraph::destroyTransientImage(RGResourceEntry& res)
 {
+	for (auto& v : res.perMipViews)
+	{
+		if (v) (*vulkanDevice.device).destroyImageView(v);
+	}
+	res.perMipViews.clear();
 	if (res.imageView)
 	{
 		(*vulkanDevice.device).destroyImageView(res.imageView);
@@ -646,6 +732,8 @@ void RenderGraph::createSampler(RGResourceEntry& res)
 	samplerInfo.magFilter = vk::Filter::eLinear;
 	samplerInfo.minFilter = vk::Filter::eLinear;
 	samplerInfo.mipmapMode = vk::SamplerMipmapMode::eLinear;
+	samplerInfo.minLod = 0.0f;
+	samplerInfo.maxLod = static_cast<float>(std::max(1u, res.mipLevels));
 
 	if (res.desc.aspectFlags & vk::ImageAspectFlagBits::eDepth)
 	{
@@ -756,3 +844,4 @@ vk::PipelineStageFlags2 RenderGraph::usageToCompleteStageMask(RGResourceUsage us
 		return vk::PipelineStageFlagBits2::eTopOfPipe;
 	}
 }
+

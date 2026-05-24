@@ -14,8 +14,8 @@ struct GlobalDSetComponent;
 struct GraphicsSettingsComponent;
 class DescriptorManager;
 
-// Tracks the last known state of each resource for barrier computation.
-struct RGResourceState
+// Tracks the last known state of a single subresource (one mip) for barrier computation.
+struct RGSubresourceState
 {
 	vk::ImageLayout layout = vk::ImageLayout::eUndefined;
 	vk::AccessFlags2 accessMask = {};
@@ -33,6 +33,8 @@ struct RGBarrier
 	vk::PipelineStageFlags2 srcStageMask;
 	vk::PipelineStageFlags2 dstStageMask;
 	vk::ImageAspectFlags aspectFlags;
+	uint32_t baseMipLevel = 0;
+	uint32_t levelCount = 1;
 };
 
 // Compiled pass — the pass itself plus any barriers that must precede it.
@@ -89,8 +91,11 @@ public:
 	// === Accessors ===
 	vk::Image getImage(RGResourceHandle handle) const;
 	vk::ImageView getImageView(RGResourceHandle handle) const;
+	vk::ImageView getImageView(RGResourceHandle handle, uint32_t mip) const;
 	vk::Sampler getSampler(RGResourceHandle handle) const;
 	const RGImageDesc& getDesc(RGResourceHandle handle) const;
+	uint32_t getMipLevels(RGResourceHandle handle) const;
+	vk::Extent2D getMipExtent(RGResourceHandle handle, uint32_t mip) const;
 	RGResourceHandle getHandle(const std::string& name) const;
 
 private:
@@ -115,6 +120,6 @@ private:
 	std::vector<RGResourceEntry> resources;
 	std::vector<RGPass> passes;
 	std::vector<RGCompiledPass> compiledPasses;
-	std::vector<RGResourceState> resourceStates;
+	std::vector<std::vector<RGSubresourceState>> resourceStates;
 	size_t lastPassHash = 0;
 };
