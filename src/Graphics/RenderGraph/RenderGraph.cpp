@@ -53,7 +53,8 @@ RGResourceHandle RenderGraph::importImage(const std::string& name, vk::Image ima
 		{
 			resources[i].image = image;
 			resources[i].imageView = imageView;
-			resources[i].currentLayout = currentLayout;
+			uint32_t mips = std::max(1u, resources[i].mipLevels);
+			resources[i].currentLayouts.assign(mips, currentLayout);
 			return i;
 		}
 	}
@@ -65,7 +66,7 @@ RGResourceHandle RenderGraph::importImage(const std::string& name, vk::Image ima
 	entry.imageView = imageView;
 	entry.aspectFlags = aspect;
 	entry.isTransient = false;
-	entry.currentLayout = currentLayout;
+	entry.currentLayouts.assign(1, currentLayout);
 	resources.push_back(std::move(entry));
 	return handle;
 }
@@ -120,7 +121,6 @@ void RenderGraph::handleResize(uint32_t newWidth, uint32_t newHeight)
 		// Allocate with new dimensions
 		res.currentWidth = targetW;
 		res.currentHeight = targetH;
-		res.currentLayout = vk::ImageLayout::eUndefined;
 		allocateTransientImage(res);
 
 		// Create sampler on first allocation
@@ -143,7 +143,7 @@ void RenderGraph::declareLogicalStream(const std::string& name, const RGImageDes
 		{
 			res.desc = desc;
 			destroyTransientImage(res);   // Force destruction immediately
-			res.currentLayout = vk::ImageLayout::eUndefined;
+			res.currentLayouts.clear();
 			res.currentWidth = 0;         // Force recreation during next handleResize
 		}
 	}
@@ -332,7 +332,14 @@ void RenderGraph::compile()
 	{
 		uint32_t mips = std::max(1u, resources[i].mipLevels);
 		resourceStates[i].assign(mips, RGSubresourceState{});
-		for (auto& s : resourceStates[i]) s.layout = resources[i].currentLayout;
+		if (resources[i].currentLayouts.size() != mips)
+		{
+			resources[i].currentLayouts.resize(mips, vk::ImageLayout::eUndefined);
+		}
+		for (uint32_t m = 0; m < mips; ++m)
+		{
+			resourceStates[i][m].layout = resources[i].currentLayouts[m];
+		}
 	}
 
 	// With all logical names resolved to physical ones, we can determine barriers and final layouts for each pass.
@@ -372,7 +379,7 @@ void RenderGraph::compile()
 					barrier.levelCount = 1;
 					compiled.barriers.push_back(barrier);
 
-					resources[handle].currentLayout = requiredLayout;
+					resources[handle].currentLayouts[mip] = requiredLayout;
 				}
 
 				state.layout = requiredLayout;
@@ -650,6 +657,7 @@ void RenderGraph::allocateTransientImage(RGResourceEntry& res)
 	}
 	mips = std::max(1u, mips);
 	res.mipLevels = mips;
+	res.currentLayouts.assign(mips, vk::ImageLayout::eUndefined);
 
 	vk::ImageUsageFlags usage;
 	if (res.desc.aspectFlags & vk::ImageAspectFlagBits::eDepth)
