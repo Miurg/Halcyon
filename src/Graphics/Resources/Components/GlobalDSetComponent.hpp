@@ -18,4 +18,5 @@ struct GlobalDSetComponent
 	DSetHandle bloomDownsampleDSets[5];
 	DSetHandle bloomUpsampleDSets[5];
 	DSetHandle vignetteDSets;
+	DSetHandle HiZDSets[16];
 };

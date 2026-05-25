@@ -293,6 +293,11 @@ void PlaceholdersInit::initPlaceholders(GeneralManager& gm)
 		globalDSetComponent->bloomUpsampleDSets[i]   = dManager->allocate("screenSpaceSet");
 	}
 
+	for (int i = 0; i < 16; i++)
+	{
+		globalDSetComponent->HiZDSets[i] = dManager->allocate("hiZSet");
+	}
+
 	// GTAO NoiseInput is a static texture — write it manually.
 	tManager->textures.push_back(Texture());
 	Texture& noiseTexture = tManager->textures.back();

@@ -127,6 +127,24 @@ DescriptorManager::DescriptorManager(VulkanDevice& vulkanDevice)
 		registerLayout("screenSpaceSet", ssBindings);
 	}
 
+	{
+		using S = vk::ShaderStageFlagBits;
+		std::array hiZBindings = {
+		    vk::DescriptorSetLayoutBinding(Bindings::HiZ::DepthInput, vk::DescriptorType::eCombinedImageSampler,
+		                                   1, S::eCompute),
+		    vk::DescriptorSetLayoutBinding(Bindings::HiZ::MipOutput, vk::DescriptorType::eStorageImage,
+		                                   1, S::eCompute)
+		};
+		std::array<vk::DescriptorBindingFlags, 2> hiZBindingFlags = {
+		    vk::DescriptorBindingFlags{},
+		    vk::DescriptorBindingFlags{}
+		};
+		vk::DescriptorSetLayoutBindingFlagsCreateInfo bindingFlagsInfo;
+		bindingFlagsInfo.bindingCount = static_cast<uint32_t>(hiZBindingFlags.size());
+		bindingFlagsInfo.pBindingFlags = hiZBindingFlags.data();
+		registerLayout("hiZSet", hiZBindings);
+	}
+
 } // Still mess.
 
 DescriptorManager::~DescriptorManager()
@@ -153,9 +171,9 @@ DSetHandle DescriptorManager::allocate(const std::string& layoutName, uint32_t c
 	std::vector<vk::DescriptorSetLayout> layouts(count, layout);
 
 	vk::DescriptorSetAllocateInfo allocInfo{};
-	allocInfo.descriptorPool     = descriptorPool;
+	allocInfo.descriptorPool = descriptorPool;
 	allocInfo.descriptorSetCount = count;
-	allocInfo.pSetLayouts        = layouts.data();
+	allocInfo.pSetLayouts = layouts.data();
 
 	auto allocatedSets = (*vulkanDevice.device).allocateDescriptorSets(allocInfo);
 	descriptorSets.push_back(std::move(allocatedSets));
@@ -167,17 +185,17 @@ void DescriptorManager::update(DSetHandle dSet, uint32_t binding, uint32_t copyI
                                uint32_t arrayElement)
 {
 	vk::DescriptorImageInfo imageInfo;
-	imageInfo.sampler     = sampler;
-	imageInfo.imageView   = view;
+	imageInfo.sampler = sampler;
+	imageInfo.imageView = view;
 	imageInfo.imageLayout = imageLayout;
 
 	vk::WriteDescriptorSet write;
-	write.dstSet          = descriptorSets[dSet.id][copyIndex];
-	write.dstBinding      = binding;
+	write.dstSet = descriptorSets[dSet.id][copyIndex];
+	write.dstBinding = binding;
 	write.dstArrayElement = arrayElement;
-	write.descriptorType  = type;
+	write.descriptorType = type;
 	write.descriptorCount = 1;
-	write.pImageInfo      = &imageInfo;
+	write.pImageInfo = &imageInfo;
 
 	vulkanDevice.device.updateDescriptorSets(write, {});
 }
@@ -188,15 +206,15 @@ void DescriptorManager::update(DSetHandle dSet, uint32_t binding, uint32_t copyI
 	vk::DescriptorBufferInfo bufferInfo;
 	bufferInfo.buffer = buffer;
 	bufferInfo.offset = offset;
-	bufferInfo.range  = range;
+	bufferInfo.range = range;
 
 	vk::WriteDescriptorSet write;
-	write.dstSet          = descriptorSets[dSet.id][copyIndex];
-	write.dstBinding      = binding;
+	write.dstSet = descriptorSets[dSet.id][copyIndex];
+	write.dstBinding = binding;
 	write.dstArrayElement = 0;
-	write.descriptorType  = type;
+	write.descriptorType = type;
 	write.descriptorCount = 1;
-	write.pBufferInfo     = &bufferInfo;
+	write.pBufferInfo = &bufferInfo;
 
 	vulkanDevice.device.updateDescriptorSets(write, {});
 }
@@ -215,8 +233,8 @@ void DescriptorManager::updateCubemapDescriptors(BindlessTextureDSetComponent& d
 {
 	update(dSetComponent.bindlessTextureSet, Bindings::Textures::CubemapSampler, 0,
 	       vk::DescriptorType::eCombinedImageSampler, cubemapImageView, cubemapSampler);
-	update(dSetComponent.bindlessTextureSet, Bindings::Textures::CubemapStorage, 0,
-	       vk::DescriptorType::eStorageImage, storageImageView, nullptr, vk::ImageLayout::eGeneral);
+	update(dSetComponent.bindlessTextureSet, Bindings::Textures::CubemapStorage, 0, vk::DescriptorType::eStorageImage,
+	       storageImageView, nullptr, vk::ImageLayout::eGeneral);
 }
 
 void DescriptorManager::updateIBLDescriptors(BindlessTextureDSetComponent& dSetComponent, vk::ImageView prefilteredView,
@@ -225,16 +243,15 @@ void DescriptorManager::updateIBLDescriptors(BindlessTextureDSetComponent& dSetC
 {
 	update(dSetComponent.bindlessTextureSet, Bindings::Textures::PrefilteredMap, 0,
 	       vk::DescriptorType::eCombinedImageSampler, prefilteredView, prefilteredSampler);
-	update(dSetComponent.bindlessTextureSet, Bindings::Textures::BrdfLut, 0,
-	       vk::DescriptorType::eCombinedImageSampler, brdfLutView, brdfLutSampler);
+	update(dSetComponent.bindlessTextureSet, Bindings::Textures::BrdfLut, 0, vk::DescriptorType::eCombinedImageSampler,
+	       brdfLutView, brdfLutSampler);
 }
 
 void DescriptorManager::updateSingleTextureDSet(DSetHandle dIndex, int binding, vk::ImageView imageView,
                                                 vk::Sampler sampler)
 {
 	for (uint32_t i = 0; i < getSetCount(dIndex); ++i)
-		update(dIndex, static_cast<uint32_t>(binding), i, vk::DescriptorType::eCombinedImageSampler, imageView,
-		       sampler);
+		update(dIndex, static_cast<uint32_t>(binding), i, vk::DescriptorType::eCombinedImageSampler, imageView, sampler);
 }
 
 void DescriptorManager::updateCubemapSamplerDescriptor(BindlessTextureDSetComponent& dSetComponent,
@@ -247,9 +264,9 @@ void DescriptorManager::updateCubemapSamplerDescriptor(BindlessTextureDSetCompon
 void DescriptorManager::updateStorageBufferDescriptors(BufferManager& bManager, BufferHandle bNumber, DSetHandle dSet,
                                                        uint32_t binding)
 {
-	const uint32_t copies    = getSetCount(dSet);
-	const auto&    buffers   = bManager.buffers[bNumber.id].buffer;
-	const bool     sharedBuf = (buffers.size() == 1);
+	const uint32_t copies = getSetCount(dSet);
+	const auto& buffers = bManager.buffers[bNumber.id].buffer;
+	const bool sharedBuf = (buffers.size() == 1);
 
 	for (uint32_t i = 0; i < copies; ++i)
 		update(dSet, binding, i, vk::DescriptorType::eStorageBuffer, buffers[sharedBuf ? 0 : i]);

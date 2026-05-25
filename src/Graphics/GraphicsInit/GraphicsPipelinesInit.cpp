@@ -91,6 +91,26 @@ void GraphicsPipelinesInit::initPipelines(GeneralManager& gm)
 	                         {swapChain->swapChainImageFormat, RGSizeMode::FullExtent, vk::ImageAspectFlagBits::eColor});
 	rg->declareLogicalStream("BloomChain", {swapChain->hdrFormat, RGSizeMode::HalfExtent,
 	                                        vk::ImageAspectFlagBits::eColor, vk::SampleCountFlagBits::e1, 5});
+	
+	// Min-reduction sampler for Hi-Z
+	static const vk::SamplerReductionModeCreateInfo hiZReductionInfo{vk::SamplerReductionMode::eMin};
+	vk::SamplerCreateInfo hiZSamplerInfo{};
+	hiZSamplerInfo.pNext = &hiZReductionInfo;
+	hiZSamplerInfo.magFilter = vk::Filter::eLinear;
+	hiZSamplerInfo.minFilter = vk::Filter::eLinear;
+	hiZSamplerInfo.mipmapMode = vk::SamplerMipmapMode::eNearest;
+	hiZSamplerInfo.addressModeU = vk::SamplerAddressMode::eClampToEdge;
+	hiZSamplerInfo.addressModeV = vk::SamplerAddressMode::eClampToEdge;
+	hiZSamplerInfo.addressModeW = vk::SamplerAddressMode::eClampToEdge;
+	hiZSamplerInfo.minLod = 0.0f;
+	hiZSamplerInfo.maxLod = VK_LOD_CLAMP_NONE;
+	rg->declareLogicalStream("HiZ", {.format = vk::Format::eR32Sfloat,
+	                                 .sizeMode = RGSizeMode::FullExtent,
+	                                 .aspectFlags = vk::ImageAspectFlagBits::eColor,
+	                                 .samples = vk::SampleCountFlagBits::e1,
+	                                 .mipLevels = RG_FULL_MIP_CHAIN,
+	                                 .extraUsage = vk::ImageUsageFlagBits::eStorage,
+	                                 .customSamplerInfo = hiZSamplerInfo});
 
 	rg->setTerminalOutput("PostProcessColor", "swapChainImage"); // The final target for post-process chains
 	rg->setTerminalOutput("shadowMap",
@@ -131,6 +151,16 @@ void GraphicsPipelinesInit::initPipelines(GeneralManager& gm)
 	    .rasterizationSamples = vk::SampleCountFlagBits::e1,
 	    .setLayoutNames = mainLayouts,
 	});
+
+	pManager->build(
+	    PipelineDescription{
+	        .isCompute = true,
+	        .shaderPath = "shaders/hi_z_reduction.spv",
+	        .setLayoutNames = {"hiZSet"},
+	        .pushConstants = {{vk::ShaderStageFlagBits::eCompute, 0, sizeof(uint32_t) * 3}},
+	        // push = { dstWidth, dstHeight, isFirstMip (0/1) }
+	    },
+	    "hi_z_reduction");
 
 	// === Depth + view-normals prepass (Mini-G), opaque ===
 	pManager->build(PipelineDescription{

@@ -242,6 +242,7 @@ void VulkanDeviceFactory::createLogicalDevice(VulkanDevice& vulkanDevice)
 	featureChain.get<vk::PhysicalDeviceVulkan12Features>().shaderSampledImageArrayNonUniformIndexing = true;
 	featureChain.get<vk::PhysicalDeviceVulkan12Features>().drawIndirectCount = true;
 	featureChain.get<vk::PhysicalDeviceVulkan12Features>().hostQueryReset = true;
+	featureChain.get<vk::PhysicalDeviceVulkan12Features>().samplerFilterMinmax = true;
 
 	vk::DeviceCreateInfo deviceCreateInfo{};
 	deviceCreateInfo.pNext = &featureChain.get<vk::PhysicalDeviceFeatures2>();

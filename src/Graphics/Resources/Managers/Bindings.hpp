@@ -71,4 +71,9 @@ namespace Vignette
 {
 constexpr uint32_t OffscreenInput = 0;
 }
+namespace HiZ
+{
+constexpr uint32_t DepthInput = 0;
+constexpr uint32_t MipOutput = 1;
+}
 } // namespace Bindings
