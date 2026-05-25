@@ -143,6 +143,11 @@ void RenderGraph::declareLogicalStream(const std::string& name, const RGImageDes
 		{
 			res.desc = desc;
 			destroyTransientImage(res);   // Force destruction immediately
+			if (res.sampler)
+			{
+				(*vulkanDevice.device).destroySampler(res.sampler);
+				res.sampler = nullptr;
+			}
 			res.currentLayouts.clear();
 			res.currentWidth = 0;         // Force recreation during next handleResize
 		}
@@ -737,6 +742,12 @@ void RenderGraph::destroyTransientImage(RGResourceEntry& res)
 
 void RenderGraph::createSampler(RGResourceEntry& res)
 {
+	if (res.desc.customSamplerInfo.has_value())
+	{
+		res.sampler = (*vulkanDevice.device).createSampler(res.desc.customSamplerInfo.value());
+		return;
+	}
+
 	vk::SamplerCreateInfo samplerInfo;
 	samplerInfo.magFilter = vk::Filter::eLinear;
 	samplerInfo.minFilter = vk::Filter::eLinear;

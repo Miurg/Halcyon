@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <optional>
 #include <string>
 #include <vector>
 #include <vk_mem_alloc.h>
@@ -52,6 +53,7 @@ struct RGImageDesc
 	vk::SampleCountFlagBits samples = vk::SampleCountFlagBits::e1;
 	uint32_t mipLevels = 1;
 	vk::ImageUsageFlags extraUsage = {}; // e.g. eStorage for compute UAV writes
+	std::optional<vk::SamplerCreateInfo> customSamplerInfo;
 };
 
 // Unified resource entry — covers both imported and transient resources
