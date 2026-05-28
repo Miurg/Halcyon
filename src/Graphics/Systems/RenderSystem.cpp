@@ -4,16 +4,18 @@
 #include <imgui.h>
 
 #include "../GraphicsContexts.hpp"
+#include "../SwapChain.hpp"
+#include "../VulkanDevice.hpp"
 #include "../Components/SwapChainComponent.hpp"
 #include "../Components/CurrentFrameComponent.hpp"
 #include "../Components/FrameImageComponent.hpp"
 #include "../Components/TextureManagerComponent.hpp"
+#include "../Components/VulkanDeviceComponent.hpp"
 #include "../Components/DirectLightComponent.hpp"
 #include "../Components/RenderGraphComponent.hpp"
 #include "../Components/GraphicsSettingsComponent.hpp"
 #include "../Resources/Managers/TextureManager.hpp"
 #include "../RenderGraph/RenderGraph.hpp"
-#include "../GraphicsInit/GraphicsPipelinesInit.hpp"
 
 #include "../Passes/IPass.hpp"
 #include "../Passes/DirectLightPass.hpp"
@@ -36,26 +38,33 @@
 
 void RenderSystem::onRegistered(GeneralManager& gm)
 {
-	m_passes.push_back(std::make_unique<DirectLightPass>());
-	m_passes.push_back(std::make_unique<CullPass>());
-	m_passes.push_back(std::make_unique<DepthPrepass>());
-	m_passes.push_back(std::make_unique<HiZBuildPass>());
-	m_passes.push_back(std::make_unique<GTAOPass>());
-	m_passes.push_back(std::make_unique<MainPass>());
-	m_passes.push_back(std::make_unique<DebugPass>());
-	m_passes.push_back(std::make_unique<BloomPass>());
-	m_passes.push_back(std::make_unique<ToneMappingPass>());
-	m_passes.push_back(std::make_unique<FXAAPass>());
-	m_passes.push_back(std::make_unique<VignettePass>());
-	m_passes.push_back(std::make_unique<ImGuiPass>());
-	m_passes.push_back(std::make_unique<PresentPass>());
+	auto add = [&](std::unique_ptr<IPass> pass)
+	{
+		_passes.push_back(std::move(pass));
+		_passes.back()->onInit(gm);
+	};
+
+	add(std::make_unique<DirectLightPass>());
+	add(std::make_unique<CullPass>());
+	add(std::make_unique<DepthPrepass>());
+	add(std::make_unique<HiZBuildPass>());
+	add(std::make_unique<GTAOPass>());
+	add(std::make_unique<MainPass>());
+	add(std::make_unique<DebugPass>());
+	add(std::make_unique<BloomPass>());
+	add(std::make_unique<ToneMappingPass>());
+	add(std::make_unique<FXAAPass>());
+	add(std::make_unique<VignettePass>());
+	add(std::make_unique<ImGuiPass>());
+	add(std::make_unique<PresentPass>());
 
 	std::cout << "RenderSystem registered!" << std::endl;
 }
 
 void RenderSystem::onShutdown(GeneralManager& gm)
 {
-	m_passes.clear();
+	for (auto it = _passes.rbegin(); it != _passes.rend(); ++it) (*it)->onShutdown(gm);
+	_passes.clear();
 	std::cout << "RenderSystem shutdown!" << std::endl;
 }
 
@@ -68,21 +77,30 @@ void RenderSystem::importFrameResources(GeneralManager& gm, RenderGraph& rg, uin
 	rg.importImage("shadowMap", textureManager.textures[shadowMap.textureShadowImage.id].textureImage,
 	               textureManager.textures[shadowMap.textureShadowImage.id].textureImageView,
 	               vk::ImageAspectFlagBits::eDepth);
-	rg.importImage("swapChainImage", swapChain.swapChainImages[imageIndex],
-	               swapChain.swapChainImageViews[imageIndex], vk::ImageAspectFlagBits::eColor);
-	rg.importImage("NoiseImage", textureManager.textures[swapChain.gtaoNoiseTextureHandle.id].textureImage,
-	               textureManager.textures[swapChain.gtaoNoiseTextureHandle.id].textureImageView,
-	               vk::ImageAspectFlagBits::eColor, vk::ImageLayout::eShaderReadOnlyOptimal);
+	rg.importImage("swapChainImage", swapChain.swapChainImages[imageIndex], swapChain.swapChainImageViews[imageIndex],
+	               vk::ImageAspectFlagBits::eColor);
 }
 
-void RenderSystem::applyPendingMsaaChange(GeneralManager& gm)
+void RenderSystem::applySettingsChanges(GeneralManager& gm)
 {
 	auto& graphicsSettings = *gm.getContextComponent<GraphicsSettingsContext, GraphicsSettingsComponent>();
 	const bool msaaChanged = graphicsSettings.msaaSamples != graphicsSettings.appliedMsaaSamples;
 	const bool gtaoChanged = graphicsSettings.enableGtao != graphicsSettings.appliedGtao;
 	if (msaaChanged || gtaoChanged)
 	{
-		GraphicsPipelinesInit::recreateMsaaPipelines(gm, graphicsSettings.msaaSamples);
+		auto& vulkanDevice =
+		    *gm.getContextComponent<MainVulkanDeviceContext, VulkanDeviceComponent>()->vulkanDeviceInstance;
+		vulkanDevice.device.waitIdle();
+
+		for (auto& pass : _passes) pass->onSettingsChanged(gm);
+
+		if (msaaChanged)
+		{
+			auto& swapChain = *gm.getContextComponent<MainSwapChainContext, SwapChainComponent>()->swapChainInstance;
+			auto& rg = *gm.getContextComponent<RenderGraphContext, RenderGraphComponent>()->renderGraph;
+			rg.handleResize(swapChain.swapChainExtent.width, swapChain.swapChainExtent.height);
+		}
+
 		graphicsSettings.appliedMsaaSamples = graphicsSettings.msaaSamples;
 		graphicsSettings.appliedGtao = graphicsSettings.enableGtao;
 	}
@@ -103,9 +121,20 @@ void RenderSystem::update(GeneralManager& gm)
 	uint32_t frame = currentFrameComp.currentFrame;
 	uint32_t imageIndex = gm.getContextComponent<FrameImageContext, FrameImageComponent>()->imageIndex;
 
-	importFrameResources(gm, rg, imageIndex);
-	applyPendingMsaaChange(gm);
+	auto& swapChain = *gm.getContextComponent<MainSwapChainContext, SwapChainComponent>()->swapChainInstance;
+	const uint32_t curW = swapChain.swapChainExtent.width;
+	const uint32_t curH = swapChain.swapChainExtent.height;
+	if (curW != _lastWidth || curH != _lastHeight)
+	{
+		rg.handleResize(curW, curH);
+		for (auto& pass : _passes) pass->onResize(gm, curW, curH);
+		_lastWidth = curW;
+		_lastHeight = curH;
+	}
 
-	for (auto& pass : m_passes)
+	importFrameResources(gm, rg, imageIndex);
+	applySettingsChanges(gm);
+
+	for (auto& pass : _passes)
 		if (pass->isEnabled(gm)) pass->addToGraph(gm, rg, frame);
 }

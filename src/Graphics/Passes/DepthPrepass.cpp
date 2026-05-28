@@ -7,18 +7,93 @@
 #include "../Components/SwapChainComponent.hpp"
 #include "../Components/BufferManagerComponent.hpp"
 #include "../Components/ModelManagerComponent.hpp"
+#include "../Components/TextureManagerComponent.hpp"
 #include "../Components/DescriptorManagerComponent.hpp"
 #include "../Components/PipelineManagerComponent.hpp"
 #include "../Components/GraphicsSettingsComponent.hpp"
 #include "../Components/DrawInfoComponent.hpp"
+#include "../Components/RenderGraphComponent.hpp"
 #include "../Resources/Components/GlobalDSetComponent.hpp"
 #include "../Resources/Components/ModelDSetComponent.hpp"
 #include "../Resources/Components/BindlessTextureDSetComponent.hpp"
 #include "../Resources/Managers/BufferManager.hpp"
 #include "../Resources/Managers/ModelManager.hpp"
+#include "../Resources/Managers/TextureManager.hpp"
 #include "../Resources/Managers/DescriptorManager.hpp"
+#include "../Resources/Managers/Vertex.hpp"
 #include "../Managers/PipelineManager.hpp"
+#include "../Factories/PipelineFactory.hpp"
 #include "../RenderGraph/RenderGraph.hpp"
+
+void DepthPrepass::declareStreams(Orhescyon::GeneralManager& gm, vk::SampleCountFlagBits samples)
+{
+	auto& rg = *gm.getContextComponent<RenderGraphContext, RenderGraphComponent>()->renderGraph;
+	auto& tManager = *gm.getContextComponent<TextureManagerContext, TextureManagerComponent>()->textureManager;
+	auto depthFormat = tManager.findBestFormat();
+
+	rg.declareLogicalStream("Depth", {depthFormat, RGSizeMode::FullExtent, vk::ImageAspectFlagBits::eDepth});
+	rg.declareLogicalStream("ViewNormals",
+	                        {vk::Format::eR16G16B16A16Sfloat, RGSizeMode::FullExtent, vk::ImageAspectFlagBits::eColor});
+	rg.declareLogicalStream("DepthMSAA",
+	                        {depthFormat, RGSizeMode::FullExtent, vk::ImageAspectFlagBits::eDepth, samples});
+	rg.declareLogicalStream("ViewNormalsMSAA", {vk::Format::eR16G16B16A16Sfloat, RGSizeMode::FullExtent,
+	                                            vk::ImageAspectFlagBits::eColor, samples});
+}
+
+void DepthPrepass::buildPipelines(Orhescyon::GeneralManager& gm, vk::SampleCountFlagBits samples, bool rebuild)
+{
+	auto& pManager = *gm.getContextComponent<PipelineManagerContext, PipelineManagerComponent>()->pipelineManager;
+	auto& tManager = *gm.getContextComponent<TextureManagerContext, TextureManagerComponent>()->textureManager;
+	auto bindingDesc = Vertex::getBindingDescription();
+	auto attrDescs = Vertex::getAttributeDescriptions();
+	auto depthFormat = tManager.findBestFormat();
+	std::vector<std::string> mainLayouts = {"globalSet", "modelSet", "textureSet"};
+
+	auto makeDesc = [&](int alphaTest)
+	{
+		return PipelineDescription{
+		    .shaderPath = "shaders/depth_prepass.spv",
+		    .specializationValues = {alphaTest},
+		    .vertexBindings = {bindingDesc},
+		    .vertexAttributes = std::vector<vk::VertexInputAttributeDescription>(attrDescs.begin(), attrDescs.end()),
+		    .cullMode = vk::CullModeFlagBits::eBack,
+		    .depthTest = true,
+		    .depthWrite = true,
+		    .depthOp = vk::CompareOp::eGreater,
+		    .colorAttachments = {PipelineFactory::opaqueAttachment()},
+		    .colorFormats = {vk::Format::eR16G16B16A16Sfloat},
+		    .depthFormat = depthFormat,
+		    .rasterizationSamples = samples,
+		    .setLayoutNames = mainLayouts,
+		};
+	};
+
+	if (rebuild)
+	{
+		pManager.rebuild(makeDesc(0), "depth_prepass");
+		pManager.rebuild(makeDesc(1), "depth_prepass_alpha");
+	}
+	else
+	{
+		pManager.build(makeDesc(0));
+		pManager.build(makeDesc(1), "depth_prepass_alpha");
+	}
+}
+
+void DepthPrepass::onInit(Orhescyon::GeneralManager& gm)
+{
+	auto& settings = *gm.getContextComponent<GraphicsSettingsContext, GraphicsSettingsComponent>();
+	declareStreams(gm, settings.msaaSamples);
+	buildPipelines(gm, settings.msaaSamples, false);
+}
+
+void DepthPrepass::onSettingsChanged(Orhescyon::GeneralManager& gm)
+{
+	auto& settings = *gm.getContextComponent<GraphicsSettingsContext, GraphicsSettingsComponent>();
+	if (settings.msaaSamples == settings.appliedMsaaSamples) return;
+	declareStreams(gm, settings.msaaSamples);
+	buildPipelines(gm, settings.msaaSamples, true);
+}
 
 void DepthPrepass::draw(vk::raii::CommandBuffer& cmd, uint32_t frame, SwapChain& swapChain,
                         DescriptorManagerComponent& dManager, GlobalDSetComponent& globalDSetComponent,
@@ -119,8 +194,7 @@ void DepthPrepass::addToGraph(Orhescyon::GeneralManager& gm, RenderGraph& rg, ui
 	auto& drawInfo = *gm.getContextComponent<CurrentFrameContext, DrawInfoComponent>();
 	auto& pManager = *gm.getContextComponent<PipelineManagerContext, PipelineManagerComponent>()->pipelineManager;
 	auto& graphicsSettings = *gm.getContextComponent<GraphicsSettingsContext, GraphicsSettingsComponent>();
-	auto& bindlessTextureDSetComponent =
-	    *gm.getContextComponent<MainDSetsContext, BindlessTextureDSetComponent>();
+	auto& bindlessTextureDSetComponent = *gm.getContextComponent<MainDSetsContext, BindlessTextureDSetComponent>();
 
 	vk::ClearValue clearDepth0 = vk::ClearDepthStencilValue(0.0f, 0);
 	vk::ClearValue clearBlack = vk::ClearColorValue(0.0f, 0.0f, 0.0f, 0.0f);
@@ -134,8 +208,7 @@ void DepthPrepass::addToGraph(Orhescyon::GeneralManager& gm, RenderGraph& rg, ui
 		     .depthAttachment =
 		         RGAttachmentConfig{"Depth", vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore, clearDepth0}},
 		    {},
-		    {{"ViewNormals", RGResourceUsage::ColorAttachmentWrite},
-		     {"Depth", RGResourceUsage::DepthAttachmentWrite}},
+		    {{"ViewNormals", RGResourceUsage::ColorAttachmentWrite}, {"Depth", RGResourceUsage::DepthAttachmentWrite}},
 		    [&, frame](vk::raii::CommandBuffer& cmd)
 		    {
 			    draw(cmd, frame, swapChain, dManager, globalDSetComponent, bManager, objectDSetComponent,

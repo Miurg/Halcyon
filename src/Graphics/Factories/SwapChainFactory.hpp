@@ -5,11 +5,6 @@
 #include "../../Platform/Window.hpp"
 #include "../SwapChain.hpp"
 #include "../Resources/Managers/BufferManager.hpp"
-#include "../Resources/Components/GlobalDSetComponent.hpp"
-#include "../Components/GraphicsSettingsComponent.hpp"
-
-class RenderGraph;
-class DescriptorManager;
 
 class SwapChainFactory
 {
@@ -20,8 +15,7 @@ public:
 	                                  vk::SwapchainKHR oldHandle = nullptr);
 	static void createImageViews(SwapChain& swapChain, VulkanDevice& device, Window& window);
 	static void cleanupSwapChain(SwapChain& swapChain);
-	static void recreateSwapChain(SwapChain& swapChain, VulkanDevice& device, Window& window, RenderGraph& rg,
-	                              DescriptorManager& dManager, GlobalDSetComponent& globalDSetComponent, GraphicsSettingsComponent settings);
+	static void recreateSwapChain(SwapChain& swapChain, VulkanDevice& device, Window& window);
 
 	static vk::SurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<vk::SurfaceFormatKHR>& availableFormats);
 	static vk::PresentModeKHR chooseSwapPresentMode(const std::vector<vk::PresentModeKHR>& availablePresentModes);

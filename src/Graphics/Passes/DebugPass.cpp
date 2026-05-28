@@ -6,6 +6,7 @@
 #include "../GraphicsContexts.hpp"
 #include "../SwapChain.hpp"
 #include "../Components/SwapChainComponent.hpp"
+#include "../Components/TextureManagerComponent.hpp"
 #include "../Components/DescriptorManagerComponent.hpp"
 #include "../Components/PipelineManagerComponent.hpp"
 #include "../Components/GraphicsSettingsComponent.hpp"
@@ -16,7 +17,9 @@
 #include "../Resources/Components/GlobalDSetComponent.hpp"
 #include "../Resources/Components/MeshInfoComponent.hpp"
 #include "../Resources/Managers/ModelManager.hpp"
+#include "../Resources/Managers/TextureManager.hpp"
 #include "../Managers/PipelineManager.hpp"
+#include "../Factories/PipelineFactory.hpp"
 #include "../RenderGraph/RenderGraph.hpp"
 
 struct AABBPush
@@ -27,6 +30,61 @@ struct AABBPush
 	glm::vec3 aabbMax;
 	float p1 = 0.0f;
 };
+
+void DebugPass::onInit(Orhescyon::GeneralManager& gm)
+{
+	auto& pManager = *gm.getContextComponent<PipelineManagerContext, PipelineManagerComponent>()->pipelineManager;
+	auto& tManager = *gm.getContextComponent<TextureManagerContext, TextureManagerComponent>()->textureManager;
+	auto& swapChain = *gm.getContextComponent<MainSwapChainContext, SwapChainComponent>()->swapChainInstance;
+	auto depthFormat = tManager.findBestFormat();
+
+	pManager.build(
+	    PipelineDescription{
+	        .shaderPath = "shaders/aabb_debug.spv",
+	        .topology = vk::PrimitiveTopology::eLineList,
+	        .cullMode = vk::CullModeFlagBits::eNone,
+	        .depthTest = true,
+	        .depthWrite = false,
+	        .depthOp = vk::CompareOp::eGreater,
+	        .colorAttachments = {PipelineFactory::opaqueAttachment()},
+	        .colorFormats = {swapChain.hdrFormat},
+	        .depthFormat = depthFormat,
+	        .setLayoutNames = {"globalSet"},
+	        .pushConstants = {{vk::ShaderStageFlagBits::eVertex, 0, 96u}},
+	    },
+	    "aabb_debug");
+
+	pManager.build(
+	    PipelineDescription{
+	        .shaderPath = "shaders/aabb_debug.spv",
+	        .topology = vk::PrimitiveTopology::eLineList,
+	        .cullMode = vk::CullModeFlagBits::eNone,
+	        .depthTest = false,
+	        .depthWrite = false,
+	        .colorAttachments = {PipelineFactory::opaqueAttachment()},
+	        .colorFormats = {swapChain.hdrFormat},
+	        .depthFormat = depthFormat,
+	        .setLayoutNames = {"globalSet"},
+	        .pushConstants = {{vk::ShaderStageFlagBits::eVertex, 0, 96u}},
+	    },
+	    "aabb_debug_ontop");
+
+	pManager.build(
+	    PipelineDescription{
+	        .shaderPath = "shaders/gi_probe_debug.spv",
+	        .topology = vk::PrimitiveTopology::eTriangleList,
+	        .cullMode = vk::CullModeFlagBits::eBack,
+	        .depthTest = true,
+	        .depthWrite = false,
+	        .depthOp = vk::CompareOp::eGreater,
+	        .colorAttachments = {PipelineFactory::opaqueAttachment()},
+	        .colorFormats = {swapChain.hdrFormat},
+	        .depthFormat = depthFormat,
+	        .setLayoutNames = {"globalSet"},
+	        .pushConstants = {{vk::ShaderStageFlagBits::eVertex, 0, 32u}},
+	    },
+	    "gi_probe_debug");
+}
 
 void DebugPass::addToGraph(Orhescyon::GeneralManager& gm, RenderGraph& rg, uint32_t frame)
 {

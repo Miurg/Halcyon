@@ -7,26 +7,122 @@
 #include "../Components/SwapChainComponent.hpp"
 #include "../Components/BufferManagerComponent.hpp"
 #include "../Components/ModelManagerComponent.hpp"
+#include "../Components/TextureManagerComponent.hpp"
 #include "../Components/DescriptorManagerComponent.hpp"
 #include "../Components/PipelineManagerComponent.hpp"
 #include "../Components/GraphicsSettingsComponent.hpp"
 #include "../Components/SkyboxComponent.hpp"
 #include "../Components/DrawInfoComponent.hpp"
+#include "../Components/RenderGraphComponent.hpp"
 #include "../Resources/Components/GlobalDSetComponent.hpp"
 #include "../Resources/Components/ModelDSetComponent.hpp"
 #include "../Resources/Components/BindlessTextureDSetComponent.hpp"
 #include "../Resources/Managers/BufferManager.hpp"
 #include "../Resources/Managers/ModelManager.hpp"
+#include "../Resources/Managers/TextureManager.hpp"
 #include "../Resources/Managers/Bindings.hpp"
 #include "../Resources/Managers/DescriptorManager.hpp"
+#include "../Resources/Managers/Vertex.hpp"
 #include "../Managers/PipelineManager.hpp"
+#include "../Factories/PipelineFactory.hpp"
 #include "../RenderGraph/RenderGraph.hpp"
+
+void MainPass::declareStreams(Orhescyon::GeneralManager& gm, vk::SampleCountFlagBits samples)
+{
+	auto& rg = *gm.getContextComponent<RenderGraphContext, RenderGraphComponent>()->renderGraph;
+	auto& swapChain = *gm.getContextComponent<MainSwapChainContext, SwapChainComponent>()->swapChainInstance;
+
+	rg.declareLogicalStream("MainColor", {swapChain.hdrFormat, RGSizeMode::FullExtent, vk::ImageAspectFlagBits::eColor});
+	rg.declareLogicalStream("MainColorMSAA",
+	                        {swapChain.hdrFormat, RGSizeMode::FullExtent, vk::ImageAspectFlagBits::eColor, samples});
+}
+
+void MainPass::buildPipelines(Orhescyon::GeneralManager& gm, vk::SampleCountFlagBits samples, int gtaoEnabled,
+                              bool rebuild)
+{
+	auto& pManager = *gm.getContextComponent<PipelineManagerContext, PipelineManagerComponent>()->pipelineManager;
+	auto& tManager = *gm.getContextComponent<TextureManagerContext, TextureManagerComponent>()->textureManager;
+	auto& swapChain = *gm.getContextComponent<MainSwapChainContext, SwapChainComponent>()->swapChainInstance;
+	auto bindingDesc = Vertex::getBindingDescription();
+	auto attrDescs = Vertex::getAttributeDescriptions();
+	auto depthFormat = tManager.findBestFormat();
+	std::vector<std::string> mainLayouts = {"globalSet", "modelSet", "textureSet"};
+
+	auto makeForward = [&](int alphaTest, int ibl, vk::CompareOp depthOp)
+	{
+		return PipelineDescription{
+		    .shaderPath = "shaders/standard_forward.spv",
+		    .specializationValues = {alphaTest, ibl, gtaoEnabled},
+		    .vertexBindings = {bindingDesc},
+		    .vertexAttributes = std::vector<vk::VertexInputAttributeDescription>(attrDescs.begin(), attrDescs.end()),
+		    .cullMode = vk::CullModeFlagBits::eBack,
+		    .depthTest = true,
+		    .depthWrite = false,
+		    .depthOp = depthOp,
+		    .colorAttachments = {PipelineFactory::blendedAttachment()},
+		    .colorFormats = {swapChain.hdrFormat},
+		    .depthFormat = depthFormat,
+		    .rasterizationSamples = samples,
+		    .setLayoutNames = mainLayouts,
+		};
+	};
+
+	PipelineDescription skyboxDesc{
+	    .shaderPath = "shaders/skybox.spv",
+	    .cullMode = vk::CullModeFlagBits::eNone,
+	    .depthTest = true,
+	    .depthWrite = false,
+	    .depthOp = vk::CompareOp::eEqual,
+	    .colorAttachments = {PipelineFactory::blendedAttachment()},
+	    .colorFormats = {swapChain.hdrFormat},
+	    .depthFormat = depthFormat,
+	    .rasterizationSamples = samples,
+	    .setLayoutNames = mainLayouts,
+	};
+
+	if (rebuild)
+	{
+		pManager.rebuild(makeForward(0, 1, vk::CompareOp::eEqual), "standard_forward_opaque");
+		pManager.rebuild(makeForward(0, 0, vk::CompareOp::eEqual), "standard_forward_opaque_no_ibl");
+		pManager.rebuild(makeForward(1, 1, vk::CompareOp::eGreaterOrEqual), "standard_forward_alpha");
+		pManager.rebuild(makeForward(1, 0, vk::CompareOp::eGreaterOrEqual), "standard_forward_alpha_no_ibl");
+		pManager.rebuild(skyboxDesc, "skybox");
+	}
+	else
+	{
+		pManager.build(makeForward(0, 1, vk::CompareOp::eEqual), "standard_forward_opaque");
+		pManager.build(makeForward(0, 0, vk::CompareOp::eEqual), "standard_forward_opaque_no_ibl");
+		pManager.build(makeForward(1, 1, vk::CompareOp::eGreaterOrEqual), "standard_forward_alpha");
+		pManager.build(makeForward(1, 0, vk::CompareOp::eGreaterOrEqual), "standard_forward_alpha_no_ibl");
+		pManager.build(skyboxDesc);
+	}
+}
+
+void MainPass::onInit(Orhescyon::GeneralManager& gm)
+{
+	auto& settings = *gm.getContextComponent<GraphicsSettingsContext, GraphicsSettingsComponent>();
+	const int gtaoEnabled = settings.enableGtao ? 1 : 0;
+	declareStreams(gm, settings.msaaSamples);
+	buildPipelines(gm, settings.msaaSamples, gtaoEnabled, false);
+}
+
+void MainPass::onSettingsChanged(Orhescyon::GeneralManager& gm)
+{
+	auto& settings = *gm.getContextComponent<GraphicsSettingsContext, GraphicsSettingsComponent>();
+	const bool msaaChanged = settings.msaaSamples != settings.appliedMsaaSamples;
+	const bool gtaoChanged = settings.enableGtao != settings.appliedGtao;
+	if (!msaaChanged && !gtaoChanged) return;
+
+	const int gtaoEnabled = settings.enableGtao ? 1 : 0;
+	if (msaaChanged) declareStreams(gm, settings.msaaSamples);
+	buildPipelines(gm, settings.msaaSamples, gtaoEnabled, true);
+}
 
 void MainPass::draw(vk::raii::CommandBuffer& cmd, SwapChain& swapChain, uint32_t frame,
                     BindlessTextureDSetComponent& bindlessTextureDSetComponent, DescriptorManagerComponent& dManager,
                     GlobalDSetComponent& globalDSetComponent, BufferManager& bManager,
-                    ModelDSetComponent& objectDSetComponent, ModelManager& mManager,
-                    const DrawInfoComponent& drawInfo, PipelineManager& pManager, bool hasSkybox)
+                    ModelDSetComponent& objectDSetComponent, ModelManager& mManager, const DrawInfoComponent& drawInfo,
+                    PipelineManager& pManager, bool hasSkybox)
 {
 	cmd.setViewport(0, vk::Viewport(0.0f, 0.0f, static_cast<float>(swapChain.swapChainExtent.width),
 	                                static_cast<float>(swapChain.swapChainExtent.height), 0.0f, 1.0f));
@@ -130,8 +226,7 @@ void MainPass::addToGraph(Orhescyon::GeneralManager& gm, RenderGraph& rg, uint32
 	auto& mManager = *gm.getContextComponent<ModelManagerContext, ModelManagerComponent>()->modelManager;
 	auto& drawInfo = *gm.getContextComponent<CurrentFrameContext, DrawInfoComponent>();
 	auto& pManager = *gm.getContextComponent<PipelineManagerContext, PipelineManagerComponent>()->pipelineManager;
-	auto& bindlessTextureDSetComponent =
-	    *gm.getContextComponent<MainDSetsContext, BindlessTextureDSetComponent>();
+	auto& bindlessTextureDSetComponent = *gm.getContextComponent<MainDSetsContext, BindlessTextureDSetComponent>();
 	auto& graphicsSettings = *gm.getContextComponent<GraphicsSettingsContext, GraphicsSettingsComponent>();
 	bool hasSkybox = gm.getContextComponent<SkyBoxContext, SkyboxComponent>()->hasSkybox;
 
@@ -156,14 +251,13 @@ void MainPass::addToGraph(Orhescyon::GeneralManager& gm, RenderGraph& rg, uint32
 			    draw(cmd, swapChain, frame, bindlessTextureDSetComponent, dManager, globalDSetComponent, bManager,
 			         objectDSetComponent, mManager, drawInfo, pManager, hasSkybox);
 		    },
-		    [&dManager, &globalDSetComponent, &graphicsSettings]
-		    (const RenderGraph& graph, const RGPass& pass)
+		    [&dManager, &globalDSetComponent, &graphicsSettings](const RenderGraph& graph, const RGPass& pass)
 		    {
 			    if (!graphicsSettings.enableGtao) return;
 			    auto h = pass.getPhysicalRead("GTAOTexture");
 			    dManager.descriptorManager->updateSingleTextureDSet(globalDSetComponent.globalDSets,
-			                                                        Bindings::Global::GtaoTexture,
-			                                                        graph.getImageView(h), graph.getSampler(h));
+			                                                        Bindings::Global::GtaoTexture, graph.getImageView(h),
+			                                                        graph.getSampler(h));
 		    });
 	}
 	else
@@ -185,14 +279,13 @@ void MainPass::addToGraph(Orhescyon::GeneralManager& gm, RenderGraph& rg, uint32
 			    draw(cmd, swapChain, frame, bindlessTextureDSetComponent, dManager, globalDSetComponent, bManager,
 			         objectDSetComponent, mManager, drawInfo, pManager, hasSkybox);
 		    },
-		    [&dManager, &globalDSetComponent, &graphicsSettings]
-		    (const RenderGraph& graph, const RGPass& pass) 
-		    { 
+		    [&dManager, &globalDSetComponent, &graphicsSettings](const RenderGraph& graph, const RGPass& pass)
+		    {
 			    if (!graphicsSettings.enableGtao) return;
 			    auto h = pass.getPhysicalRead("GTAOTexture");
 			    dManager.descriptorManager->updateSingleTextureDSet(globalDSetComponent.globalDSets,
-			                                                        Bindings::Global::GtaoTexture,
-			                                                        graph.getImageView(h), graph.getSampler(h));
+			                                                        Bindings::Global::GtaoTexture, graph.getImageView(h),
+			                                                        graph.getSampler(h));
 		    });
 	}
 }

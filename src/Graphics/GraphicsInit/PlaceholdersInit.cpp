@@ -2,8 +2,6 @@
 #include <limits>
 #include "GraphicsInit.hpp"
 #include "../Components/VulkanDeviceComponent.hpp"
-#include "../Components/SwapChainComponent.hpp"
-#include "../Components/VMAllocatorComponent.hpp"
 #include "../Components/TextureManagerComponent.hpp"
 #include "../Components/BufferManagerComponent.hpp"
 #include "../Components/DescriptorManagerComponent.hpp"
@@ -11,8 +9,6 @@
 #include "../Resources/Components/GlobalDSetComponent.hpp"
 #include "../Resources/Components/ModelDSetComponent.hpp"
 #include "../Components/GtaoSettingsComponent.hpp"
-#include "../Components/RenderGraphComponent.hpp"
-#include "../RenderGraph/RenderGraph.hpp"
 #include "../Components/NameComponent.hpp"
 #include "../Components/CameraComponent.hpp"
 #include "../Components/DirectLightComponent.hpp"
@@ -21,12 +17,10 @@
 #include "../Components/RelationshipComponent.hpp"
 #include "../Components/SkyboxComponent.hpp"
 #include "../VulkanDevice.hpp"
-#include "../SwapChain.hpp"
 #include "../Resources/Managers/TextureManager.hpp"
 #include "../Resources/Managers/BufferManager.hpp"
 #include "../Resources/Managers/ModelManager.hpp"
 #include "../Resources/Managers/DescriptorManager.hpp"
-#include "../Resources/Factories/TextureUploader.hpp"
 #include "../VulkanUtils.hpp"
 #include "../GraphicsContexts.hpp"
 #include "../Resources/ResourceStructures.hpp"
@@ -35,7 +29,7 @@
 #include "../Resources/Factories/GltfLoader.hpp"
 #include "../Components/LightProbeGridComponent.hpp"
 
-void PlaceholdersInit::initPlaceholders(GeneralManager& gm) 
+void PlaceholdersInit::initPlaceholders(GeneralManager& gm)
 {
 #ifdef _DEBUG
 	std::cout << "GRAPHICSINIT::PLACEHOLDERENTITYS::Start creating placeholder entities" << std::endl;
@@ -48,8 +42,6 @@ void PlaceholdersInit::initPlaceholders(GeneralManager& gm)
 	BindlessTextureDSetComponent* bTextureDSetComponent =
 	    gm.getContextComponent<MainDSetsContext, BindlessTextureDSetComponent>();
 	GlobalDSetComponent* globalDSetComponent = gm.getContextComponent<MainDSetsContext, GlobalDSetComponent>();
-	SwapChain* swap = gm.getContextComponent<MainSwapChainContext, SwapChainComponent>()->swapChainInstance;
-	VmaAllocator allocator = gm.getContextComponent<VMAllocatorContext, VMAllocatorComponent>()->allocator;
 	VulkanDevice* vulkanDevice =
 	    gm.getContextComponent<MainVulkanDeviceContext, VulkanDeviceComponent>()->vulkanDeviceInstance;
 	PipelineManager& pManager =
@@ -142,28 +134,27 @@ void PlaceholdersInit::initPlaceholders(GeneralManager& gm)
 	                           vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst);
 	{
 		SHProbeEntry skyboxSlot{};
-		skyboxSlot.position        = glm::vec3(0.0f);
+		skyboxSlot.position = glm::vec3(0.0f);
 		skyboxSlot.influenceRadius = std::numeric_limits<float>::max();
 		auto cmd = VulkanUtils::beginSingleTimeCommands(*vulkanDevice);
-		cmd.updateBuffer(bManager->buffers[globalDSetComponent->shProbeBuffer.id].buffer[0],
-		                 0, vk::ArrayProxy<const SHProbeEntry>(1, &skyboxSlot));
+		cmd.updateBuffer(bManager->buffers[globalDSetComponent->shProbeBuffer.id].buffer[0], 0,
+		                 vk::ArrayProxy<const SHProbeEntry>(1, &skyboxSlot));
 		VulkanUtils::endSingleTimeCommands(cmd, *vulkanDevice);
 	}
 	dManager->updateStorageBufferDescriptors(*bManager, globalDSetComponent->shProbeBuffer,
 	                                         globalDSetComponent->globalDSets, Bindings::Global::SHProbes);
 
 	// SH Probe count - slot 0 (skybox) always present, so initial count = 1.
-	globalDSetComponent->shProbeCountBuffer =
-	    bManager->createBuffer((vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal),
-	                           sizeof(uint32_t), 1,
-	                           vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst);
+	globalDSetComponent->shProbeCountBuffer = bManager->createBuffer(
+	    (vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal), sizeof(uint32_t), 1,
+	    vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst);
 	dManager->updateStorageBufferDescriptors(*bManager, globalDSetComponent->shProbeCountBuffer,
 	                                         globalDSetComponent->globalDSets, Bindings::Global::SHProbeCount);
 	{
 		uint32_t initialCount = 1u;
 		auto cmd = VulkanUtils::beginSingleTimeCommands(*vulkanDevice);
-		cmd.updateBuffer(bManager->buffers[globalDSetComponent->shProbeCountBuffer.id].buffer[0],
-		                 0, vk::ArrayProxy<const uint32_t>(1, &initialCount));
+		cmd.updateBuffer(bManager->buffers[globalDSetComponent->shProbeCountBuffer.id].buffer[0], 0,
+		                 vk::ArrayProxy<const uint32_t>(1, &initialCount));
 		VulkanUtils::endSingleTimeCommands(cmd, *vulkanDevice);
 	}
 #pragma endregion
@@ -277,61 +268,6 @@ void PlaceholdersInit::initPlaceholders(GeneralManager& gm)
 	                                         objectDSetComponent->modelBufferDSet, 5);
 #pragma endregion
 
-#pragma region Post-Processing & GTAO Descriptor Sets
-	RenderGraph* rg = gm.getContextComponent<RenderGraphContext, RenderGraphComponent>()->renderGraph;
-	globalDSetComponent->fxaaDSets        = dManager->allocate("screenSpaceSet");
-	globalDSetComponent->gtaoDSets        = dManager->allocate("screenSpaceSet");
-	globalDSetComponent->gtaoBlurHDSets   = dManager->allocate("screenSpaceSet");
-	globalDSetComponent->gtaoBlurVDSets   = dManager->allocate("screenSpaceSet");
-	globalDSetComponent->toneMappingDSets = dManager->allocate("screenSpaceSet");
-	globalDSetComponent->vignetteDSets    = dManager->allocate("screenSpaceSet");
-
-	// Bloom descriptor sets (5 downsample + 5 upsample)
-	for (int i = 0; i < 5; i++)
-	{
-		globalDSetComponent->bloomDownsampleDSets[i] = dManager->allocate("screenSpaceSet");
-		globalDSetComponent->bloomUpsampleDSets[i]   = dManager->allocate("screenSpaceSet");
-	}
-
-	for (int i = 0; i < 16; i++)
-	{
-		globalDSetComponent->HiZDSets[i] = dManager->allocate("hiZSet");
-	}
-
-	// GTAO NoiseInput is a static texture — write it manually.
-	tManager->textures.push_back(Texture());
-	Texture& noiseTexture = tManager->textures.back();
-	tManager->createImage(64, 64, vk::Format::eR8G8B8A8Unorm, vk::ImageTiling::eOptimal,
-	                      vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eTransferDst |
-	                          vk::ImageUsageFlagBits::eSampled,
-	                      VMA_MEMORY_USAGE_AUTO, noiseTexture, 1);
-	tManager->createImageView(noiseTexture, vk::Format::eR8G8B8A8Unorm, vk::ImageAspectFlagBits::eColor);
-
-	vk::PhysicalDeviceProperties properties = vulkanDevice->physicalDevice.getProperties();
-	vk::SamplerCreateInfo samplerInfo;
-	samplerInfo.magFilter = vk::Filter::eNearest;
-	samplerInfo.minFilter = vk::Filter::eNearest;
-	samplerInfo.mipmapMode = vk::SamplerMipmapMode::eNearest;
-	samplerInfo.addressModeU = vk::SamplerAddressMode::eRepeat;
-	samplerInfo.addressModeV = vk::SamplerAddressMode::eRepeat;
-	samplerInfo.addressModeW = vk::SamplerAddressMode::eRepeat;
-	samplerInfo.anisotropyEnable = vk::False;
-	samplerInfo.compareOp = vk::CompareOp::eAlways;
-	samplerInfo.borderColor = vk::BorderColor::eIntOpaqueBlack;
-	samplerInfo.minLod = 0.0f;
-	samplerInfo.maxLod = 0.0f;
-
-	noiseTexture.textureSampler = (*vulkanDevice->device).createSampler(samplerInfo);
-	int noiseIndex = static_cast<int>(tManager->textures.size() - 1);
-	swap->gtaoNoiseTextureHandle.id = noiseIndex;
-	TextureUploader::uploadTextureFromFile("assets/textures/LDR_RG01_56.png",
-	                                       tManager->textures[swap->gtaoNoiseTextureHandle.id], allocator,
-	                                       *vulkanDevice);
-	dManager->updateSingleTextureDSet(globalDSetComponent->gtaoDSets, Bindings::GTAO::NoiseInput,
-	                                  tManager->textures[swap->gtaoNoiseTextureHandle.id].textureImageView,
-	                                  tManager->textures[swap->gtaoNoiseTextureHandle.id].textureSampler);
-#pragma endregion
-
 #pragma region GTAO Settings
 	Orhescyon::Entity gtaoSettingsEntity = gm.createEntity();
 	gm.addComponent<NameComponent>(gtaoSettingsEntity, "GTAO Settings");
@@ -342,11 +278,8 @@ void PlaceholdersInit::initPlaceholders(GeneralManager& gm)
 #pragma region Light Probe Grid
 	Orhescyon::Entity probeGridEntity = gm.createEntity();
 	gm.registerContext<LightProbeGridContext>(probeGridEntity);
-	gm.addComponent<LightProbeGridComponent>(probeGridEntity, LightProbeGridComponent{
-	    .origin  = glm::vec3(0.0f),
-	    .count   = glm::ivec3(0),
-	    .spacing = 0.0f
-	});
+	gm.addComponent<LightProbeGridComponent>(
+	    probeGridEntity, LightProbeGridComponent{.origin = glm::vec3(0.0f), .count = glm::ivec3(0), .spacing = 0.0f});
 	gm.addComponent<NameComponent>(probeGridEntity, "SYSTEM Light Probe Grid");
 #pragma endregion
 

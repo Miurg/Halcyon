@@ -1,7 +1,6 @@
 #pragma once
 
 #include <vulkan/vulkan_raii.hpp>
-#include "Resources/Managers/ResourceHandles.hpp"
 
 class SwapChain
 {
@@ -12,6 +11,5 @@ public:
 	std::vector<vk::Image> swapChainImages;
 	std::vector<vk::raii::ImageView> swapChainImageViews;
 
-	TextureHandle gtaoNoiseTextureHandle;
 	vk::Format hdrFormat = vk::Format::eR16G16B16A16Sfloat;
 };

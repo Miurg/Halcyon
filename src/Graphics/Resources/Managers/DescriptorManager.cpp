@@ -130,15 +130,10 @@ DescriptorManager::DescriptorManager(VulkanDevice& vulkanDevice)
 	{
 		using S = vk::ShaderStageFlagBits;
 		std::array hiZBindings = {
-		    vk::DescriptorSetLayoutBinding(Bindings::HiZ::DepthInput, vk::DescriptorType::eCombinedImageSampler,
-		                                   1, S::eCompute),
-		    vk::DescriptorSetLayoutBinding(Bindings::HiZ::MipOutput, vk::DescriptorType::eStorageImage,
-		                                   1, S::eCompute)
-		};
-		std::array<vk::DescriptorBindingFlags, 2> hiZBindingFlags = {
-		    vk::DescriptorBindingFlags{},
-		    vk::DescriptorBindingFlags{}
-		};
+		    vk::DescriptorSetLayoutBinding(0, vk::DescriptorType::eCombinedImageSampler, 1, S::eCompute),
+		    vk::DescriptorSetLayoutBinding(1, vk::DescriptorType::eStorageImage, 1, S::eCompute)};
+		std::array<vk::DescriptorBindingFlags, 2> hiZBindingFlags = {vk::DescriptorBindingFlags{},
+		                                                             vk::DescriptorBindingFlags{}};
 		vk::DescriptorSetLayoutBindingFlagsCreateInfo bindingFlagsInfo;
 		bindingFlagsInfo.bindingCount = static_cast<uint32_t>(hiZBindingFlags.size());
 		bindingFlagsInfo.pBindingFlags = hiZBindingFlags.data();

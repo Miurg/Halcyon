@@ -7,16 +7,47 @@
 #include "../Components/SwapChainComponent.hpp"
 #include "../Components/DescriptorManagerComponent.hpp"
 #include "../Components/PipelineManagerComponent.hpp"
-#include "../Resources/Components/GlobalDSetComponent.hpp"
-#include "../Resources/Managers/Bindings.hpp"
+#include "../Components/RenderGraphComponent.hpp"
+#include "../Resources/Managers/DescriptorManager.hpp"
 #include "../Managers/PipelineManager.hpp"
+#include "../Factories/PipelineFactory.hpp"
 #include "../RenderGraph/RenderGraph.hpp"
+
+namespace
+{
+enum Binding : uint32_t
+{
+	OffscreenInput = 0,
+};
+}
+
+void ToneMappingPass::onInit(Orhescyon::GeneralManager& gm)
+{
+	auto& dManager = *gm.getContextComponent<DescriptorManagerContext, DescriptorManagerComponent>()->descriptorManager;
+	auto& pManager = *gm.getContextComponent<PipelineManagerContext, PipelineManagerComponent>()->pipelineManager;
+	auto& swapChain = *gm.getContextComponent<MainSwapChainContext, SwapChainComponent>()->swapChainInstance;
+	auto& rg = *gm.getContextComponent<RenderGraphContext, RenderGraphComponent>()->renderGraph;
+
+	// PostProcessColor is the shared post-process target
+	rg.declareLogicalStream("PostProcessColor",
+	                        {swapChain.swapChainImageFormat, RGSizeMode::FullExtent, vk::ImageAspectFlagBits::eColor});
+	rg.setTerminalOutput("PostProcessColor", "swapChainImage");
+
+	_dset = dManager.allocate("screenSpaceSet");
+
+	pManager.build(PipelineDescription{
+	    .shaderPath = "shaders/tone_mapping.spv",
+	    .cullMode = vk::CullModeFlagBits::eNone,
+	    .colorAttachments = {PipelineFactory::opaqueAttachment()},
+	    .colorFormats = {swapChain.swapChainImageFormat},
+	    .setLayoutNames = {"screenSpaceSet"},
+	});
+}
 
 void ToneMappingPass::addToGraph(Orhescyon::GeneralManager& gm, RenderGraph& rg, uint32_t /*frame*/)
 {
 	auto& swapChain = *gm.getContextComponent<MainSwapChainContext, SwapChainComponent>()->swapChainInstance;
 	auto& dManager = *gm.getContextComponent<DescriptorManagerContext, DescriptorManagerComponent>();
-	auto& globalDSetComponent = *gm.getContextComponent<MainDSetsContext, GlobalDSetComponent>();
 	auto& pManager = *gm.getContextComponent<PipelineManagerContext, PipelineManagerComponent>()->pipelineManager;
 
 	vk::ClearValue clearBlack = vk::ClearColorValue(0.0f, 0.0f, 0.0f, 0.0f);
@@ -25,7 +56,7 @@ void ToneMappingPass::addToGraph(Orhescyon::GeneralManager& gm, RenderGraph& rg,
 	    {.colorAttachments = {{"PostProcessColor", vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore,
 	                           clearBlack}}},
 	    {{"MainColor", RGResourceUsage::ShaderRead}}, {{"PostProcessColor", RGResourceUsage::ColorAttachmentWrite}},
-	    [&](vk::raii::CommandBuffer& cmd)
+	    [&, dset = _dset](vk::raii::CommandBuffer& cmd)
 	    {
 		    cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pManager.pipelines["tone_mapping"].pipeline);
 
@@ -34,16 +65,15 @@ void ToneMappingPass::addToGraph(Orhescyon::GeneralManager& gm, RenderGraph& rg,
 		    cmd.setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), swapChain.swapChainExtent));
 
 		    cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pManager.pipelines["tone_mapping"].layout, 0,
-		                           dManager.descriptorManager->getSet(globalDSetComponent.toneMappingDSets), nullptr);
+		                           dManager.descriptorManager->getSet(dset), nullptr);
 
 		    cmd.setCullMode(vk::CullModeFlagBits::eNone);
 		    cmd.draw(3, 1, 0, 0);
 	    },
-	    [&dManager, &globalDSetComponent](const RenderGraph& graph, const RGPass& pass)
+	    [&dManager, dset = _dset](const RenderGraph& graph, const RGPass& pass)
 	    {
 		    auto colorHnd = pass.getPhysicalRead("MainColor");
-		    dManager.descriptorManager->updateSingleTextureDSet(globalDSetComponent.toneMappingDSets,
-		                                                        Bindings::ToneMapping::OffscreenInput,
+		    dManager.descriptorManager->updateSingleTextureDSet(dset, Binding::OffscreenInput,
 		                                                        graph.getImageView(colorHnd), graph.getSampler(colorHnd));
 	    });
 }

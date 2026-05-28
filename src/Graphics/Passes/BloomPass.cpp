@@ -8,18 +8,71 @@
 #include "../Components/DescriptorManagerComponent.hpp"
 #include "../Components/PipelineManagerComponent.hpp"
 #include "../Components/GraphicsSettingsComponent.hpp"
-#include "../Resources/Components/GlobalDSetComponent.hpp"
-#include "../Resources/Managers/Bindings.hpp"
+#include "../Components/RenderGraphComponent.hpp"
+#include "../Resources/Managers/DescriptorManager.hpp"
 #include "../Managers/PipelineManager.hpp"
+#include "../Factories/PipelineFactory.hpp"
 #include "../RenderGraph/RenderGraph.hpp"
+
+namespace
+{
+namespace DownsampleBinding
+{
+enum : uint32_t
+{
+	InputTexture = 0,
+};
+}
+namespace UpsampleBinding
+{
+enum : uint32_t
+{
+	CurrentTexture = 0,
+};
+}
+} // namespace
 
 bool BloomPass::isEnabled(Orhescyon::GeneralManager& gm) const
 {
 	return gm.getContextComponent<GraphicsSettingsContext, GraphicsSettingsComponent>()->enableBloom;
 }
 
+void BloomPass::onInit(Orhescyon::GeneralManager& gm)
+{
+	auto& dManager = *gm.getContextComponent<DescriptorManagerContext, DescriptorManagerComponent>()->descriptorManager;
+	auto& pManager = *gm.getContextComponent<PipelineManagerContext, PipelineManagerComponent>()->pipelineManager;
+	auto& swapChain = *gm.getContextComponent<MainSwapChainContext, SwapChainComponent>()->swapChainInstance;
+	auto& rg = *gm.getContextComponent<RenderGraphContext, RenderGraphComponent>()->renderGraph;
+
+	for (uint32_t i = 0; i < kMipCount; ++i)
+	{
+		_downsampleDsets[i] = dManager.allocate("screenSpaceSet");
+		_upsampleDsets[i] = dManager.allocate("screenSpaceSet");
+	}
+
+	rg.declareLogicalStream("BloomChain", {swapChain.hdrFormat, RGSizeMode::HalfExtent, vk::ImageAspectFlagBits::eColor,
+	                                       vk::SampleCountFlagBits::e1, kMipCount});
+
+	pManager.build(PipelineDescription{
+	    .shaderPath = "shaders/bloom_downsample.spv",
+	    .cullMode = vk::CullModeFlagBits::eNone,
+	    .colorAttachments = {PipelineFactory::opaqueAttachment()},
+	    .colorFormats = {swapChain.hdrFormat},
+	    .setLayoutNames = {"screenSpaceSet"},
+	    .pushConstants = {{vk::ShaderStageFlagBits::eFragment, 0, 20u}},
+	});
+	pManager.build(PipelineDescription{
+	    .shaderPath = "shaders/bloom_upsample.spv",
+	    .cullMode = vk::CullModeFlagBits::eNone,
+	    .colorAttachments = {PipelineFactory::additiveAttachment()},
+	    .colorFormats = {swapChain.hdrFormat},
+	    .setLayoutNames = {"screenSpaceSet"},
+	    .pushConstants = {{vk::ShaderStageFlagBits::eFragment, 0, 12u}},
+	});
+}
+
 void BloomPass::drawDownsample(vk::raii::CommandBuffer& cmd, DescriptorManagerComponent& dManager,
-                               DSetHandle& dSetHandle, PipelineManager& pManager, float texelSizeX, float texelSizeY,
+                               DSetHandle dSetHandle, PipelineManager& pManager, float texelSizeX, float texelSizeY,
                                float threshold, float knee, int isFirstPass, vk::Extent2D extent)
 {
 	cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pManager.pipelines["bloom_downsample"].pipeline);
@@ -50,9 +103,9 @@ void BloomPass::drawDownsample(vk::raii::CommandBuffer& cmd, DescriptorManagerCo
 	cmd.draw(3, 1, 0, 0);
 }
 
-void BloomPass::drawUpsample(vk::raii::CommandBuffer& cmd, DescriptorManagerComponent& dManager,
-                             DSetHandle& dSetHandle, PipelineManager& pManager, float texelSizeX, float texelSizeY,
-                             float blendFactor, vk::Extent2D extent)
+void BloomPass::drawUpsample(vk::raii::CommandBuffer& cmd, DescriptorManagerComponent& dManager, DSetHandle dSetHandle,
+                             PipelineManager& pManager, float texelSizeX, float texelSizeY, float blendFactor,
+                             vk::Extent2D extent)
 {
 	cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pManager.pipelines["bloom_upsample"].pipeline);
 
@@ -82,13 +135,10 @@ void BloomPass::addToGraph(Orhescyon::GeneralManager& gm, RenderGraph& rg, uint3
 {
 	auto& swapChain = *gm.getContextComponent<MainSwapChainContext, SwapChainComponent>()->swapChainInstance;
 	auto& dManager = *gm.getContextComponent<DescriptorManagerContext, DescriptorManagerComponent>();
-	auto& globalDSetComponent = *gm.getContextComponent<MainDSetsContext, GlobalDSetComponent>();
 	auto& pManager = *gm.getContextComponent<PipelineManagerContext, PipelineManagerComponent>()->pipelineManager;
 	auto& graphicsSettings = *gm.getContextComponent<GraphicsSettingsContext, GraphicsSettingsComponent>();
 
 	vk::ClearValue clearBlack = vk::ClearColorValue(0.0f, 0.0f, 0.0f, 0.0f);
-
-	constexpr uint32_t kMipCount = 5;
 
 	float threshold = graphicsSettings.bloomThreshold;
 	float knee = graphicsSettings.bloomKnee;
@@ -109,68 +159,63 @@ void BloomPass::addToGraph(Orhescyon::GeneralManager& gm, RenderGraph& rg, uint3
 		float texelX = 1.0f / static_cast<float>(srcExt.width);
 		float texelY = 1.0f / static_cast<float>(srcExt.height);
 		int isFirst = (i == 0) ? 1 : 0;
-		uint32_t passIdx = i;
 
 		std::string srcName = (i == 0) ? "MainColor" : "BloomChain";
 		uint32_t srcMip = (i == 0) ? 0 : (i - 1);
 
-		RGAttachmentConfig colorAtt{
-		    .name = "BloomChain", .loadOp = vk::AttachmentLoadOp::eClear, .storeOp = vk::AttachmentStoreOp::eStore,
-		    .clearValue = clearBlack, .mipLevel = i};
+		RGAttachmentConfig colorAtt{.name = "BloomChain",
+		                            .loadOp = vk::AttachmentLoadOp::eClear,
+		                            .storeOp = vk::AttachmentStoreOp::eStore,
+		                            .clearValue = clearBlack,
+		                            .mipLevel = i};
+
+		DSetHandle dset = _downsampleDsets[i];
 
 		rg.addPass(
-		    "BloomDown" + std::to_string(i),
-		    {.colorAttachments = {colorAtt}},
+		    "BloomDown" + std::to_string(i), {.colorAttachments = {colorAtt}},
 		    {{srcName, RGResourceUsage::ShaderRead, srcMip, 1}},
 		    {{"BloomChain", RGResourceUsage::ColorAttachmentWrite, i, 1}},
-		    [&, texelX, texelY, threshold, knee, isFirst, dstExt, passIdx](vk::raii::CommandBuffer& cmd)
-		    {
-			    drawDownsample(cmd, dManager, globalDSetComponent.bloomDownsampleDSets[passIdx], pManager, texelX,
-			                   texelY, threshold, knee, isFirst, dstExt);
-		    },
-		    [dManager, globalDSetComponent, passIdx, srcName, srcMip](const RenderGraph& graph, const RGPass& pass)
+		    [&, texelX, texelY, threshold, knee, isFirst, dstExt, dset](vk::raii::CommandBuffer& cmd)
+		    { drawDownsample(cmd, dManager, dset, pManager, texelX, texelY, threshold, knee, isFirst, dstExt); },
+		    [dManager, srcName, srcMip, dset](const RenderGraph& graph, const RGPass& pass)
 		    {
 			    auto srcHnd = pass.getPhysicalRead(srcName);
 			    dManager.descriptorManager->updateSingleTextureDSet(
-			        globalDSetComponent.bloomDownsampleDSets[passIdx], Bindings::BloomDownsample::InputTexture,
-			        graph.getImageView(srcHnd, srcMip), graph.getSampler(srcHnd));
+			        dset, DownsampleBinding::InputTexture, graph.getImageView(srcHnd, srcMip), graph.getSampler(srcHnd));
 		    });
 	}
 
-	// Upsample 
+	// Upsample
 	for (uint32_t i = 0; i < kMipCount; ++i)
 	{
 		uint32_t srcMip = kMipCount - 1 - i;
 		vk::Extent2D srcExt = mipExtent(srcMip);
 		float texelX = 1.0f / static_cast<float>(srcExt.width);
 		float texelY = 1.0f / static_cast<float>(srcExt.height);
-		uint32_t passIdx = i;
 
 		bool isLast = (i == kMipCount - 1);
 		std::string dstName = isLast ? "MainColor" : "BloomChain";
 		uint32_t dstMip = isLast ? 0 : (srcMip - 1);
 		vk::Extent2D dstExt = isLast ? swapChain.swapChainExtent : mipExtent(dstMip);
 
-		RGAttachmentConfig colorAtt{
-		    .name = dstName, .loadOp = vk::AttachmentLoadOp::eLoad, .storeOp = vk::AttachmentStoreOp::eStore,
-		    .mipLevel = dstMip};
+		RGAttachmentConfig colorAtt{.name = dstName,
+		                            .loadOp = vk::AttachmentLoadOp::eLoad,
+		                            .storeOp = vk::AttachmentStoreOp::eStore,
+		                            .mipLevel = dstMip};
+
+		DSetHandle dset = _upsampleDsets[i];
 
 		rg.addPass(
-		    "BloomUp" + std::to_string(i),
-		    {.colorAttachments = {colorAtt}},
+		    "BloomUp" + std::to_string(i), {.colorAttachments = {colorAtt}},
 		    {{"BloomChain", RGResourceUsage::ShaderRead, srcMip, 1}},
 		    {{dstName, RGResourceUsage::ColorAttachmentWrite, dstMip, 1}},
-		    [&, texelX, texelY, intensity, dstExt, passIdx](vk::raii::CommandBuffer& cmd)
-		    {
-			    drawUpsample(cmd, dManager, globalDSetComponent.bloomUpsampleDSets[passIdx], pManager, texelX, texelY,
-			                 intensity, dstExt);
-		    },
-		    [dManager, globalDSetComponent, passIdx, srcMip](const RenderGraph& graph, const RGPass& pass)
+		    [&, texelX, texelY, intensity, dstExt, dset](vk::raii::CommandBuffer& cmd)
+		    { drawUpsample(cmd, dManager, dset, pManager, texelX, texelY, intensity, dstExt); },
+		    [dManager, srcMip, dset](const RenderGraph& graph, const RGPass& pass)
 		    {
 			    auto srcHnd = pass.getPhysicalRead("BloomChain");
 			    dManager.descriptorManager->updateSingleTextureDSet(
-			        globalDSetComponent.bloomUpsampleDSets[passIdx], Bindings::BloomUpsample::CurrentTexture,
-			        graph.getImageView(srcHnd, srcMip), graph.getSampler(srcHnd));
+			        dset, UpsampleBinding::CurrentTexture, graph.getImageView(srcHnd, srcMip), graph.getSampler(srcHnd));
 		    });
 	}
 }

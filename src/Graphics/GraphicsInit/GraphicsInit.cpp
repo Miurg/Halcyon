@@ -52,13 +52,13 @@ void GraphicsInit::Run(GeneralManager& gm)
 	std::cout << "GRAPHICSINIT::RUN::Start init" << std::endl;
 #endif //_DEBUG
 
-	coreInit(gm);
 	initVulkanCore(gm);
 	initManagers(gm);
 	initFrameData(gm);
 	GraphicsPipelinesInit::initPipelines(gm);
 	PlaceholdersInit::initPlaceholders(gm);
 	initImGui(gm);
+	coreInit(gm);
 
 #ifdef _DEBUG
 	std::cout << "GRAPHICSINIT::RUN::Succes!" << std::endl;

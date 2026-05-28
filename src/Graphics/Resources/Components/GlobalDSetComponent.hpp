@@ -10,13 +10,4 @@ struct GlobalDSetComponent
 	BufferHandle pointLightCountBuffer;
 	BufferHandle shProbeBuffer;      // SHProbeEntry[MAX_SH_PROBES] — slot 0 = skybox fallback
 	BufferHandle shProbeCountBuffer; // single uint32_t
-	DSetHandle fxaaDSets;
-	DSetHandle gtaoDSets;
-	DSetHandle gtaoBlurHDSets;
-	DSetHandle gtaoBlurVDSets;
-	DSetHandle toneMappingDSets;
-	DSetHandle bloomDownsampleDSets[5];
-	DSetHandle bloomUpsampleDSets[5];
-	DSetHandle vignetteDSets;
-	DSetHandle HiZDSets[16];
 };

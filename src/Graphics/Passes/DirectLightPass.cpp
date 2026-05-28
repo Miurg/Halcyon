@@ -9,6 +9,7 @@
 #include "../Components/TextureManagerComponent.hpp"
 #include "../Components/DescriptorManagerComponent.hpp"
 #include "../Components/PipelineManagerComponent.hpp"
+#include "../Components/RenderGraphComponent.hpp"
 #include "../Components/DirectLightComponent.hpp"
 #include "../Components/DrawInfoComponent.hpp"
 #include "../Resources/Components/GlobalDSetComponent.hpp"
@@ -16,8 +17,39 @@
 #include "../Resources/Managers/BufferManager.hpp"
 #include "../Resources/Managers/ModelManager.hpp"
 #include "../Resources/Managers/TextureManager.hpp"
+#include "../Resources/Managers/Vertex.hpp"
 #include "../Managers/PipelineManager.hpp"
+#include "../Factories/PipelineFactory.hpp"
 #include "../RenderGraph/RenderGraph.hpp"
+
+void DirectLightPass::onInit(Orhescyon::GeneralManager& gm)
+{
+	auto& pManager = *gm.getContextComponent<PipelineManagerContext, PipelineManagerComponent>()->pipelineManager;
+	auto& tManager = *gm.getContextComponent<TextureManagerContext, TextureManagerComponent>()->textureManager;
+	auto& rg = *gm.getContextComponent<RenderGraphContext, RenderGraphComponent>()->renderGraph;
+	auto bindingDesc = Vertex::getBindingDescription();
+	auto attrDescs = Vertex::getAttributeDescriptions();
+	auto depthFormat = tManager.findBestFormat();
+	std::vector<std::string> mainLayouts = {"globalSet", "modelSet", "textureSet"};
+
+	// Shadow pass writes directly into the imported physical shadow map (no transient image needed)
+	rg.setTerminalOutput("shadowMap", "shadowMap");
+
+	pManager.build(PipelineDescription{
+	    .shaderPath = "shaders/shadow.spv",
+	    .fragEntry = "", // vertex only
+	    .vertexBindings = {bindingDesc},
+	    .vertexAttributes = std::vector<vk::VertexInputAttributeDescription>(attrDescs.begin(), attrDescs.end()),
+	    .cullMode = vk::CullModeFlagBits::eBack,
+	    .depthTest = true,
+	    .depthWrite = true,
+	    .depthOp = vk::CompareOp::eGreater,
+	    .colorFormats = {},
+	    .depthFormat = depthFormat,
+	    .rasterizationSamples = vk::SampleCountFlagBits::e1,
+	    .setLayoutNames = mainLayouts,
+	});
+}
 
 void DirectLightPass::addToGraph(Orhescyon::GeneralManager& gm, RenderGraph& rg, uint32_t frame)
 {

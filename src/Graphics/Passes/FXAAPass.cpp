@@ -8,21 +8,46 @@
 #include "../Components/DescriptorManagerComponent.hpp"
 #include "../Components/PipelineManagerComponent.hpp"
 #include "../Components/GraphicsSettingsComponent.hpp"
-#include "../Resources/Components/GlobalDSetComponent.hpp"
-#include "../Resources/Managers/Bindings.hpp"
+#include "../Resources/Managers/DescriptorManager.hpp"
 #include "../Managers/PipelineManager.hpp"
+#include "../Factories/PipelineFactory.hpp"
 #include "../RenderGraph/RenderGraph.hpp"
+
+namespace
+{
+enum Binding : uint32_t
+{
+	ColorInput = 0,
+};
+}
 
 bool FXAAPass::isEnabled(Orhescyon::GeneralManager& gm) const
 {
 	return gm.getContextComponent<GraphicsSettingsContext, GraphicsSettingsComponent>()->enableFxaa;
 }
 
+void FXAAPass::onInit(Orhescyon::GeneralManager& gm)
+{
+	auto& dManager = *gm.getContextComponent<DescriptorManagerContext, DescriptorManagerComponent>()->descriptorManager;
+	auto& pManager = *gm.getContextComponent<PipelineManagerContext, PipelineManagerComponent>()->pipelineManager;
+	auto& swapChain = *gm.getContextComponent<MainSwapChainContext, SwapChainComponent>()->swapChainInstance;
+
+	_dset = dManager.allocate("screenSpaceSet");
+
+	pManager.build(PipelineDescription{
+	    .shaderPath = "shaders/fxaa.spv",
+	    .cullMode = vk::CullModeFlagBits::eNone,
+	    .colorAttachments = {PipelineFactory::opaqueAttachment()},
+	    .colorFormats = {swapChain.swapChainImageFormat},
+	    .setLayoutNames = {"screenSpaceSet"},
+	    .pushConstants = {{vk::ShaderStageFlagBits::eFragment, 0, sizeof(float) * 2}},
+	});
+}
+
 void FXAAPass::addToGraph(Orhescyon::GeneralManager& gm, RenderGraph& rg, uint32_t /*frame*/)
 {
 	auto& swapChain = *gm.getContextComponent<MainSwapChainContext, SwapChainComponent>()->swapChainInstance;
 	auto& dManager = *gm.getContextComponent<DescriptorManagerContext, DescriptorManagerComponent>();
-	auto& globalDSetComponent = *gm.getContextComponent<MainDSetsContext, GlobalDSetComponent>();
 	auto& pManager = *gm.getContextComponent<PipelineManagerContext, PipelineManagerComponent>()->pipelineManager;
 
 	vk::ClearValue clearBlack = vk::ClearColorValue(0.0f, 0.0f, 0.0f, 0.0f);
@@ -32,7 +57,7 @@ void FXAAPass::addToGraph(Orhescyon::GeneralManager& gm, RenderGraph& rg, uint32
 	                           clearBlack}}},
 	    {{"PostProcessColor", RGResourceUsage::ShaderRead}},
 	    {{"PostProcessColor", RGResourceUsage::ColorAttachmentWrite}},
-	    [&](vk::raii::CommandBuffer& cmd)
+	    [&, dset = _dset](vk::raii::CommandBuffer& cmd)
 	    {
 		    cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pManager.pipelines["fxaa"].pipeline);
 
@@ -41,7 +66,7 @@ void FXAAPass::addToGraph(Orhescyon::GeneralManager& gm, RenderGraph& rg, uint32
 		    cmd.setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), swapChain.swapChainExtent));
 
 		    cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pManager.pipelines["fxaa"].layout, 0,
-		                           dManager.descriptorManager->getSet(globalDSetComponent.fxaaDSets), nullptr);
+		                           dManager.descriptorManager->getSet(dset), nullptr);
 
 		    struct PushConstants
 		    {
@@ -55,10 +80,10 @@ void FXAAPass::addToGraph(Orhescyon::GeneralManager& gm, RenderGraph& rg, uint32
 		    cmd.setCullMode(vk::CullModeFlagBits::eNone);
 		    cmd.draw(3, 1, 0, 0);
 	    },
-	    [dManager, globalDSetComponent](const RenderGraph& graph, const RGPass& pass)
+	    [&dManager, dset = _dset](const RenderGraph& graph, const RGPass& pass)
 	    {
 		    auto colorHnd = pass.getPhysicalRead("PostProcessColor");
-		    dManager.descriptorManager->updateSingleTextureDSet(globalDSetComponent.fxaaDSets, Bindings::FXAA::ColorInput,
-		                                                        graph.getImageView(colorHnd), graph.getSampler(colorHnd));
+		    dManager.descriptorManager->updateSingleTextureDSet(dset, Binding::ColorInput, graph.getImageView(colorHnd),
+		                                                        graph.getSampler(colorHnd));
 	    });
 }

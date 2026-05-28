@@ -1,10 +1,6 @@
 #include "SwapChainFactory.hpp"
 #include "../VulkanUtils.hpp"
 #include <iostream>
-#include "../Resources/Managers/DescriptorManager.hpp"
-#include "../Resources/Components/GlobalDSetComponent.hpp"
-#include "../Resources/Managers/Bindings.hpp"
-#include "../RenderGraph/RenderGraph.hpp"
 
 void SwapChainFactory::createSwapChain(SwapChain& swapChain, VulkanDevice& deviceContext, Window& window,
                                        vk::SwapchainKHR oldHandle)
@@ -110,9 +106,7 @@ void SwapChainFactory::cleanupSwapChain(SwapChain& swapChain)
 	swapChain.swapChainHandle = nullptr;
 }
 
-void SwapChainFactory::recreateSwapChain(SwapChain& swapChain, VulkanDevice& device, Window& window, RenderGraph& rg,
-                                         DescriptorManager& dManager, GlobalDSetComponent& globalDSetComponent,
-                                         GraphicsSettingsComponent settings)
+void SwapChainFactory::recreateSwapChain(SwapChain& swapChain, VulkanDevice& device, Window& window)
 {
 	int width = 0, height = 0;
 	width = window.width;
@@ -130,9 +124,6 @@ void SwapChainFactory::recreateSwapChain(SwapChain& swapChain, VulkanDevice& dev
 	swapChain.swapChainImageViews.clear();
 
 	createSwapChain(swapChain, device, window, oldHandle);
-
-	// RG handles resize of all transient resources and descriptor updates
-	rg.handleResize(swapChain.swapChainExtent.width, swapChain.swapChainExtent.height);
 
 #ifdef _DEBUG
 	std::cout << "Swap chain recreated." << std::endl;

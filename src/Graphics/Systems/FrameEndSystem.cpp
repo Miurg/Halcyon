@@ -14,8 +14,6 @@
 #include "../Components/FrameImageComponent.hpp"
 #include "../Managers/FrameManager.hpp"
 #include "../Components/FrameManagerComponent.hpp"
-#include "../Components/DescriptorManagerComponent.hpp"
-#include "../Resources/Components/GlobalDSetComponent.hpp"
 #include "../Components/RenderGraphComponent.hpp"
 #include "../RenderGraph/RenderGraph.hpp"
 #include "../Components/LightProbeGridComponent.hpp"
@@ -48,7 +46,6 @@ void FrameEndSystem::update(GeneralManager& gm)
 	FrameManager* frameManager = gm.getContextComponent<FrameManagerContext, FrameManagerComponent>()->frameManager;
 	CurrentFrameComponent* currentFrameComp = gm.getContextComponent<CurrentFrameContext, CurrentFrameComponent>();
 	uint32_t imageIndex = gm.getContextComponent<FrameImageContext, FrameImageComponent>()->imageIndex;
-	GraphicsSettingsComponent* settings = gm.getContextComponent<GraphicsSettingsContext, GraphicsSettingsComponent>();
 
 	if (!currentFrameComp->frameValid) return;
 
@@ -78,8 +75,7 @@ void FrameEndSystem::update(GeneralManager& gm)
 
 	// Present the image
 	const vk::PresentInfoKHR presentInfoKHR(*frameManager->frames[imageIndex].renderFinishedSemaphore,
-	                                        *swapChain.swapChainHandle,
-	    imageIndex);
+	                                        *swapChain.swapChainHandle, imageIndex);
 	vk::Result presentResult;
 	try
 	{
@@ -98,12 +94,7 @@ void FrameEndSystem::update(GeneralManager& gm)
 	if (presentResult == vk::Result::eErrorOutOfDateKHR || presentResult == vk::Result::eSuboptimalKHR)
 	{
 		window.framebufferResized = false;
-		DescriptorManager* dManager =
-		    gm.getContextComponent<DescriptorManagerContext, DescriptorManagerComponent>()->descriptorManager;
-		GlobalDSetComponent* globalDSetComponent = gm.getContextComponent<MainDSetsContext, GlobalDSetComponent>();
-		RenderGraph* rg = gm.getContextComponent<RenderGraphContext, RenderGraphComponent>()->renderGraph;
-		SwapChainFactory::recreateSwapChain(swapChain, vulkanDevice, window, *rg, *dManager, *globalDSetComponent,
-		                                    *settings);
+		SwapChainFactory::recreateSwapChain(swapChain, vulkanDevice, window);
 	}
 	else if (presentResult != vk::Result::eSuccess)
 	{

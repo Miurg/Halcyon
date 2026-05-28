@@ -14,7 +14,20 @@
 #include "../Resources/Managers/BufferManager.hpp"
 #include "../Resources/Managers/ModelManager.hpp"
 #include "../Managers/PipelineManager.hpp"
+#include "../Factories/PipelineFactory.hpp"
 #include "../RenderGraph/RenderGraph.hpp"
+
+void CullPass::onInit(Orhescyon::GeneralManager& gm)
+{
+	auto& pManager = *gm.getContextComponent<PipelineManagerContext, PipelineManagerComponent>()->pipelineManager;
+
+	pManager.build(PipelineDescription{
+	    .isCompute = true,
+	    .shaderPath = "shaders/frustum_culling.spv",
+	    .setLayoutNames = {"globalSet", "modelSet"},
+	    .pushConstants = {{vk::ShaderStageFlagBits::eCompute, 0, sizeof(uint32_t)}},
+	});
+}
 
 void CullPass::addToGraph(Orhescyon::GeneralManager& gm, RenderGraph& rg, uint32_t frame)
 {
@@ -26,11 +39,8 @@ void CullPass::addToGraph(Orhescyon::GeneralManager& gm, RenderGraph& rg, uint32
 	auto& drawInfo = *gm.getContextComponent<CurrentFrameContext, DrawInfoComponent>();
 	auto& pManager = *gm.getContextComponent<PipelineManagerContext, PipelineManagerComponent>()->pipelineManager;
 
-	rg.addPass("ResetInstanceCount", {.isCompute = true}, {}, {},
-	           [&, frame](vk::raii::CommandBuffer& cmd)
-	           {
-		           drawResetInstancePass(cmd, frame, dManager, objectDSetComponent, drawInfo, pManager);
-	           });
+	rg.addPass("ResetInstanceCount", {.isCompute = true}, {}, {}, [&, frame](vk::raii::CommandBuffer& cmd)
+	           { drawResetInstancePass(cmd, frame, dManager, objectDSetComponent, drawInfo, pManager); });
 
 	rg.addPass("Cull", {.isCompute = true}, {}, {},
 	           [&, frame](vk::raii::CommandBuffer& cmd)

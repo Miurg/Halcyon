@@ -38,7 +38,9 @@ public:
 
 private:
 	void importFrameResources(GeneralManager& gm, RenderGraph& rg, uint32_t imageIndex);
-	void applyPendingMsaaChange(GeneralManager& gm);
+	void applySettingsChanges(GeneralManager& gm);
 
-	std::vector<std::unique_ptr<IPass>> m_passes;
+	std::vector<std::unique_ptr<IPass>> _passes;
+	uint32_t _lastWidth = 0;
+	uint32_t _lastHeight = 0;
 };

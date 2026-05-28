@@ -35,45 +35,4 @@ constexpr uint32_t PrefilteredMap = 6;
 constexpr uint32_t BrdfLut = 7;
 } // namespace Textures
 
-namespace FXAA
-{
-constexpr uint32_t ColorInput = 0;
-constexpr uint32_t GtaoInput = 1;
-constexpr uint32_t ColorInput2 = 2;
-} // namespace FXAA
-
-namespace GTAO
-{
-constexpr uint32_t DepthInput = 0;
-constexpr uint32_t NormalsInput = 1;
-constexpr uint32_t NoiseInput = 2;
-} // namespace GTAO
-
-namespace GTAOBlur
-{
-constexpr uint32_t GtaoInput = 0;
-constexpr uint32_t DepthInput = 1;
-constexpr uint32_t NormalsInput = 2;
-} // namespace GTAOBlur
-namespace ToneMapping
-{
-constexpr uint32_t OffscreenInput = 0;
-}
-namespace BloomDownsample
-{
-constexpr uint32_t InputTexture = 0;
-}
-namespace BloomUpsample
-{
-constexpr uint32_t CurrentTexture = 0;
-} // namespace BloomUpsample
-namespace Vignette
-{
-constexpr uint32_t OffscreenInput = 0;
-}
-namespace HiZ
-{
-constexpr uint32_t DepthInput = 0;
-constexpr uint32_t MipOutput = 1;
-}
 } // namespace Bindings

@@ -13,11 +13,8 @@
 #include "../Components/FrameImageComponent.hpp"
 #include "../Managers/FrameManager.hpp"
 #include "../Components/FrameManagerComponent.hpp"
-#include "../Components/DescriptorManagerComponent.hpp"
-#include "../Resources/Components/GlobalDSetComponent.hpp"
 #include "../Components/RenderGraphComponent.hpp"
 #include "../RenderGraph/RenderGraph.hpp"
-#include "../Components/GraphicsSettingsComponent.hpp"
 
 #ifdef TRACY_ENABLE
 #include <tracy/Tracy.hpp>
@@ -46,14 +43,8 @@ void FrameBeginSystem::update(GeneralManager& gm)
 	FrameManager* frameManager = gm.getContextComponent<FrameManagerContext, FrameManagerComponent>()->frameManager;
 	CurrentFrameComponent* currentFrameComp = gm.getContextComponent<CurrentFrameContext, CurrentFrameComponent>();
 	currentFrameComp->frameValid = false;
-	DescriptorManager* dManager =
-	    gm.getContextComponent<DescriptorManagerContext, DescriptorManagerComponent>()->descriptorManager;
-	GlobalDSetComponent* globalDSetComponent = gm.getContextComponent<MainDSetsContext, GlobalDSetComponent>();
 	RenderGraph* rg = gm.getContextComponent<RenderGraphContext, RenderGraphComponent>()->renderGraph;
-	GraphicsSettingsComponent* settings =
-	    gm.getContextComponent<GraphicsSettingsContext, GraphicsSettingsComponent>();
 
-	
 	{
 #ifdef TRACY_ENABLE
 		ZoneScopedN("waitForFences");
@@ -61,12 +52,11 @@ void FrameBeginSystem::update(GeneralManager& gm)
 		vulkanDevice.device.waitForFences(*frameManager->frames[currentFrameComp->currentFrame].inFlightFence, vk::True,
 		                                  UINT64_MAX);
 	}
-	
+
 	// Handle window resize
 	if (window.framebufferResized)
 	{
-		SwapChainFactory::recreateSwapChain(swapChain, vulkanDevice, window, *rg, *dManager, *globalDSetComponent,
-		                                    *settings);
+		SwapChainFactory::recreateSwapChain(swapChain, vulkanDevice, window);
 		window.framebufferResized = false;
 		return;
 	}
@@ -84,15 +74,13 @@ void FrameBeginSystem::update(GeneralManager& gm)
 			if (result == vk::Result::eErrorOutOfDateKHR)
 			{
 				window.framebufferResized = false;
-				SwapChainFactory::recreateSwapChain(swapChain, vulkanDevice, window, *rg, *dManager, *globalDSetComponent,
-				                                    *settings);
+				SwapChainFactory::recreateSwapChain(swapChain, vulkanDevice, window);
 				return;
 			}
 		}
 		catch (vk::OutOfDateKHRError&)
 		{
-			SwapChainFactory::recreateSwapChain(swapChain, vulkanDevice, window, *rg, *dManager, *globalDSetComponent,
-			                                    *settings);
+			SwapChainFactory::recreateSwapChain(swapChain, vulkanDevice, window);
 			return;
 		}
 		catch (vk::SystemError& e)
@@ -106,7 +94,7 @@ void FrameBeginSystem::update(GeneralManager& gm)
 		FrameImageComponent* frameImageComponent = gm.getContextComponent<FrameImageContext, FrameImageComponent>();
 		frameImageComponent->imageIndex = imageIndex;
 	}
-	
+
 	currentFrameComp->frameValid = true;
 	rg->clearFrame();
 }
