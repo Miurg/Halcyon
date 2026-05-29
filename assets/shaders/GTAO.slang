@@ -30,6 +30,8 @@ struct PushConstants
 	float2 texelSize;
 	int maxMip;
 	float mipBias;
+	float multiBounceAlbedo;
+	float thicknessScale;
 };
 [[vk::push_constant]]
 ConstantBuffer<PushConstants> pc;
@@ -57,6 +59,15 @@ float3 reconstructViewPos(float2 uv, float linZ, float invP00, float invP11)
 
 static const float PI = 3.14159265;
 static const float HALF_PI = 1.5707963;
+
+// Jimenez 2016 multi-bounce: cubic-by-albedo that lifts single-bounce over-darkening.
+float multiBounce(float visibility, float albedo)
+{
+	float a = 2.0404 * albedo - 0.3324;
+	float b = -4.7951 * albedo + 0.6417;
+	float c = 2.7552 * albedo + 0.6903;
+	return max(visibility, ((visibility * a + b) * visibility + c) * visibility);
+}
 
 [shader("fragment")]
 float4 fragMain(VSOutput input) : SV_Target
@@ -103,7 +114,7 @@ float4 fragMain(VSOutput input) : SV_Target
 	float invNumDirs = 1.0 / float(pc.numDirections);
 
 	float radius2 = pc.radius * pc.radius;
-	float thicknessLimit = pc.radius * 1.5;
+	float thicknessLimit = pc.radius * pc.thicknessScale;
 
 	for (int d = 0; d < pc.numDirections; d++)
 	{
@@ -132,15 +143,24 @@ float4 fragMain(VSOutput input) : SV_Target
 			float3 SF = reconstructViewPos(sampleUVF, linZF, invP00, invP11);
 			float3 HF = SF - P;
 			float dist2F = dot(HF, HF);
-			if (dist2F > 1e-6 && dist2F < radius2 && abs(HF.z) < thicknessLimit)
-				hCosForward = max(hCosForward, dot(HF, V) * rsqrt(dist2F));
+			if (dist2F > 1e-6 && abs(HF.z) < thicknessLimit)
+			{
+				// Smooth radial falloff
+				float falloffF = saturate(1.0 - dist2F / radius2);
+				float cosF = dot(HF, V) * rsqrt(dist2F);
+				hCosForward = lerp(hCosForward, max(hCosForward, cosF), falloffF);
+			}
 
 			float linZB = depthPyramid.SampleLevel(sampleUVB, sampleMip).r;
 			float3 SB = reconstructViewPos(sampleUVB, linZB, invP00, invP11);
 			float3 HB = SB - P;
 			float dist2B = dot(HB, HB);
-			if (dist2B > 1e-6 && dist2B < radius2 && abs(HB.z) < thicknessLimit)
-				hCosBackward = max(hCosBackward, dot(HB, V) * rsqrt(dist2B));
+			if (dist2B > 1e-6 && abs(HB.z) < thicknessLimit)
+			{
+				float falloffB = saturate(1.0 - dist2B / radius2);
+				float cosB = dot(HB, V) * rsqrt(dist2B);
+				hCosBackward = lerp(hCosBackward, max(hCosBackward, cosB), falloffB);
+			}
 		}
 
 		float3 d_vs = normalize(float3(rotatedDir.x * invP00, rotatedDir.y * invP11, 0.0));
@@ -182,6 +202,7 @@ float4 fragMain(VSOutput input) : SV_Target
 	// Saturate before pow: tilted flat surfaces produce arc-integral > 1; without clipping
 	// pow would only kick in for real occluders, leaving flat surfaces brighter than 1.
 	visibility = saturate(visibility);
+	visibility = multiBounce(visibility, pc.multiBounceAlbedo);
 	visibility = pow(visibility, pc.power);
 	visibility = lerp(1.0, visibility, fade);
 
