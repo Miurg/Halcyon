@@ -16,5 +16,8 @@ struct GtaoSettingsComponent
 	// anti-halo
 	float pyramidEdgeRange = 0.1f;
 
+	float multiBounceAlbedo = -2.0f;
+	float thicknessScale = 1.5f;
+
 	GtaoSettingsComponent() = default;
 };

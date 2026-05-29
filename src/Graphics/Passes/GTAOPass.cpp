@@ -73,7 +73,7 @@ void GTAOPass::onInit(Orhescyon::GeneralManager& gm)
 	    .colorAttachments = {PipelineFactory::opaqueAttachment()},
 	    .colorFormats = {vk::Format::eR8Unorm},
 	    .setLayoutNames = {"screenSpaceSet", "globalSet"},
-	    .pushConstants = {{vk::ShaderStageFlagBits::eFragment, 0, 48u}},
+	    .pushConstants = {{vk::ShaderStageFlagBits::eFragment, 0, 56u}},
 	});
 	pManager.build(PipelineDescription{
 	    .shaderPath = "shaders/gtao_blur.spv",
@@ -145,6 +145,8 @@ void GTAOPass::drawGtao(vk::raii::CommandBuffer& cmd, SwapChain& swapChain, Desc
 		float texelSize[2];
 		int maxMip;
 		float mipBias;
+		float multiBounceAlbedo;
+		float thicknessScale;
 	} push;
 	push.kernelSize = gtaoSettings.kernelSize;
 	push.radius = gtaoSettings.radius;
@@ -162,6 +164,8 @@ void GTAOPass::drawGtao(vk::raii::CommandBuffer& cmd, SwapChain& swapChain, Desc
 	                                                       swapChain.swapChainExtent.height))) -
 	              1;
 	push.mipBias = gtaoSettings.mipBias;
+	push.multiBounceAlbedo = gtaoSettings.multiBounceAlbedo;
+	push.thicknessScale = gtaoSettings.thicknessScale;
 
 	cmd.pushConstants<GtaoPushConstants>(pManager.pipelines["gtao"].layout, vk::ShaderStageFlagBits::eFragment, 0, push);
 	cmd.setCullMode(vk::CullModeFlagBits::eNone);

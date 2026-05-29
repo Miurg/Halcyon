@@ -372,6 +372,8 @@ void ImGuiSystem::update(GeneralManager& gm)
 				ImGui::SliderFloat("Mip Bias", &gtao->mipBias, -4.0f, 4.0f);
 				ImGui::SliderFloat("Blur Depth Tolerance", &gtao->blurDepthTolerance, 0.001f, 1.0f);
 				ImGui::SliderFloat("Pyramid Edge Range", &gtao->pyramidEdgeRange, 0.0f, 2.0f);
+				ImGui::SliderFloat("Multi-bounce Albedo", &gtao->multiBounceAlbedo, 0.0f, 1.0f);
+				ImGui::SliderFloat("Thickness Scale", &gtao->thicknessScale, 0.1f, 5.0f);
 			}
 		}
 
