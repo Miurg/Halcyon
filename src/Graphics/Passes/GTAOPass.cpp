@@ -1,5 +1,7 @@
 #include "GTAOPass.hpp"
 
+#include <bit>
+
 #include <Orhescyon/GeneralManager.hpp>
 
 #include "../GraphicsContexts.hpp"
@@ -71,7 +73,7 @@ void GTAOPass::onInit(Orhescyon::GeneralManager& gm)
 	    .colorAttachments = {PipelineFactory::opaqueAttachment()},
 	    .colorFormats = {vk::Format::eR8Unorm},
 	    .setLayoutNames = {"screenSpaceSet", "globalSet"},
-	    .pushConstants = {{vk::ShaderStageFlagBits::eFragment, 0, 40u}},
+	    .pushConstants = {{vk::ShaderStageFlagBits::eFragment, 0, 48u}},
 	});
 	pManager.build(PipelineDescription{
 	    .shaderPath = "shaders/gtao_blur.spv",
@@ -79,7 +81,7 @@ void GTAOPass::onInit(Orhescyon::GeneralManager& gm)
 	    .colorAttachments = {PipelineFactory::opaqueAttachment()},
 	    .colorFormats = {vk::Format::eR8Unorm},
 	    .setLayoutNames = {"screenSpaceSet"},
-	    .pushConstants = {{vk::ShaderStageFlagBits::eFragment, 0, sizeof(float) * 4}},
+	    .pushConstants = {{vk::ShaderStageFlagBits::eFragment, 0, sizeof(float) * 5}},
 	});
 
 	// Noise texture (static, 64x64, lives for the entire app — sampled per pixel by gtao.slang)
@@ -141,6 +143,8 @@ void GTAOPass::drawGtao(vk::raii::CommandBuffer& cmd, SwapChain& swapChain, Desc
 		float fadeStart;
 		float fadeEnd;
 		float texelSize[2];
+		int maxMip;
+		float mipBias;
 	} push;
 	push.kernelSize = gtaoSettings.kernelSize;
 	push.radius = gtaoSettings.radius;
@@ -153,13 +157,20 @@ void GTAOPass::drawGtao(vk::raii::CommandBuffer& cmd, SwapChain& swapChain, Desc
 	push.texelSize[0] = 1.0f / static_cast<float>(swapChain.swapChainExtent.width);
 	push.texelSize[1] = 1.0f / static_cast<float>(swapChain.swapChainExtent.height);
 
+	// Index of the last pyramid mip; sampler clamps maxLod as a backstop.
+	push.maxMip = static_cast<int>(std::bit_width(std::max(swapChain.swapChainExtent.width,
+	                                                       swapChain.swapChainExtent.height))) -
+	              1;
+	push.mipBias = gtaoSettings.mipBias;
+
 	cmd.pushConstants<GtaoPushConstants>(pManager.pipelines["gtao"].layout, vk::ShaderStageFlagBits::eFragment, 0, push);
 	cmd.setCullMode(vk::CullModeFlagBits::eNone);
 	cmd.draw(3, 1, 0, 0);
 }
 
 void GTAOPass::drawBlur(vk::raii::CommandBuffer& cmd, SwapChain& swapChain, DescriptorManagerComponent& dManager,
-                        DSetHandle blurDSet, float dirX, float dirY, PipelineManager& pManager)
+                        DSetHandle blurDSet, float dirX, float dirY, const GtaoSettingsComponent& gtaoSettings,
+                        PipelineManager& pManager)
 {
 	cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pManager.pipelines["gtao_blur"].pipeline);
 
@@ -173,11 +184,13 @@ void GTAOPass::drawBlur(vk::raii::CommandBuffer& cmd, SwapChain& swapChain, Desc
 	{
 		float texelSize[2];
 		float direction[2];
+		float depthTolerance;
 	} push;
 	push.texelSize[0] = 1.0f / static_cast<float>(swapChain.swapChainExtent.width);
 	push.texelSize[1] = 1.0f / static_cast<float>(swapChain.swapChainExtent.height);
 	push.direction[0] = dirX;
 	push.direction[1] = dirY;
+	push.depthTolerance = gtaoSettings.blurDepthTolerance;
 
 	cmd.pushConstants<BlurPushConstants>(*pManager.pipelines["gtao_blur"].layout, vk::ShaderStageFlagBits::eFragment, 0,
 	                                     push);
@@ -203,7 +216,7 @@ void GTAOPass::addToGraph(Orhescyon::GeneralManager& gm, RenderGraph& rg, uint32
 	rg.addPass(
 	    "GTAO",
 	    {.colorAttachments = {{"GTAOTexture", vk::AttachmentLoadOp::eLoad, vk::AttachmentStoreOp::eStore, clearWhite}}},
-	    {{"Depth", RGResourceUsage::ShaderRead},
+	    {{"DepthPyramid", RGResourceUsage::ShaderRead, 0, RG_ALL_MIPS},
 	     {"ViewNormals", RGResourceUsage::ShaderRead},
 	     {"NoiseImage", RGResourceUsage::ShaderRead}},
 	    {{"GTAOTexture", RGResourceUsage::ColorAttachmentWrite}},
@@ -213,7 +226,7 @@ void GTAOPass::addToGraph(Orhescyon::GeneralManager& gm, RenderGraph& rg, uint32
 	    },
 	    [&dManager, dset = _gtaoDset](const RenderGraph& graph, const RGPass& pass)
 	    {
-		    auto depthHnd = pass.getPhysicalRead("Depth");
+		    auto depthHnd = pass.getPhysicalRead("DepthPyramid");
 		    auto normHnd = pass.getPhysicalRead("ViewNormals");
 		    dManager.descriptorManager->updateSingleTextureDSet(dset, GtaoBinding::DepthInput,
 		                                                        graph.getImageView(depthHnd), graph.getSampler(depthHnd));
@@ -225,17 +238,17 @@ void GTAOPass::addToGraph(Orhescyon::GeneralManager& gm, RenderGraph& rg, uint32
 	    "GTAOBlurH",
 	    {.colorAttachments = {{"GTAOTexture", vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore, clearWhite}}},
 	    {{"GTAOTexture", RGResourceUsage::ShaderRead},
-	     {"Depth", RGResourceUsage::ShaderRead},
+	     {"DepthPyramid", RGResourceUsage::ShaderRead, 0, 1},
 	     {"ViewNormals", RGResourceUsage::ShaderRead}},
 	    {{"GTAOTexture", RGResourceUsage::ColorAttachmentWrite}},
 	    [&, dset = _blurHDset](vk::raii::CommandBuffer& cmd)
 	    {
-		    drawBlur(cmd, swapChain, dManager, dset, 1.0f, 0.0f, pManager);
+		    drawBlur(cmd, swapChain, dManager, dset, 1.0f, 0.0f, gtaoSettings, pManager);
 	    },
 	    [&dManager, dset = _blurHDset](const RenderGraph& graph, const RGPass& pass)
 	    {
 		    auto gtaoHnd = pass.getPhysicalRead("GTAOTexture");
-		    auto depthHnd = pass.getPhysicalRead("Depth");
+		    auto depthHnd = pass.getPhysicalRead("DepthPyramid");
 		    auto normHnd = pass.getPhysicalRead("ViewNormals");
 		    dManager.descriptorManager->updateSingleTextureDSet(dset, BlurBinding::GtaoInput,
 		                                                        graph.getImageView(gtaoHnd), graph.getSampler(gtaoHnd));
@@ -249,17 +262,17 @@ void GTAOPass::addToGraph(Orhescyon::GeneralManager& gm, RenderGraph& rg, uint32
 	    "GTAOBlurV",
 	    {.colorAttachments = {{"GTAOTexture", vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore, clearWhite}}},
 	    {{"GTAOTexture", RGResourceUsage::ShaderRead},
-	     {"Depth", RGResourceUsage::ShaderRead},
+	     {"DepthPyramid", RGResourceUsage::ShaderRead, 0, 1},
 	     {"ViewNormals", RGResourceUsage::ShaderRead}},
 	    {{"GTAOTexture", RGResourceUsage::ColorAttachmentWrite}},
 	    [&, dset = _blurVDset](vk::raii::CommandBuffer& cmd)
 	    {
-		    drawBlur(cmd, swapChain, dManager, dset, 0.0f, 1.0f, pManager);
+		    drawBlur(cmd, swapChain, dManager, dset, 0.0f, 1.0f, gtaoSettings, pManager);
 	    },
 	    [&dManager, dset = _blurVDset](const RenderGraph& graph, const RGPass& pass)
 	    {
 		    auto gtaoHnd = pass.getPhysicalRead("GTAOTexture");
-		    auto depthHnd = pass.getPhysicalRead("Depth");
+		    auto depthHnd = pass.getPhysicalRead("DepthPyramid");
 		    auto normHnd = pass.getPhysicalRead("ViewNormals");
 		    dManager.descriptorManager->updateSingleTextureDSet(dset, BlurBinding::GtaoInput,
 		                                                        graph.getImageView(gtaoHnd), graph.getSampler(gtaoHnd));

@@ -30,7 +30,7 @@
 #include "../Passes/VignettePass.hpp"
 #include "../Passes/ImGuiPass.hpp"
 #include "../Passes/PresentPass.hpp"
-#include "../Passes/HiZBuildPass.hpp"
+#include "../Passes/DepthPyramidPass.hpp"
 
 #ifdef TRACY_ENABLE
 #include <tracy/Tracy.hpp>
@@ -47,7 +47,7 @@ void RenderSystem::onRegistered(GeneralManager& gm)
 	add(std::make_unique<DirectLightPass>());
 	add(std::make_unique<CullPass>());
 	add(std::make_unique<DepthPrepass>());
-	add(std::make_unique<HiZBuildPass>());
+	add(std::make_unique<DepthPyramidPass>());
 	add(std::make_unique<GTAOPass>());
 	add(std::make_unique<MainPass>());
 	add(std::make_unique<DebugPass>());

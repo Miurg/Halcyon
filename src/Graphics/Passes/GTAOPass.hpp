@@ -20,7 +20,8 @@ private:
 	              DSetHandle gtaoDSet, DSetHandle globalDSet, const GtaoSettingsComponent& gtaoSettings,
 	              PipelineManager& pManager);
 	void drawBlur(vk::raii::CommandBuffer& cmd, SwapChain& swapChain, DescriptorManagerComponent& dManager,
-	              DSetHandle blurDSet, float dirX, float dirY, PipelineManager& pManager);
+	              DSetHandle blurDSet, float dirX, float dirY, const GtaoSettingsComponent& gtaoSettings,
+	              PipelineManager& pManager);
 
 	DSetHandle _gtaoDset;
 	DSetHandle _blurHDset;

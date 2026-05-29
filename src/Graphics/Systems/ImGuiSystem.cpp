@@ -369,6 +369,9 @@ void ImGuiSystem::update(GeneralManager& gm)
 				ImGui::DragFloat("Max Screen Radius", &gtao->maxScreenRadius, 0.01f, 0.01f, 1.0f);
 				ImGui::DragFloat("Fade start", &gtao->fadeStart, 10.0f, 1000.0f);
 				ImGui::DragFloat("Fade end", &gtao->fadeEnd, 10.0f, 1000.0f);
+				ImGui::SliderFloat("Mip Bias", &gtao->mipBias, -4.0f, 4.0f);
+				ImGui::SliderFloat("Blur Depth Tolerance", &gtao->blurDepthTolerance, 0.001f, 1.0f);
+				ImGui::SliderFloat("Pyramid Edge Range", &gtao->pyramidEdgeRange, 0.0f, 2.0f);
 			}
 		}
 

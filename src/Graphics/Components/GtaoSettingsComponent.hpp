@@ -10,6 +10,11 @@ struct GtaoSettingsComponent
 	float maxScreenRadius = 0.5f;
 	float fadeStart = 300.0f;
 	float fadeEnd = 500.0f;
+	float mipBias = 0.0f;
+	float blurDepthTolerance = 0.05f;
+
+	// anti-halo
+	float pyramidEdgeRange = 0.1f;
 
 	GtaoSettingsComponent() = default;
 };

@@ -1,7 +1,7 @@
 [[vk::binding(0, 0)]]
 Sampler2D gtaoTexture;
 [[vk::binding(1, 0)]]
-Sampler2D depthTexture;
+Sampler2D depthPyramid;
 [[vk::binding(2, 0)]]
 Sampler2D normalsTexture;
 
@@ -9,6 +9,7 @@ struct PushConstants
 {
 	float2 texelSize;  // 1.0 / resolution
 	float2 direction;  // (1,0) for horizontal, (0,1) for vertical
+	float depthTolerance;  // relative linear-Z weight scale
 };
 [[vk::push_constant]]
 ConstantBuffer<PushConstants> pc;
@@ -32,10 +33,7 @@ VSOutput vertMain(uint vertexID: SV_VertexID)
 float4 fragMain(VSOutput input) : SV_Target
 {
     float centerGtao = gtaoTexture.SampleLevel(input.uv, 0).r;
-    float centerDepth = depthTexture.SampleLevel(input.uv, 0).r;
-
-    // Dont blur background
-    if (centerDepth <= 0.0) return 1.0;
+    float centerLinZ = depthPyramid.SampleLevel(input.uv, 0).r;
 
     float3 centerNormal = normalsTexture.SampleLevel(input.uv, 0).xyz;
 
@@ -50,12 +48,12 @@ float4 fragMain(VSOutput input) : SV_Target
     {
         float2 sampleUV = input.uv + step * float(i);
 
-        float sampleDepth = depthTexture.SampleLevel(sampleUV, 0).r;
+        float sampleLinZ = depthPyramid.SampleLevel(sampleUV, 0).r;
         float3 sampleNormal = normalsTexture.SampleLevel(sampleUV, 0).xyz;
         float sampleGtao = gtaoTexture.SampleLevel(sampleUV, 0).r;
 
-        float depthDiff = abs(centerDepth - sampleDepth);
-        float depthWeight = exp(-depthDiff * 100.0);
+        float depthDiff = abs(centerLinZ - sampleLinZ);
+        float depthWeight = exp(-depthDiff / max(centerLinZ * pc.depthTolerance, 1e-4));
 
         float normalDiff = max(dot(centerNormal, sampleNormal), 0.0);
         float normalWeight = pow(normalDiff, 16.0);
