@@ -48,21 +48,24 @@ void MainPass::buildPipelines(Orhescyon::GeneralManager& gm, vk::SampleCountFlag
 	auto depthFormat = tManager.findBestFormat();
 	std::vector<std::string> mainLayouts = {"globalSet", "modelSet", "textureSet"};
 
-	auto makeForward = [&](int alphaTest, int ibl, vk::CompareOp depthOp)
+	const bool a2c = samples != vk::SampleCountFlagBits::e1;
+
+	auto makeForward = [&](int alphaTest, int ibl, bool useA2C, vk::CompareOp depthOp)
 	{
 		return PipelineDescription{
 		    .shaderPath = "shaders/standard_forward.spv",
-		    .specializationValues = {alphaTest, ibl, gtaoEnabled},
+		    .specializationValues = {alphaTest, ibl, gtaoEnabled, useA2C ? 1 : 0},
 		    .vertexBindings = {bindingDesc},
 		    .vertexAttributes = std::vector<vk::VertexInputAttributeDescription>(attrDescs.begin(), attrDescs.end()),
 		    .cullMode = vk::CullModeFlagBits::eBack,
 		    .depthTest = true,
 		    .depthWrite = false,
 		    .depthOp = depthOp,
-		    .colorAttachments = {PipelineFactory::blendedAttachment()},
+		    .colorAttachments = {useA2C ? PipelineFactory::opaqueAttachment() : PipelineFactory::blendedAttachment()},
 		    .colorFormats = {swapChain.hdrFormat},
 		    .depthFormat = depthFormat,
 		    .rasterizationSamples = samples,
+		    .alphaToCoverage = useA2C,
 		    .setLayoutNames = mainLayouts,
 		};
 	};
@@ -82,18 +85,22 @@ void MainPass::buildPipelines(Orhescyon::GeneralManager& gm, vk::SampleCountFlag
 
 	if (rebuild)
 	{
-		pManager.rebuild(makeForward(0, 1, vk::CompareOp::eEqual), "standard_forward_opaque");
-		pManager.rebuild(makeForward(0, 0, vk::CompareOp::eEqual), "standard_forward_opaque_no_ibl");
-		pManager.rebuild(makeForward(1, 1, vk::CompareOp::eGreaterOrEqual), "standard_forward_alpha");
-		pManager.rebuild(makeForward(1, 0, vk::CompareOp::eGreaterOrEqual), "standard_forward_alpha_no_ibl");
+		pManager.rebuild(makeForward(0, 1, false, vk::CompareOp::eEqual), "standard_forward_opaque");
+		pManager.rebuild(makeForward(0, 0, false, vk::CompareOp::eEqual), "standard_forward_opaque_no_ibl");
+		pManager.rebuild(makeForward(1, 1, a2c, vk::CompareOp::eGreaterOrEqual), "standard_forward_mask");
+		pManager.rebuild(makeForward(1, 0, a2c, vk::CompareOp::eGreaterOrEqual), "standard_forward_mask_no_ibl");
+		pManager.rebuild(makeForward(0, 1, false, vk::CompareOp::eGreaterOrEqual), "standard_forward_blend");
+		pManager.rebuild(makeForward(0, 0, false, vk::CompareOp::eGreaterOrEqual), "standard_forward_blend_no_ibl");
 		pManager.rebuild(skyboxDesc, "skybox");
 	}
 	else
 	{
-		pManager.build(makeForward(0, 1, vk::CompareOp::eEqual), "standard_forward_opaque");
-		pManager.build(makeForward(0, 0, vk::CompareOp::eEqual), "standard_forward_opaque_no_ibl");
-		pManager.build(makeForward(1, 1, vk::CompareOp::eGreaterOrEqual), "standard_forward_alpha");
-		pManager.build(makeForward(1, 0, vk::CompareOp::eGreaterOrEqual), "standard_forward_alpha_no_ibl");
+		pManager.build(makeForward(0, 1, false, vk::CompareOp::eEqual), "standard_forward_opaque");
+		pManager.build(makeForward(0, 0, false, vk::CompareOp::eEqual), "standard_forward_opaque_no_ibl");
+		pManager.build(makeForward(1, 1, a2c, vk::CompareOp::eGreaterOrEqual), "standard_forward_mask");
+		pManager.build(makeForward(1, 0, a2c, vk::CompareOp::eGreaterOrEqual), "standard_forward_mask_no_ibl");
+		pManager.build(makeForward(0, 1, false, vk::CompareOp::eGreaterOrEqual), "standard_forward_blend");
+		pManager.build(makeForward(0, 0, false, vk::CompareOp::eGreaterOrEqual), "standard_forward_blend_no_ibl");
 		pManager.build(skyboxDesc);
 	}
 }
@@ -129,7 +136,8 @@ void MainPass::draw(vk::raii::CommandBuffer& cmd, SwapChain& swapChain, uint32_t
 	cmd.setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), swapChain.swapChainExtent));
 
 	const std::string opaquePipeline = hasSkybox ? "standard_forward_opaque" : "standard_forward_opaque_no_ibl";
-	const std::string alphaPipeline = hasSkybox ? "standard_forward_alpha" : "standard_forward_alpha_no_ibl";
+	const std::string maskPipeline = hasSkybox ? "standard_forward_mask" : "standard_forward_mask_no_ibl";
+	const std::string blendPipeline = hasSkybox ? "standard_forward_blend" : "standard_forward_blend_no_ibl";
 
 	cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pManager.pipelines[opaquePipeline].layout, 0,
 	                       dManager.descriptorManager->getSet(globalDSetComponent.globalDSets, frame), nullptr);
@@ -143,45 +151,32 @@ void MainPass::draw(vk::raii::CommandBuffer& cmd, SwapChain& swapChain, uint32_t
 	cmd.bindIndexBuffer(mManager.vertexIndexBuffers[mManager.meshes[0].vertexIndexBufferID].indexBuffer, 0,
 	                    vk::IndexType::eUint32);
 
-	uint32_t opaqueSingleCount = drawInfo.opaqueSingleCount;
-	uint32_t opaqueDoubleCount = drawInfo.opaqueDoubleCount;
-	uint32_t alphaSingleCount = drawInfo.alphaSingleCount;
-	uint32_t alphaDoubleCount = drawInfo.alphaDoubleCount;
+	const uint32_t segmentCounts[6] = {drawInfo.opaqueSingleCount, drawInfo.opaqueDoubleCount,
+	                                   drawInfo.maskSingleCount,   drawInfo.maskDoubleCount,
+	                                   drawInfo.blendSingleCount,  drawInfo.blendDoubleCount};
 
 	uint32_t currentCommandOffset = 0;
 	uint32_t currentCountBufferOffset = 0;
 
-	if (opaqueSingleCount > 0 || opaqueDoubleCount > 0)
+	auto drawSegment = [&](uint32_t segment, bool backfaceCulling)
 	{
-		cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pManager.pipelines[opaquePipeline].pipeline);
-
-		if (opaqueSingleCount > 0)
+		uint32_t count = segmentCounts[segment];
+		if (count > 0)
 		{
-			cmd.setCullMode(vk::CullModeFlagBits::eBack);
+			cmd.setCullMode(backfaceCulling ? vk::CullModeFlagBits::eBack : vk::CullModeFlagBits::eNone);
 			cmd.drawIndexedIndirectCount(bManager.buffers[objectDSetComponent.compactedDrawBuffer.id].buffer[frame],
 			                             currentCommandOffset,
 			                             bManager.buffers[objectDSetComponent.drawCountBuffer.id].buffer[frame],
-			                             currentCountBufferOffset, opaqueSingleCount, commandStride);
-			currentCommandOffset += opaqueSingleCount * commandStride;
+			                             currentCountBufferOffset, count, commandStride);
+			currentCommandOffset += count * commandStride;
 		}
 		currentCountBufferOffset += sizeof(uint32_t);
+	};
 
-		if (opaqueDoubleCount > 0)
-		{
-			cmd.setCullMode(vk::CullModeFlagBits::eNone);
-			cmd.drawIndexedIndirectCount(bManager.buffers[objectDSetComponent.compactedDrawBuffer.id].buffer[frame],
-			                             currentCommandOffset,
-			                             bManager.buffers[objectDSetComponent.drawCountBuffer.id].buffer[frame],
-			                             currentCountBufferOffset, opaqueDoubleCount, commandStride);
-			currentCommandOffset += opaqueDoubleCount * commandStride;
-		}
-		currentCountBufferOffset += sizeof(uint32_t);
-	}
-	else
-	{
-		currentCommandOffset += (opaqueSingleCount + opaqueDoubleCount) * commandStride;
-		currentCountBufferOffset += 2 * sizeof(uint32_t);
-	}
+	// OPAQUE
+	cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pManager.pipelines[opaquePipeline].pipeline);
+	drawSegment(0, true);
+	drawSegment(1, false);
 
 	if (hasSkybox)
 	{
@@ -190,30 +185,15 @@ void MainPass::draw(vk::raii::CommandBuffer& cmd, SwapChain& swapChain, uint32_t
 		cmd.draw(3, 1, 0, 0);
 	}
 
-	if (alphaSingleCount > 0 || alphaDoubleCount > 0)
-	{
-		cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pManager.pipelines[alphaPipeline].pipeline);
+	// MASK
+	cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pManager.pipelines[maskPipeline].pipeline);
+	drawSegment(2, true);
+	drawSegment(3, false);
 
-		if (alphaSingleCount > 0)
-		{
-			cmd.setCullMode(vk::CullModeFlagBits::eBack);
-			cmd.drawIndexedIndirectCount(bManager.buffers[objectDSetComponent.compactedDrawBuffer.id].buffer[frame],
-			                             currentCommandOffset,
-			                             bManager.buffers[objectDSetComponent.drawCountBuffer.id].buffer[frame],
-			                             currentCountBufferOffset, alphaSingleCount, commandStride);
-			currentCommandOffset += alphaSingleCount * commandStride;
-		}
-		currentCountBufferOffset += sizeof(uint32_t);
-
-		if (alphaDoubleCount > 0)
-		{
-			cmd.setCullMode(vk::CullModeFlagBits::eNone);
-			cmd.drawIndexedIndirectCount(bManager.buffers[objectDSetComponent.compactedDrawBuffer.id].buffer[frame],
-			                             currentCommandOffset,
-			                             bManager.buffers[objectDSetComponent.drawCountBuffer.id].buffer[frame],
-			                             currentCountBufferOffset, alphaDoubleCount, commandStride);
-		}
-	}
+	// BLEND
+	cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pManager.pipelines[blendPipeline].pipeline);
+	drawSegment(4, true);
+	drawSegment(5, false);
 }
 
 void MainPass::addToGraph(Orhescyon::GeneralManager& gm, RenderGraph& rg, uint32_t frame)

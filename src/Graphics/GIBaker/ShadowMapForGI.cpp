@@ -92,7 +92,8 @@ void LightProbeGIBaking::bakeShadowMap(const BakeContext& ctx)
 
 	cmd.beginRendering(renderInfo);
 	drawShadowPass(cmd, 0, *ctx.lightComponent, *ctx.descriptorManagerComponent, *ctx.globalDSet, *ctx.modelDSet,
-	               *ctx.textureManager, *ctx.modelManager, *ctx.bufferManager, *ctx.drawInfo, *ctx.pipelineManager);
+	               *ctx.bindlessDSet, *ctx.textureManager, *ctx.modelManager, *ctx.bufferManager, *ctx.drawInfo,
+	               *ctx.pipelineManager);
 	cmd.endRendering();
 
 	// Transition shadow map: DEPTH_ATTACHMENT_OPTIMAL -> SHADER_READ_ONLY_OPTIMAL

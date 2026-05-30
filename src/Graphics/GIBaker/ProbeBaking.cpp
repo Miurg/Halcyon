@@ -75,27 +75,30 @@ static void drawGeometry(vk::raii::CommandBuffer& cmd, const BakeContext& ctx)
 	    vk::PipelineBindPoint::eGraphics, *ctx.pipelineManager->pipelines["global_illumination_forward"].layout, 2,
 	    ctx.descriptorManagerComponent->descriptorManager->getSet(ctx.bindlessDSet->bindlessTextureSet), nullptr);
 
+	const uint32_t segmentCounts[6] = {ctx.drawInfo->opaqueSingleCount, ctx.drawInfo->opaqueDoubleCount,
+	                                   ctx.drawInfo->maskSingleCount,   ctx.drawInfo->maskDoubleCount,
+	                                   ctx.drawInfo->blendSingleCount,  ctx.drawInfo->blendDoubleCount};
+
 	uint32_t cmdOffset = 0;
 	uint32_t countOffset = 0;
 
-	if (ctx.drawInfo->opaqueSingleCount > 0)
+	auto drawSegment = [&](uint32_t seg)
 	{
-		cmd.setCullMode(vk::CullModeFlagBits::eBack);
-		cmd.drawIndexedIndirectCount(ctx.bufferManager->buffers[ctx.modelDSet->compactedDrawBuffer.id].buffer[0],
-		                             cmdOffset, ctx.bufferManager->buffers[ctx.modelDSet->drawCountBuffer.id].buffer[0],
-		                             countOffset, ctx.drawInfo->opaqueSingleCount, commandStride);
-		cmdOffset += ctx.drawInfo->opaqueSingleCount * commandStride;
-	}
-	countOffset += sizeof(uint32_t);
+		uint32_t count = segmentCounts[seg];
+		if (count > 0)
+		{
+			cmd.setCullMode((seg & 1) ? vk::CullModeFlagBits::eNone : vk::CullModeFlagBits::eBack);
+			cmd.drawIndexedIndirectCount(ctx.bufferManager->buffers[ctx.modelDSet->compactedDrawBuffer.id].buffer[0],
+			                             cmdOffset,
+			                             ctx.bufferManager->buffers[ctx.modelDSet->drawCountBuffer.id].buffer[0],
+			                             countOffset, count, commandStride);
+			cmdOffset += count * commandStride;
+		}
+		countOffset += sizeof(uint32_t);
+	};
 
-	if (ctx.drawInfo->opaqueDoubleCount > 0)
-	{
-		cmd.setCullMode(vk::CullModeFlagBits::eNone);
-		cmd.drawIndexedIndirectCount(ctx.bufferManager->buffers[ctx.modelDSet->compactedDrawBuffer.id].buffer[0],
-		                             cmdOffset, ctx.bufferManager->buffers[ctx.modelDSet->drawCountBuffer.id].buffer[0],
-		                             countOffset, ctx.drawInfo->opaqueDoubleCount, commandStride);
-		cmdOffset += ctx.drawInfo->opaqueDoubleCount * commandStride;
-	}
+	drawSegment(0);
+	drawSegment(1);
 
 	if (ctx.hasSkybox)
 	{
@@ -104,7 +107,7 @@ static void drawGeometry(vk::raii::CommandBuffer& cmd, const BakeContext& ctx)
 		cmd.draw(3, 1, 0, 0);
 	}
 
-	// === Alpha ===
+	// === Alpha (mask + blend) ===
 	cmd.bindPipeline(vk::PipelineBindPoint::eGraphics,
 	                 *ctx.pipelineManager->pipelines["global_illumination_forward_alpha"].pipeline);
 	cmd.bindDescriptorSets(
@@ -117,25 +120,10 @@ static void drawGeometry(vk::raii::CommandBuffer& cmd, const BakeContext& ctx)
 	    vk::PipelineBindPoint::eGraphics, *ctx.pipelineManager->pipelines["global_illumination_forward_alpha"].layout, 2,
 	    ctx.descriptorManagerComponent->descriptorManager->getSet(ctx.bindlessDSet->bindlessTextureSet), nullptr);
 
-	countOffset += sizeof(uint32_t);
-
-	if (ctx.drawInfo->alphaSingleCount > 0)
-	{
-		cmd.setCullMode(vk::CullModeFlagBits::eBack);
-		cmd.drawIndexedIndirectCount(ctx.bufferManager->buffers[ctx.modelDSet->compactedDrawBuffer.id].buffer[0],
-		                             cmdOffset, ctx.bufferManager->buffers[ctx.modelDSet->drawCountBuffer.id].buffer[0],
-		                             countOffset, ctx.drawInfo->alphaSingleCount, commandStride);
-		cmdOffset += ctx.drawInfo->alphaSingleCount * commandStride;
-	}
-	countOffset += sizeof(uint32_t);
-
-	if (ctx.drawInfo->alphaDoubleCount > 0)
-	{
-		cmd.setCullMode(vk::CullModeFlagBits::eNone);
-		cmd.drawIndexedIndirectCount(ctx.bufferManager->buffers[ctx.modelDSet->compactedDrawBuffer.id].buffer[0],
-		                             cmdOffset, ctx.bufferManager->buffers[ctx.modelDSet->drawCountBuffer.id].buffer[0],
-		                             countOffset, ctx.drawInfo->alphaDoubleCount, commandStride);
-	}
+	drawSegment(2);
+	drawSegment(3);
+	drawSegment(4);
+	drawSegment(5);
 }
 
 static void drawLightSources(vk::raii::CommandBuffer& cmd, const BakeContext& ctx)

@@ -109,7 +109,7 @@ BuiltPipeline PipelineFactory::build(vk::raii::Device& device, const PipelineDes
 		    .addDynamicState(vk::DynamicState::eScissor)
 		    .addDynamicState(vk::DynamicState::eCullMode)
 		    .setRasterizer(vk::PolygonMode::eFill, desc.cullMode, desc.frontFace)
-		    .setMultisampling(desc.rasterizationSamples);
+		    .setMultisampling(desc.rasterizationSamples, desc.alphaToCoverage);
 
 		for (const auto& att : desc.colorAttachments)
 		{

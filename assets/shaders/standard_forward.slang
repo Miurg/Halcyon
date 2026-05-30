@@ -135,6 +135,9 @@ const int SKYBOX_ENABLED = 1;
 [[vk::constant_id(2)]]
 const int GTAO_ENABLED = 1;
 
+[[vk::constant_id(3)]]
+const int ALPHA_TO_COVERAGE = 0;
+
 // === Vertex I/O ===
 struct VSInput
 {
@@ -592,9 +595,19 @@ FragOutput fragMain(VSOutput input, bool isFrontFace: SV_IsFrontFace)
 	// === MATERIAL SAMPLING ===
 	SampledMaterial m = SampleMaterial(mat, input.fragTexCoord, dx, dy, input.fragColor);
 
+	float maskCoverage = 1.0;
 	if (ALPHA_TEST_ENABLED == 1)
 	{
-		if (mat.alphaMode == 1 && m.albedo.a < mat.alphaCutoff) discard;
+		if (ALPHA_TO_COVERAGE == 0)
+		{
+			if (mat.alphaMode == 1 && m.albedo.a < mat.alphaCutoff) discard;
+		}
+		else if (mat.alphaMode == 1)
+		{
+			// Wyman & McGuire, "Anti-Aliased Alpha Test", JCGT 2017.
+			maskCoverage = saturate((m.albedo.a - mat.alphaCutoff) / max(fwidth(m.albedo.a), 1e-5) + 0.5);
+			if (maskCoverage <= 0.0) discard; // skip lighting + ROP for fully-transparent texels
+		}
 	}
 
 	// === NORMAL MAPPING ===
@@ -649,7 +662,15 @@ FragOutput fragMain(VSOutput input, bool isFrontFace: SV_IsFrontFace)
 	float3 litColor = directLight + litColorFromLights + ambient + m.emissive;
 
 	// === FINAL OUTPUT ===
-	float outAlpha = (mat.alphaMode == 2) ? m.albedo.a : 1.0;
+	float outAlpha = 1.0;
+	if (mat.alphaMode == 2)
+	{
+		outAlpha = m.albedo.a; // BLEND
+	}
+	else if (ALPHA_TO_COVERAGE == 1 && mat.alphaMode == 1)
+	{
+		outAlpha = maskCoverage;
+	}
 
 	FragOutput output;
 	output.color = float4(litColor, outAlpha);

@@ -199,8 +199,7 @@ float4 fragMain(VSOutput input) : SV_Target
 	}
 
 	visibility *= invNumDirs;
-	// Saturate before pow: tilted flat surfaces produce arc-integral > 1; without clipping
-	// pow would only kick in for real occluders, leaving flat surfaces brighter than 1.
+	// Saturate before pow: tilted flat surfaces produce arc-integral > 1.
 	visibility = saturate(visibility);
 	visibility = multiBounce(visibility, pc.multiBounceAlbedo);
 	visibility = pow(visibility, pc.power);

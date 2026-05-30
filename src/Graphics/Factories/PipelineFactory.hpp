@@ -47,6 +47,7 @@ struct PipelineDescription
 	vk::Format stencilFormat = vk::Format::eUndefined;
 
 	vk::SampleCountFlagBits rasterizationSamples = vk::SampleCountFlagBits::e1;
+	bool alphaToCoverage = false;
 
 	// Layout names — resolved to raw handles by PipelineManager via DescriptorManager
 	std::vector<std::string> setLayoutNames;

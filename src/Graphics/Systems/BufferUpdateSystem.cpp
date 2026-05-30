@@ -108,7 +108,7 @@ void BufferUpdateSystem::update(GeneralManager& gm)
 	int globalCullIndex = 0;
 	IndirectDrawStructure currentDraw{};
 
-	auto writePrimitivesForPass = [&](bool isOpaquePass, bool isDoubleSidedPass)
+	auto writePrimitivesForPass = [&](int categoryPass, bool isDoubleSidedPass)
 	{
 		for (size_t b = 0; b < batch.size(); ++b)
 		{
@@ -122,10 +122,10 @@ void BufferUpdateSystem::update(GeneralManager& gm)
 			for (int i = 0; i < primitiveCount; i++)
 			{
 				uint32_t matIdx = modelManager.meshes[meshIdx].primitives[i].materialIndex;
-				bool isOpaque = (textureManager.materials[matIdx].alphaMode == 0);
+				int category = textureManager.materials[matIdx].alphaMode; // 0=opaque, 1=mask, 2=blend
 				bool isDoubleSided = (textureManager.materials[matIdx].doubleSided == 1);
 
-				if (isOpaquePass != isOpaque || isDoubleSidedPass != isDoubleSided) continue;
+				if (categoryPass != category || isDoubleSidedPass != isDoubleSided) continue;
 
 				// Write indirect draw command
 				currentDraw.indexCount = modelManager.meshes[meshIdx].primitives[i].indexCount;
@@ -157,26 +157,37 @@ void BufferUpdateSystem::update(GeneralManager& gm)
 		}
 	}; 
 
-	// Opaque Single-Sided
-	writePrimitivesForPass(true, false);
-	uint32_t opaqueSingleCount = globalPrimitiveIndex;
+	uint32_t prevTotal = 0;
 
-	// Opaque Double-Sided
-	writePrimitivesForPass(true, true);
-	uint32_t opaqueDoubleCount = globalPrimitiveIndex - opaqueSingleCount;
+	writePrimitivesForPass(0, false); // Opaque Single-Sided
+	uint32_t opaqueSingleCount = globalPrimitiveIndex - prevTotal;
+	prevTotal = globalPrimitiveIndex;
 
-	// Alpha Single-Sided
-	writePrimitivesForPass(false, false);
-	uint32_t alphaSingleCount = globalPrimitiveIndex - (opaqueSingleCount + opaqueDoubleCount);
+	writePrimitivesForPass(0, true); // Opaque Double-Sided
+	uint32_t opaqueDoubleCount = globalPrimitiveIndex - prevTotal;
+	prevTotal = globalPrimitiveIndex;
 
-	// Alpha Double-Sided
-	writePrimitivesForPass(false, true);
-	uint32_t alphaDoubleCount = globalPrimitiveIndex - (opaqueSingleCount + opaqueDoubleCount + alphaSingleCount);
+	writePrimitivesForPass(1, false); // Mask Single-Sided
+	uint32_t maskSingleCount = globalPrimitiveIndex - prevTotal;
+	prevTotal = globalPrimitiveIndex;
+
+	writePrimitivesForPass(1, true); // Mask Double-Sided
+	uint32_t maskDoubleCount = globalPrimitiveIndex - prevTotal;
+	prevTotal = globalPrimitiveIndex;
+
+	writePrimitivesForPass(2, false); // Blend Single-Sided
+	uint32_t blendSingleCount = globalPrimitiveIndex - prevTotal;
+	prevTotal = globalPrimitiveIndex;
+
+	writePrimitivesForPass(2, true); // Blend Double-Sided
+	uint32_t blendDoubleCount = globalPrimitiveIndex - prevTotal;
 
 	drawInfo->opaqueSingleCount = opaqueSingleCount;
 	drawInfo->opaqueDoubleCount = opaqueDoubleCount;
-	drawInfo->alphaSingleCount = alphaSingleCount;
-	drawInfo->alphaDoubleCount = alphaDoubleCount;
+	drawInfo->maskSingleCount = maskSingleCount;
+	drawInfo->maskDoubleCount = maskDoubleCount;
+	drawInfo->blendSingleCount = blendSingleCount;
+	drawInfo->blendDoubleCount = blendDoubleCount;
 
 	drawInfo->totalDrawCount = globalPrimitiveIndex;
 	drawInfo->totalObjectCount = localPrimitiveIndex;

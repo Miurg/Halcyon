@@ -49,11 +49,13 @@ void DepthPrepass::buildPipelines(Orhescyon::GeneralManager& gm, vk::SampleCount
 	auto depthFormat = tManager.findBestFormat();
 	std::vector<std::string> mainLayouts = {"globalSet", "modelSet", "textureSet"};
 
-	auto makeDesc = [&](int alphaTest)
+	const bool a2c = samples != vk::SampleCountFlagBits::e1;
+
+	auto makeDesc = [&](int alphaTest, bool useA2C)
 	{
 		return PipelineDescription{
 		    .shaderPath = "shaders/depth_prepass.spv",
-		    .specializationValues = {alphaTest},
+		    .specializationValues = {alphaTest, useA2C ? 1 : 0},
 		    .vertexBindings = {bindingDesc},
 		    .vertexAttributes = std::vector<vk::VertexInputAttributeDescription>(attrDescs.begin(), attrDescs.end()),
 		    .cullMode = vk::CullModeFlagBits::eBack,
@@ -64,19 +66,20 @@ void DepthPrepass::buildPipelines(Orhescyon::GeneralManager& gm, vk::SampleCount
 		    .colorFormats = {vk::Format::eR16G16B16A16Sfloat},
 		    .depthFormat = depthFormat,
 		    .rasterizationSamples = samples,
+		    .alphaToCoverage = useA2C,
 		    .setLayoutNames = mainLayouts,
 		};
 	};
 
 	if (rebuild)
 	{
-		pManager.rebuild(makeDesc(0), "depth_prepass");
-		pManager.rebuild(makeDesc(1), "depth_prepass_alpha");
+		pManager.rebuild(makeDesc(0, false), "depth_prepass");
+		pManager.rebuild(makeDesc(1, a2c), "depth_prepass_alpha");
 	}
 	else
 	{
-		pManager.build(makeDesc(0));
-		pManager.build(makeDesc(1), "depth_prepass_alpha");
+		pManager.build(makeDesc(0, false));
+		pManager.build(makeDesc(1, a2c), "depth_prepass_alpha");
 	}
 }
 
@@ -119,68 +122,35 @@ void DepthPrepass::draw(vk::raii::CommandBuffer& cmd, uint32_t frame, SwapChain&
 	cmd.bindVertexBuffers(0, mManager.vertexIndexBuffers[mManager.meshes[0].vertexIndexBufferID].vertexBuffer, {0});
 	cmd.bindIndexBuffer(mManager.vertexIndexBuffers[mManager.meshes[0].vertexIndexBufferID].indexBuffer, 0,
 	                    vk::IndexType::eUint32);
-	uint32_t opaqueSingleCount = drawInfo.opaqueSingleCount;
-	uint32_t opaqueDoubleCount = drawInfo.opaqueDoubleCount;
-	uint32_t alphaSingleCount = drawInfo.alphaSingleCount;
-	uint32_t alphaDoubleCount = drawInfo.alphaDoubleCount;
+	// Segments 0,1 = opaque, 2,3 = mask
+	const uint32_t segmentCounts[4] = {drawInfo.opaqueSingleCount, drawInfo.opaqueDoubleCount, drawInfo.maskSingleCount,
+	                                   drawInfo.maskDoubleCount};
 
 	uint32_t currentCommandOffset = 0;
 	uint32_t currentCountBufferOffset = 0;
 
-	if (opaqueSingleCount > 0 || opaqueDoubleCount > 0)
+	auto drawSegment = [&](uint32_t seg)
 	{
-		cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *opaquePipe.pipeline);
-		if (opaqueSingleCount > 0)
+		uint32_t count = segmentCounts[seg];
+		if (count > 0)
 		{
-			cmd.setCullMode(vk::CullModeFlagBits::eBack);
+			cmd.setCullMode((seg & 1) ? vk::CullModeFlagBits::eNone : vk::CullModeFlagBits::eBack);
 			cmd.drawIndexedIndirectCount(bManager.buffers[objectDSetComponent.compactedDrawBuffer.id].buffer[frame],
 			                             currentCommandOffset,
 			                             bManager.buffers[objectDSetComponent.drawCountBuffer.id].buffer[frame],
-			                             currentCountBufferOffset, opaqueSingleCount, commandStride);
-			currentCommandOffset += opaqueSingleCount * commandStride;
+			                             currentCountBufferOffset, count, commandStride);
+			currentCommandOffset += count * commandStride;
 		}
 		currentCountBufferOffset += sizeof(uint32_t);
+	};
 
-		if (opaqueDoubleCount > 0)
-		{
-			cmd.setCullMode(vk::CullModeFlagBits::eNone);
-			cmd.drawIndexedIndirectCount(bManager.buffers[objectDSetComponent.compactedDrawBuffer.id].buffer[frame],
-			                             currentCommandOffset,
-			                             bManager.buffers[objectDSetComponent.drawCountBuffer.id].buffer[frame],
-			                             currentCountBufferOffset, opaqueDoubleCount, commandStride);
-			currentCommandOffset += opaqueDoubleCount * commandStride;
-		}
-		currentCountBufferOffset += sizeof(uint32_t);
-	}
-	else
-	{
-		currentCommandOffset += (opaqueSingleCount + opaqueDoubleCount) * commandStride;
-		currentCountBufferOffset += 2 * sizeof(uint32_t);
-	}
+	cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *opaquePipe.pipeline);
+	drawSegment(0);
+	drawSegment(1);
 
-	if (alphaSingleCount > 0 || alphaDoubleCount > 0)
-	{
-		cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *alphaPipe.pipeline);
-		if (alphaSingleCount > 0)
-		{
-			cmd.setCullMode(vk::CullModeFlagBits::eBack);
-			cmd.drawIndexedIndirectCount(bManager.buffers[objectDSetComponent.compactedDrawBuffer.id].buffer[frame],
-			                             currentCommandOffset,
-			                             bManager.buffers[objectDSetComponent.drawCountBuffer.id].buffer[frame],
-			                             currentCountBufferOffset, alphaSingleCount, commandStride);
-			currentCommandOffset += alphaSingleCount * commandStride;
-		}
-		currentCountBufferOffset += sizeof(uint32_t);
-
-		if (alphaDoubleCount > 0)
-		{
-			cmd.setCullMode(vk::CullModeFlagBits::eNone);
-			cmd.drawIndexedIndirectCount(bManager.buffers[objectDSetComponent.compactedDrawBuffer.id].buffer[frame],
-			                             currentCommandOffset,
-			                             bManager.buffers[objectDSetComponent.drawCountBuffer.id].buffer[frame],
-			                             currentCountBufferOffset, alphaDoubleCount, commandStride);
-		}
-	}
+	cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *alphaPipe.pipeline);
+	drawSegment(2);
+	drawSegment(3);
 }
 
 void DepthPrepass::addToGraph(Orhescyon::GeneralManager& gm, RenderGraph& rg, uint32_t frame)

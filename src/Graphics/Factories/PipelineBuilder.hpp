@@ -30,7 +30,8 @@ public:
 	                               vk::CullModeFlags cullMode = vk::CullModeFlagBits::eNone,
 	                               vk::FrontFace frontFace = vk::FrontFace::eCounterClockwise);
 
-	PipelineBuilder& setMultisampling(vk::SampleCountFlagBits rasterizationSamples = vk::SampleCountFlagBits::e1);
+	PipelineBuilder& setMultisampling(vk::SampleCountFlagBits rasterizationSamples = vk::SampleCountFlagBits::e1,
+	                                  bool alphaToCoverageEnable = false);
 
 	// Calling this adds one attachment
 	PipelineBuilder& addColorBlendAttachment(

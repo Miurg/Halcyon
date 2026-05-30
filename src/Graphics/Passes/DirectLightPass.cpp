@@ -14,6 +14,7 @@
 #include "../Components/DrawInfoComponent.hpp"
 #include "../Resources/Components/GlobalDSetComponent.hpp"
 #include "../Resources/Components/ModelDSetComponent.hpp"
+#include "../Resources/Components/BindlessTextureDSetComponent.hpp"
 #include "../Resources/Managers/BufferManager.hpp"
 #include "../Resources/Managers/ModelManager.hpp"
 #include "../Resources/Managers/TextureManager.hpp"
@@ -49,6 +50,24 @@ void DirectLightPass::onInit(Orhescyon::GeneralManager& gm)
 	    .rasterizationSamples = vk::SampleCountFlagBits::e1,
 	    .setLayoutNames = mainLayouts,
 	});
+
+	// Alpha-tested shadow caster: samples base color and discards below alphaCutoff.
+	pManager.build(
+	    PipelineDescription{
+	        .shaderPath = "shaders/shadow.spv",
+	        .specializationValues = {1}, // ALPHA_TEST_ENABLED=1
+	        .vertexBindings = {bindingDesc},
+	        .vertexAttributes = std::vector<vk::VertexInputAttributeDescription>(attrDescs.begin(), attrDescs.end()),
+	        .cullMode = vk::CullModeFlagBits::eBack,
+	        .depthTest = true,
+	        .depthWrite = true,
+	        .depthOp = vk::CompareOp::eGreater,
+	        .colorFormats = {},
+	        .depthFormat = depthFormat,
+	        .rasterizationSamples = vk::SampleCountFlagBits::e1,
+	        .setLayoutNames = mainLayouts,
+	    },
+	    "shadow_alpha");
 }
 
 void DirectLightPass::addToGraph(Orhescyon::GeneralManager& gm, RenderGraph& rg, uint32_t frame)
@@ -62,6 +81,7 @@ void DirectLightPass::addToGraph(Orhescyon::GeneralManager& gm, RenderGraph& rg,
 	auto& pManager = *gm.getContextComponent<PipelineManagerContext, PipelineManagerComponent>()->pipelineManager;
 	auto& textureManager = *gm.getContextComponent<TextureManagerContext, TextureManagerComponent>()->textureManager;
 	auto& lightTexture = *gm.getContextComponent<SunContext, DirectLightComponent>();
+	auto& bindlessTextureDSetComponent = *gm.getContextComponent<MainDSetsContext, BindlessTextureDSetComponent>();
 
 	vk::ClearValue clearDepth0 = vk::ClearDepthStencilValue(0.0f, 0);
 	rg.addPass("ShadowCull", {.isCompute = true}, {}, {},
@@ -80,6 +100,6 @@ void DirectLightPass::addToGraph(Orhescyon::GeneralManager& gm, RenderGraph& rg,
 	           [&, frame](vk::raii::CommandBuffer& cmd)
 	           {
 		           drawShadowPass(cmd, frame, lightTexture, dManager, globalDSetComponent, objectDSetComponent,
-		                          textureManager, mManager, bManager, drawInfo, pManager);
+		                          bindlessTextureDSetComponent, textureManager, mManager, bManager, drawInfo, pManager);
 	           });
 }

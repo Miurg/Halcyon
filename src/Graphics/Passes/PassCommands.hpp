@@ -11,6 +11,7 @@ struct GlobalDSetComponent;
 struct ModelDSetComponent;
 struct DrawInfoComponent;
 struct DirectLightComponent;
+struct BindlessTextureDSetComponent;
 
 void drawResetInstancePass(vk::raii::CommandBuffer& cmd, uint32_t frame, DescriptorManagerComponent& dManager,
                            ModelDSetComponent& objectDSetComponent, const DrawInfoComponent& drawInfo,
@@ -28,5 +29,6 @@ void drawShadowCullPass(vk::raii::CommandBuffer& cmd, uint32_t frame, Descriptor
 
 void drawShadowPass(vk::raii::CommandBuffer& cmd, uint32_t frame, DirectLightComponent& lightTexture,
                     DescriptorManagerComponent& dManager, GlobalDSetComponent& globalDSetComponent,
-                    ModelDSetComponent& objectDSetComponent, TextureManager& tManager, ModelManager& mManager,
-                    BufferManager& bManager, const DrawInfoComponent& drawInfo, PipelineManager& pManager);
+                    ModelDSetComponent& objectDSetComponent, BindlessTextureDSetComponent& bTextureDSet,
+                    TextureManager& tManager, ModelManager& mManager, BufferManager& bManager,
+                    const DrawInfoComponent& drawInfo, PipelineManager& pManager);

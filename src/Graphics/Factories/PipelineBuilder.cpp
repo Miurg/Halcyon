@@ -103,9 +103,11 @@ PipelineBuilder& PipelineBuilder::setRasterizer(vk::PolygonMode polygonMode, vk:
 	return *this;
 }
 
-PipelineBuilder& PipelineBuilder::setMultisampling(vk::SampleCountFlagBits rasterizationSamples)
+PipelineBuilder& PipelineBuilder::setMultisampling(vk::SampleCountFlagBits rasterizationSamples,
+                                                   bool alphaToCoverageEnable)
 {
 	m_Multisampling.rasterizationSamples = rasterizationSamples;
+	m_Multisampling.alphaToCoverageEnable = alphaToCoverageEnable;
 	return *this;
 }
 

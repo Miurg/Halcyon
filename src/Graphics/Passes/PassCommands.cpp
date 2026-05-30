@@ -5,6 +5,7 @@
 #include "../Components/DirectLightComponent.hpp"
 #include "../Resources/Components/GlobalDSetComponent.hpp"
 #include "../Resources/Components/ModelDSetComponent.hpp"
+#include "../Resources/Components/BindlessTextureDSetComponent.hpp"
 #include "../Resources/Managers/BufferManager.hpp"
 #include "../Resources/Managers/ModelManager.hpp"
 #include "../Resources/Managers/TextureManager.hpp"
@@ -78,7 +79,7 @@ void drawCullPass(vk::raii::CommandBuffer& cmd, uint32_t frame, DescriptorManage
 	cullDepInfo.pMemoryBarriers = &cullBarrier;
 	cmd.pipelineBarrier2(cullDepInfo);
 
-	cmd.fillBuffer(bManager.buffers[objectDSetComponent.drawCountBuffer.id].buffer[frame], 0, sizeof(uint32_t) * 4, 0);
+	cmd.fillBuffer(bManager.buffers[objectDSetComponent.drawCountBuffer.id].buffer[frame], 0, sizeof(uint32_t) * 6, 0);
 
 	vk::MemoryBarrier2 fillBarrier;
 	fillBarrier.srcStageMask = vk::PipelineStageFlagBits2::eTransfer;
@@ -103,58 +104,23 @@ void drawCullPass(vk::raii::CommandBuffer& cmd, uint32_t frame, DescriptorManage
 		uint32_t countIndex;
 	} compactPush;
 
-	uint32_t opaqueSingleCount = drawInfo.opaqueSingleCount;
-	uint32_t opaqueDoubleCount = drawInfo.opaqueDoubleCount;
-	uint32_t alphaSingleCount = drawInfo.alphaSingleCount;
-	uint32_t alphaDoubleCount = drawInfo.alphaDoubleCount;
+	const uint32_t segmentCounts[6] = {drawInfo.opaqueSingleCount, drawInfo.opaqueDoubleCount,
+	                                   drawInfo.maskSingleCount,   drawInfo.maskDoubleCount,
+	                                   drawInfo.blendSingleCount,  drawInfo.blendDoubleCount};
 
 	uint32_t currentOffset = 0;
-
-	if (opaqueSingleCount > 0)
+	for (uint32_t segment = 0; segment < 6; ++segment)
 	{
-		compactPush.drawCommandCount = opaqueSingleCount;
+		uint32_t count = segmentCounts[segment];
+		if (count == 0) continue;
+		compactPush.drawCommandCount = count;
 		compactPush.outputOffset = currentOffset;
 		compactPush.inputOffset = currentOffset;
-		compactPush.countIndex = 0;
+		compactPush.countIndex = segment;
 		cmd.pushConstants<CompactionPush>(*pManager.pipelines["frustum_compaction"].layout,
 		                                  vk::ShaderStageFlagBits::eCompute, 0, compactPush);
-		cmd.dispatch((opaqueSingleCount + 63) / 64, 1, 1);
-		currentOffset += opaqueSingleCount;
-	}
-
-	if (opaqueDoubleCount > 0)
-	{
-		compactPush.drawCommandCount = opaqueDoubleCount;
-		compactPush.outputOffset = currentOffset;
-		compactPush.inputOffset = currentOffset;
-		compactPush.countIndex = 1;
-		cmd.pushConstants<CompactionPush>(*pManager.pipelines["frustum_compaction"].layout,
-		                                  vk::ShaderStageFlagBits::eCompute, 0, compactPush);
-		cmd.dispatch((opaqueDoubleCount + 63) / 64, 1, 1);
-		currentOffset += opaqueDoubleCount;
-	}
-
-	if (alphaSingleCount > 0)
-	{
-		compactPush.drawCommandCount = alphaSingleCount;
-		compactPush.outputOffset = currentOffset;
-		compactPush.inputOffset = currentOffset;
-		compactPush.countIndex = 2;
-		cmd.pushConstants<CompactionPush>(*pManager.pipelines["frustum_compaction"].layout,
-		                                  vk::ShaderStageFlagBits::eCompute, 0, compactPush);
-		cmd.dispatch((alphaSingleCount + 63) / 64, 1, 1);
-		currentOffset += alphaSingleCount;
-	}
-
-	if (alphaDoubleCount > 0)
-	{
-		compactPush.drawCommandCount = alphaDoubleCount;
-		compactPush.outputOffset = currentOffset;
-		compactPush.inputOffset = currentOffset;
-		compactPush.countIndex = 3;
-		cmd.pushConstants<CompactionPush>(*pManager.pipelines["frustum_compaction"].layout,
-		                                  vk::ShaderStageFlagBits::eCompute, 0, compactPush);
-		cmd.dispatch((alphaDoubleCount + 63) / 64, 1, 1);
+		cmd.dispatch((count + 63) / 64, 1, 1);
+		currentOffset += count;
 	}
 
 	vk::MemoryBarrier2 drawBarrier;
@@ -204,7 +170,7 @@ void drawShadowCullPass(vk::raii::CommandBuffer& cmd, uint32_t frame, Descriptor
 	cullDepInfo.pMemoryBarriers = &cullBarrier;
 	cmd.pipelineBarrier2(cullDepInfo);
 
-	cmd.fillBuffer(bManager.buffers[objectDSetComponent.drawCountBuffer.id].buffer[frame], 0, sizeof(uint32_t) * 4, 0);
+	cmd.fillBuffer(bManager.buffers[objectDSetComponent.drawCountBuffer.id].buffer[frame], 0, sizeof(uint32_t) * 6, 0);
 
 	vk::MemoryBarrier2 fillBarrier;
 	fillBarrier.srcStageMask = vk::PipelineStageFlagBits2::eTransfer;
@@ -229,58 +195,23 @@ void drawShadowCullPass(vk::raii::CommandBuffer& cmd, uint32_t frame, Descriptor
 		uint32_t countIndex;
 	} compactPush;
 
-	uint32_t opaqueSingleCount = drawInfo.opaqueSingleCount;
-	uint32_t opaqueDoubleCount = drawInfo.opaqueDoubleCount;
-	uint32_t alphaSingleCount = drawInfo.alphaSingleCount;
-	uint32_t alphaDoubleCount = drawInfo.alphaDoubleCount;
+	// BLEND (segs 4,5) is excluded from shadow casting.
+	const uint32_t segmentCounts[4] = {drawInfo.opaqueSingleCount, drawInfo.opaqueDoubleCount,
+	                                   drawInfo.maskSingleCount,    drawInfo.maskDoubleCount};
 
 	uint32_t currentOffset = 0;
-
-	if (opaqueSingleCount > 0)
+	for (uint32_t segment = 0; segment < 4; ++segment)
 	{
-		compactPush.drawCommandCount = opaqueSingleCount;
+		uint32_t count = segmentCounts[segment];
+		if (count == 0) continue;
+		compactPush.drawCommandCount = count;
 		compactPush.outputOffset = currentOffset;
 		compactPush.inputOffset = currentOffset;
-		compactPush.countIndex = 0;
+		compactPush.countIndex = segment;
 		cmd.pushConstants<CompactionPush>(*pManager.pipelines["frustum_compaction"].layout,
 		                                  vk::ShaderStageFlagBits::eCompute, 0, compactPush);
-		cmd.dispatch((opaqueSingleCount + 63) / 64, 1, 1);
-		currentOffset += opaqueSingleCount;
-	}
-
-	if (opaqueDoubleCount > 0)
-	{
-		compactPush.drawCommandCount = opaqueDoubleCount;
-		compactPush.outputOffset = currentOffset;
-		compactPush.inputOffset = currentOffset;
-		compactPush.countIndex = 1;
-		cmd.pushConstants<CompactionPush>(*pManager.pipelines["frustum_compaction"].layout,
-		                                  vk::ShaderStageFlagBits::eCompute, 0, compactPush);
-		cmd.dispatch((opaqueDoubleCount + 63) / 64, 1, 1);
-		currentOffset += opaqueDoubleCount;
-	}
-
-	if (alphaSingleCount > 0)
-	{
-		compactPush.drawCommandCount = alphaSingleCount;
-		compactPush.outputOffset = currentOffset;
-		compactPush.inputOffset = currentOffset;
-		compactPush.countIndex = 2;
-		cmd.pushConstants<CompactionPush>(*pManager.pipelines["frustum_compaction"].layout,
-		                                  vk::ShaderStageFlagBits::eCompute, 0, compactPush);
-		cmd.dispatch((alphaSingleCount + 63) / 64, 1, 1);
-		currentOffset += alphaSingleCount;
-	}
-
-	if (alphaDoubleCount > 0)
-	{
-		compactPush.drawCommandCount = alphaDoubleCount;
-		compactPush.outputOffset = currentOffset;
-		compactPush.inputOffset = currentOffset;
-		compactPush.countIndex = 3;
-		cmd.pushConstants<CompactionPush>(*pManager.pipelines["frustum_compaction"].layout,
-		                                  vk::ShaderStageFlagBits::eCompute, 0, compactPush);
-		cmd.dispatch((alphaDoubleCount + 63) / 64, 1, 1);
+		cmd.dispatch((count + 63) / 64, 1, 1);
+		currentOffset += count;
 	}
 
 	vk::MemoryBarrier2 drawBarrier;
@@ -297,14 +228,17 @@ void drawShadowCullPass(vk::raii::CommandBuffer& cmd, uint32_t frame, Descriptor
 
 void drawShadowPass(vk::raii::CommandBuffer& cmd, uint32_t frame, DirectLightComponent& lightTexture,
                     DescriptorManagerComponent& dManager, GlobalDSetComponent& globalDSetComponent,
-                    ModelDSetComponent& objectDSetComponent, TextureManager& tManager, ModelManager& mManager,
-                    BufferManager& bManager, const DrawInfoComponent& drawInfo, PipelineManager& pManager)
+                    ModelDSetComponent& objectDSetComponent, BindlessTextureDSetComponent& bTextureDSet,
+                    TextureManager& tManager, ModelManager& mManager, BufferManager& bManager,
+                    const DrawInfoComponent& drawInfo, PipelineManager& pManager)
 {
 	cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pManager.pipelines["shadow"].pipeline);
 	cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pManager.pipelines["shadow"].layout, 0,
 	                       dManager.descriptorManager->getSet(globalDSetComponent.globalDSets, frame), nullptr);
 	cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pManager.pipelines["shadow"].layout, 1,
 	                       dManager.descriptorManager->getSet(objectDSetComponent.modelBufferDSet, frame), nullptr);
+	cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pManager.pipelines["shadow"].layout, 2,
+	                       dManager.descriptorManager->getSet(bTextureDSet.bindlessTextureSet), nullptr);
 	cmd.setViewport(0, vk::Viewport(0.0f, 0.0f, lightTexture.sizeX, lightTexture.sizeY, 0.0f, 1.0f));
 	cmd.setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), vk::Extent2D(lightTexture.sizeX, lightTexture.sizeY)));
 
@@ -313,53 +247,28 @@ void drawShadowPass(vk::raii::CommandBuffer& cmd, uint32_t frame, DirectLightCom
 	cmd.bindIndexBuffer(mManager.vertexIndexBuffers[mManager.meshes[0].vertexIndexBufferID].indexBuffer, 0,
 	                    vk::IndexType::eUint32);
 
-	uint32_t opaqueSingleCount = drawInfo.opaqueSingleCount;
-	uint32_t opaqueDoubleCount = drawInfo.opaqueDoubleCount;
-	uint32_t alphaSingleCount = drawInfo.alphaSingleCount;
-	uint32_t alphaDoubleCount = drawInfo.alphaDoubleCount;
+	// BLEND (segs 4,5) is excluded from shadow casting.
+	const uint32_t segmentCounts[4] = {drawInfo.opaqueSingleCount, drawInfo.opaqueDoubleCount,
+	                                   drawInfo.maskSingleCount,    drawInfo.maskDoubleCount};
 
 	uint32_t currentCommandOffset = 0;
 	uint32_t currentCountBufferOffset = 0;
 
-	if (opaqueSingleCount > 0)
+	for (uint32_t segment = 0; segment < 4; ++segment)
 	{
-		cmd.setCullMode(vk::CullModeFlagBits::eBack);
-		cmd.drawIndexedIndirectCount(bManager.buffers[objectDSetComponent.compactedDrawBuffer.id].buffer[frame],
-		                             currentCommandOffset,
-		                             bManager.buffers[objectDSetComponent.drawCountBuffer.id].buffer[frame],
-		                             currentCountBufferOffset, opaqueSingleCount, commandStride);
-		currentCommandOffset += opaqueSingleCount * commandStride;
-	}
-	currentCountBufferOffset += sizeof(uint32_t);
+		// MASK (segs 2,3) casts through the fragment shadow pipeline.
+		if (segment == 2) cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pManager.pipelines["shadow_alpha"].pipeline);
 
-	if (opaqueDoubleCount > 0)
-	{
-		cmd.setCullMode(vk::CullModeFlagBits::eNone);
-		cmd.drawIndexedIndirectCount(bManager.buffers[objectDSetComponent.compactedDrawBuffer.id].buffer[frame],
-		                             currentCommandOffset,
-		                             bManager.buffers[objectDSetComponent.drawCountBuffer.id].buffer[frame],
-		                             currentCountBufferOffset, opaqueDoubleCount, commandStride);
-		currentCommandOffset += opaqueDoubleCount * commandStride;
-	}
-	currentCountBufferOffset += sizeof(uint32_t);
-
-	if (alphaSingleCount > 0)
-	{
-		cmd.setCullMode(vk::CullModeFlagBits::eBack);
-		cmd.drawIndexedIndirectCount(bManager.buffers[objectDSetComponent.compactedDrawBuffer.id].buffer[frame],
-		                             currentCommandOffset,
-		                             bManager.buffers[objectDSetComponent.drawCountBuffer.id].buffer[frame],
-		                             currentCountBufferOffset, alphaSingleCount, commandStride);
-		currentCommandOffset += alphaSingleCount * commandStride;
-	}
-	currentCountBufferOffset += sizeof(uint32_t);
-
-	if (alphaDoubleCount > 0)
-	{
-		cmd.setCullMode(vk::CullModeFlagBits::eNone);
-		cmd.drawIndexedIndirectCount(bManager.buffers[objectDSetComponent.compactedDrawBuffer.id].buffer[frame],
-		                             currentCommandOffset,
-		                             bManager.buffers[objectDSetComponent.drawCountBuffer.id].buffer[frame],
-		                             currentCountBufferOffset, alphaDoubleCount, commandStride);
+		uint32_t count = segmentCounts[segment];
+		if (count > 0)
+		{
+			cmd.setCullMode((segment & 1) ? vk::CullModeFlagBits::eNone : vk::CullModeFlagBits::eBack);
+			cmd.drawIndexedIndirectCount(bManager.buffers[objectDSetComponent.compactedDrawBuffer.id].buffer[frame],
+			                             currentCommandOffset,
+			                             bManager.buffers[objectDSetComponent.drawCountBuffer.id].buffer[frame],
+			                             currentCountBufferOffset, count, commandStride);
+			currentCommandOffset += count * commandStride;
+		}
+		currentCountBufferOffset += sizeof(uint32_t);
 	}
 }

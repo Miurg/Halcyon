@@ -65,6 +65,9 @@ StructuredBuffer<MaterialData> materialBuffer;
 [[vk::constant_id(0)]]
 const int ALPHA_TEST_ENABLED = 0;
 
+[[vk::constant_id(1)]]
+const int ALPHA_TO_COVERAGE = 0;
+
 // === Vertex I/O ===
 
 struct VSInput
@@ -110,13 +113,23 @@ VSOutput vertMain(VSInput input, uint instanceID: SV_InstanceID, uint baseInstan
 [shader("fragment")]
 float4 fragMain(VSOutput input) : SV_Target0
 {
+	float coverage = 1.0;
 	if (ALPHA_TEST_ENABLED == 1)
 	{
 		MaterialData mat = materialBuffer[input.materialIndex];
 		if (mat.alphaMode != 1) discard;
 		float alpha = textureArray[NonUniformResourceIndex(mat.textureIndex)]
 		                  .Sample(input.fragTexCoord).a * mat.baseColorFactor.a;
-		if (alpha < mat.alphaCutoff) discard;
+		if (ALPHA_TO_COVERAGE == 0)
+		{
+			if (alpha < mat.alphaCutoff) discard;
+		}
+		else
+		{
+			// Wyman & McGuire, "Anti-Aliased Alpha Test", JCGT 2017.
+			coverage = saturate((alpha - mat.alphaCutoff) / max(fwidth(alpha), 1e-5) + 0.5);
+			if (coverage <= 0.0) discard;
+		}
 	}
-	return float4(normalize(input.viewNormal), 1.0);
+	return float4(normalize(input.viewNormal), coverage);
 }
