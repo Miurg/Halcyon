@@ -19,6 +19,7 @@
 #include "../Components/DeltaTimeComponent.hpp"
 #include "../Components/GtaoSettingsComponent.hpp"
 #include "../Components/GraphicsSettingsComponent.hpp"
+#include "../Components/AutoExposureSettingsComponent.hpp"
 #include "../Components/VulkanDeviceComponent.hpp"
 #include "../VulkanDevice.hpp"
 #include "../Components/PointLightComponent.hpp"
@@ -448,6 +449,21 @@ void ImGuiSystem::update(GeneralManager& gm)
 						}
 					}
 				}
+			}
+		}
+
+		// Auto Exposure Settings Component
+		if (auto* ae = gm.getComponent<AutoExposureSettingsComponent>(selectedEntity))
+		{
+			if (ImGui::CollapsingHeader("Auto Exposure Settings", ImGuiTreeNodeFlags_DefaultOpen))
+			{
+				ImGui::DragFloat("Brighten Speed", &ae->tauUp, 0.01f, 0.0f, 5.0f);
+				ImGui::DragFloat("Darken Speed", &ae->tauDown, 0.01f, 0.0f, 5.0f);
+				ImGui::DragFloat("Darkest Exposure", &ae->minEV, 0.1f, -20.0f, 0.0f);
+				ImGui::DragFloat("Brightest Exposure", &ae->maxEV, 0.1f, 0.0f, 20.0f);
+				ImGui::DragFloat("Target Brightness", &ae->targetLuminance, 0.01f, 0.0f, 2.0f);
+				ImGui::SliderFloat("Shadow Cutoff", &ae->lowPercent, 0.0f, 1.0f);
+				ImGui::SliderFloat("Highlight Cutoff", &ae->highPercent, 0.0f, 1.0f);
 			}
 		}
 

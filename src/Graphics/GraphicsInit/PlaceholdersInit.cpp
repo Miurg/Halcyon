@@ -9,6 +9,7 @@
 #include "../Resources/Components/GlobalDSetComponent.hpp"
 #include "../Resources/Components/ModelDSetComponent.hpp"
 #include "../Components/GtaoSettingsComponent.hpp"
+#include "../Components/AutoExposureSettingsComponent.hpp"
 #include "../Components/NameComponent.hpp"
 #include "../Components/CameraComponent.hpp"
 #include "../Components/DirectLightComponent.hpp"
@@ -82,6 +83,7 @@ void PlaceholdersInit::initPlaceholders(GeneralManager& gm)
 	Orhescyon::Entity settingsEntity = gm.createEntity();
 	gm.addComponent<NameComponent>(settingsEntity, "Graphics Settings");
 	gm.addComponent<GraphicsSettingsComponent>(settingsEntity);
+	gm.addComponent<AutoExposureSettingsComponent>(settingsEntity);
 	gm.registerContext<GraphicsSettingsContext>(settingsEntity);
 
 	GraphicsSettingsComponent* settings = gm.getContextComponent<GraphicsSettingsContext, GraphicsSettingsComponent>();

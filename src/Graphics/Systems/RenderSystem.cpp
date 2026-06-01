@@ -31,6 +31,7 @@
 #include "../Passes/ImGuiPass.hpp"
 #include "../Passes/PresentPass.hpp"
 #include "../Passes/DepthPyramidPass.hpp"
+#include "../Passes/ExposurePass.hpp"
 
 #ifdef TRACY_ENABLE
 #include <tracy/Tracy.hpp>
@@ -50,6 +51,7 @@ void RenderSystem::onRegistered(GeneralManager& gm)
 	add(std::make_unique<DepthPyramidPass>());
 	add(std::make_unique<GTAOPass>());
 	add(std::make_unique<MainPass>());
+	add(std::make_unique<ExposurePass>());
 	add(std::make_unique<DebugPass>());
 	add(std::make_unique<BloomPass>());
 	add(std::make_unique<ToneMappingPass>());

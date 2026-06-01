@@ -9,5 +9,6 @@ public:
 	void addToGraph(Orhescyon::GeneralManager& gm, RenderGraph& rg, uint32_t frame) override;
 
 private:
-	DSetHandle _dset;
+	DSetHandle _dSetMainColor;
+	DSetHandle _dSetExposure;
 };

@@ -12,6 +12,8 @@
 #include "../Managers/PipelineManager.hpp"
 #include "../Factories/PipelineFactory.hpp"
 #include "../RenderGraph/RenderGraph.hpp"
+#include "../Components/ExposureBufferComponent.hpp"
+#include "../Components/BufferManagerComponent.hpp"
 
 namespace
 {
@@ -33,18 +35,28 @@ void ToneMappingPass::onInit(Orhescyon::GeneralManager& gm)
 	                        {swapChain.swapChainImageFormat, RGSizeMode::FullExtent, vk::ImageAspectFlagBits::eColor});
 	rg.setTerminalOutput("PostProcessColor", "swapChainImage");
 
-	_dset = dManager.allocate("screenSpaceSet");
+	_dSetMainColor = dManager.allocate("screenSpaceSet");
+	_dSetExposure = dManager.allocate("exposureSet", MAX_FRAMES_IN_FLIGHT);
+
+	auto& exposureComp = *gm.getContextComponent<ExposureBufferContext, ExposureBufferComponent>();
+	auto& bManager = *gm.getContextComponent<BufferManagerContext, BufferManagerComponent>()->bufferManager;
+
+	for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
+	{
+		dManager.update(_dSetExposure, 1, i, vk::DescriptorType::eStorageBuffer,
+		                bManager.buffers[exposureComp.exposureBuffer.id].buffer[i]);
+	}
 
 	pManager.build(PipelineDescription{
 	    .shaderPath = "shaders/tone_mapping.spv",
 	    .cullMode = vk::CullModeFlagBits::eNone,
 	    .colorAttachments = {PipelineFactory::opaqueAttachment()},
 	    .colorFormats = {swapChain.swapChainImageFormat},
-	    .setLayoutNames = {"screenSpaceSet"},
+	    .setLayoutNames = {"screenSpaceSet", "exposureSet"},
 	});
 }
 
-void ToneMappingPass::addToGraph(Orhescyon::GeneralManager& gm, RenderGraph& rg, uint32_t /*frame*/)
+void ToneMappingPass::addToGraph(Orhescyon::GeneralManager& gm, RenderGraph& rg, uint32_t frame)
 {
 	auto& swapChain = *gm.getContextComponent<MainSwapChainContext, SwapChainComponent>()->swapChainInstance;
 	auto& dManager = *gm.getContextComponent<DescriptorManagerContext, DescriptorManagerComponent>();
@@ -56,7 +68,7 @@ void ToneMappingPass::addToGraph(Orhescyon::GeneralManager& gm, RenderGraph& rg,
 	    {.colorAttachments = {{"PostProcessColor", vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore,
 	                           clearBlack}}},
 	    {{"MainColor", RGResourceUsage::ShaderRead}}, {{"PostProcessColor", RGResourceUsage::ColorAttachmentWrite}},
-	    [&, dset = _dset](vk::raii::CommandBuffer& cmd)
+	    [&, frame,dset = _dSetMainColor](vk::raii::CommandBuffer& cmd)
 	    {
 		    cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pManager.pipelines["tone_mapping"].pipeline);
 
@@ -66,11 +78,13 @@ void ToneMappingPass::addToGraph(Orhescyon::GeneralManager& gm, RenderGraph& rg,
 
 		    cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pManager.pipelines["tone_mapping"].layout, 0,
 		                           dManager.descriptorManager->getSet(dset), nullptr);
+		    cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pManager.pipelines["tone_mapping"].layout, 1,
+		                           dManager.descriptorManager->getSet(_dSetExposure, frame), nullptr);
 
 		    cmd.setCullMode(vk::CullModeFlagBits::eNone);
 		    cmd.draw(3, 1, 0, 0);
 	    },
-	    [&dManager, dset = _dset](const RenderGraph& graph, const RGPass& pass)
+	    [&dManager, dset = _dSetMainColor](const RenderGraph& graph, const RGPass& pass)
 	    {
 		    auto colorHnd = pass.getPhysicalRead("MainColor");
 		    dManager.descriptorManager->updateSingleTextureDSet(dset, Binding::OffscreenInput,

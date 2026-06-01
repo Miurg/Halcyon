@@ -62,15 +62,16 @@ class GraphicsSettingsContext
 };
 class PipelineManagerContext
 {
-
 };
 class ShaderReloaderContext
 {
-
 };
 class LightProbeGridContext
 {
 };
 class DeltaTimeContext
+{
+};
+class ExposureBufferContext
 {
 };

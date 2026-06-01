@@ -1,6 +1,9 @@
 [vk::binding(0, 0)]
 Sampler2D sourceTexture;
 
+[vk::binding(1, 1)]
+StructuredBuffer<float> exposureBuffer;
+
 struct VSOutput
 {
 	float4 pos : SV_Position;
@@ -82,6 +85,7 @@ float3 AgX(float3 color)
 float4 fragMain(VSOutput input) : SV_Target
 {
     float4 hdr = sourceTexture.SampleLevel(input.uv, 0.0);
+    hdr.rgb *= exposureBuffer[0];
     float3 mapped = ACESFilm(hdr.rgb);
 
 	return float4(mapped, 1.0);

@@ -122,7 +122,7 @@ DescriptorManager::DescriptorManager(VulkanDevice& vulkanDevice)
 			ssBindings[i].binding = i;
 			ssBindings[i].descriptorCount = 1;
 			ssBindings[i].descriptorType = vk::DescriptorType::eCombinedImageSampler;
-			ssBindings[i].stageFlags = vk::ShaderStageFlagBits::eFragment;
+			ssBindings[i].stageFlags = vk::ShaderStageFlagBits::eFragment | vk::ShaderStageFlagBits::eCompute;
 		}
 		registerLayout("screenSpaceSet", ssBindings);
 	}
@@ -139,6 +139,13 @@ DescriptorManager::DescriptorManager(VulkanDevice& vulkanDevice)
 		bindingFlagsInfo.pBindingFlags = hiZBindingFlags.data();
 		registerLayout("hiZSet", hiZBindings);
 	}
+
+	using S = vk::ShaderStageFlagBits;
+	std::array exposureBindings = {
+	    vk::DescriptorSetLayoutBinding(0, vk::DescriptorType::eStorageBuffer, 1, S::eCompute),
+	    vk::DescriptorSetLayoutBinding(1, vk::DescriptorType::eStorageBuffer, 1, S::eCompute | S::eFragment),
+	};
+	registerLayout("exposureSet", exposureBindings);
 
 } // Still mess.
 
