@@ -12,6 +12,8 @@ public:
 	void onInit(Orhescyon::GeneralManager& gm) override;
 	void addToGraph(Orhescyon::GeneralManager& gm, RenderGraph& rg, uint32_t frame) override;
 
+	bool isEnabled(Orhescyon::GeneralManager& gm) const override;
+
 private:
 	void drawExposurePass(vk::raii::CommandBuffer& cmd, uint32_t frame, DescriptorManager& dManager,
 	                      BufferManager& bManager, PipelineManager& pManager, SwapChain& swapChain, float deltaTime,

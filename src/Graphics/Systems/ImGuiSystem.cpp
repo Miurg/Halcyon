@@ -387,6 +387,7 @@ void ImGuiSystem::update(GeneralManager& gm)
 				ImGui::Checkbox("Enable FXAA", &settings->enableFxaa);
 				ImGui::Checkbox("Enable Bloom", &settings->enableBloom);
 				ImGui::Checkbox("Enable Vignette", &settings->enableVignette);
+				ImGui::Checkbox("Enable Auto Exposure", &settings->enableAutoExposure);
 				if (settings->enableBloom)
 				{
 					ImGui::DragFloat("Bloom Threshold", &settings->bloomThreshold, 0.1f, 0.0f, 10.0f);
@@ -457,13 +458,21 @@ void ImGuiSystem::update(GeneralManager& gm)
 		{
 			if (ImGui::CollapsingHeader("Auto Exposure Settings", ImGuiTreeNodeFlags_DefaultOpen))
 			{
-				ImGui::DragFloat("Brighten Speed", &ae->tauUp, 0.01f, 0.0f, 5.0f);
-				ImGui::DragFloat("Darken Speed", &ae->tauDown, 0.01f, 0.0f, 5.0f);
-				ImGui::DragFloat("Darkest Exposure", &ae->minEV, 0.1f, -20.0f, 0.0f);
-				ImGui::DragFloat("Brightest Exposure", &ae->maxEV, 0.1f, 0.0f, 20.0f);
-				ImGui::DragFloat("Target Brightness", &ae->targetLuminance, 0.01f, 0.0f, 2.0f);
-				ImGui::SliderFloat("Shadow Cutoff", &ae->lowPercent, 0.0f, 1.0f);
-				ImGui::SliderFloat("Highlight Cutoff", &ae->highPercent, 0.0f, 1.0f);
+				auto* gs = gm.getContextComponent<GraphicsSettingsContext, GraphicsSettingsComponent>();
+				if (!gs || gs->enableAutoExposure)
+				{
+					ImGui::DragFloat("Brighten Speed", &ae->tauUp, 0.01f, 0.0f, 5.0f);
+					ImGui::DragFloat("Darken Speed", &ae->tauDown, 0.01f, 0.0f, 5.0f);
+					ImGui::DragFloat("Darkest Exposure", &ae->minEV, 0.1f, -20.0f, 0.0f);
+					ImGui::DragFloat("Brightest Exposure", &ae->maxEV, 0.1f, 0.0f, 20.0f);
+					ImGui::DragFloat("Target Brightness", &ae->targetLuminance, 0.01f, 0.0f, 2.0f);
+					ImGui::SliderFloat("Shadow Cutoff", &ae->lowPercent, 0.0f, 1.0f);
+					ImGui::SliderFloat("Highlight Cutoff", &ae->highPercent, 0.0f, 1.0f);
+				}
+				else
+				{
+					ImGui::TextDisabled("Auto Exposure is disabled in Graphics Settings.");
+				}
 			}
 		}
 

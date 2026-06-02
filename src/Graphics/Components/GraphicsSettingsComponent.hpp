@@ -9,6 +9,8 @@ struct GraphicsSettingsComponent
 	//bool enableShadowCulling = true;
 	bool enableGtao = true;
 	bool appliedGtao = true;
+	bool enableAutoExposure = true;
+	bool appliedAutoExposure = true;
 	bool enableFxaa = true;
 	bool enableBloom = true;
 	bool enableVignette = true;

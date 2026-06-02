@@ -15,6 +15,7 @@
 #include "../RenderGraph/RenderGraph.hpp"
 #include "../SwapChain.hpp"
 #include "../Components/ExposureBufferComponent.hpp"
+#include "../Components/GraphicsSettingsComponent.hpp"
 #include "../Components/DeltaTimeComponent.hpp"
 #include "../Components/VulkanDeviceComponent.hpp"
 #include "../VulkanUtils.hpp"
@@ -172,6 +173,11 @@ void ExposurePass::onInit(Orhescyon::GeneralManager& gm)
 	Orhescyon::Entity e = gm.createEntity();
 	gm.registerContext<ExposureBufferContext>(e);
 	gm.addComponent<ExposureBufferComponent>(e, _exposureBuffer);
+}
+
+bool ExposurePass::isEnabled(Orhescyon::GeneralManager& gm) const
+{
+	return gm.getContextComponent<GraphicsSettingsContext, GraphicsSettingsComponent>()->enableAutoExposure;
 }
 
 void ExposurePass::addToGraph(Orhescyon::GeneralManager& gm, RenderGraph& rg, uint32_t frame)

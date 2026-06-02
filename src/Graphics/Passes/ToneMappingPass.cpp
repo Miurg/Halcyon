@@ -14,6 +14,7 @@
 #include "../RenderGraph/RenderGraph.hpp"
 #include "../Components/ExposureBufferComponent.hpp"
 #include "../Components/BufferManagerComponent.hpp"
+#include "../Components/GraphicsSettingsComponent.hpp"
 
 namespace
 {
@@ -49,11 +50,28 @@ void ToneMappingPass::onInit(Orhescyon::GeneralManager& gm)
 
 	pManager.build(PipelineDescription{
 	    .shaderPath = "shaders/tone_mapping.spv",
+	    .specializationValues = {1},
 	    .cullMode = vk::CullModeFlagBits::eNone,
 	    .colorAttachments = {PipelineFactory::opaqueAttachment()},
 	    .colorFormats = {swapChain.swapChainImageFormat},
 	    .setLayoutNames = {"screenSpaceSet", "exposureSet"},
 	});
+}
+
+void ToneMappingPass::onSettingsChanged(Orhescyon::GeneralManager& gm)
+{
+	auto& pManager = *gm.getContextComponent<PipelineManagerContext, PipelineManagerComponent>()->pipelineManager;
+	auto& swapChain = *gm.getContextComponent<MainSwapChainContext, SwapChainComponent>()->swapChainInstance;
+	auto& settings = *gm.getContextComponent<GraphicsSettingsContext, GraphicsSettingsComponent>();
+
+	pManager.rebuild(PipelineDescription{
+	    .shaderPath = "shaders/tone_mapping.spv",
+	    .specializationValues = {settings.enableAutoExposure ? 1 : 0},
+	    .cullMode = vk::CullModeFlagBits::eNone,
+	    .colorAttachments = {PipelineFactory::opaqueAttachment()},
+	    .colorFormats = {swapChain.swapChainImageFormat},
+	    .setLayoutNames = {"screenSpaceSet", "exposureSet"},
+	}, "tone_mapping");
 }
 
 void ToneMappingPass::addToGraph(Orhescyon::GeneralManager& gm, RenderGraph& rg, uint32_t frame)

@@ -88,7 +88,8 @@ void RenderSystem::applySettingsChanges(GeneralManager& gm)
 	auto& graphicsSettings = *gm.getContextComponent<GraphicsSettingsContext, GraphicsSettingsComponent>();
 	const bool msaaChanged = graphicsSettings.msaaSamples != graphicsSettings.appliedMsaaSamples;
 	const bool gtaoChanged = graphicsSettings.enableGtao != graphicsSettings.appliedGtao;
-	if (msaaChanged || gtaoChanged)
+	const bool autoExposureChanged = graphicsSettings.enableAutoExposure != graphicsSettings.appliedAutoExposure;
+	if (msaaChanged || gtaoChanged || autoExposureChanged)
 	{
 		auto& vulkanDevice =
 		    *gm.getContextComponent<MainVulkanDeviceContext, VulkanDeviceComponent>()->vulkanDeviceInstance;
@@ -105,6 +106,7 @@ void RenderSystem::applySettingsChanges(GeneralManager& gm)
 
 		graphicsSettings.appliedMsaaSamples = graphicsSettings.msaaSamples;
 		graphicsSettings.appliedGtao = graphicsSettings.enableGtao;
+		graphicsSettings.appliedAutoExposure = graphicsSettings.enableAutoExposure;
 	}
 }
 
