@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vector>
+#include <mutex>
 #include <Orhescyon/GeneralManager.hpp>
 #include <Orhescyon/Systems/SystemCore.hpp>
 
@@ -22,6 +23,12 @@ public:
 	};
 
 	std::vector<Agent> _agents;
+
+	std::mutex _pendingMutex;
+	std::vector<Agent> _pendingAdd;
+	std::vector<Orhescyon::Entity> _pendingRemove;
+
+	void applyPendingChanges();
 
 	void update(GeneralManager& gm) override;
 	void onRegistered(GeneralManager& gm) override;

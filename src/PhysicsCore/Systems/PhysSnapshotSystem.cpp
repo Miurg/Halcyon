@@ -22,25 +22,49 @@ void PhysSnapshotSystem::onEntitySubscribed(Orhescyon::Entity entity, GeneralMan
 {
 	PhysBodyComponent* physBody = gm.getComponent<PhysBodyComponent>(entity);
 	PhysTransformSnapshotComponent* transSnapshot = gm.getComponent<PhysTransformSnapshotComponent>(entity);
-	
+
 	if (transSnapshot && physBody)
 	{
-		_agents.push_back({entity, transSnapshot, physBody});
+		std::lock_guard<std::mutex> lock(_pendingMutex);
+		_pendingAdd.push_back({entity, transSnapshot, physBody});
 	}
 }
 
 void PhysSnapshotSystem::onEntityUnsubscribed(Orhescyon::Entity entity, GeneralManager& gm)
 {
-	auto it =
-	    std::remove_if(_agents.begin(), _agents.end(), [entity](const Agent& agent) { return agent.entity == entity; });
-	_agents.erase(it, _agents.end());
+	std::lock_guard<std::mutex> lock(_pendingMutex);
+	_pendingRemove.push_back(entity);
 }
 
-void PhysSnapshotSystem::update(GeneralManager& gm) 
+void PhysSnapshotSystem::applyPendingChanges()
+{
+	std::lock_guard<std::mutex> lock(_pendingMutex);
+
+	if (!_pendingAdd.empty())
+	{
+		_agents.insert(_agents.end(), _pendingAdd.begin(), _pendingAdd.end());
+		_pendingAdd.clear();
+	}
+
+	if (!_pendingRemove.empty())
+	{
+		for (Orhescyon::Entity entity : _pendingRemove)
+		{
+			auto it = std::remove_if(_agents.begin(), _agents.end(),
+			                         [entity](const Agent& agent) { return agent.entity == entity; });
+			_agents.erase(it, _agents.end());
+		}
+		_pendingRemove.clear();
+	}
+}
+
+void PhysSnapshotSystem::update(GeneralManager& gm)
 {
 #ifdef TRACY_ENABLE
 	ZoneScopedN("PhysSnapshotSystem");
 #endif
+
+	applyPendingChanges();
 
 	PhysManager& physManager =
 	    *gm.getContextComponent<PhysManagerContext, PhysManagerComponent>()->physManager;
