@@ -96,8 +96,8 @@ vk::Extent2D SwapChainFactory::chooseSwapExtent(const vk::SurfaceCapabilitiesKHR
 		return capabilities.currentExtent;
 	}
 
-	return {std::clamp<uint32_t>(window.height, capabilities.minImageExtent.width, capabilities.maxImageExtent.width),
-	        std::clamp<uint32_t>(window.width, capabilities.minImageExtent.height, capabilities.maxImageExtent.height)};
+	return {std::clamp<uint32_t>(window.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width),
+	        std::clamp<uint32_t>(window.height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height)};
 }
 
 void SwapChainFactory::cleanupSwapChain(SwapChain& swapChain)
