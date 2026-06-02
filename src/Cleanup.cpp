@@ -28,22 +28,32 @@
 
 void Cleanup::cleanup(GeneralManager& gm)
 {
-	DescriptorManager* dManager =
-	    gm.getContextComponent<DescriptorManagerContext, DescriptorManagerComponent>()->descriptorManager;
-	BufferManager* bManager = gm.getContextComponent<BufferManagerContext, BufferManagerComponent>()->bufferManager;
-	TextureManager* tManager = gm.getContextComponent<TextureManagerContext, TextureManagerComponent>()->textureManager;
-	ModelManager* mManager = gm.getContextComponent<ModelManagerContext, ModelManagerComponent>()->modelManager;
-	FrameManager* fManager = gm.getContextComponent<FrameManagerContext, FrameManagerComponent>()->frameManager;
-	SwapChain* swap = gm.getContextComponent<MainSwapChainContext, SwapChainComponent>()->swapChainInstance;
-	VulkanDevice* vulkanDevice =
-	    gm.getContextComponent<MainVulkanDeviceContext, VulkanDeviceComponent>()->vulkanDeviceInstance;
+	DescriptorManagerComponent* dManagerComp = gm.getContextComponent<DescriptorManagerContext, DescriptorManagerComponent>();
+	BufferManagerComponent* bManagerComp = gm.getContextComponent<BufferManagerContext, BufferManagerComponent>();
+	TextureManagerComponent* tManagerComp = gm.getContextComponent<TextureManagerContext, TextureManagerComponent>();
+	ModelManagerComponent* mManagerComp = gm.getContextComponent<ModelManagerContext, ModelManagerComponent>();
+	FrameManagerComponent* fManagerComp = gm.getContextComponent<FrameManagerContext, FrameManagerComponent>();
+	SwapChainComponent* swapComp = gm.getContextComponent<MainSwapChainContext, SwapChainComponent>();
+	VulkanDeviceComponent* vulkanDeviceComp = gm.getContextComponent<MainVulkanDeviceContext, VulkanDeviceComponent>();
 	VMAllocatorComponent* vmaComp = gm.getContextComponent<VMAllocatorContext, VMAllocatorComponent>();
-	RenderGraph* rg = gm.getContextComponent<RenderGraphContext, RenderGraphComponent>()->renderGraph;
-	PipelineManager* pManager =
-	    gm.getContextComponent<PipelineManagerContext, PipelineManagerComponent>()->pipelineManager;
+	RenderGraphComponent* rgComp = gm.getContextComponent<RenderGraphContext, RenderGraphComponent>();
+	PipelineManagerComponent* pManagerComp = gm.getContextComponent<PipelineManagerContext, PipelineManagerComponent>();
 	WindowComponent* windowComp = gm.getContextComponent<MainWindowContext, WindowComponent>();
 
-	vulkanDevice->device.waitIdle();
+	DescriptorManager* dManager = dManagerComp ? dManagerComp->descriptorManager : nullptr;
+	BufferManager* bManager = bManagerComp ? bManagerComp->bufferManager : nullptr;
+	TextureManager* tManager = tManagerComp ? tManagerComp->textureManager : nullptr;
+	ModelManager* mManager = mManagerComp ? mManagerComp->modelManager : nullptr;
+	FrameManager* fManager = fManagerComp ? fManagerComp->frameManager : nullptr;
+	SwapChain* swap = swapComp ? swapComp->swapChainInstance : nullptr;
+	VulkanDevice* vulkanDevice = vulkanDeviceComp ? vulkanDeviceComp->vulkanDeviceInstance : nullptr;
+	RenderGraph* rg = rgComp ? rgComp->renderGraph : nullptr;
+	PipelineManager* pManager = pManagerComp ? pManagerComp->pipelineManager : nullptr;
+
+	if (vulkanDevice)
+	{
+		vulkanDevice->device.waitIdle();
+	}
 
 #ifdef TRACY_ENABLE
 	if (vulkanDevice && vulkanDevice->tracyContext)
@@ -53,9 +63,12 @@ void Cleanup::cleanup(GeneralManager& gm)
 	}
 #endif
 
-	ImGui_ImplVulkan_Shutdown();
-	ImGui_ImplGlfw_Shutdown();
-	ImGui::DestroyContext();
+	if (ImGui::GetCurrentContext())
+	{
+		ImGui_ImplVulkan_Shutdown();
+		ImGui_ImplGlfw_Shutdown();
+		ImGui::DestroyContext();
+	}
 
 	if (bManager)
 	{
@@ -82,9 +95,9 @@ void Cleanup::cleanup(GeneralManager& gm)
 		delete fManager;
 		fManager = nullptr;
 	}
-	SwapChainFactory::cleanupSwapChain(*swap);
 	if (swap)
 	{
+		SwapChainFactory::cleanupSwapChain(*swap);
 		delete swap;
 		swap = nullptr;
 	}
