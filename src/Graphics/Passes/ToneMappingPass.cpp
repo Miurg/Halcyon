@@ -45,7 +45,7 @@ void ToneMappingPass::onInit(Orhescyon::GeneralManager& gm)
 	for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
 	{
 		dManager.update(_dSetExposure, 1, i, vk::DescriptorType::eStorageBuffer,
-		                bManager.buffers[exposureComp.exposureBuffer.id].buffer[i]);
+		                bManager.buffers[exposureComp.exposureBuffer.id].buffer[0]);
 	}
 
 	pManager.build(PipelineDescription{

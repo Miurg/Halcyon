@@ -135,17 +135,16 @@ void ExposurePass::onInit(Orhescyon::GeneralManager& gm)
 	_histogramBuffer =
 	    bManager.createBuffer(vk::MemoryPropertyFlagBits::eDeviceLocal, sizeof(uint32_t) * 256, MAX_FRAMES_IN_FLIGHT,
 	                          vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst);
-	_exposureBuffer = bManager.createBuffer(vk::MemoryPropertyFlagBits::eDeviceLocal, sizeof(float), MAX_FRAMES_IN_FLIGHT,
+	_exposureBuffer = bManager.createBuffer(vk::MemoryPropertyFlagBits::eDeviceLocal, sizeof(float), 1,
 	                          vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst);
 
 	auto& vulkanDevice = *gm.getContextComponent<MainVulkanDeviceContext, VulkanDeviceComponent>()->vulkanDeviceInstance;
 	float initialExposure = 1.0f;
 	auto cmd = VulkanUtils::beginSingleTimeCommands(vulkanDevice);
-	for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
-	{
-		cmd.updateBuffer(bManager.buffers[_exposureBuffer.id].buffer[i], 0,
-		                 vk::ArrayProxy<const float>(1, &initialExposure));
-	}
+
+	cmd.updateBuffer(bManager.buffers[_exposureBuffer.id].buffer[0], 0,
+	                 vk::ArrayProxy<const float>(1, &initialExposure));
+
 	VulkanUtils::endSingleTimeCommands(cmd, vulkanDevice);
 
 	for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
@@ -153,7 +152,7 @@ void ExposurePass::onInit(Orhescyon::GeneralManager& gm)
 		dManager.update(_dSetExposure, 0, i, vk::DescriptorType::eStorageBuffer,
 		                bManager.buffers[_histogramBuffer.id].buffer[i]);
 		dManager.update(_dSetExposure, 1, i, vk::DescriptorType::eStorageBuffer,
-		                bManager.buffers[_exposureBuffer.id].buffer[i]);
+		                bManager.buffers[_exposureBuffer.id].buffer[0]);
 	}
 
 	pManager.build(PipelineDescription{
