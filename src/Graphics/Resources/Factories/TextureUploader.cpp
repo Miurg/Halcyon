@@ -77,43 +77,17 @@ void TextureUploader::uploadTextureFromBuffer(const unsigned char* pixels, int t
 	// Create staging buffer (RGBA)
 	vk::DeviceSize imageSize = static_cast<vk::DeviceSize>(texWidth) * static_cast<vk::DeviceSize>(texHeight) * 4;
 
-	VkBufferCreateInfo bufferInfo = {VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO};
-	bufferInfo.size = imageSize;
-	bufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-
-	VmaAllocationCreateInfo allocInfo = {};
-	allocInfo.usage = VMA_MEMORY_USAGE_AUTO;
-	allocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
-
-	VkBuffer stagingBuffer;
-	VmaAllocation stagingAllocation;
-	VmaAllocationInfo stagingAllocInfo;
-
-	VkResult result =
-	    vmaCreateBuffer(allocator, &bufferInfo, &allocInfo, &stagingBuffer, &stagingAllocation, &stagingAllocInfo);
-	if (result != VK_SUCCESS)
-	{
-		throw std::runtime_error("Failed to create staging buffer for texture upload! VkResult: " +
-		                         std::to_string(result));
-	}
-
-	if (!stagingAllocInfo.pMappedData)
-	{
-		vmaDestroyBuffer(allocator, stagingBuffer, stagingAllocation);
-		throw std::runtime_error("Failed to map staging buffer memory!");
-	}
-
-	memcpy(stagingAllocInfo.pMappedData, pixels, static_cast<size_t>(imageSize));
+	auto staging = VulkanUtils::createStagingBuffer(pixels, imageSize, allocator);
 
 	transitionImageLayout(texture.textureImage, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal,
 	                      vulkanDevice);
 
-	VulkanUtils::copyBufferToImage(stagingBuffer, texture.textureImage, static_cast<uint32_t>(texWidth),
+	VulkanUtils::copyBufferToImage(staging.buffer, texture.textureImage, static_cast<uint32_t>(texWidth),
 	                               static_cast<uint32_t>(texHeight), vulkanDevice);
 
 	generateMipmaps(texture.textureImage, texture.format, texWidth, texHeight, texture.mipLevels, vulkanDevice);
 
-	vmaDestroyBuffer(allocator, stagingBuffer, stagingAllocation);
+	VulkanUtils::destroyStagingBuffer(staging, allocator);
 }
 
 void TextureUploader::uploadHdrTextureFromBuffer(const float* pixels, int texWidth, int texHeight, Texture& texture,
@@ -132,42 +106,17 @@ void TextureUploader::uploadHdrTextureFromBuffer(const float* pixels, int texWid
 	// Create staging buffer (RGBA32F, 16 bytes per pixel)
 	vk::DeviceSize imageSize = static_cast<vk::DeviceSize>(texWidth) * static_cast<vk::DeviceSize>(texHeight) * 16;
 
-	VkBufferCreateInfo bufferInfo = {VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO};
-	bufferInfo.size = imageSize;
-	bufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-
-	VmaAllocationCreateInfo allocInfo = {};
-	allocInfo.usage = VMA_MEMORY_USAGE_AUTO;
-	allocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
-
-	VkBuffer stagingBuffer;
-	VmaAllocation stagingAllocation;
-	VmaAllocationInfo stagingAllocInfo;
-
-	VkResult result =
-	    vmaCreateBuffer(allocator, &bufferInfo, &allocInfo, &stagingBuffer, &stagingAllocation, &stagingAllocInfo);
-	if (result != VK_SUCCESS)
-	{
-		throw std::runtime_error("Failed to create staging buffer for HDR texture upload!");
-	}
-
-	if (!stagingAllocInfo.pMappedData)
-	{
-		vmaDestroyBuffer(allocator, stagingBuffer, stagingAllocation);
-		throw std::runtime_error("Failed to map staging buffer memory!");
-	}
-
-	memcpy(stagingAllocInfo.pMappedData, pixels, static_cast<size_t>(imageSize));
+	auto staging = VulkanUtils::createStagingBuffer(pixels, imageSize, allocator);
 
 	transitionImageLayout(texture.textureImage, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal,
 	                      vulkanDevice);
 
-	VulkanUtils::copyBufferToImage(stagingBuffer, texture.textureImage, static_cast<uint32_t>(texWidth),
+	VulkanUtils::copyBufferToImage(staging.buffer, texture.textureImage, static_cast<uint32_t>(texWidth),
 	                               static_cast<uint32_t>(texHeight), vulkanDevice);
 
 	generateMipmaps(texture.textureImage, texture.format, texWidth, texHeight, texture.mipLevels, vulkanDevice);
 
-	vmaDestroyBuffer(allocator, stagingBuffer, stagingAllocation);
+	VulkanUtils::destroyStagingBuffer(staging, allocator);
 }
 
 void TextureUploader::uploadHdrTextureFromFile(const char* texturePath, Texture& texture, TextureManager& tManager,
@@ -268,21 +217,16 @@ void TextureUploader::uploadKtxTextureData(const unsigned char* ktxData, size_t 
 	ktx_size_t totalSize = ktxTexture_GetDataSize(ktxTexture(ktxTex));
 	ktx_uint8_t* dataPtr = ktxTexture_GetData(ktxTexture(ktxTex));
 
-	VkBufferCreateInfo bufInfo{VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO};
-	bufInfo.size = totalSize;
-	bufInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-	VmaAllocationCreateInfo stagingInfo{};
-	stagingInfo.usage = VMA_MEMORY_USAGE_AUTO;
-	stagingInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
-	VkBuffer stagingBuf;
-	VmaAllocation stagingAlloc;
-	VmaAllocationInfo stagingAllocInfo;
-	if (vmaCreateBuffer(allocator, &bufInfo, &stagingInfo, &stagingBuf, &stagingAlloc, &stagingAllocInfo) != VK_SUCCESS)
+	StagingBuffer staging;
+	try
+	{
+		staging = VulkanUtils::createStagingBuffer(dataPtr, totalSize, allocator);
+	}
+	catch (...)
 	{
 		ktxTexture_Destroy(ktxTexture(ktxTex));
-		throw std::runtime_error("Failed to create staging buffer for KTX2 texture");
+		throw;
 	}
-	memcpy(stagingAllocInfo.pMappedData, dataPtr, totalSize);
 
 	auto cmd = VulkanUtils::beginSingleTimeCommands(vulkanDevice);
 
@@ -316,7 +260,7 @@ void TextureUploader::uploadKtxTextureData(const unsigned char* ktxData, size_t 
 		region.imageExtent = vk::Extent3D{std::max(1u, width >> mip), std::max(1u, height >> mip), 1};
 		regions.push_back(region);
 	}
-	cmd.copyBufferToImage(stagingBuf, texture.textureImage, vk::ImageLayout::eTransferDstOptimal, regions);
+	cmd.copyBufferToImage(staging.buffer, texture.textureImage, vk::ImageLayout::eTransferDstOptimal, regions);
 
 	// Transition all mip levels: transfer dst -> shader read only
 	barrier.oldLayout = vk::ImageLayout::eTransferDstOptimal;
@@ -327,7 +271,7 @@ void TextureUploader::uploadKtxTextureData(const unsigned char* ktxData, size_t 
 	                    barrier);
 
 	VulkanUtils::endSingleTimeCommands(cmd, vulkanDevice);
-	vmaDestroyBuffer(allocator, stagingBuf, stagingAlloc);
+	VulkanUtils::destroyStagingBuffer(staging, allocator);
 	ktxTexture_Destroy(ktxTexture(ktxTex));
 }
 

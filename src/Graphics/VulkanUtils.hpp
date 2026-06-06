@@ -4,6 +4,12 @@
 #include "VulkanDevice.hpp"
 #include <vector>
 
+struct StagingBuffer
+{
+	VkBuffer buffer = VK_NULL_HANDLE;
+	VmaAllocation allocation = VK_NULL_HANDLE;
+};
+
 // Stateless Vulkan helpers — buffer/image creation, memory queries, one-shot command buffers.
 class VulkanUtils
 {
@@ -41,4 +47,7 @@ public:
 	                                  vk::AccessFlags2 dstAccessMask, vk::PipelineStageFlags2 srcStageMask,
 	                                  vk::PipelineStageFlags2 dstStageMask, vk::ImageAspectFlags imageAspectFlags,
 	                                  uint32_t layerCount, uint32_t mipLevelCount);
+	static StagingBuffer createStagingBuffer(const void* data, vk::DeviceSize size, VmaAllocator allocator,
+	                                         VkBufferUsageFlags usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
+	static void destroyStagingBuffer(StagingBuffer& stagingBuffer, VmaAllocator allocator);
 };

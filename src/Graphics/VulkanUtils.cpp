@@ -213,3 +213,43 @@ void VulkanUtils::transitionImageLayout(vk::raii::CommandBuffer& commandBuffer, 
 	dependencyInfo.pImageMemoryBarriers = &barrier;
 	commandBuffer.pipelineBarrier2(dependencyInfo);
 }
+
+StagingBuffer VulkanUtils::createStagingBuffer(const void* data, vk::DeviceSize size,
+                                                            VmaAllocator allocator, VkBufferUsageFlags usage)
+{
+	if (!data || size == 0) throw std::runtime_error("Invalid data or size for staging buffer!");
+
+	VkBufferCreateInfo bufferInfo = {VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO};
+	bufferInfo.size = static_cast<VkDeviceSize>(size);
+	bufferInfo.usage = usage;
+
+	VmaAllocationCreateInfo allocInfo = {};
+	allocInfo.usage = VMA_MEMORY_USAGE_AUTO;
+	allocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
+
+	StagingBuffer staging{};
+	VmaAllocationInfo stagingAllocInfo;
+
+	VkResult result =
+	    vmaCreateBuffer(allocator, &bufferInfo, &allocInfo, &staging.buffer, &staging.allocation, &stagingAllocInfo);
+	if (result != VK_SUCCESS) throw std::runtime_error("Failed to create staging buffer!");
+
+	if (!stagingAllocInfo.pMappedData)
+	{
+		destroyStagingBuffer(staging, allocator);
+		throw std::runtime_error("Failed to map staging buffer memory!");
+	}
+
+	memcpy(stagingAllocInfo.pMappedData, data, static_cast<size_t>(size));
+	return staging;
+}
+
+void VulkanUtils::destroyStagingBuffer(StagingBuffer& stagingBuffer, VmaAllocator allocator)
+{
+	if (stagingBuffer.buffer != VK_NULL_HANDLE)
+	{
+		vmaDestroyBuffer(allocator, stagingBuffer.buffer, stagingBuffer.allocation);
+		stagingBuffer.buffer = VK_NULL_HANDLE;
+		stagingBuffer.allocation = VK_NULL_HANDLE;
+	}
+}

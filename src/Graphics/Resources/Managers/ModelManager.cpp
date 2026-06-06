@@ -41,29 +41,38 @@ void ModelManager::createVertexBuffer(VertexIndexBuffer& vertexIndexBuffer)
 	}
 
 	vk::DeviceSize bufferSize = sizeof(vertexIndexBuffer.vertices[0]) * vertexIndexBuffer.vertices.size();
+	if (bufferSize == 0) return;
 
 	vk::BufferCreateInfo bufferInfo;
 	bufferInfo.size = bufferSize;
-	bufferInfo.usage = vk::BufferUsageFlagBits::eVertexBuffer;
+	bufferInfo.usage = vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eTransferDst;
 	bufferInfo.sharingMode = vk::SharingMode::eExclusive;
 
 	VmaAllocationCreateInfo allocInfo = {};
-	allocInfo.usage = VMA_MEMORY_USAGE_AUTO;
-	allocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
-	allocInfo.flags |= VMA_ALLOCATION_CREATE_MAPPED_BIT;
+	allocInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
 
 	VkBuffer buffer;
 	VmaAllocation allocation;
-	VmaAllocationInfo allocResultInfo;
-
 	VkBufferCreateInfo bufferInfoC = (VkBufferCreateInfo)bufferInfo;
-	vmaCreateBuffer(allocator, &bufferInfoC, &allocInfo, &buffer, &allocation, &allocResultInfo);
+
+	if (vmaCreateBuffer(allocator, &bufferInfoC, &allocInfo, &buffer, &allocation, nullptr) !=
+	    VK_SUCCESS)
+	{
+		throw std::runtime_error("Failed to create device-local vertex buffer!");
+	}
 
 	vertexIndexBuffer.vertexBuffer = vk::Buffer(buffer);
 	vertexIndexBuffer.vertexBufferAllocation = allocation;
+	
+	// Staging buffer copy
+	auto staging = VulkanUtils::createStagingBuffer(vertexIndexBuffer.vertices.data(), bufferSize, allocator);
 
-	void* data = allocResultInfo.pMappedData;
-	memcpy(data, vertexIndexBuffer.vertices.data(), static_cast<size_t>(bufferSize));
+	auto cmd = VulkanUtils::beginSingleTimeCommands(vulkanDevice);
+	vk::BufferCopy copyRegion{0, 0, bufferSize};
+	cmd.copyBuffer(staging.buffer, vertexIndexBuffer.vertexBuffer, copyRegion);
+	VulkanUtils::endSingleTimeCommands(cmd, vulkanDevice);
+
+	VulkanUtils::destroyStagingBuffer(staging, allocator);
 }
 
 void ModelManager::createIndexBuffer(VertexIndexBuffer& vertexIndexBuffer)
@@ -76,27 +85,37 @@ void ModelManager::createIndexBuffer(VertexIndexBuffer& vertexIndexBuffer)
 	}
 
 	vk::DeviceSize bufferSize = sizeof(vertexIndexBuffer.indices[0]) * vertexIndexBuffer.indices.size();
+	if (bufferSize == 0) return;
 
 	vk::BufferCreateInfo bufferInfo;
 	bufferInfo.size = bufferSize;
-	bufferInfo.usage = vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eIndexBuffer;
+	bufferInfo.usage = vk::BufferUsageFlagBits::eIndexBuffer | vk::BufferUsageFlagBits::eTransferDst;
 	bufferInfo.sharingMode = vk::SharingMode::eExclusive;
 
 	VmaAllocationCreateInfo allocInfo = {};
-	allocInfo.usage = VMA_MEMORY_USAGE_AUTO;
-	allocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
-	allocInfo.flags |= VMA_ALLOCATION_CREATE_MAPPED_BIT;
+	allocInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
 
 	VkBuffer buffer;
 	VmaAllocation allocation;
-	VmaAllocationInfo allocResultInfo;
 
 	VkBufferCreateInfo bufferInfoC = (VkBufferCreateInfo)bufferInfo;
-	vmaCreateBuffer(allocator, &bufferInfoC, &allocInfo, &buffer, &allocation, &allocResultInfo);
+	
+	if (vmaCreateBuffer(allocator, &bufferInfoC, &allocInfo, &buffer, &allocation, nullptr) !=
+	    VK_SUCCESS)
+	{
+		throw std::runtime_error("Failed to create index buffer!");
+	}
 
 	vertexIndexBuffer.indexBuffer = vk::Buffer(buffer);
 	vertexIndexBuffer.indexBufferAllocation = allocation;
+	
+	// Staging buffer copy
+	auto staging = VulkanUtils::createStagingBuffer(vertexIndexBuffer.indices.data(), bufferSize, allocator);
 
-	void* data = allocResultInfo.pMappedData;
-	memcpy(data, vertexIndexBuffer.indices.data(), static_cast<size_t>(bufferSize));
+	auto cmd = VulkanUtils::beginSingleTimeCommands(vulkanDevice);
+	vk::BufferCopy copyRegion{0, 0, bufferSize};
+	cmd.copyBuffer(staging.buffer, vertexIndexBuffer.indexBuffer, copyRegion);
+	VulkanUtils::endSingleTimeCommands(cmd, vulkanDevice);
+
+	VulkanUtils::destroyStagingBuffer(staging, allocator);
 }
