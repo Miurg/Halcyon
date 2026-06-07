@@ -32,10 +32,13 @@
 #include "../Passes/PresentPass.hpp"
 #include "../Passes/DepthPyramidPass.hpp"
 #include "../Passes/ExposurePass.hpp"
+#include "../Passes/ParticleSystemComputePass.hpp"
 
 #ifdef TRACY_ENABLE
 #include <tracy/Tracy.hpp>
 #endif
+#include "../Passes/ParticleSystemRenderPass.hpp"
+
 
 void RenderSystem::onRegistered(GeneralManager& gm)
 {
@@ -45,12 +48,14 @@ void RenderSystem::onRegistered(GeneralManager& gm)
 		_passes.back()->onInit(gm);
 	};
 
+	add(std::make_unique<ParticleSystemComputePass>());
 	add(std::make_unique<DirectLightPass>());
 	add(std::make_unique<CullPass>());
 	add(std::make_unique<DepthPrepass>());
 	add(std::make_unique<DepthPyramidPass>());
 	add(std::make_unique<GTAOPass>());
 	add(std::make_unique<MainPass>());
+	add(std::make_unique<ParticleSystemRenderPass>());
 	add(std::make_unique<ExposurePass>());
 	add(std::make_unique<DebugPass>());
 	add(std::make_unique<BloomPass>());

@@ -129,15 +129,15 @@ DescriptorManager::DescriptorManager(VulkanDevice& vulkanDevice)
 
 	{
 		using S = vk::ShaderStageFlagBits;
-		std::array hiZBindings = {
+		std::array depthPyramidBindings = {
 		    vk::DescriptorSetLayoutBinding(0, vk::DescriptorType::eCombinedImageSampler, 1, S::eCompute),
 		    vk::DescriptorSetLayoutBinding(1, vk::DescriptorType::eStorageImage, 1, S::eCompute)};
-		std::array<vk::DescriptorBindingFlags, 2> hiZBindingFlags = {vk::DescriptorBindingFlags{},
-		                                                             vk::DescriptorBindingFlags{}};
+		std::array<vk::DescriptorBindingFlags, 2> depthPyramidBindingFlags = {vk::DescriptorBindingFlags{},
+		                                                                      vk::DescriptorBindingFlags{}};
 		vk::DescriptorSetLayoutBindingFlagsCreateInfo bindingFlagsInfo;
-		bindingFlagsInfo.bindingCount = static_cast<uint32_t>(hiZBindingFlags.size());
-		bindingFlagsInfo.pBindingFlags = hiZBindingFlags.data();
-		registerLayout("hiZSet", hiZBindings);
+		bindingFlagsInfo.bindingCount = static_cast<uint32_t>(depthPyramidBindingFlags.size());
+		bindingFlagsInfo.pBindingFlags = depthPyramidBindingFlags.data();
+		registerLayout("hiZSet", depthPyramidBindings);
 	}
 
 	using S = vk::ShaderStageFlagBits;
@@ -146,6 +146,17 @@ DescriptorManager::DescriptorManager(VulkanDevice& vulkanDevice)
 	    vk::DescriptorSetLayoutBinding(1, vk::DescriptorType::eStorageBuffer, 1, S::eCompute | S::eFragment),
 	};
 	registerLayout("exposureSet", exposureBindings);
+
+	using S = vk::ShaderStageFlagBits;
+	std::array particleSystemBindings = {
+	    vk::DescriptorSetLayoutBinding(0, vk::DescriptorType::eStorageBuffer, 1, S::eCompute | S::eFragment | S::eVertex),
+	    vk::DescriptorSetLayoutBinding(1, vk::DescriptorType::eStorageBuffer, 1, S::eCompute),
+	    vk::DescriptorSetLayoutBinding(2, vk::DescriptorType::eStorageBuffer, 1, S::eCompute),
+	    vk::DescriptorSetLayoutBinding(3, vk::DescriptorType::eStorageBuffer, 1, S::eCompute),
+	    vk::DescriptorSetLayoutBinding(4, vk::DescriptorType::eStorageBuffer, 1, S::eCompute),
+	    vk::DescriptorSetLayoutBinding(5, vk::DescriptorType::eStorageBuffer, 1, S::eCompute | S::eVertex),
+	};
+	registerLayout("particleSystemSet", particleSystemBindings);
 
 } // Still mess.
 

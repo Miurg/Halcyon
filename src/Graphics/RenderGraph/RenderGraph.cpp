@@ -73,6 +73,8 @@ RGResourceHandle RenderGraph::importImage(const std::string& name, vk::Image ima
 
 void RenderGraph::handleResize(uint32_t newWidth, uint32_t newHeight)
 {
+	(*vulkanDevice.device).waitIdle();
+
 	currentWidth = newWidth;
 	currentHeight = newHeight;
 
@@ -135,6 +137,8 @@ void RenderGraph::handleResize(uint32_t newWidth, uint32_t newHeight)
 
 void RenderGraph::declareLogicalStream(const std::string& name, const RGImageDesc& desc)
 {
+	(*vulkanDevice.device).waitIdle();
+
 	logicalStreams[name] = desc;
 	for (auto& res : resources)
 	{

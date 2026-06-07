@@ -1,0 +1,118 @@
+#include "ParticleSystemRenderPass.hpp"
+
+#include <Orhescyon/GeneralManager.hpp>
+
+#include "../GraphicsContexts.hpp"
+#include "../Components/BufferManagerComponent.hpp"
+#include "../Components/ModelManagerComponent.hpp"
+#include "../Components/DescriptorManagerComponent.hpp"
+#include "../Components/PipelineManagerComponent.hpp"
+#include "../Components/DrawInfoComponent.hpp"
+#include "../Resources/Components/GlobalDSetComponent.hpp"
+#include "../Resources/Components/ModelDSetComponent.hpp"
+#include "../Resources/Managers/ModelManager.hpp"
+#include "../Managers/PipelineManager.hpp"
+#include "../Factories/PipelineFactory.hpp"
+#include "../RenderGraph/RenderGraph.hpp"
+#include "../SwapChain.hpp"
+#include "../Components/ExposureBufferComponent.hpp"
+#include "../Components/GraphicsSettingsComponent.hpp"
+#include "../Components/DeltaTimeComponent.hpp"
+#include "../Components/VulkanDeviceComponent.hpp"
+#include "../VulkanUtils.hpp"
+#include "../Components/ParticlePropertiesComponent.hpp"
+#include "../Components/CurrentFrameComponent.hpp"
+#include "../Components/SwapChainComponent.hpp"
+#include "../Components/RenderGraphComponent.hpp"
+#include "../Components/ParticlesBufferComponent.hpp"
+#include "../Components/TextureManagerComponent.hpp"
+
+const int MAX_NUMBER_PARTICLES = 100000;
+
+struct ParticleMetada
+{
+	float numberOfParticles;
+	int bottomOfStack;
+	int maxNumberOfPatricles;
+	float spawnRadiusMax;
+	float spawnRadiusMin;
+	float timeToLiveMax;
+	float timeToLiveMin;
+};
+
+struct drawIndirect
+{
+	uint32_t vertexCount;
+	uint32_t instanceCount;
+	uint32_t firstVertex;
+	uint32_t firstInstance;
+};
+
+void ParticleSystemRenderPass::drawParticlRender(vk::raii::CommandBuffer& cmd, uint32_t frame,
+                                                 DescriptorManagerComponent& dManager, BufferManager& bManager,
+                                                 PipelineManager& pManager, GlobalDSetComponent& globalDSetComponent,
+                                                 BufferHandle& indirectBuffer)
+{
+	cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pManager.pipelines["system_render"].pipeline);
+
+	cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pManager.pipelines["system_render"].layout, 0,
+	                       dManager.descriptorManager->getSet(_dSetParticles, frame), nullptr);
+	cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pManager.pipelines["system_render"].layout, 1,
+	                       dManager.descriptorManager->getSet(globalDSetComponent.globalDSets, frame), nullptr);
+
+	cmd.drawIndirect(bManager.buffers[indirectBuffer.id].buffer[frame], 0, 1, sizeof(drawIndirect));
+}
+
+void ParticleSystemRenderPass::onInit(Orhescyon::GeneralManager& gm)
+{
+	auto& pManager = *gm.getContextComponent<PipelineManagerContext, PipelineManagerComponent>()->pipelineManager;
+	auto& bManager = *gm.getContextComponent<BufferManagerContext, BufferManagerComponent>()->bufferManager;
+	auto& dManager = *gm.getContextComponent<DescriptorManagerContext, DescriptorManagerComponent>()->descriptorManager;
+	auto& swapChain = *gm.getContextComponent<MainSwapChainContext, SwapChainComponent>()->swapChainInstance;
+	auto& rg = *gm.getContextComponent<RenderGraphContext, RenderGraphComponent>()->renderGraph;
+	auto& particlesBuffer = *gm.getContextComponent<ParticlesBufferContext, ParticlesBufferComponent>();
+	auto& tManager = *gm.getContextComponent<TextureManagerContext, TextureManagerComponent>()->textureManager;
+	auto depthFormat = tManager.findBestFormat();
+
+	_dSetParticles = dManager.allocate("particleSystemSet", MAX_FRAMES_IN_FLIGHT);
+
+	for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
+	{
+		dManager.update(_dSetParticles, 0, i, vk::DescriptorType::eStorageBuffer,
+		                bManager.buffers[particlesBuffer.particlesBuffer.id].buffer[0]);
+		dManager.update(_dSetParticles, 5, i, vk::DescriptorType::eStorageBuffer,
+		                bManager.buffers[particlesBuffer.aliveIndicesBuffer.id].buffer[0]);
+	}
+
+	pManager.build(PipelineDescription{.shaderPath = "shaders/system_render.spv",
+	                                   .cullMode = vk::CullModeFlagBits::eNone,
+	                                   .depthTest = true,
+	                                   .depthWrite = false,
+	                                   .depthOp = vk::CompareOp::eGreaterOrEqual,
+	                                   .colorAttachments = {PipelineFactory::blendedAttachment()},
+	                                   .colorFormats = {swapChain.hdrFormat},
+	                                   .depthFormat = depthFormat,
+	                                   .setLayoutNames = {"particleSystemSet", "globalSet"}});
+}
+
+void ParticleSystemRenderPass::addToGraph(Orhescyon::GeneralManager& gm, RenderGraph& rg, uint32_t frame)
+{
+	auto& dManager = *gm.getContextComponent<DescriptorManagerContext, DescriptorManagerComponent>();
+	auto& bManager = *gm.getContextComponent<BufferManagerContext, BufferManagerComponent>()->bufferManager;
+	auto& pManager = *gm.getContextComponent<PipelineManagerContext, PipelineManagerComponent>()->pipelineManager;
+	uint32_t totalFrames = gm.getContextComponent<CurrentFrameContext, CurrentFrameComponent>()->frameNumber;
+	float deltaTime = gm.getContextComponent<DeltaTimeContext, DeltaTimeComponent>()->deltaTime;
+	auto& globalDSetComponent = *gm.getContextComponent<MainDSetsContext, GlobalDSetComponent>();
+	auto& indirectBuffer = gm.getContextComponent<ParticlesBufferContext, ParticlesBufferComponent>()->indirectBuffer;
+
+	vk::ClearValue clearSky = vk::ClearColorValue(0.0f, 0.637f, 1.0f, 1.0f);
+	vk::ClearValue clearDepth0 = vk::ClearDepthStencilValue(0.0f, 0);
+
+	rg.addPass(
+	    "ParticleSystemrender",
+	    {.colorAttachments = {{"MainColor", vk::AttachmentLoadOp::eLoad, vk::AttachmentStoreOp::eStore, clearSky}},
+	     .depthAttachment = {{"Depth", vk::AttachmentLoadOp::eLoad, vk::AttachmentStoreOp::eStore, clearDepth0}}},
+	    {}, {{"MainColor", RGResourceUsage::ColorAttachmentWrite}, {"Depth", RGResourceUsage::DepthAttachmentWrite}},
+	    [&, frame, totalFrames, deltaTime](vk::raii::CommandBuffer& cmd)
+	    { drawParticlRender(cmd, frame, dManager, bManager, pManager, globalDSetComponent, indirectBuffer); });
+}

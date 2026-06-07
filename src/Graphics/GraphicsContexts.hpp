@@ -75,3 +75,6 @@ class DeltaTimeContext
 class ExposureBufferContext
 {
 };
+class ParticlesBufferContext
+{
+};
