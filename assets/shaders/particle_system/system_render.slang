@@ -1,10 +1,10 @@
 // === Set 0: particleEmiterSet ===
 struct Particle
 {
-	float3 position;
-	float _padding;
-	float3 scale;
-	float timeToDie;
+    float3 position;
+    uint seed;
+    float3 scale;
+    float liveTime;
 };
 
 [vk::binding(0, 0)]

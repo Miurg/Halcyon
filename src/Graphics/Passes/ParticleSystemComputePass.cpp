@@ -20,7 +20,6 @@
 #include "../Components/DeltaTimeComponent.hpp"
 #include "../Components/VulkanDeviceComponent.hpp"
 #include "../VulkanUtils.hpp"
-#include "../Components/ParticlePropertiesComponent.hpp"
 #include "../Components/CurrentFrameComponent.hpp"
 #include "../Components/VMAllocatorComponent.hpp"
 #include "../Components/ParticlesBufferComponent.hpp"
@@ -29,13 +28,14 @@ const int MAX_NUMBER_PARTICLES = 100000;
 
 struct ParticleMetada
 {
+	glm::vec3 directionalVector;
 	float numberOfParticles;
-	int bottomOfStack;
-	int maxNumberOfPatricles;
-	float spawnRadiusMax;
-	float spawnRadiusMin;
-	float timeToLiveMax;
-	float timeToLiveMin;
+	uint32_t bottomOfStack;
+	uint32_t maxNumberOfPatricles;
+	glm::vec2 spawnRadius; // 1-min, 2-max
+	glm::vec2 timeToLive;  // 1-min, 2-max
+	glm::vec2 velocity;    // 1-min, 2-max
+	glm::vec2 scale;       // 1-min, 2-max
 };
 
 struct dispatchIndirect
@@ -52,6 +52,14 @@ struct drawIndirect
 	uint32_t instanceCount;
 	uint32_t firstVertex;
 	uint32_t firstInstance;
+};
+
+struct ParticleProperties
+{
+	glm::vec3 position = {0.0f, 0.0f, 0.0f};
+	uint32_t seed = 0;
+	glm::vec3 scale = {1.0f, 1.0f, 1.0f};
+	float liveTime = -1.0f;
 };
 
 void ParticleSystemComputePass::drawParticleCompute(vk::raii::CommandBuffer& cmd, uint32_t frame,
@@ -126,9 +134,8 @@ void ParticleSystemComputePass::onInit(Orhescyon::GeneralManager& gm)
 
 	_dSetParticles = dManager.allocate("particleSystemSet", MAX_FRAMES_IN_FLIGHT);
 
-	// TODO: memory property floags
 	_particlesBuffer = bManager.createBuffer(
-	    vk::MemoryPropertyFlagBits::eHostVisible, sizeof(ParticlePropertiesComponent) * MAX_NUMBER_PARTICLES, 1,
+	    vk::MemoryPropertyFlagBits::eHostVisible, sizeof(ParticleProperties) * MAX_NUMBER_PARTICLES, 1,
 	    vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst);
 
 	_particlesStack =
@@ -179,6 +186,16 @@ void ParticleSystemComputePass::onInit(Orhescyon::GeneralManager& gm)
 
 	StagingBuffer staging = VulkanUtils::createStagingBuffer(
 	    sequenceData.data(), sizeof(uint32_t) * MAX_NUMBER_PARTICLES, allocator, VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
+
+	std::vector<ParticleProperties> sequenceDataParticles(MAX_NUMBER_PARTICLES);
+	for (uint32_t i = 0; i < MAX_NUMBER_PARTICLES; ++i)
+	{
+		sequenceDataParticles[i].liveTime = -1.0;
+	}
+	StagingBuffer stagingParticles =
+	    VulkanUtils::createStagingBuffer(sequenceDataParticles.data(), sizeof(ParticleProperties) * MAX_NUMBER_PARTICLES,
+	                                     allocator, VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
+
 	auto cmd = VulkanUtils::beginSingleTimeCommands(vulkanDevice);
 
 	// Stack
@@ -189,14 +206,26 @@ void ParticleSystemComputePass::onInit(Orhescyon::GeneralManager& gm)
 
 	cmd.copyBuffer(vk::Buffer(staging.buffer), bManager.buffers[_particlesStack.id].buffer[0], copyRegion);
 
+	// Particles
+	vk::BufferCopy copyRegionParticles;
+	copyRegionParticles.srcOffset = 0;
+	copyRegionParticles.dstOffset = 0;
+	copyRegionParticles.size = sizeof(ParticleProperties) * MAX_NUMBER_PARTICLES;
+
+	cmd.copyBuffer(vk::Buffer(stagingParticles.buffer), bManager.buffers[_particlesBuffer.id].buffer[0],
+	               copyRegionParticles);
+
 	// Metadata
-	ParticleMetada initialMetadata = {.numberOfParticles = 0.0f,
-	                                  .bottomOfStack = 0,
-	                                  .maxNumberOfPatricles = MAX_NUMBER_PARTICLES - 1,
-	                                  .spawnRadiusMax = 5.0f,
-	                                  .spawnRadiusMin = 0.0f,
-	                                  .timeToLiveMax = 3.0f,
-	                                  .timeToLiveMin = 1.0f};
+	ParticleMetada initialMetadata = {
+	    .directionalVector = {0.0f, 1.0f, 0.0f},
+	    .numberOfParticles = 0.0f,
+	    .bottomOfStack = 0,
+	    .maxNumberOfPatricles = 1000,
+	    .spawnRadius = {0.0f, 5.0f},
+	    .timeToLive = {1.0f, 3.0f},
+	    .velocity = {1.0f, 5.0f},
+	    .scale = {0.05f, 0.3f},
+	};
 	cmd.updateBuffer(bManager.buffers[_particlesMetada.id].buffer[0], 0,
 	                 vk::ArrayProxy<const ParticleMetada>(1, &initialMetadata));
 
@@ -218,6 +247,8 @@ void ParticleSystemComputePass::onInit(Orhescyon::GeneralManager& gm)
 	VulkanUtils::endSingleTimeCommands(cmd, vulkanDevice);
 
 	VulkanUtils::destroyStagingBuffer(staging, allocator);
+	VulkanUtils::destroyStagingBuffer(stagingParticles, allocator);
+
 	pManager.build(PipelineDescription{
 	    .isCompute = true,
 	    .shaderPath = "shaders/particles_spawner.spv",

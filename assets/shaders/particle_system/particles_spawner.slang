@@ -1,10 +1,10 @@
 // === Set 0: particleEmiterSet ===
 struct Particle
 {
-	float3 position;
-	float _padding;
-	float3 scale;
-	float timeToDie;
+    float3 position;
+    uint seed;
+    float3 scale;
+    float liveTime;
 };
 
 [vk::binding(0, 0)]
@@ -15,13 +15,14 @@ RWStructuredBuffer<int> particlesStackBuffer;
 
 struct ParticleMetada
 {
-	float numberOfParticles;
-    int bottomOfStack;
-    int maxNumberOfPatricles;
-	float spawnRadiusMax;
-	float spawnRadiusMin;
-	float timeToLiveMax;
-	float timeToLiveMin;
+    float3 directionalVector;
+    float numberOfParticles;
+    uint bottomOfStack;
+    uint maxNumberOfPatricles;
+    float2 spawnRadius;
+    float2 timeToLive;
+    float2 velocity;
+    float2 scale;
 };
 
 [vk::binding(2, 0)]
@@ -76,19 +77,18 @@ void computeMain(uint3 dispatchThreadID: SV_DispatchThreadID)
 	InterlockedAdd(particlesMetadataBuffer[0].bottomOfStack, 1, index);
     index = particlesStackBuffer[index];
 
-	uint localSeed = dispatchThreadID.x + pushConstants.frameNumber * 719393u;
+    uint localSeed = dispatchThreadID.x + pushConstants.frameNumber * 719393u;
+    particlesBuffer[index].seed = localSeed;
 
-	float timeToDie = lerp(particlesMetadataBuffer[0].timeToLiveMin, particlesMetadataBuffer[0].timeToLiveMax,
-	                       random_float(localSeed));
-
-    float spawnPositionX = lerp(particlesMetadataBuffer[0].spawnRadiusMin, particlesMetadataBuffer[0].spawnRadiusMax,
+    float spawnPositionX = lerp(particlesMetadataBuffer[0].spawnRadius[0], particlesMetadataBuffer[0].spawnRadius[1],
                                 random_float(localSeed));
-    float spawnPositionY = lerp(particlesMetadataBuffer[0].spawnRadiusMin, particlesMetadataBuffer[0].spawnRadiusMax,
+    float spawnPositionY = lerp(particlesMetadataBuffer[0].spawnRadius[0], particlesMetadataBuffer[0].spawnRadius[1],
                                 random_float(localSeed));
-    float spawnPositionZ = lerp(particlesMetadataBuffer[0].spawnRadiusMin, particlesMetadataBuffer[0].spawnRadiusMax,
+    float spawnPositionZ = lerp(particlesMetadataBuffer[0].spawnRadius[0], particlesMetadataBuffer[0].spawnRadius[1],
                                 random_float(localSeed));
     float3 spawnPosition = float3(spawnPositionX, spawnPositionY, spawnPositionZ);
+
     particlesBuffer[index].position = spawnPosition;
-    particlesBuffer[index].timeToDie = timeToDie;
-    particlesBuffer[index].scale = float3(0.1, 0.1, 0.1);
+    particlesBuffer[index].liveTime = 0;
+    particlesBuffer[index].scale = float3(1.0, 1.0, 1.0);
 }

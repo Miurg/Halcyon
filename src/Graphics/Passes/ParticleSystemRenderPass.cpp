@@ -20,7 +20,6 @@
 #include "../Components/DeltaTimeComponent.hpp"
 #include "../Components/VulkanDeviceComponent.hpp"
 #include "../VulkanUtils.hpp"
-#include "../Components/ParticlePropertiesComponent.hpp"
 #include "../Components/CurrentFrameComponent.hpp"
 #include "../Components/SwapChainComponent.hpp"
 #include "../Components/RenderGraphComponent.hpp"
@@ -31,13 +30,16 @@ const int MAX_NUMBER_PARTICLES = 100000;
 
 struct ParticleMetada
 {
+	glm::vec3 directionalVector;  
 	float numberOfParticles;
-	int bottomOfStack;
-	int maxNumberOfPatricles;
+	uint32_t bottomOfStack; 
+	uint32_t maxNumberOfPatricles;
 	float spawnRadiusMax;
 	float spawnRadiusMin;
 	float timeToLiveMax;
 	float timeToLiveMin;
+	float velocityMax;
+	float velocityMin;
 };
 
 struct drawIndirect
