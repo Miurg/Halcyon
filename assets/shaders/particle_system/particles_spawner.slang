@@ -16,9 +16,8 @@ RWStructuredBuffer<int> particlesStackBuffer;
 struct ParticleMetada
 {
     float3 directionalVector;
-    float numberOfParticles;
-    uint bottomOfStack;
-    uint maxNumberOfPatricles;
+    uint32_t bottomOfStack;
+    uint32_t maxNumberOfPatricles;
     float2 spawnRadius;
     float2 timeToLive;
     float2 velocity;
@@ -39,9 +38,31 @@ struct VkDispatchIndirectCommand
 [vk::binding(3, 0)]
 RWStructuredBuffer<VkDispatchIndirectCommand> indirectBuffer;
 
+struct VkDrawIndexedIndirectCommand
+{
+    uint vertexCount;
+    uint instanceCount;
+    uint firstVertex;
+    uint firstInstance;
+};
+[[vk::binding(4, 0)]]
+RWStructuredBuffer<VkDrawIndexedIndirectCommand> indirectDrawBuffer;
+
+[vk::binding(5, 0)]
+RWStructuredBuffer<uint> aliveIndicesBufferA;
+
+[vk::binding(6, 0)]
+RWStructuredBuffer<uint> aliveIndicesBufferB;
+
+[vk::binding(7, 0)]
+RWStructuredBuffer<VkDispatchIndirectCommand> _dispatchBufferForEmiterA;
+
+[vk::binding(8, 0)]
+RWStructuredBuffer<VkDispatchIndirectCommand> _dispatchBufferForEmiterB;
+
 struct PushConstants
 {
-	uint frameNumber;
+	uint totalFrame;
 };
 
 [[vk::push_constant]]
@@ -68,7 +89,7 @@ void computeMain(uint3 dispatchThreadID: SV_DispatchThreadID)
     {
         return;
     }
-    if (dispatchThreadID.x >= particlesMetadataBuffer[0].maxNumberOfPatricles - particlesMetadataBuffer[0].numberOfParticles)
+    if (dispatchThreadID.x >= particlesMetadataBuffer[0].maxNumberOfPatricles)
     {
         return;
     }
@@ -77,8 +98,7 @@ void computeMain(uint3 dispatchThreadID: SV_DispatchThreadID)
 	InterlockedAdd(particlesMetadataBuffer[0].bottomOfStack, 1, index);
     index = particlesStackBuffer[index];
 
-    uint localSeed = dispatchThreadID.x + pushConstants.frameNumber * 719393u;
-    particlesBuffer[index].seed = localSeed;
+    uint localSeed = dispatchThreadID.x + pushConstants.totalFrame * 719393u;
 
     float spawnPositionX = lerp(particlesMetadataBuffer[0].spawnRadius[0], particlesMetadataBuffer[0].spawnRadius[1],
                                 random_float(localSeed));
@@ -91,4 +111,26 @@ void computeMain(uint3 dispatchThreadID: SV_DispatchThreadID)
     particlesBuffer[index].position = spawnPosition;
     particlesBuffer[index].liveTime = 0;
     particlesBuffer[index].scale = float3(1.0, 1.0, 1.0);
+    particlesBuffer[index].seed = localSeed;
+
+    uint indexDispatch;
+    if (pushConstants.totalFrame % 2 == 0)
+    {
+        InterlockedAdd(_dispatchBufferForEmiterA[0].spawnCount, 1, indexDispatch);
+        if (indexDispatch % 64 == 0)
+        {
+            InterlockedAdd(_dispatchBufferForEmiterA[0].x, 1);
+        }
+        aliveIndicesBufferA[indexDispatch] = index;
+    }
+    else
+    {
+        InterlockedAdd(_dispatchBufferForEmiterB[0].spawnCount, 1, indexDispatch);
+        if (indexDispatch % 64 == 0)
+        {
+            InterlockedAdd(_dispatchBufferForEmiterB[0].x, 1);
+        }
+        aliveIndicesBufferB[indexDispatch] = index;
+    }
+
 }

@@ -155,6 +155,9 @@ DescriptorManager::DescriptorManager(VulkanDevice& vulkanDevice)
 	    vk::DescriptorSetLayoutBinding(3, vk::DescriptorType::eStorageBuffer, 1, S::eCompute),
 	    vk::DescriptorSetLayoutBinding(4, vk::DescriptorType::eStorageBuffer, 1, S::eCompute),
 	    vk::DescriptorSetLayoutBinding(5, vk::DescriptorType::eStorageBuffer, 1, S::eCompute | S::eVertex),
+	    vk::DescriptorSetLayoutBinding(6, vk::DescriptorType::eStorageBuffer, 1, S::eCompute | S::eVertex),
+	    vk::DescriptorSetLayoutBinding(7, vk::DescriptorType::eStorageBuffer, 1, S::eCompute),
+	    vk::DescriptorSetLayoutBinding(8, vk::DescriptorType::eStorageBuffer, 1, S::eCompute),
 	};
 	registerLayout("particleSystemSet", particleSystemBindings);
 

@@ -30,9 +30,9 @@ const int MAX_NUMBER_PARTICLES = 100000;
 
 struct ParticleMetada
 {
-	glm::vec3 directionalVector;  
+	glm::vec3 directionalVector;
 	float numberOfParticles;
-	uint32_t bottomOfStack; 
+	uint32_t bottomOfStack;
 	uint32_t maxNumberOfPatricles;
 	float spawnRadiusMax;
 	float spawnRadiusMin;
@@ -53,7 +53,7 @@ struct drawIndirect
 void ParticleSystemRenderPass::drawParticlRender(vk::raii::CommandBuffer& cmd, uint32_t frame,
                                                  DescriptorManagerComponent& dManager, BufferManager& bManager,
                                                  PipelineManager& pManager, GlobalDSetComponent& globalDSetComponent,
-                                                 BufferHandle& indirectBuffer)
+                                                 BufferHandle& indirectBuffer, uint32_t totalFrames)
 {
 	cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pManager.pipelines["system_render"].pipeline);
 
@@ -61,6 +61,9 @@ void ParticleSystemRenderPass::drawParticlRender(vk::raii::CommandBuffer& cmd, u
 	                       dManager.descriptorManager->getSet(_dSetParticles, frame), nullptr);
 	cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pManager.pipelines["system_render"].layout, 1,
 	                       dManager.descriptorManager->getSet(globalDSetComponent.globalDSets, frame), nullptr);
+
+	cmd.pushConstants<uint32_t>(*pManager.pipelines["system_render"].layout, vk::ShaderStageFlagBits::eVertex, 0,
+	                            totalFrames);
 
 	cmd.drawIndirect(bManager.buffers[indirectBuffer.id].buffer[frame], 0, 1, sizeof(drawIndirect));
 }
@@ -83,18 +86,23 @@ void ParticleSystemRenderPass::onInit(Orhescyon::GeneralManager& gm)
 		dManager.update(_dSetParticles, 0, i, vk::DescriptorType::eStorageBuffer,
 		                bManager.buffers[particlesBuffer.particlesBuffer.id].buffer[0]);
 		dManager.update(_dSetParticles, 5, i, vk::DescriptorType::eStorageBuffer,
-		                bManager.buffers[particlesBuffer.aliveIndicesBuffer.id].buffer[0]);
+		                bManager.buffers[particlesBuffer.aliveIndicesBufferA.id].buffer[0]);
+		dManager.update(_dSetParticles, 6, i, vk::DescriptorType::eStorageBuffer,
+		                bManager.buffers[particlesBuffer.aliveIndicesBufferB.id].buffer[0]);
 	}
 
-	pManager.build(PipelineDescription{.shaderPath = "shaders/system_render.spv",
-	                                   .cullMode = vk::CullModeFlagBits::eNone,
-	                                   .depthTest = true,
-	                                   .depthWrite = false,
-	                                   .depthOp = vk::CompareOp::eGreaterOrEqual,
-	                                   .colorAttachments = {PipelineFactory::blendedAttachment()},
-	                                   .colorFormats = {swapChain.hdrFormat},
-	                                   .depthFormat = depthFormat,
-	                                   .setLayoutNames = {"particleSystemSet", "globalSet"}});
+	pManager.build(PipelineDescription{
+	    .shaderPath = "shaders/system_render.spv",
+	    .cullMode = vk::CullModeFlagBits::eNone,
+	    .depthTest = true,
+	    .depthWrite = false,
+	    .depthOp = vk::CompareOp::eGreaterOrEqual,
+	    .colorAttachments = {PipelineFactory::blendedAttachment()},
+	    .colorFormats = {swapChain.hdrFormat},
+	    .depthFormat = depthFormat,
+	    .setLayoutNames = {"particleSystemSet", "globalSet"},
+	    .pushConstants = {{vk::ShaderStageFlagBits::eVertex, 0, sizeof(uint32_t)}},
+	});
 }
 
 void ParticleSystemRenderPass::addToGraph(Orhescyon::GeneralManager& gm, RenderGraph& rg, uint32_t frame)
@@ -116,5 +124,7 @@ void ParticleSystemRenderPass::addToGraph(Orhescyon::GeneralManager& gm, RenderG
 	     .depthAttachment = {{"Depth", vk::AttachmentLoadOp::eLoad, vk::AttachmentStoreOp::eStore, clearDepth0}}},
 	    {}, {{"MainColor", RGResourceUsage::ColorAttachmentWrite}, {"Depth", RGResourceUsage::DepthAttachmentWrite}},
 	    [&, frame, totalFrames, deltaTime](vk::raii::CommandBuffer& cmd)
-	    { drawParticlRender(cmd, frame, dManager, bManager, pManager, globalDSetComponent, indirectBuffer); });
+	    {
+		    drawParticlRender(cmd, frame, dManager, bManager, pManager, globalDSetComponent, indirectBuffer, totalFrames);
+	    });
 }

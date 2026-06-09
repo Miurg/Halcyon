@@ -5,5 +5,6 @@ struct ParticlesBufferComponent
 {
 	BufferHandle particlesBuffer;
 	BufferHandle indirectBuffer;
-	BufferHandle aliveIndicesBuffer;
+	BufferHandle aliveIndicesBufferA;
+	BufferHandle aliveIndicesBufferB;
 };

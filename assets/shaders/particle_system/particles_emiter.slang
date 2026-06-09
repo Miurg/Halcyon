@@ -15,8 +15,7 @@ RWStructuredBuffer<int> particlesStackBuffer;
 
 struct ParticleMetada
 {
-	float3 directionalVector;
-	float numberOfParticles;
+    float3 directionalVector;
 	uint bottomOfStack;
 	uint maxNumberOfPatricles;
 	float2 spawnRadius;
@@ -41,21 +40,30 @@ RWStructuredBuffer<VkDispatchIndirectCommand> indirectBuffer;
 
 struct VkDrawIndexedIndirectCommand
 {
-	uint indexCount;
-	uint instanceCount;
-	uint firstIndex;
-	int vertexOffset;
-	uint firstInstance;
+    uint vertexCount;
+    uint instanceCount;
+    uint firstVertex;
+    uint firstInstance;
 };
 [[vk::binding(4, 0)]]
 RWStructuredBuffer<VkDrawIndexedIndirectCommand> indirectDrawBuffer;
 
 [vk::binding(5, 0)]
-RWStructuredBuffer<uint> aliveIndicesBuffer;
+RWStructuredBuffer<uint> aliveIndicesBufferA;
+
+[vk::binding(6, 0)]
+RWStructuredBuffer<uint> aliveIndicesBufferB;
+
+[vk::binding(7, 0)]
+RWStructuredBuffer<VkDispatchIndirectCommand> _dispatchBufferForEmiterA;
+
+[vk::binding(8, 0)]
+RWStructuredBuffer<VkDispatchIndirectCommand> _dispatchBufferForEmiterB;
 
 struct PushConstants
 {
-	float deltaTime;
+    float deltaTime;
+    uint totalFrame;
 };
 
 [[vk::push_constant]]
@@ -78,30 +86,49 @@ float random_float(inout uint seed)
 [numthreads(64, 1, 1)]
 void computeMain(uint3 dispatchThreadID: SV_DispatchThreadID)
 {
-	if (dispatchThreadID.x >= particlesMetadataBuffer[0].maxNumberOfPatricles)
+    uint currentSpawnCount;
+    if (pushConstants.totalFrame % 2 == 0)
+    {
+        currentSpawnCount = _dispatchBufferForEmiterA[0].spawnCount;
+    }
+    else
+    {
+        currentSpawnCount = _dispatchBufferForEmiterB[0].spawnCount;
+    }
+
+    if (dispatchThreadID.x >= currentSpawnCount)
 	{
 		return;
-	}
+    }
 
-	if (particlesBuffer[dispatchThreadID.x].liveTime < 0.0) return;
+    uint index;
+    if (pushConstants.totalFrame % 2 == 0)
+    {
+        index = aliveIndicesBufferA[dispatchThreadID.x];
+    }
+    else
+    {
+        index = aliveIndicesBufferB[dispatchThreadID.x];
+    }
 
-	uint localSeed = particlesBuffer[dispatchThreadID.x].seed;
+    if (particlesBuffer[index].liveTime < 0.0) return;
+
+    uint localSeed = particlesBuffer[index].seed;
 	float timeToDie = lerp(particlesMetadataBuffer[0].timeToLive[0], particlesMetadataBuffer[0].timeToLive[1],
 	                       random_float(localSeed));
 
-	if (particlesBuffer[dispatchThreadID.x].liveTime >= timeToDie)
+	if (particlesBuffer[index].liveTime >= timeToDie)
 	{
 		return;
 	}
-	particlesBuffer[dispatchThreadID.x].liveTime += pushConstants.deltaTime;
+	particlesBuffer[index].liveTime += pushConstants.deltaTime;
 
-	if (particlesBuffer[dispatchThreadID.x].liveTime >= timeToDie)
-	{
-		uint index;
-		InterlockedAdd(particlesMetadataBuffer[0].bottomOfStack, -1, index);
-		particlesStackBuffer[index - 1] = dispatchThreadID.x;
-
-		particlesBuffer[dispatchThreadID.x].liveTime = -1.0;
+	if (particlesBuffer[index].liveTime >= timeToDie)
+    {
+        uint stackIndex;
+        InterlockedAdd(particlesMetadataBuffer[0].bottomOfStack, -1, stackIndex);
+        particlesStackBuffer[stackIndex - 1] = index;
+		particlesBuffer[index].liveTime = -1.0;
 
 		uint currentSpawnIndex;
 		InterlockedAdd(indirectBuffer[0].spawnCount, 1, currentSpawnIndex);
@@ -109,24 +136,43 @@ void computeMain(uint3 dispatchThreadID: SV_DispatchThreadID)
 		if (currentSpawnIndex % 64 == 0)
 		{
 			InterlockedAdd(indirectBuffer[0].x, 1);
-		}
+        }
 	}
 	else
 	{
 		float velocity =
 		    lerp(particlesMetadataBuffer[0].velocity[0], particlesMetadataBuffer[0].velocity[1], random_float(localSeed));
 
-		particlesBuffer[dispatchThreadID.x].position =
-		    particlesBuffer[dispatchThreadID.x].position +
+		particlesBuffer[index].position =
+		    particlesBuffer[index].position +
 		    particlesMetadataBuffer[0].directionalVector * velocity * pushConstants.deltaTime;
 
 		float scale =
 		    lerp(particlesMetadataBuffer[0].scale[0], particlesMetadataBuffer[0].scale[1], random_float(localSeed));
 
-        particlesBuffer[dispatchThreadID.x].scale = float3(scale, scale, scale);
+        particlesBuffer[index].scale = float3(scale, scale, scale);
 
-		uint drawIndex;
-		InterlockedAdd(indirectDrawBuffer[0].instanceCount, 1, drawIndex);
-		aliveIndicesBuffer[drawIndex] = dispatchThreadID.x;
+        InterlockedAdd(indirectDrawBuffer[0].instanceCount, 1);
+
+        uint indexDispatch;
+        if (pushConstants.totalFrame % 2 == 0)
+        { 
+			InterlockedAdd(_dispatchBufferForEmiterB[0].spawnCount, 1, indexDispatch);
+            if (indexDispatch % 64 == 0)
+            {
+                InterlockedAdd(_dispatchBufferForEmiterB[0].x, 1);
+            }
+            aliveIndicesBufferB[indexDispatch] = index;
+        }
+        else
+        {
+            InterlockedAdd(_dispatchBufferForEmiterA[0].spawnCount, 1, indexDispatch);
+            if (indexDispatch % 64 == 0)
+            {
+                InterlockedAdd(_dispatchBufferForEmiterA[0].x, 1);
+            }
+            aliveIndicesBufferA[indexDispatch] = index;
+           
+        }
 	}
 }

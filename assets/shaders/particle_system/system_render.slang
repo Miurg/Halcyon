@@ -11,7 +11,10 @@ struct Particle
 StructuredBuffer<Particle> particlesBuffer;
 
 [vk::binding(5, 0)]
-StructuredBuffer<uint> aliveIndicesBuffer;
+StructuredBuffer<uint> aliveIndicesBufferA;
+
+[vk::binding(6, 0)]
+StructuredBuffer<uint> aliveIndicesBufferB;
 
 struct CameraData
 {
@@ -24,6 +27,14 @@ struct CameraData
 };
 [[vk::binding(0, 1)]]
 StructuredBuffer<CameraData> camera;
+
+struct PushConstants
+{
+    uint totalFrame;
+};
+
+[[vk::push_constant]]
+PushConstants pushConstants;
 
 struct VSOutput
 {
@@ -43,7 +54,15 @@ static const float2 quadPositions[6] = {
 [shader("vertex")]
 VSOutput vertMain(uint vertexID: SV_VertexID, uint instanceID: SV_InstanceID, uint baseInstance: SV_StartInstanceLocation)
 {
-    uint realIndex = aliveIndicesBuffer[baseInstance + instanceID];
+    uint realIndex;
+    if (pushConstants.totalFrame % 2 == 0)
+    {
+        realIndex = aliveIndicesBufferB[baseInstance + instanceID];
+    }
+    else
+    {
+        realIndex = aliveIndicesBufferA[baseInstance + instanceID];
+    }
     Particle particle = particlesBuffer[realIndex];
    
     float2 localPos = quadPositions[vertexID];

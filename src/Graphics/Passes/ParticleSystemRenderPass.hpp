@@ -16,6 +16,6 @@ public:
 private:
 	void drawParticlRender(vk::raii::CommandBuffer& cmd, uint32_t frame, DescriptorManagerComponent& dManager,
 	                       BufferManager& bManager, PipelineManager& pManager, GlobalDSetComponent& globalDSetComponent,
-	                       BufferHandle& indirectBuffer);
+	                       BufferHandle& indirectBuffer, uint32_t totalFrames);
 	DSetHandle _dSetParticles;
 };

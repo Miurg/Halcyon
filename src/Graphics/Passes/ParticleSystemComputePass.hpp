@@ -22,5 +22,8 @@ private:
 	BufferHandle _particlesStack;
 	BufferHandle _dispatchBuffer;
 	BufferHandle _indirectBuffer;
-	BufferHandle _aliveIndicesBuffer;
+	BufferHandle _aliveIndicesBufferA;
+	BufferHandle _aliveIndicesBufferB;
+	BufferHandle _dispatchBufferForEmiterA;
+	BufferHandle _dispatchBufferForEmiterB;
 };
