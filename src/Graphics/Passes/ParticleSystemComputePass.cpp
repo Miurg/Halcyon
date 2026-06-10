@@ -27,45 +27,52 @@
 const int MAX_NUMBER_PARTICLES = 100000;
 const int TEST_SPAWN_COUNT = 100;
 
-struct ParticleMetada
+struct alignas(16) ParticlesMetadata
 {
-	glm::vec3 directionalVector;
-	uint32_t bottomOfStack;
-	uint32_t maxNumberOfPatricles;
-	glm::vec2 spawnRadius; // 1-min, 2-max
-	glm::vec2 timeToLive;  // 1-min, 2-max
-	glm::vec2 velocity;    // 1-min, 2-max
-	glm::vec2 scale;       // 1-min, 2-max
+	alignas(4) uint32_t bottomOfStack;
+	alignas(4) uint32_t maxNumberOfPatricles;
 };
 
-struct DispatchIndirect
+struct alignas(16) EmiterData
 {
-	uint32_t x;
-	uint32_t y;
-	uint32_t z;
-	uint32_t spawnCount;
+	alignas(16) glm::vec3 initialPosition;
+	alignas(16) glm::vec3 directionalVector;
+	alignas(8) glm::vec2 spawnRadius; // 1-min, 2-max
+	alignas(8) glm::vec2 timeToLive;  // 1-min, 2-max
+	alignas(8) glm::vec2 velocity;    // 1-min, 2-max
+	alignas(8) glm::vec2 scale;       // 1-min, 2-max
 };
 
-struct DrawIndirect
+struct alignas(16) DispatchIndirect
 {
-	uint32_t vertexCount;
-	uint32_t instanceCount;
-	uint32_t firstVertex;
-	uint32_t firstInstance;
+	alignas(4) uint32_t x;
+	alignas(4) uint32_t y;
+	alignas(4) uint32_t z;
+	alignas(4) uint32_t spawnCount;
 };
 
-struct ParticleProperties
+struct alignas(16) DrawIndirect
 {
-	glm::vec3 position = {0.0f, 0.0f, 0.0f};
-	uint32_t seed = 0;
-	glm::vec3 scale = {1.0f, 1.0f, 1.0f};
-	float liveTime = -1.0f;
+	alignas(4) uint32_t vertexCount;
+	alignas(4) uint32_t instanceCount;
+	alignas(4) uint32_t firstVertex;
+	alignas(4) uint32_t firstInstance;
 };
 
-struct EmitorPushConst
+struct alignas(16) ParticleProperties
 {
-	float deltaTime;
-	uint32_t totalFrames;
+	alignas(16) glm::vec3 position = {0.0f, 0.0f, 0.0f};
+	alignas(4) uint32_t seed = 0;
+	alignas(16) glm::vec3 scale = {1.0f, 1.0f, 1.0f};
+	alignas(4) float liveTime = -1.0f;
+	alignas(16) glm::vec3 rotation = {1.0f, 1.0f, 1.0f};
+	alignas(4) uint32_t metadataIndex = 0;
+};
+
+struct alignas(16) EmitorPushConst
+{
+	alignas(4) float deltaTime;
+	alignas(4) uint32_t totalFrames;
 };
 
 void ParticleSystemComputePass::drawParticleCompute(vk::raii::CommandBuffer& cmd, uint32_t frame,
@@ -97,10 +104,14 @@ void ParticleSystemComputePass::drawParticleCompute(vk::raii::CommandBuffer& cmd
 	cmd.dispatchIndirect(bManager.buffers[_dispatchBuffer.id].buffer[0], 0);
 
 	vk::MemoryBarrier2 fillBarrier;
-	fillBarrier.srcStageMask = vk::PipelineStageFlagBits2::eDrawIndirect | vk::PipelineStageFlagBits2::eComputeShader | vk::PipelineStageFlagBits2::eTransfer;
-	fillBarrier.srcAccessMask = vk::AccessFlagBits2::eIndirectCommandRead | vk::AccessFlagBits2::eShaderRead | vk::AccessFlagBits2::eTransferWrite;
-	fillBarrier.dstStageMask = vk::PipelineStageFlagBits2::eTransfer | vk::PipelineStageFlagBits2::eComputeShader | vk::PipelineStageFlagBits2::eDrawIndirect;
-	fillBarrier.dstAccessMask = vk::AccessFlagBits2::eTransferWrite | vk::AccessFlagBits2::eShaderWrite | vk::AccessFlagBits2::eIndirectCommandRead | vk::AccessFlagBits2::eShaderRead;
+	fillBarrier.srcStageMask = vk::PipelineStageFlagBits2::eDrawIndirect | vk::PipelineStageFlagBits2::eComputeShader |
+	                           vk::PipelineStageFlagBits2::eTransfer;
+	fillBarrier.srcAccessMask = vk::AccessFlagBits2::eIndirectCommandRead | vk::AccessFlagBits2::eShaderRead |
+	                            vk::AccessFlagBits2::eTransferWrite;
+	fillBarrier.dstStageMask = vk::PipelineStageFlagBits2::eTransfer | vk::PipelineStageFlagBits2::eComputeShader |
+	                           vk::PipelineStageFlagBits2::eDrawIndirect;
+	fillBarrier.dstAccessMask = vk::AccessFlagBits2::eTransferWrite | vk::AccessFlagBits2::eShaderWrite |
+	                            vk::AccessFlagBits2::eIndirectCommandRead | vk::AccessFlagBits2::eShaderRead;
 
 	vk::DependencyInfo fillDepInfo;
 	fillDepInfo.memoryBarrierCount = 1;
@@ -119,7 +130,8 @@ void ParticleSystemComputePass::drawParticleCompute(vk::raii::CommandBuffer& cmd
 	emiterBarrier.srcStageMask = vk::PipelineStageFlagBits2::eTransfer | vk::PipelineStageFlagBits2::eComputeShader;
 	emiterBarrier.srcAccessMask = vk::AccessFlagBits2::eTransferWrite | vk::AccessFlagBits2::eShaderWrite;
 	emiterBarrier.dstStageMask = vk::PipelineStageFlagBits2::eComputeShader | vk::PipelineStageFlagBits2::eDrawIndirect;
-	emiterBarrier.dstAccessMask = vk::AccessFlagBits2::eShaderWrite | vk::AccessFlagBits2::eShaderRead | vk::AccessFlagBits2::eIndirectCommandRead;
+	emiterBarrier.dstAccessMask =
+	    vk::AccessFlagBits2::eShaderWrite | vk::AccessFlagBits2::eShaderRead | vk::AccessFlagBits2::eIndirectCommandRead;
 
 	vk::DependencyInfo emiterDepInfo;
 	emiterDepInfo.memoryBarrierCount = 1;
@@ -176,8 +188,8 @@ void ParticleSystemComputePass::onInit(Orhescyon::GeneralManager& gm)
 	    bManager.createBuffer(vk::MemoryPropertyFlagBits::eHostVisible, sizeof(uint32_t) * MAX_NUMBER_PARTICLES, 1,
 	                          vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst);
 
-	_particlesMetada =
-	    bManager.createBuffer(vk::MemoryPropertyFlagBits::eHostVisible, sizeof(ParticleMetada), 1,
+	_emitersData =
+	    bManager.createBuffer(vk::MemoryPropertyFlagBits::eHostVisible, sizeof(EmiterData), 1,
 	                          vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst);
 
 	_dispatchBuffer =
@@ -204,6 +216,9 @@ void ParticleSystemComputePass::onInit(Orhescyon::GeneralManager& gm)
 	    bManager.createBuffer(vk::MemoryPropertyFlagBits::eDeviceLocal, sizeof(DispatchIndirect), 1,
 	                          vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eIndirectBuffer |
 	                              vk::BufferUsageFlagBits::eTransferDst);
+	_particlesMetadata =
+	    bManager.createBuffer(vk::MemoryPropertyFlagBits::eHostVisible, sizeof(ParticlesMetadata), 1,
+	                          vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst);
 
 	for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
 	{
@@ -212,7 +227,7 @@ void ParticleSystemComputePass::onInit(Orhescyon::GeneralManager& gm)
 		dManager.update(_dSetParticles, 1, i, vk::DescriptorType::eStorageBuffer,
 		                bManager.buffers[_particlesStack.id].buffer[0]);
 		dManager.update(_dSetParticles, 2, i, vk::DescriptorType::eStorageBuffer,
-		                bManager.buffers[_particlesMetada.id].buffer[0]);
+		                bManager.buffers[_emitersData.id].buffer[0]);
 		dManager.update(_dSetParticles, 3, i, vk::DescriptorType::eStorageBuffer,
 		                bManager.buffers[_dispatchBuffer.id].buffer[0]);
 		dManager.update(_dSetParticles, 4, i, vk::DescriptorType::eStorageBuffer,
@@ -225,6 +240,8 @@ void ParticleSystemComputePass::onInit(Orhescyon::GeneralManager& gm)
 		                bManager.buffers[_dispatchBufferForEmiterA.id].buffer[0]);
 		dManager.update(_dSetParticles, 8, i, vk::DescriptorType::eStorageBuffer,
 		                bManager.buffers[_dispatchBufferForEmiterB.id].buffer[0]);
+		dManager.update(_dSetParticles, 9, i, vk::DescriptorType::eStorageBuffer,
+		                bManager.buffers[_particlesMetadata.id].buffer[0]);
 	}
 
 	auto& vulkanDevice = *gm.getContextComponent<MainVulkanDeviceContext, VulkanDeviceComponent>()->vulkanDeviceInstance;
@@ -266,18 +283,17 @@ void ParticleSystemComputePass::onInit(Orhescyon::GeneralManager& gm)
 	cmd.copyBuffer(vk::Buffer(stagingParticles.buffer), bManager.buffers[_particlesBuffer.id].buffer[0],
 	               copyRegionParticles);
 
-	// Metadata
-	ParticleMetada initialMetadata = {
+	// Emiters data
+	EmiterData initialEmiterData = {
+	    .initialPosition = {-5.0f, 0.0f, 0.0f},
 	    .directionalVector = {0.0f, 1.0f, 0.0f},
-	    .bottomOfStack = 0, 
-	    .maxNumberOfPatricles = TEST_SPAWN_COUNT,
 	    .spawnRadius = {0.0f, 5.0f},
 	    .timeToLive = {1.0f, 3.0f},
 	    .velocity = {1.0f, 5.0f},
 	    .scale = {0.05f, 0.3f},
 	};
-	cmd.updateBuffer(bManager.buffers[_particlesMetada.id].buffer[0], 0,
-	                 vk::ArrayProxy<const ParticleMetada>(1, &initialMetadata));
+	cmd.updateBuffer(bManager.buffers[_emitersData.id].buffer[0], 0,
+	                 vk::ArrayProxy<const EmiterData>(1, &initialEmiterData));
 
 	// Indirect
 	DrawIndirect initialDraw = {.vertexCount = 6, .instanceCount = 0, .firstVertex = 0, .firstInstance = 0};
@@ -289,16 +305,19 @@ void ParticleSystemComputePass::onInit(Orhescyon::GeneralManager& gm)
 
 	// dispatch. For some reason cant use updateBuffer for this one, maybe because of the size of the buffer or
 	// something, but copyBuffer works fine
-	DispatchIndirect initialDispatch = {.x = TEST_SPAWN_COUNT/64, .y = 1, .z = 1, .spawnCount = TEST_SPAWN_COUNT};
-	StagingBuffer stagingDispatch = VulkanUtils::createStagingBuffer(
-	    &initialDispatch, sizeof(DispatchIndirect), allocator, VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
+	// TODO: Find out why updateBuffer is not working for dispatch buffer, maybe we can avoid creating staging buffer for
+	// this
+	DispatchIndirect initialDispatch = {.x = TEST_SPAWN_COUNT / 64, .y = 1, .z = 1, .spawnCount = TEST_SPAWN_COUNT};
+	StagingBuffer stagingDispatch = VulkanUtils::createStagingBuffer(&initialDispatch, sizeof(DispatchIndirect),
+	                                                                 allocator, VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
 
 	vk::BufferCopy copyRegionDispatch;
 	copyRegionDispatch.srcOffset = 0;
 	copyRegionDispatch.dstOffset = 0;
 	copyRegionDispatch.size = sizeof(DispatchIndirect);
 
-	cmd.copyBuffer(vk::Buffer(stagingDispatch.buffer), bManager.buffers[_dispatchBuffer.id].buffer[0], copyRegionDispatch);
+	cmd.copyBuffer(vk::Buffer(stagingDispatch.buffer), bManager.buffers[_dispatchBuffer.id].buffer[0],
+	               copyRegionDispatch);
 
 	// Dispatch for emiter
 	DispatchIndirect initialDispatchForEmiter = {.x = 0, .y = 1, .z = 1, .spawnCount = 0};
@@ -318,6 +337,18 @@ void ParticleSystemComputePass::onInit(Orhescyon::GeneralManager& gm)
 	VulkanUtils::destroyStagingBuffer(stagingParticles, allocator);
 	VulkanUtils::destroyStagingBuffer(stagingDispatch, allocator);
 
+	// Why did cmd continue to brake up after I add new buffers? No idea, but creating new single time command works
+	// fine, maybe some synchronization issue or something
+	// TODO: Find out why this is happening, maybe we can avoid creating multiple single time commands
+	cmd = VulkanUtils::beginSingleTimeCommands(vulkanDevice);
+
+	// Metadata
+	ParticlesMetadata initialParticlesMetadata = {.bottomOfStack = 0, .maxNumberOfPatricles = TEST_SPAWN_COUNT};
+	cmd.updateBuffer(bManager.buffers[_particlesMetadata.id].buffer[0], 0,
+	                 vk::ArrayProxy<const ParticlesMetadata>(1, &initialParticlesMetadata));
+
+	VulkanUtils::endSingleTimeCommands(cmd, vulkanDevice);
+
 	pManager.build(PipelineDescription{
 	    .isCompute = true,
 	    .shaderPath = "shaders/particles_spawner.spv",
@@ -334,7 +365,8 @@ void ParticleSystemComputePass::onInit(Orhescyon::GeneralManager& gm)
 
 	Orhescyon::Entity e = gm.createEntity();
 	gm.registerContext<ParticlesBufferContext>(e);
-	gm.addComponent<ParticlesBufferComponent>(e, _particlesBuffer, _indirectBuffer, _aliveIndicesBufferA, _aliveIndicesBufferB);
+	gm.addComponent<ParticlesBufferComponent>(e, _particlesBuffer, _indirectBuffer, _aliveIndicesBufferA,
+	                                          _aliveIndicesBufferB);
 }
 
 void ParticleSystemComputePass::addToGraph(Orhescyon::GeneralManager& gm, RenderGraph& rg, uint32_t frame)

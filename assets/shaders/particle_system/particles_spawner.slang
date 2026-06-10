@@ -5,6 +5,8 @@ struct Particle
     uint seed;
     float3 scale;
     float liveTime;
+    float3 rotation;
+    uint metadataIndex;
 };
 
 [vk::binding(0, 0)]
@@ -13,11 +15,10 @@ RWStructuredBuffer<Particle> particlesBuffer;
 [vk::binding(1, 0)]
 RWStructuredBuffer<int> particlesStackBuffer;
 
-struct ParticleMetada
+struct EmiterData
 {
+    float3 initialPosition;
     float3 directionalVector;
-    uint32_t bottomOfStack;
-    uint32_t maxNumberOfPatricles;
     float2 spawnRadius;
     float2 timeToLive;
     float2 velocity;
@@ -25,14 +26,14 @@ struct ParticleMetada
 };
 
 [vk::binding(2, 0)]
-RWStructuredBuffer<ParticleMetada> particlesMetadataBuffer;
+RWStructuredBuffer<EmiterData> emitersDataBuffer;
 
 struct VkDispatchIndirectCommand
 {
-	uint32_t x;
-	uint32_t y;
-    uint32_t z;
-    uint32_t spawnCount;
+    uint x;
+    uint y;
+    uint z;
+    uint spawnCount;
 };
 
 [vk::binding(3, 0)]
@@ -59,6 +60,14 @@ RWStructuredBuffer<VkDispatchIndirectCommand> _dispatchBufferForEmiterA;
 
 [vk::binding(8, 0)]
 RWStructuredBuffer<VkDispatchIndirectCommand> _dispatchBufferForEmiterB;
+
+struct ParticlesMetadata
+{
+    uint32_t bottomOfStack;
+    uint32_t maxNumberOfPatricles;
+};
+[vk::binding(9, 0)]
+RWStructuredBuffer<ParticlesMetadata> _particlesMetadata;
 
 struct PushConstants
 {
@@ -89,26 +98,26 @@ void computeMain(uint3 dispatchThreadID: SV_DispatchThreadID)
     {
         return;
     }
-    if (dispatchThreadID.x >= particlesMetadataBuffer[0].maxNumberOfPatricles)
+    if (dispatchThreadID.x >= _particlesMetadata[0].maxNumberOfPatricles)
     {
         return;
     }
 
-	int index;
-	InterlockedAdd(particlesMetadataBuffer[0].bottomOfStack, 1, index);
+    int index;
+    InterlockedAdd(_particlesMetadata[0].bottomOfStack, 1, index);
     index = particlesStackBuffer[index];
 
     uint localSeed = dispatchThreadID.x + pushConstants.totalFrame * 719393u;
 
-    float spawnPositionX = lerp(particlesMetadataBuffer[0].spawnRadius[0], particlesMetadataBuffer[0].spawnRadius[1],
+    float spawnPositionX = lerp(emitersDataBuffer[0].spawnRadius[0], emitersDataBuffer[0].spawnRadius[1],
                                 random_float(localSeed));
-    float spawnPositionY = lerp(particlesMetadataBuffer[0].spawnRadius[0], particlesMetadataBuffer[0].spawnRadius[1],
+    float spawnPositionY = lerp(emitersDataBuffer[0].spawnRadius[0], emitersDataBuffer[0].spawnRadius[1],
                                 random_float(localSeed));
-    float spawnPositionZ = lerp(particlesMetadataBuffer[0].spawnRadius[0], particlesMetadataBuffer[0].spawnRadius[1],
+    float spawnPositionZ = lerp(emitersDataBuffer[0].spawnRadius[0], emitersDataBuffer[0].spawnRadius[1],
                                 random_float(localSeed));
     float3 spawnPosition = float3(spawnPositionX, spawnPositionY, spawnPositionZ);
 
-    particlesBuffer[index].position = spawnPosition;
+    particlesBuffer[index].position = emitersDataBuffer[0].initialPosition + spawnPosition;
     particlesBuffer[index].liveTime = 0;
     particlesBuffer[index].scale = float3(1.0, 1.0, 1.0);
     particlesBuffer[index].seed = localSeed;

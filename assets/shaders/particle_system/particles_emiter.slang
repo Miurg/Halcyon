@@ -4,7 +4,9 @@ struct Particle
 	float3 position;
 	uint seed;
 	float3 scale;
-	float liveTime;
+    float liveTime;
+    float3 rotation;
+    uint metadataIndex;
 };
 
 [vk::binding(0, 0)]
@@ -13,11 +15,10 @@ RWStructuredBuffer<Particle> particlesBuffer;
 [vk::binding(1, 0)]
 RWStructuredBuffer<int> particlesStackBuffer;
 
-struct ParticleMetada
+struct EmiterData
 {
+    float3 initialPosition;
     float3 directionalVector;
-	uint bottomOfStack;
-	uint maxNumberOfPatricles;
 	float2 spawnRadius;
 	float2 timeToLive;
 	float2 velocity;
@@ -25,14 +26,14 @@ struct ParticleMetada
 };
 
 [vk::binding(2, 0)]
-RWStructuredBuffer<ParticleMetada> particlesMetadataBuffer;
+RWStructuredBuffer<EmiterData> emitersDataBuffer;
 
 struct VkDispatchIndirectCommand
 {
-	uint32_t x;
-	uint32_t y;
-	uint32_t z;
-	uint32_t spawnCount;
+    uint x;
+    uint y;
+    uint z;
+    uint spawnCount;
 };
 
 [vk::binding(3, 0)]
@@ -59,6 +60,14 @@ RWStructuredBuffer<VkDispatchIndirectCommand> _dispatchBufferForEmiterA;
 
 [vk::binding(8, 0)]
 RWStructuredBuffer<VkDispatchIndirectCommand> _dispatchBufferForEmiterB;
+
+struct ParticlesMetadata
+{
+    uint32_t bottomOfStack;
+    uint32_t maxNumberOfPatricles;
+};
+[vk::binding(9, 0)]
+RWStructuredBuffer<ParticlesMetadata> _particlesMetadata;
 
 struct PushConstants
 {
@@ -114,7 +123,7 @@ void computeMain(uint3 dispatchThreadID: SV_DispatchThreadID)
     if (particlesBuffer[index].liveTime < 0.0) return;
 
     uint localSeed = particlesBuffer[index].seed;
-	float timeToDie = lerp(particlesMetadataBuffer[0].timeToLive[0], particlesMetadataBuffer[0].timeToLive[1],
+	float timeToDie = lerp(emitersDataBuffer[0].timeToLive[0], emitersDataBuffer[0].timeToLive[1],
 	                       random_float(localSeed));
 
 	if (particlesBuffer[index].liveTime >= timeToDie)
@@ -126,7 +135,7 @@ void computeMain(uint3 dispatchThreadID: SV_DispatchThreadID)
 	if (particlesBuffer[index].liveTime >= timeToDie)
     {
         uint stackIndex;
-        InterlockedAdd(particlesMetadataBuffer[0].bottomOfStack, -1, stackIndex);
+        InterlockedAdd(_particlesMetadata[0].bottomOfStack, -1, stackIndex);
         particlesStackBuffer[stackIndex - 1] = index;
 		particlesBuffer[index].liveTime = -1.0;
 
@@ -141,14 +150,14 @@ void computeMain(uint3 dispatchThreadID: SV_DispatchThreadID)
 	else
 	{
 		float velocity =
-		    lerp(particlesMetadataBuffer[0].velocity[0], particlesMetadataBuffer[0].velocity[1], random_float(localSeed));
+		    lerp(emitersDataBuffer[0].velocity[0], emitersDataBuffer[0].velocity[1], random_float(localSeed));
 
 		particlesBuffer[index].position =
 		    particlesBuffer[index].position +
-		    particlesMetadataBuffer[0].directionalVector * velocity * pushConstants.deltaTime;
+		    emitersDataBuffer[0].directionalVector * velocity * pushConstants.deltaTime;
 
 		float scale =
-		    lerp(particlesMetadataBuffer[0].scale[0], particlesMetadataBuffer[0].scale[1], random_float(localSeed));
+		    lerp(emitersDataBuffer[0].scale[0], emitersDataBuffer[0].scale[1], random_float(localSeed));
 
         particlesBuffer[index].scale = float3(scale, scale, scale);
 

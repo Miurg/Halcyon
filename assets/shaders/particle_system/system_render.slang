@@ -5,6 +5,8 @@ struct Particle
     uint seed;
     float3 scale;
     float liveTime;
+    float3 rotation;
+    uint metadataIndex;
 };
 
 [vk::binding(0, 0)]

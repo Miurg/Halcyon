@@ -18,7 +18,7 @@ private:
 	void drawParticleCompute(vk::raii::CommandBuffer& cmd, uint32_t frame, DescriptorManagerComponent& dManager,
 	                         BufferManager& bManager, PipelineManager& pManager, uint32_t totalFrames, float deltaTime);
 	DSetHandle _dSetParticles;
-	BufferHandle _particlesMetada;
+	BufferHandle _emitersData;
 	BufferHandle _particlesStack;
 	BufferHandle _dispatchBuffer;
 	BufferHandle _indirectBuffer;
@@ -26,4 +26,5 @@ private:
 	BufferHandle _aliveIndicesBufferB;
 	BufferHandle _dispatchBufferForEmiterA;
 	BufferHandle _dispatchBufferForEmiterB;
+	BufferHandle _particlesMetadata;
 };
