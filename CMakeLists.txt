@@ -26,7 +26,7 @@ find_package(imgui CONFIG REQUIRED)
 find_package(Jolt CONFIG REQUIRED)
 find_package(Ktx CONFIG REQUIRED)
 
-option(HALCYON_TRACY "Enable Tracy profiler" ON)
+option(HALCYON_TRACY "Enable Tracy profiler" OFF)
 
 FetchContent_Declare(
     Orhescyon
@@ -36,6 +36,10 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(Orhescyon)
 
 add_executable("${CMAKE_PROJECT_NAME}" ${MY_SOURCES})
+set_source_files_properties(
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/ThirdPartyImpl.cpp"
+    PROPERTIES SKIP_PRECOMPILE_HEADERS ON
+)
 target_precompile_headers("${CMAKE_PROJECT_NAME}" PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src/pch.h")
 
 target_link_libraries("${CMAKE_PROJECT_NAME}" PRIVATE Vulkan::Vulkan)

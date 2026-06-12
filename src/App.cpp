@@ -1,13 +1,7 @@
 #include "App.hpp"
 
 #include <iostream>
-#define GLM_FORCE_SIMD_AVX2
-#define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#define TINYGLTF_IMPLEMENTATION
-#define STB_IMAGE_WRITE_IMPLEMENTATION
-#define STB_IMAGE_IMPLEMENTATION
-#define VMA_IMPLEMENTATION
-#include "vk_mem_alloc.h"
+
 #include "Game/GameInit.hpp"
 #include "Graphics/GraphicsInit/GraphicsInit.hpp"
 #include "Cleanup.hpp"
@@ -16,8 +10,11 @@
 #include <Orhescyon/GeneralManager.hpp>
 #include "PhysicsCore/PhysicsInit.hpp"
 #include "Platform/PlatformInit.hpp"
+
 App::App() {}
+
 using Orhescyon::GeneralManager;
+
 int App::run()
 {
 	GeneralManager gm;
@@ -34,7 +31,7 @@ int App::run()
 		Cleanup::cleanup(gm);
 		return EXIT_FAILURE;
 	}
-	
+
 	try
 	{
 		MainLoop::startLoop(gm);
