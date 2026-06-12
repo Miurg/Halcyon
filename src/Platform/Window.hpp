@@ -15,6 +15,8 @@ private:
 	GLFWwindow* _GLFWwindow;
 	mutable std::mutex _actionQueueMutex;
 	mutable std::vector<std::function<void()>> _deferredActions;
+	int width;
+	int height;
 
 public:
 	Window(const char* title);
@@ -23,15 +25,15 @@ public:
 
 	// Returns raw GLFW window handle.
 	GLFWwindow* getHandle() const;
+	bool framebufferResized = false;
 	std::queue<InputEvent> inputQueue;
 
 	bool shouldClose() const;
 	void setShouldClose(bool value);
 	void pollEvents() const;
 	void swapBuffers() const;
-	int width;
-	int height;
-	bool framebufferResized = false;
+
+
 	std::vector<const char*> getRequiredExtensions() const;
 	vk::SurfaceKHR createSurface(vk::Instance instance) const;
 	void waitEvents() const;

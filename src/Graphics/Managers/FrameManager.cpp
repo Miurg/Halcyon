@@ -1,6 +1,4 @@
 #include "FrameManager.hpp"
-#include "FrameManager.hpp"
-#include "FrameManager.hpp"
 
 int FrameManager::initFrameData()
 {

@@ -103,8 +103,11 @@ vk::Extent2D SwapChainFactory::chooseSwapExtent(const vk::SurfaceCapabilitiesKHR
 		return capabilities.currentExtent;
 	}
 
-	return {std::clamp<uint32_t>(window.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width),
-	        std::clamp<uint32_t>(window.height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height)};
+	int width = 0, height = 0;
+	window.getWindowSize(&width, &height);
+
+	return {std::clamp<uint32_t>(width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width),
+	        std::clamp<uint32_t>(height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height)};
 }
 
 void SwapChainFactory::cleanupSwapChain(SwapChain& swapChain)
@@ -117,12 +120,10 @@ void SwapChainFactory::cleanupSwapChain(SwapChain& swapChain)
 void SwapChainFactory::recreateSwapChain(SwapChain& swapChain, VulkanDevice& device, Window& window)
 {
 	int width = 0, height = 0;
-	width = window.width;
-	height = window.height;
+	window.getWindowSize(&width, &height);
 	while (width == 0 || height == 0)
 	{
-		width = window.width;
-		height = window.height;
+		window.getWindowSize(&width, &height);
 		window.waitEvents();
 	}
 	device.device.waitIdle();
