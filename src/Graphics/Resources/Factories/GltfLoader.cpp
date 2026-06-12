@@ -3,7 +3,7 @@
 
 int GltfLoader::loadModelFromFile(const char path[MAX_PATH_LEN], int vertexIndexBInt, BufferManager& bManager,
                                   BindlessTextureDSetComponent& dSetComponent, DescriptorManager& dManager,
-                                  tinygltf::Model model, TextureManager& tManager, ModelManager& mManager)
+                                  tinygltf::Model& model, TextureManager& tManager, ModelManager& mManager)
 {
 	VertexIndexBuffer& vertexIndexBuffer = mManager.vertexIndexBuffers[vertexIndexBInt];
 	int32_t globalVertexOffset = static_cast<int32_t>(vertexIndexBuffer.vertices.size()); // To adjust indices

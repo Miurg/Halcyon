@@ -36,7 +36,7 @@ class GltfLoader
 public:
 	static int loadModelFromFile(const char path[MAX_PATH_LEN], int vertexIndexBInt, BufferManager& bManager,
 	                             BindlessTextureDSetComponent& dSetComponent, DescriptorManager& dManager,
-	                             tinygltf::Model model, TextureManager& tManager, ModelManager& mManager);
+	                             tinygltf::Model& model, TextureManager& tManager, ModelManager& mManager);
 	static MaterialMaps materialsParser(tinygltf::Model& model, TextureManager& tManager,
 	                                    BindlessTextureDSetComponent& dSetComponent, DescriptorManager& dManager,
 	                                    BufferManager& bManager, const char* filePath);
