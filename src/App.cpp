@@ -1,23 +1,28 @@
 #include "App.hpp"
 
 #include <iostream>
+#include <exception>
 
 #include "Game/GameInit.hpp"
 #include "GraphicsCore/GraphicsInit/GraphicsInit.hpp"
-#include "Cleanup.hpp"
 #include "MainLoop.hpp"
-#include <exception>
-#include <Orhescyon/GeneralManager.hpp>
 #include "PhysicsCore/PhysicsInit.hpp"
 #include "PlatformCore/PlatformInit.hpp"
 
-App::App() {}
+#include "DeletionQueueComponent.hpp"
+#include "DeletionQueueContext.hpp"
+
+App::App() : deletionQueue(&gm) {}
+App::~App() = default;
 
 using Orhescyon::GeneralManager;
 
 int App::run()
 {
-	GeneralManager gm;
+	Orhescyon::Entity dqEntity = gm.createEntity();
+	gm.registerContext<DeletionQueueContext>(dqEntity);
+	gm.addComponent<DeletionQueueComponent>(dqEntity, &deletionQueue);
+
 	try
 	{
 		PhysicsInit::Run(gm);
@@ -28,7 +33,6 @@ int App::run()
 	catch (const std::exception& e)
 	{
 		std::cerr << "ERROR::APP::INIT::Exception: " << e.what() << std::endl;
-		Cleanup::cleanup(gm);
 		return EXIT_FAILURE;
 	}
 
@@ -39,9 +43,8 @@ int App::run()
 	catch (const std::exception& e)
 	{
 		std::cerr << "ERROR::APP::MAINLOOP::Exception: " << e.what() << std::endl;
-		Cleanup::cleanup(gm);
 		return EXIT_FAILURE;
 	}
-	Cleanup::cleanup(gm);
+
 	return EXIT_SUCCESS;
 }

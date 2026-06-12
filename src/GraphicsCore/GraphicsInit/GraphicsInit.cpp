@@ -1,6 +1,9 @@
 #include "GraphicsInit.hpp"
 #include <iostream>
 #include <stdexcept>
+
+#include "../../DeletionQueueComponent.hpp"
+#include "../../DeletionQueueContext.hpp"
 #include "../Factories/VulkanDeviceFactory.hpp"
 #include "../Factories/SwapChainFactory.hpp"
 #include "../Components/VulkanDeviceComponent.hpp"
@@ -93,6 +96,8 @@ void GraphicsInit::coreInit(GeneralManager& gm)
 #pragma region initVulkanCore
 void GraphicsInit::initVulkanCore(GeneralManager& gm)
 {
+	DeletionQueue* dq = gm.getContextComponent<DeletionQueueContext, DeletionQueueComponent>()->queue;
+
 #ifdef _DEBUG
 	std::cout << "GRAPHICSINIT::VULKANNEEDS::Start create vulkan needs" << std::endl;
 #endif //_DEBUG
@@ -106,6 +111,7 @@ void GraphicsInit::initVulkanCore(GeneralManager& gm)
 	VulkanDeviceFactory::createVulkanDevice(*window, *vulkanDevice);
 	gm.addComponent<VulkanDeviceComponent>(vulkanDeviceEntity, vulkanDevice);
 	gm.addComponent<NameComponent>(vulkanDeviceEntity, "SYSTEM Vulkan Device");
+	dq->push_function([vulkanDevice]() { delete vulkanDevice; });
 
 	// VMA Allocator
 	Orhescyon::Entity vmaAllocatorEntity = gm.createEntity();
@@ -128,12 +134,15 @@ void GraphicsInit::initVulkanCore(GeneralManager& gm)
 	}
 	gm.addComponent<VMAllocatorComponent>(vmaAllocatorEntity, allocator);
 	gm.addComponent<NameComponent>(vmaAllocatorEntity, "SYSTEM VMA Allocator");
+	dq->push_function([allocator]() { vmaDestroyAllocator(allocator); });
 }
 #pragma endregion
 
 #pragma region initManagers
 void GraphicsInit::initManagers(GeneralManager& gm)
 {
+	DeletionQueue* dq = gm.getContextComponent<DeletionQueueContext, DeletionQueueComponent>()->queue;
+
 	VulkanDevice* vulkanDevice =
 	    gm.getContextComponent<MainVulkanDeviceContext, VulkanDeviceComponent>()->vulkanDeviceInstance;
 	VmaAllocator allocator = gm.getContextComponent<VMAllocatorContext, VMAllocatorComponent>()->allocator;
@@ -144,6 +153,7 @@ void GraphicsInit::initManagers(GeneralManager& gm)
 	TextureManager* textureManager = new TextureManager(*vulkanDevice, allocator);
 	gm.addComponent<TextureManagerComponent>(textureManagerEntity, textureManager);
 	gm.addComponent<NameComponent>(textureManagerEntity, "SYSTEM Texture Manager");
+	dq->push_function([textureManager]() { delete textureManager; });
 
 	// Buffer Manager
 	Orhescyon::Entity bufferManagerEntity = gm.createEntity();
@@ -151,6 +161,7 @@ void GraphicsInit::initManagers(GeneralManager& gm)
 	BufferManager* bManager = new BufferManager(*vulkanDevice, allocator);
 	gm.addComponent<BufferManagerComponent>(bufferManagerEntity, bManager);
 	gm.addComponent<NameComponent>(bufferManagerEntity, "SYSTEM Buffer Manager");
+	dq->push_function([bManager]() { delete bManager; });
 
 	// Model Manager
 	Orhescyon::Entity modelManagerEntity = gm.createEntity();
@@ -158,6 +169,7 @@ void GraphicsInit::initManagers(GeneralManager& gm)
 	ModelManager* mManager = new ModelManager(*vulkanDevice, allocator);
 	gm.addComponent<ModelManagerComponent>(modelManagerEntity, mManager);
 	gm.addComponent<NameComponent>(modelManagerEntity, "SYSTEM Model Manager");
+	dq->push_function([mManager]() { delete mManager; });
 
 	// Descriptor Manager
 	Orhescyon::Entity descriptorManagerEntity = gm.createEntity();
@@ -165,6 +177,7 @@ void GraphicsInit::initManagers(GeneralManager& gm)
 	DescriptorManager* dManager = new DescriptorManager(*vulkanDevice);
 	gm.addComponent<DescriptorManagerComponent>(descriptorManagerEntity, dManager);
 	gm.addComponent<NameComponent>(descriptorManagerEntity, "SYSTEM Descriptor Manager");
+	dq->push_function([dManager]() { delete dManager; });
 
 	// Frame Manager
 	Orhescyon::Entity frameManagerEntity = gm.createEntity();
@@ -172,12 +185,15 @@ void GraphicsInit::initManagers(GeneralManager& gm)
 	FrameManager* fManager = new FrameManager(*vulkanDevice);
 	gm.addComponent<FrameManagerComponent>(frameManagerEntity, fManager);
 	gm.addComponent<NameComponent>(frameManagerEntity, "SYSTEM Frame Manager");
+	dq->push_function([fManager]() { delete fManager; });
 }
 #pragma endregion
 
 #pragma region initFrameData
 void GraphicsInit::initFrameData(GeneralManager& gm)
 {
+	DeletionQueue* dq = gm.getContextComponent<DeletionQueueContext, DeletionQueueComponent>()->queue;
+
 	FrameManager* fManager = gm.getContextComponent<FrameManagerContext, FrameManagerComponent>()->frameManager;
 	VulkanDevice* vulkanDevice =
 	    gm.getContextComponent<MainVulkanDeviceContext, VulkanDeviceComponent>()->vulkanDeviceInstance;
@@ -209,6 +225,12 @@ void GraphicsInit::initFrameData(GeneralManager& gm)
 	SwapChainFactory::createSwapChain(*swapChain, *vulkanDevice, *window);
 	gm.addComponent<SwapChainComponent>(swapChainEntity, swapChain);
 	gm.addComponent<NameComponent>(swapChainEntity, "SYSTEM Swap Chain");
+	dq->push_function(
+	    [swapChain]()
+	    {
+		    SwapChainFactory::cleanupSwapChain(*swapChain);
+		    delete swapChain;
+	    });
 
 	// Main Descriptor Sets
 	Orhescyon::Entity mainDSetsEntity = gm.createEntity();
@@ -223,6 +245,8 @@ void GraphicsInit::initFrameData(GeneralManager& gm)
 #pragma region initImGui
 void GraphicsInit::initImGui(GeneralManager& gm)
 {
+	DeletionQueue* dq = gm.getContextComponent<DeletionQueueContext, DeletionQueueComponent>()->queue;
+
 #ifdef _DEBUG
 	std::cout << "GRAPHICSINIT::IMGUI::Start init ImGui" << std::endl;
 #endif //_DEBUG
@@ -273,6 +297,14 @@ void GraphicsInit::initImGui(GeneralManager& gm)
 	ImGui_ImplVulkan_Init(&initInfo);
 
 	ImGui_ImplVulkan_CreateFontsTexture();
+
+	dq->push_function(
+	    []()
+	    {
+		    ImGui_ImplVulkan_Shutdown();
+		    ImGui_ImplGlfw_Shutdown();
+		    ImGui::DestroyContext();
+	    });
 
 #ifdef _DEBUG
 	std::cout << "GRAPHICSINIT::IMGUI::Succes!" << std::endl;

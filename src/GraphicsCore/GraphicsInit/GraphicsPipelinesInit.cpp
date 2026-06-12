@@ -1,6 +1,9 @@
 #include "GraphicsPipelinesInit.hpp"
 #include "../Factories/PipelineFactory.hpp"
 #include <iostream>
+
+#include "../../DeletionQueueComponent.hpp"
+#include "../../DeletionQueueContext.hpp"
 #include <vk_mem_alloc.h>
 #include "../Resources/Managers/Vertex.hpp"
 #include "../Components/VulkanDeviceComponent.hpp"
@@ -34,6 +37,8 @@
 #pragma region initPipelines
 void GraphicsPipelinesInit::initPipelines(GeneralManager& gm)
 {
+	DeletionQueue* dq = gm.getContextComponent<DeletionQueueContext, DeletionQueueComponent>()->queue;
+
 #ifdef _DEBUG
 	std::cout << "GraphicsPipelinesInit::VULKANNEEDS::Start..." << std::endl;
 #endif //_DEBUG
@@ -52,6 +57,7 @@ void GraphicsPipelinesInit::initPipelines(GeneralManager& gm)
 	gm.registerContext<RenderGraphContext>(rgEntity);
 	gm.addComponent<RenderGraphComponent>(rgEntity, rg);
 	gm.addComponent<NameComponent>(rgEntity, "SYSTEM Render Graph");
+	dq->push_function([rg]() { delete rg; });
 
 #pragma endregion
 
@@ -67,6 +73,7 @@ void GraphicsPipelinesInit::initPipelines(GeneralManager& gm)
 	PipelineManager* pManager = new PipelineManager(*vulkanDevice, *dManager);
 	gm.addComponent<PipelineManagerComponent>(pManagerEntity, pManager);
 	gm.addComponent<NameComponent>(pManagerEntity, "SYSTEM Pipeline Manager");
+	dq->push_function([pManager]() { delete pManager; });
 
 	auto bindingDesc = Vertex::getBindingDescription();
 	auto attrDescs = Vertex::getAttributeDescriptions();
@@ -197,4 +204,3 @@ void GraphicsPipelinesInit::initPipelines(GeneralManager& gm)
 #endif //_DEBUG
 }
 #pragma endregion
-

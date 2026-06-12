@@ -21,6 +21,9 @@
 #include "Systems/PhysSnapshotSystem.hpp"
 #include "PhysLayers.hpp"
 
+#include "../DeletionQueueComponent.hpp"
+#include "../DeletionQueueContext.hpp"
+
 #pragma region Run
 void PhysicsInit::Run(Orhescyon::GeneralManager& gm)
 {
@@ -50,6 +53,8 @@ void PhysicsInit::coreInit(Orhescyon::GeneralManager& gm)
 #pragma region initPhysics
 void PhysicsInit::initPhysics(Orhescyon::GeneralManager& gm)
 {
+	DeletionQueue* dq = gm.getContextComponent<DeletionQueueContext, DeletionQueueComponent>()->queue;
+
 	JPH::RegisterDefaultAllocator();
 
 	if (JPH::Factory::sInstance == nullptr)
@@ -66,5 +71,15 @@ void PhysicsInit::initPhysics(Orhescyon::GeneralManager& gm)
 	Orhescyon::Entity tickRateEntity = gm.createEntity();
 	gm.addComponent<PhysTickRateComponent>(tickRateEntity);
 	gm.registerContext<PhysTickRateContext>(tickRateEntity);
+
+	dq->push_function([physManager]() { delete physManager; });
+
+	dq->push_function(
+	    []()
+	    {
+		    JPH::UnregisterTypes();
+		    delete JPH::Factory::sInstance;
+		    JPH::Factory::sInstance = nullptr;
+	    });
 }
 #pragma endregion

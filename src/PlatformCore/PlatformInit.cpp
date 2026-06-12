@@ -11,6 +11,9 @@
 #include "Components/WindowSizeComponent.hpp"
 #include "../GraphicsCore/Components/NameComponent.hpp"
 
+#include "../DeletionQueueComponent.hpp"
+#include "../DeletionQueueContext.hpp"
+
 #pragma region Run
 void PlatformInit::Run(Orhescyon::GeneralManager& gm)
 {
@@ -37,11 +40,14 @@ void PlatformInit::coreInit(Orhescyon::GeneralManager& gm)
 #pragma region initPlatform
 void PlatformInit::initPlatform(Orhescyon::GeneralManager& gm)
 {
+	DeletionQueue* dq = gm.getContextComponent<DeletionQueueContext, DeletionQueueComponent>()->queue;
+
 	Orhescyon::Entity windowAndInputEntity = gm.createEntity();
 	gm.registerContext<InputDataContext>(windowAndInputEntity);
 	gm.registerContext<MainWindowContext>(windowAndInputEntity);
 	Window* window = new Window("Halcyon");
 	gm.addComponent<WindowComponent>(windowAndInputEntity, window);
+	dq->push_function([window]() { delete window; });
 	gm.addComponent<KeyboardStateComponent>(windowAndInputEntity);
 	gm.addComponent<MouseStateComponent>(windowAndInputEntity);
 	gm.addComponent<CursorPositionComponent>(windowAndInputEntity);
