@@ -22,6 +22,7 @@ class PhysManager
 {
 public:
 	PhysManager(GeneralManager& gm);
+	~PhysManager();
 
 	MyBroadPhaseLayerInterface sBroadPhaseLayerInterface;
 	MyObjectVsBroadPhaseLayerFilter sObjectVsBroadPhaseLayerFilter;

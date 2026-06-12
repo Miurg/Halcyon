@@ -21,6 +21,7 @@
 #include <imgui_impl_vulkan.h>
 #include "Graphics/Managers/PipelineManager.hpp"
 #include "Graphics/Components/PipelineManagerComponent.hpp"
+#include "PhysicsCore/PhysicsCleanup.hpp"
 
 #ifdef TRACY_ENABLE
 #include <tracy/TracyVulkan.hpp>
@@ -126,4 +127,6 @@ void Cleanup::cleanup(GeneralManager& gm)
 		delete windowComp->windowInstance;
 		windowComp->windowInstance = nullptr;
 	}
+
+	PhysicsCleanup::cleanup(gm);
 }

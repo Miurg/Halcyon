@@ -14,6 +14,18 @@ PhysManager::PhysManager(GeneralManager& gm) : gm(&gm)
 	                    sObjectLayerPairFilter);
 }
 
+PhysManager::~PhysManager()
+{
+	delete physicsSystem;
+	physicsSystem = nullptr;
+
+	delete jobSystem;
+	jobSystem = nullptr;
+
+	delete tempAllocator;
+	tempAllocator = nullptr;
+}
+
 JPH::BodyID PhysManager::createDynamicSphere(glm::vec3 pos, float radius)
 {
 	JPH::BodyCreationSettings dynamicSphere(new JPH::SphereShape(radius), toJolt(pos), JPH::Quat::sIdentity(),

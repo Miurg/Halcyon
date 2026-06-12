@@ -21,8 +21,6 @@
 #include "Systems/PhysSnapshotSystem.hpp"
 #include "PhysLayers.hpp"
 
-static JPH::Factory* sFactory = nullptr;
-
 #pragma region Run
 void PhysicsInit::Run(Orhescyon::GeneralManager& gm)
 {
@@ -54,10 +52,9 @@ void PhysicsInit::initPhysics(Orhescyon::GeneralManager& gm)
 {
 	JPH::RegisterDefaultAllocator();
 
-	if (sFactory == nullptr)
+	if (JPH::Factory::sInstance == nullptr)
 	{
-		sFactory = new JPH::Factory();
-		JPH::Factory::sInstance = sFactory;
+		JPH::Factory::sInstance = new JPH::Factory();
 	}
 
 	JPH::RegisterTypes();
