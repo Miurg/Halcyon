@@ -24,31 +24,15 @@
 #include "../Components/VMAllocatorComponent.hpp"
 #include "../Components/ParticlesBufferComponent.hpp"
 
-const int MAX_NUMBER_PARTICLES = 100000;
-const int TEST_SPAWN_COUNT = 100;
+const int MAX_NUMBER_PARTICLES = 1000000;
+const int MAX_NUMBER_EMITERS = 1000;
+const int TEST_SPAWN_COUNT = 1000;
 
 struct alignas(16) ParticlesMetadata
 {
 	alignas(4) uint32_t bottomOfStack;
 	alignas(4) uint32_t maxNumberOfPatricles;
-};
-
-struct alignas(16) EmiterData
-{
-	alignas(16) glm::vec3 initialPosition;
-	alignas(16) glm::vec3 directionalVector;
-	alignas(8) glm::vec2 spawnRadius; // 1-min, 2-max
-	alignas(8) glm::vec2 timeToLive;  // 1-min, 2-max
-	alignas(8) glm::vec2 velocity;    // 1-min, 2-max
-	alignas(8) glm::vec2 scale;       // 1-min, 2-max
-};
-
-struct alignas(16) DispatchIndirect
-{
-	alignas(4) uint32_t x;
-	alignas(4) uint32_t y;
-	alignas(4) uint32_t z;
-	alignas(4) uint32_t spawnCount;
+	alignas(4) uint32_t numberOfEmiters;
 };
 
 struct alignas(16) DrawIndirect
@@ -66,7 +50,7 @@ struct alignas(16) ParticleProperties
 	alignas(16) glm::vec3 scale = {1.0f, 1.0f, 1.0f};
 	alignas(4) float liveTime = -1.0f;
 	alignas(16) glm::vec3 rotation = {1.0f, 1.0f, 1.0f};
-	alignas(4) uint32_t metadataIndex = 0;
+	alignas(4) uint32_t emiterIndex = 0;
 };
 
 struct alignas(16) EmitorPushConst
@@ -181,7 +165,7 @@ void ParticleSystemComputePass::onInit(Orhescyon::GeneralManager& gm)
 	_dSetParticles = dManager.allocate("particleSystemSet", MAX_FRAMES_IN_FLIGHT);
 
 	_particlesBuffer = bManager.createBuffer(
-	    vk::MemoryPropertyFlagBits::eHostVisible, sizeof(ParticleProperties) * MAX_NUMBER_PARTICLES, 1,
+	    vk::MemoryPropertyFlagBits::eDeviceLocal, sizeof(ParticleProperties) * MAX_NUMBER_PARTICLES, 1,
 	    vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst);
 
 	_particlesStack =
@@ -189,11 +173,11 @@ void ParticleSystemComputePass::onInit(Orhescyon::GeneralManager& gm)
 	                          vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst);
 
 	_emitersData =
-	    bManager.createBuffer(vk::MemoryPropertyFlagBits::eHostVisible, sizeof(EmiterData), 1,
+	    bManager.createBuffer(vk::MemoryPropertyFlagBits::eHostVisible, sizeof(EmiterData) * MAX_NUMBER_EMITERS, 1,
 	                          vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst);
 
 	_dispatchBuffer =
-	    bManager.createBuffer(vk::MemoryPropertyFlagBits::eDeviceLocal, sizeof(DispatchIndirect), 1,
+	    bManager.createBuffer(vk::MemoryPropertyFlagBits::eHostVisible, sizeof(DispatchIndirect), 1,
 	                          vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eIndirectBuffer |
 	                              vk::BufferUsageFlagBits::eTransferDst);
 	_indirectBuffer =
@@ -283,31 +267,11 @@ void ParticleSystemComputePass::onInit(Orhescyon::GeneralManager& gm)
 	cmd.copyBuffer(vk::Buffer(stagingParticles.buffer), bManager.buffers[_particlesBuffer.id].buffer[0],
 	               copyRegionParticles);
 
-	// Emiters data
-	EmiterData initialEmiterData = {
-	    .initialPosition = {-5.0f, 0.0f, 0.0f},
-	    .directionalVector = {0.0f, 1.0f, 0.0f},
-	    .spawnRadius = {0.0f, 5.0f},
-	    .timeToLive = {1.0f, 3.0f},
-	    .velocity = {1.0f, 5.0f},
-	    .scale = {0.05f, 0.3f},
-	};
-	cmd.updateBuffer(bManager.buffers[_emitersData.id].buffer[0], 0,
-	                 vk::ArrayProxy<const EmiterData>(1, &initialEmiterData));
-
-	// Indirect
-	DrawIndirect initialDraw = {.vertexCount = 6, .instanceCount = 0, .firstVertex = 0, .firstInstance = 0};
-	for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
-	{
-		cmd.updateBuffer(bManager.buffers[_indirectBuffer.id].buffer[i], 0,
-		                 vk::ArrayProxy<const DrawIndirect>(1, &initialDraw));
-	}
-
 	// dispatch. For some reason cant use updateBuffer for this one, maybe because of the size of the buffer or
 	// something, but copyBuffer works fine
 	// TODO: Find out why updateBuffer is not working for dispatch buffer, maybe we can avoid creating staging buffer for
 	// this
-	DispatchIndirect initialDispatch = {.x = TEST_SPAWN_COUNT / 64, .y = 1, .z = 1, .spawnCount = TEST_SPAWN_COUNT};
+	DispatchIndirect initialDispatch = {.x = 0, .y = 1, .z = 1, .spawnCount = 0};
 	StagingBuffer stagingDispatch = VulkanUtils::createStagingBuffer(&initialDispatch, sizeof(DispatchIndirect),
 	                                                                 allocator, VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
 
@@ -343,10 +307,22 @@ void ParticleSystemComputePass::onInit(Orhescyon::GeneralManager& gm)
 	cmd = VulkanUtils::beginSingleTimeCommands(vulkanDevice);
 
 	// Metadata
-	ParticlesMetadata initialParticlesMetadata = {.bottomOfStack = 0, .maxNumberOfPatricles = TEST_SPAWN_COUNT};
+	ParticlesMetadata initialParticlesMetadata = {
+	    .bottomOfStack = 0, .maxNumberOfPatricles = MAX_NUMBER_PARTICLES, .numberOfEmiters = MAX_NUMBER_EMITERS};
 	cmd.updateBuffer(bManager.buffers[_particlesMetadata.id].buffer[0], 0,
 	                 vk::ArrayProxy<const ParticlesMetadata>(1, &initialParticlesMetadata));
 
+	VulkanUtils::endSingleTimeCommands(cmd, vulkanDevice);
+
+	cmd = VulkanUtils::beginSingleTimeCommands(vulkanDevice);
+
+	// Indirect
+	DrawIndirect initialDraw = {.vertexCount = 6, .instanceCount = 0, .firstVertex = 0, .firstInstance = 0};
+	for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
+	{
+		cmd.updateBuffer(bManager.buffers[_indirectBuffer.id].buffer[i], 0,
+		                 vk::ArrayProxy<const DrawIndirect>(1, &initialDraw));
+	}
 	VulkanUtils::endSingleTimeCommands(cmd, vulkanDevice);
 
 	pManager.build(PipelineDescription{
@@ -366,7 +342,7 @@ void ParticleSystemComputePass::onInit(Orhescyon::GeneralManager& gm)
 	Orhescyon::Entity e = gm.createEntity();
 	gm.registerContext<ParticlesBufferContext>(e);
 	gm.addComponent<ParticlesBufferComponent>(e, _particlesBuffer, _indirectBuffer, _aliveIndicesBufferA,
-	                                          _aliveIndicesBufferB);
+	                                          _aliveIndicesBufferB, _dispatchBuffer, _emitersData);
 }
 
 void ParticleSystemComputePass::addToGraph(Orhescyon::GeneralManager& gm, RenderGraph& rg, uint32_t frame)

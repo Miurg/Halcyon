@@ -6,7 +6,7 @@ struct Particle
 	float3 scale;
     float liveTime;
     float3 rotation;
-    uint metadataIndex;
+    uint emiterIndex;
 };
 
 [vk::binding(0, 0)]
@@ -17,6 +17,8 @@ RWStructuredBuffer<int> particlesStackBuffer;
 
 struct EmiterData
 {
+    bool active;
+    uint spawnCount;
     float3 initialPosition;
     float3 directionalVector;
 	float2 spawnRadius;
@@ -35,7 +37,6 @@ struct VkDispatchIndirectCommand
     uint z;
     uint spawnCount;
 };
-
 [vk::binding(3, 0)]
 RWStructuredBuffer<VkDispatchIndirectCommand> indirectBuffer;
 
@@ -63,8 +64,9 @@ RWStructuredBuffer<VkDispatchIndirectCommand> _dispatchBufferForEmiterB;
 
 struct ParticlesMetadata
 {
-    uint32_t bottomOfStack;
-    uint32_t maxNumberOfPatricles;
+    uint bottomOfStack;
+    uint maxNumberOfPatricles;
+    uint numberOfEmiters;
 };
 [vk::binding(9, 0)]
 RWStructuredBuffer<ParticlesMetadata> _particlesMetadata;
@@ -122,8 +124,11 @@ void computeMain(uint3 dispatchThreadID: SV_DispatchThreadID)
 
     if (particlesBuffer[index].liveTime < 0.0) return;
 
+    uint emiterIndex = particlesBuffer[index].emiterIndex;
+    EmiterData emiterBuffer = emitersDataBuffer[emiterIndex];
+
     uint localSeed = particlesBuffer[index].seed;
-	float timeToDie = lerp(emitersDataBuffer[0].timeToLive[0], emitersDataBuffer[0].timeToLive[1],
+    float timeToDie = lerp(emiterBuffer.timeToLive[0], emiterBuffer.timeToLive[1],
 	                       random_float(localSeed));
 
 	if (particlesBuffer[index].liveTime >= timeToDie)
@@ -138,26 +143,18 @@ void computeMain(uint3 dispatchThreadID: SV_DispatchThreadID)
         InterlockedAdd(_particlesMetadata[0].bottomOfStack, -1, stackIndex);
         particlesStackBuffer[stackIndex - 1] = index;
 		particlesBuffer[index].liveTime = -1.0;
-
-		uint currentSpawnIndex;
-		InterlockedAdd(indirectBuffer[0].spawnCount, 1, currentSpawnIndex);
-
-		if (currentSpawnIndex % 64 == 0)
-		{
-			InterlockedAdd(indirectBuffer[0].x, 1);
-        }
 	}
 	else
 	{
-		float velocity =
-		    lerp(emitersDataBuffer[0].velocity[0], emitersDataBuffer[0].velocity[1], random_float(localSeed));
+        float velocity =
+		    lerp(emiterBuffer.velocity[0], emiterBuffer.velocity[1], random_float(localSeed));
 
-		particlesBuffer[index].position =
-		    particlesBuffer[index].position +
-		    emitersDataBuffer[0].directionalVector * velocity * pushConstants.deltaTime;
+        particlesBuffer[index].position =
+            particlesBuffer[index].position +
+		    emiterBuffer.directionalVector * velocity * pushConstants.deltaTime;
 
-		float scale =
-		    lerp(emitersDataBuffer[0].scale[0], emitersDataBuffer[0].scale[1], random_float(localSeed));
+        float scale =
+		    lerp(emiterBuffer.scale[0], emiterBuffer.scale[1], random_float(localSeed));
 
         particlesBuffer[index].scale = float3(scale, scale, scale);
 
