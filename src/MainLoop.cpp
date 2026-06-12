@@ -5,9 +5,9 @@
 #include <thread>
 #include "PhysicsCore/Components/PhysTickRateComponent.hpp"
 #include "PhysicsCore/PhysContexts.hpp"
-#include "Platform/Components/WindowComponent.hpp"
-#include "Platform/PlatformContexts.hpp"
-#include "Platform/Window.hpp"
+#include "PlatformCore/Components/WindowComponent.hpp"
+#include "PlatformCore/PlatformContexts.hpp"
+#include "PlatformCore/Window.hpp"
 
 #ifdef TRACY_ENABLE
 #include <tracy/Tracy.hpp>

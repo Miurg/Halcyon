@@ -1,7 +1,7 @@
 #include "DeltaTimeSystem.hpp"
 #include "../GraphicsContexts.hpp"
 #include "../Components/DeltaTimeComponent.hpp"
-#include "../../Platform/Window.hpp"
+#include "../../PlatformCore/Window.hpp"
 
 #ifdef TRACY_ENABLE
 #include <tracy/Tracy.hpp>

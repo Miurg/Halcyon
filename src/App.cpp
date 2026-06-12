@@ -3,13 +3,13 @@
 #include <iostream>
 
 #include "Game/GameInit.hpp"
-#include "Graphics/GraphicsInit/GraphicsInit.hpp"
+#include "GraphicsCore/GraphicsInit/GraphicsInit.hpp"
 #include "Cleanup.hpp"
 #include "MainLoop.hpp"
 #include <exception>
 #include <Orhescyon/GeneralManager.hpp>
 #include "PhysicsCore/PhysicsInit.hpp"
-#include "Platform/PlatformInit.hpp"
+#include "PlatformCore/PlatformInit.hpp"
 
 App::App() {}
 

@@ -9,7 +9,7 @@
 #include "Components/CursorPositionComponent.hpp"
 #include "Components/ScrollDeltaComponent.hpp"
 #include "Components/WindowSizeComponent.hpp"
-#include "../Graphics/Components/NameComponent.hpp"
+#include "../GraphicsCore/Components/NameComponent.hpp"
 
 #pragma region Run
 void PlatformInit::Run(Orhescyon::GeneralManager& gm)

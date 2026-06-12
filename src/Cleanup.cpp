@@ -1,26 +1,26 @@
 #include "Cleanup.hpp"
 
-#include "Graphics/GraphicsContexts.hpp"
-#include "Graphics/Components/BufferManagerComponent.hpp"
-#include "Graphics/Components/DescriptorManagerComponent.hpp"
-#include "Graphics/Components/TextureManagerComponent.hpp"
-#include "Graphics/Components/ModelManagerComponent.hpp"
-#include "Graphics/Components/SwapChainComponent.hpp"
-#include "Graphics/Components/VulkanDeviceComponent.hpp"
-#include "Graphics/Factories/SwapChainFactory.hpp"
-#include "Graphics/Components/FrameManagerComponent.hpp"
-#include "Graphics/Components/VMAllocatorComponent.hpp"
-#include "Graphics/Components/RenderGraphComponent.hpp"
-#include "Graphics/RenderGraph/RenderGraph.hpp"
-#include "Platform/PlatformContexts.hpp"
-#include "Platform/Components/WindowComponent.hpp"
-#include "Platform/Window.hpp"
+#include "GraphicsCore/GraphicsContexts.hpp"
+#include "GraphicsCore/Components/BufferManagerComponent.hpp"
+#include "GraphicsCore/Components/DescriptorManagerComponent.hpp"
+#include "GraphicsCore/Components/TextureManagerComponent.hpp"
+#include "GraphicsCore/Components/ModelManagerComponent.hpp"
+#include "GraphicsCore/Components/SwapChainComponent.hpp"
+#include "GraphicsCore/Components/VulkanDeviceComponent.hpp"
+#include "GraphicsCore/Factories/SwapChainFactory.hpp"
+#include "GraphicsCore/Components/FrameManagerComponent.hpp"
+#include "GraphicsCore/Components/VMAllocatorComponent.hpp"
+#include "GraphicsCore/Components/RenderGraphComponent.hpp"
+#include "GraphicsCore/RenderGraph/RenderGraph.hpp"
+#include "PlatformCore/PlatformContexts.hpp"
+#include "PlatformCore/Components/WindowComponent.hpp"
+#include "PlatformCore/Window.hpp"
 
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_vulkan.h>
-#include "Graphics/Managers/PipelineManager.hpp"
-#include "Graphics/Components/PipelineManagerComponent.hpp"
+#include "GraphicsCore/Managers/PipelineManager.hpp"
+#include "GraphicsCore/Components/PipelineManagerComponent.hpp"
 #include "PhysicsCore/PhysicsCleanup.hpp"
 
 #ifdef TRACY_ENABLE

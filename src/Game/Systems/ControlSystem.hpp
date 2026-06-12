@@ -1,14 +1,14 @@
 #pragma once
 #include <Orhescyon/GeneralManager.hpp>
 #include <Orhescyon/Systems/SystemCore.hpp>
-#include "../../Platform/Window.hpp"
-#include "../../Graphics/Systems/DeltaTimeSystem.hpp"
-#include "../../Graphics/Systems/FrameBeginSystem.hpp"
-#include "../../Graphics/Components/DeltaTimeComponent.hpp"
-#include "../../Platform/Components/KeyboardStateComponent.hpp"
-#include "../../Platform/Components/CursorPositionComponent.hpp"
-#include "../../Graphics/Components/CameraComponent.hpp"
-#include "../../Graphics/Components/GlobalTransformComponent.hpp"
+#include "../../PlatformCore/Window.hpp"
+#include "../../GraphicsCore/Systems/DeltaTimeSystem.hpp"
+#include "../../GraphicsCore/Systems/FrameBeginSystem.hpp"
+#include "../../GraphicsCore/Components/DeltaTimeComponent.hpp"
+#include "../../PlatformCore/Components/KeyboardStateComponent.hpp"
+#include "../../PlatformCore/Components/CursorPositionComponent.hpp"
+#include "../../GraphicsCore/Components/CameraComponent.hpp"
+#include "../../GraphicsCore/Components/GlobalTransformComponent.hpp"
 #include "../Components/ControlComponent.hpp"
 
 using Orhescyon::GeneralManager;

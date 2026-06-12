@@ -5,7 +5,7 @@
 #include "../PhysicsCore/Components/PhysTransformSnapshotComponent.hpp"
 #include "../PhysicsCore/Systems/PhysSnapshotSystem.hpp"
 #include "../PhysicsCore/PhysShapes.hpp"
-#include "../Graphics/Systems/PhysSyncSystem.hpp"
+#include "../GraphicsCore/Systems/PhysSyncSystem.hpp"
 #include <Jolt/Jolt.h>
 #include <Jolt/Physics/Collision/Shape/Shape.h>
 #include <Orhescyon/GeneralManager.hpp>

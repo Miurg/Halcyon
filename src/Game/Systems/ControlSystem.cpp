@@ -1,16 +1,16 @@
 #include "ControlSystem.hpp"
-#include "../../Graphics/Components/LocalTransformComponent.hpp"
-#include "../../Graphics/Components/CameraComponent.hpp"
-#include "../../Platform/Components/KeyboardStateComponent.hpp"
-#include "../../Platform/Components/CursorPositionComponent.hpp"
+#include "../../GraphicsCore/Components/LocalTransformComponent.hpp"
+#include "../../GraphicsCore/Components/CameraComponent.hpp"
+#include "../../PlatformCore/Components/KeyboardStateComponent.hpp"
+#include "../../PlatformCore/Components/CursorPositionComponent.hpp"
 #include <GLFW/glfw3.h>
-#include "../../Graphics/GraphicsContexts.hpp"
-#include "../../Platform/PlatformContexts.hpp"
-#include "../../Graphics/Components/DeltaTimeComponent.hpp"
+#include "../../GraphicsCore/GraphicsContexts.hpp"
+#include "../../PlatformCore/PlatformContexts.hpp"
+#include "../../GraphicsCore/Components/DeltaTimeComponent.hpp"
 #include "../Components/ControlComponent.hpp"
-#include "../../Platform/Components/WindowComponent.hpp"
-#include "../../Platform/Window.hpp"
-#include "../../Graphics/Components/GlobalTransformComponent.hpp"
+#include "../../PlatformCore/Components/WindowComponent.hpp"
+#include "../../PlatformCore/Window.hpp"
+#include "../../GraphicsCore/Components/GlobalTransformComponent.hpp"
 
 #ifdef TRACY_ENABLE
 #include <tracy/Tracy.hpp>

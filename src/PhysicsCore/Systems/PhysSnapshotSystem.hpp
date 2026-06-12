@@ -7,7 +7,7 @@
 
 #include "../Components/PhysTransformSnapshotComponent.hpp"
 #include "../Components/PhysBodyComponent.hpp"
-#include "../../Graphics/Systems/TransformSystem.hpp"
+#include "../../GraphicsCore/Systems/TransformSystem.hpp"
 #include "PhysUpdateSystem.hpp"
 
 using Orhescyon::GeneralManager;

@@ -1,9 +1,9 @@
 #include "RotationSystem.hpp"
 #include <iostream>
-#include "../../Graphics/Components/LocalTransformComponent.hpp"
-#include "../../Graphics/Components/GlobalTransformComponent.hpp"
-#include "../../Graphics/GraphicsContexts.hpp"
-#include "../../Graphics/Components/DeltaTimeComponent.hpp"
+#include "../../GraphicsCore/Components/LocalTransformComponent.hpp"
+#include "../../GraphicsCore/Components/GlobalTransformComponent.hpp"
+#include "../../GraphicsCore/GraphicsContexts.hpp"
+#include "../../GraphicsCore/Components/DeltaTimeComponent.hpp"
 
 #ifdef TRACY_ENABLE
 #include <tracy/Tracy.hpp>
