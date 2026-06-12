@@ -50,6 +50,13 @@ void SwapChainFactory::createSwapChainHandle(SwapChain& swapChain, VulkanDevice&
 	swapChain.swapChainHandle = vk::raii::SwapchainKHR(deviceContext.device, swapChainCreateInfo);
 	swapChain.swapChainImages = swapChain.swapChainHandle.getImages();
 
+	swapChain.renderFinishedSemaphores.clear();
+	for (size_t i = 0; i < swapChain.swapChainImages.size(); i++)
+	{
+		swapChain.renderFinishedSemaphores.emplace_back(
+		    vk::raii::Semaphore(deviceContext.device, vk::SemaphoreCreateInfo()));
+	}
+
 	createImageViews(swapChain, deviceContext, window);
 }
 
@@ -103,6 +110,7 @@ vk::Extent2D SwapChainFactory::chooseSwapExtent(const vk::SurfaceCapabilitiesKHR
 void SwapChainFactory::cleanupSwapChain(SwapChain& swapChain)
 {
 	swapChain.swapChainImageViews.clear();
+	swapChain.renderFinishedSemaphores.clear();
 	swapChain.swapChainHandle = nullptr;
 }
 

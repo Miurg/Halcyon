@@ -10,6 +10,7 @@ public:
 	vk::raii::SwapchainKHR swapChainHandle = nullptr;
 	std::vector<vk::Image> swapChainImages;
 	std::vector<vk::raii::ImageView> swapChainImageViews;
+	std::vector<vk::raii::Semaphore> renderFinishedSemaphores;
 
 	vk::Format hdrFormat = vk::Format::eR16G16B16A16Sfloat;
 };

@@ -59,22 +59,27 @@ void FrameEndSystem::update(GeneralManager& gm)
 			probesGrid->needBake = false;
 		}
 	}
+	{
+#ifdef TRACY_ENABLE
+		ZoneScopedN("RenderGraph");
+#endif
+		RenderGraph* rg = gm.getContextComponent<RenderGraphContext, RenderGraphComponent>()->renderGraph;
+		rg->compile();
+		rg->execute(frameManager->frames[currentFrameComp->currentFrame].commandBuffer);
 
-	RenderGraph* rg = gm.getContextComponent<RenderGraphContext, RenderGraphComponent>()->renderGraph;
-	rg->compile();
-	rg->execute(frameManager->frames[currentFrameComp->currentFrame].commandBuffer);
+	}
 
 	vk::PipelineStageFlags waitDestinationStageMask(vk::PipelineStageFlagBits::eColorAttachmentOutput);
 
 	const vk::SubmitInfo submitInfo(*frameManager->frames[currentFrameComp->currentFrame].presentCompleteSemaphore,
 	                                waitDestinationStageMask,
 	                                *frameManager->frames[currentFrameComp->currentFrame].commandBuffer,
-	                                *frameManager->frames[imageIndex].renderFinishedSemaphore);
+	                                *swapChain.renderFinishedSemaphores[imageIndex]);
 
 	vulkanDevice.graphicsQueue.submit(submitInfo, *frameManager->frames[currentFrameComp->currentFrame].inFlightFence);
 
 	// Present the image
-	const vk::PresentInfoKHR presentInfoKHR(*frameManager->frames[imageIndex].renderFinishedSemaphore,
+	const vk::PresentInfoKHR presentInfoKHR(*swapChain.renderFinishedSemaphores[imageIndex],
 	                                        *swapChain.swapChainHandle, imageIndex);
 	vk::Result presentResult;
 	try

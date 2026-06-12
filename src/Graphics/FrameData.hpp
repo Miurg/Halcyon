@@ -6,7 +6,6 @@
 struct FrameData
 {
 	vk::raii::Semaphore presentCompleteSemaphore = nullptr;
-	vk::raii::Semaphore renderFinishedSemaphore = nullptr;
 	vk::raii::Fence inFlightFence = nullptr;
 	vk::raii::CommandBuffer commandBuffer = nullptr;
 };
