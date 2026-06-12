@@ -1,11 +1,31 @@
 #pragma once
 #include "IPass.hpp"
 #include "../Resources/Managers/ResourceHandles.hpp"
+#include <glm/glm.hpp>
 
 class DescriptorManagerComponent;
 class BufferManager;
 class PipelineManager;
 
+struct alignas(16) DispatchIndirect
+{
+	alignas(4) uint32_t x;
+	alignas(4) uint32_t y;
+	alignas(4) uint32_t z;
+	alignas(4) uint32_t spawnCount;
+};
+
+struct alignas(16) EmiterData
+{
+	alignas(4) bool active;
+	alignas(4) uint32_t spawnCount;
+	alignas(16) glm::vec3 initialPosition;
+	alignas(16) glm::vec3 directionalVector;
+	alignas(8) glm::vec2 spawnRadius; // 1-min, 2-max
+	alignas(8) glm::vec2 timeToLive;  // 1-min, 2-max
+	alignas(8) glm::vec2 velocity;    // 1-min, 2-max
+	alignas(8) glm::vec2 scale;       // 1-min, 2-max
+};
 
 class ParticleSystemComputePass : public IPass
 {

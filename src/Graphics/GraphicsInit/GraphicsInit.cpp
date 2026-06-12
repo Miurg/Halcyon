@@ -44,6 +44,7 @@
 #include "../Systems/RenderSystem.hpp"
 #include "../Systems/FrameEndSystem.hpp"
 #include "../Components/DeltaTimeComponent.hpp"
+#include "../Systems/GPUParticlesSystem.hpp"
 
 #pragma region Run
 void GraphicsInit::Run(GeneralManager& gm)
@@ -73,6 +74,7 @@ void GraphicsInit::coreInit(GeneralManager& gm)
 	gm.registerSystem<TransformSystem>();
 
 	gm.registerSystem<FrameBeginSystem>();
+	gm.registerSystem<GPUParticlesSystem>();
 	gm.registerSystem<PhysSyncSystem>();
 	gm.registerSystem<ImGuiSystem>();
 	gm.registerSystem<CameraMatrixSystem>();
