@@ -12,12 +12,7 @@
 #include "DeletionQueueComponent.hpp"
 #include "DeletionQueueContext.hpp"
 
-App::App() : deletionQueue(&gm) {}
-App::~App() = default;
-
-using Orhescyon::GeneralManager;
-
-int App::run()
+App::App() : deletionQueue(&gm)
 {
 	Orhescyon::Entity dqEntity = gm.createEntity();
 	gm.registerContext<DeletionQueueContext>(dqEntity);
@@ -28,14 +23,19 @@ int App::run()
 		PhysicsInit::Run(gm);
 		PlatformInit::Run(gm);
 		GraphicsInit::Run(gm);
-		GameInit::Run(gm);
 	}
 	catch (const std::exception& e)
 	{
 		std::cerr << "ERROR::APP::INIT::Exception: " << e.what() << std::endl;
-		return EXIT_FAILURE;
+		return;
 	}
+}
+App::~App() = default;
 
+using Orhescyon::GeneralManager;
+
+int App::run()
+{
 	try
 	{
 		MainLoop::startLoop(gm);
@@ -47,4 +47,23 @@ int App::run()
 	}
 
 	return EXIT_SUCCESS;
+}
+
+App App::create()
+{
+	return App();
+}
+
+App& App::addStartUp(IStartUp& startUp)
+{
+	try
+	{
+		startUp.Run(gm);
+	}
+	catch (const std::exception& e)
+	{
+		std::cerr << "ERROR::APP::INIT::Exception: " << e.what() << std::endl;
+		return *this;
+	}
+	return *this;
 }

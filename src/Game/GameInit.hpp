@@ -1,11 +1,13 @@
 #pragma once
 
 #include <Orhescyon/GeneralManager.hpp>
+#include "../IStartUp.hpp"
+
 using Orhescyon::GeneralManager;
-class GameInit
+class GameInit : public IStartUp
 {
 public:
-	static void Run(GeneralManager& gm);
+	void Run(GeneralManager& gm);
 private:
 	static void coreInit(GeneralManager& gm);
 	static void initScene(GeneralManager& gm);

@@ -1,7 +1,8 @@
 #include "App.hpp"
+#include "Game/GameInit.hpp"
 
 int main()
 {
-	App app;
-	return app.run();
+	GameInit game;
+	return App::create().addStartUp(game).run();
 }
