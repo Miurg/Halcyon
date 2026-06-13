@@ -7,4 +7,5 @@ class PlaceholdersInit
 {
 public:
 	static void initPlaceholders(GeneralManager& gm);
+	static void initAfterCorePlaceholders(GeneralManager& gm);
 };

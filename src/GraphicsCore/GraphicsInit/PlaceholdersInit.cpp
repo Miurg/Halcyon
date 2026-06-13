@@ -29,6 +29,8 @@
 #include "../Components/PipelineManagerComponent.hpp"
 #include "../Resources/Factories/GltfLoader.hpp"
 #include "../Components/LightProbeGridComponent.hpp"
+#include "../Components/DeltaTimeComponent.hpp"
+#include "../Systems/TransformSystem.hpp"
 
 void PlaceholdersInit::initPlaceholders(GeneralManager& gm)
 {
@@ -70,8 +72,6 @@ void PlaceholdersInit::initPlaceholders(GeneralManager& gm)
 	glm::vec4 directLightAmbient = directLightColor; // Ambient component is 0.1% of the main light color
 	directLightAmbient.w *= 0.001f;
 	gm.addComponent<GlobalTransformComponent>(directLightEntity, directLightPos, directLightRot);
-	gm.addComponent<LocalTransformComponent>(directLightEntity, directLightPos, directLightRot);
-	gm.addComponent<RelationshipComponent>(directLightEntity);
 	gm.addComponent<DirectLightComponent>(directLightEntity, 4000, 4000, directLightColor, directLightAmbient);
 	gm.registerContext<SunContext>(directLightEntity);
 	CameraComponent* directLightCamera = gm.getContextComponent<SunContext, CameraComponent>();
@@ -285,7 +285,17 @@ void PlaceholdersInit::initPlaceholders(GeneralManager& gm)
 	gm.addComponent<NameComponent>(probeGridEntity, "SYSTEM Light Probe Grid");
 #pragma endregion
 
+	Orhescyon::Entity deltaTimeEntity = gm.createEntity();
+	gm.registerContext<DeltaTimeContext>(deltaTimeEntity);
+	gm.addComponent<DeltaTimeComponent>(deltaTimeEntity);
+	gm.addComponent<NameComponent>(deltaTimeEntity, "SYSTEM::GRAPHICS Delta Time");
+
 #ifdef _DEBUG
 	std::cout << "GRAPHICSINIT::PLACEHOLDERENTITYS::Succes!" << std::endl;
 #endif //_DEBUG
+}
+
+void PlaceholdersInit::initAfterCorePlaceholders(GeneralManager& gm) 
+{
+	gm.subscribeEntity<TransformSystem>(gm.getContext<MainCameraContext>());
 }

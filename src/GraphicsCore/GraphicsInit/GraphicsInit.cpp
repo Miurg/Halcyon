@@ -63,6 +63,7 @@ void GraphicsInit::Run(GeneralManager& gm)
 	PlaceholdersInit::initPlaceholders(gm);
 	initImGui(gm);
 	coreInit(gm);
+	PlaceholdersInit::initAfterCorePlaceholders(gm);
 
 #ifdef _DEBUG
 	std::cout << "GRAPHICSINIT::RUN::Succes!" << std::endl;
@@ -85,11 +86,6 @@ void GraphicsInit::coreInit(GeneralManager& gm)
 	gm.registerSystem<BufferUpdateSystem>();
 	gm.registerSystem<RenderSystem>();
 	gm.registerSystem<FrameEndSystem>();
-
-	Orhescyon::Entity deltaTimeEntity = gm.createEntity();
-	gm.registerContext<DeltaTimeContext>(deltaTimeEntity);
-	gm.addComponent<DeltaTimeComponent>(deltaTimeEntity);
-	gm.addComponent<NameComponent>(deltaTimeEntity, "SYSTEM::GRAPHICS Delta Time");
 }
 #pragma endregion
 

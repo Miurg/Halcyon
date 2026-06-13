@@ -77,8 +77,6 @@ void GameInit::initScene(GeneralManager& gm)
 	PhysManager* physManager = gm.getContextComponent<PhysManagerContext, PhysManagerComponent>()->physManager;
 
 	gm.addComponent<ControlComponent>(gm.getContext<MainCameraContext>());
-	gm.subscribeEntity<TransformSystem>(gm.getContext<MainCameraContext>());
-	gm.subscribeEntity<TransformSystem>(gm.getContext<SunContext>());
 
 	SkyboxFactory::loadSkybox("assets/textures/spree_bank_4k.hdr", gm);
 
