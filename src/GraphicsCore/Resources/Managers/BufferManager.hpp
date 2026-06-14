@@ -3,15 +3,15 @@
 #include "VertexIndexBuffer.hpp"
 #include <vector>
 #include <unordered_map>
-#include "../Components/MeshInfoComponent.hpp"
+#include "GraphicsCore/Resources/Components/MeshInfoComponent.hpp"
 #include "../../VulkanConst.hpp"
 #include <vk_mem_alloc.h>
 #include "Texture.hpp"
 #include "Buffer.hpp"
-#include "../Components/BindlessTextureDSetComponent.hpp"
+#include "GraphicsCore/Resources/Components/BindlessTextureDSetComponent.hpp"
 #include "../../VulkanDevice.hpp"
 #include "ResourceHandles.hpp"
-#include "../Components/BindlessTextureDSetComponent.hpp"
+#include "GraphicsCore/Resources/Components/BindlessTextureDSetComponent.hpp"
 #include "../ResourceStructures.hpp"
 
 class DescriptorManager;

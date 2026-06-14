@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../Resources/Managers/DescriptorManager.hpp"
+#include "GraphicsCore/Resources/Managers/DescriptorManager.hpp"
 
 struct DescriptorManagerComponent
 {

@@ -4,8 +4,8 @@
 #include <Orhescyon/Systems/SystemCore.hpp>
 #include "FrameEndSystem.hpp"
 #include "DeltaTimeSystem.hpp"
-#include "../Components/CurrentFrameComponent.hpp"
-#include "../Components/FrameImageComponent.hpp"
+#include "GraphicsCore/Components/CurrentFrameComponent.hpp"
+#include "GraphicsCore/Components/FrameImageComponent.hpp"
 
 using Orhescyon::GeneralManager;
 class FrameBeginSystem : public Orhescyon::SystemCore<FrameBeginSystem>

@@ -2,13 +2,13 @@
 
 #include "../Managers/VertexIndexBuffer.hpp"
 #include "../Managers/Texture.hpp"
-#include "../Components/MeshInfoComponent.hpp"
+#include "GraphicsCore/Resources/Components/MeshInfoComponent.hpp"
 #include "../../VulkanDevice.hpp"
 #include "../Managers/PrimitivesInfo.hpp"
 #include <Orhescyon/GeneralManager.hpp>
 #include "../Managers/BufferManager.hpp"
 #include "../Managers/DescriptorManager.hpp"
-#include "../Components/BindlessTextureDSetComponent.hpp"
+#include "GraphicsCore/Resources/Components/BindlessTextureDSetComponent.hpp"
 #include "GltfLoader.hpp"
 #include "../Managers/TextureManager.hpp"
 using Orhescyon::GeneralManager;

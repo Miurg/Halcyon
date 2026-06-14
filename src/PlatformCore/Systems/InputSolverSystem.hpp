@@ -2,12 +2,12 @@
 
 #include <Orhescyon/GeneralManager.hpp>
 #include <Orhescyon/Systems/SystemCore.hpp>
-#include "../Components/CursorPositionComponent.hpp"
-#include "../Components/WindowSizeComponent.hpp"
-#include "../Components/KeyboardStateComponent.hpp"
-#include "../Components/MouseStateComponent.hpp"
-#include "../Components/ScrollDeltaComponent.hpp"
-#include "../Components/WindowComponent.hpp"
+#include "PlatformCore/Components/CursorPositionComponent.hpp"
+#include "PlatformCore/Components/WindowSizeComponent.hpp"
+#include "PlatformCore/Components/KeyboardStateComponent.hpp"
+#include "PlatformCore/Components/MouseStateComponent.hpp"
+#include "PlatformCore/Components/ScrollDeltaComponent.hpp"
+#include "PlatformCore/Components/WindowComponent.hpp"
 #include "../../GraphicsCore/Systems/DeltaTimeSystem.hpp"
 #include "../../GraphicsCore/Systems/FrameBeginSystem.hpp"
 

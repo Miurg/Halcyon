@@ -2,12 +2,12 @@
 
 #include <Orhescyon/GeneralManager.hpp>
 
-#include "../GraphicsContexts.hpp"
+#include "GraphicsCore/GraphicsContexts.hpp"
 #include "../SwapChain.hpp"
-#include "../Components/SwapChainComponent.hpp"
-#include "../Components/DescriptorManagerComponent.hpp"
-#include "../Components/PipelineManagerComponent.hpp"
-#include "../Components/GraphicsSettingsComponent.hpp"
+#include "GraphicsCore/Components/SwapChainComponent.hpp"
+#include "GraphicsCore/Components/DescriptorManagerComponent.hpp"
+#include "GraphicsCore/Components/PipelineManagerComponent.hpp"
+#include "GraphicsCore/Components/GraphicsSettingsComponent.hpp"
 #include "../Resources/Managers/DescriptorManager.hpp"
 #include "../Managers/PipelineManager.hpp"
 #include "../Factories/PipelineFactory.hpp"

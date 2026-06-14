@@ -5,14 +5,14 @@
 #include <glm/gtc/type_ptr.hpp>
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/matrix_decompose.hpp>
-#include "../../Components/GlobalTransformComponent.hpp"
-#include "../../Components/LocalTransformComponent.hpp"
-#include "../../Components/RelationshipComponent.hpp"
+#include "GraphicsCore/Components/GlobalTransformComponent.hpp"
+#include "GraphicsCore/Components/LocalTransformComponent.hpp"
+#include "GraphicsCore/Components/RelationshipComponent.hpp"
 #include "../../Systems/TransformSystem.hpp"
 #include "../../Systems/RenderSystem.hpp"
-#include "../../Components/NameComponent.hpp"
+#include "GraphicsCore/Components/NameComponent.hpp"
 #include <string>
-#include "../../Components/PointLightComponent.hpp"
+#include "GraphicsCore/Components/PointLightComponent.hpp"
 #include "../../Systems/LightUpdateSystem.hpp"
 
 glm::mat4 convertGLTFMatrix(const std::vector<double>& matrix)

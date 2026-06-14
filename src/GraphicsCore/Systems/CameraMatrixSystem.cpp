@@ -5,14 +5,14 @@
 #include <vector>
 #include <algorithm>
 #include <cmath>
-#include "../GraphicsContexts.hpp"
-#include "../Components/SwapChainComponent.hpp"
-#include "../Components/BufferManagerComponent.hpp"
-#include "../Components/CurrentFrameComponent.hpp"
-#include "../Resources/Components/GlobalDSetComponent.hpp"
-#include "../Components/CameraComponent.hpp"
-#include "../Components/GlobalTransformComponent.hpp"
-#include "../Components/DirectLightComponent.hpp"
+#include "GraphicsCore/GraphicsContexts.hpp"
+#include "GraphicsCore/Components/SwapChainComponent.hpp"
+#include "GraphicsCore/Components/BufferManagerComponent.hpp"
+#include "GraphicsCore/Components/CurrentFrameComponent.hpp"
+#include "GraphicsCore/Resources/Components/GlobalDSetComponent.hpp"
+#include "GraphicsCore/Components/CameraComponent.hpp"
+#include "GraphicsCore/Components/GlobalTransformComponent.hpp"
+#include "GraphicsCore/Components/DirectLightComponent.hpp"
 #include "../Resources/ResourceStructures.hpp"
 
 #ifdef TRACY_ENABLE

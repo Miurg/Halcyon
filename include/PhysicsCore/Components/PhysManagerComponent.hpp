@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../Managers/PhysManager.hpp"
+#include "PhysicsCore/Managers/PhysManager.hpp"
 
 struct PhysManagerComponent
 {

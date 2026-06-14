@@ -1,7 +1,7 @@
 #pragma once
 #include <vulkan/vulkan_raii.hpp>
 #include "../../VulkanDevice.hpp"
-#include "../Components/BindlessTextureDSetComponent.hpp"
+#include "GraphicsCore/Resources/Components/BindlessTextureDSetComponent.hpp"
 #include "Buffer.hpp"
 #include "ResourceHandles.hpp"
 #include "../../VulkanConst.hpp"

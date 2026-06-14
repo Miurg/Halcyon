@@ -2,9 +2,9 @@
 
 #include <Jolt/Jolt.h>
 #include <Jolt/Physics/PhysicsSystem.h>
-#include "../../PhysicsCore/PhysContexts.hpp"
-#include "../../PhysicsCore/Components/PhysManagerComponent.hpp"
-#include "../../PhysicsCore/Components/PhysBodyComponent.hpp"
+#include "PhysicsCore/PhysContexts.hpp"
+#include "PhysicsCore/Components/PhysManagerComponent.hpp"
+#include "PhysicsCore/Components/PhysBodyComponent.hpp"
 #include "../../PhysicsCore/JoltGlm.hpp"
 
 #ifdef TRACY_ENABLE

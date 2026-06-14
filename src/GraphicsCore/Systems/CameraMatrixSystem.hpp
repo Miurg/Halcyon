@@ -3,10 +3,10 @@
 #include <Orhescyon/Systems/SystemCore.hpp>
 #include "FrameBeginSystem.hpp"
 #include "BufferUpdateSystem.hpp"
-#include "../Components/CameraComponent.hpp"
-#include "../Components/GlobalTransformComponent.hpp"
-#include "../Components/DirectLightComponent.hpp"
-#include "../Components/CurrentFrameComponent.hpp"
+#include "GraphicsCore/Components/CameraComponent.hpp"
+#include "GraphicsCore/Components/GlobalTransformComponent.hpp"
+#include "GraphicsCore/Components/DirectLightComponent.hpp"
+#include "GraphicsCore/Components/CurrentFrameComponent.hpp"
 
 using Orhescyon::GeneralManager;
 class CameraMatrixSystem : public Orhescyon::SystemCore<CameraMatrixSystem>

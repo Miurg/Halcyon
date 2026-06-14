@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../Resources/Managers/TextureManager.hpp"
+#include "GraphicsCore/Resources/Managers/TextureManager.hpp"
 
 struct TextureManagerComponent
 {

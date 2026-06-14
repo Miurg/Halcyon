@@ -1,7 +1,7 @@
 #include "Renderables.hpp"
-#include "../GraphicsCore/Components/GlobalTransformComponent.hpp"
-#include "../GraphicsCore/Components/LocalTransformComponent.hpp"
-#include "../GraphicsCore/Components/RelationshipComponent.hpp"
+#include "GraphicsCore/Components/GlobalTransformComponent.hpp"
+#include "GraphicsCore/Components/LocalTransformComponent.hpp"
+#include "GraphicsCore/Components/RelationshipComponent.hpp"
 #include "../GraphicsCore/Systems/TransformSystem.hpp"
 
 void Smith::Renderables::forgeTransform(Orhescyon::GeneralManager& gm, Orhescyon::Entity e, glm::vec3 pos,

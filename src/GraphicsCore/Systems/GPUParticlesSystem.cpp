@@ -1,16 +1,16 @@
 #include "GPUParticlesSystem.hpp"
 
-#include "../Components/ParticleEmitorComponent.hpp"
-#include "../GraphicsContexts.hpp"
-#include "../Components/ParticlesBufferComponent.hpp"
+#include "GraphicsCore/Components/ParticleEmitorComponent.hpp"
+#include "GraphicsCore/GraphicsContexts.hpp"
+#include "GraphicsCore/Components/ParticlesBufferComponent.hpp"
 #include "../Resources/Managers/BufferManager.hpp"
-#include "../Components/BufferManagerComponent.hpp"
+#include "GraphicsCore/Components/BufferManagerComponent.hpp"
 #include "../Passes/ParticleSystemComputePass.hpp"
 
 #ifdef TRACY_ENABLE
 #include <tracy/Tracy.hpp>
 #endif
-#include "../Components/DeltaTimeComponent.hpp"
+#include "GraphicsCore/Components/DeltaTimeComponent.hpp"
 
 void GPUParticlesSystem::onRegistered(GeneralManager& gm)
 {

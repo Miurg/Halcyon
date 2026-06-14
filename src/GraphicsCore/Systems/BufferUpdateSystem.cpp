@@ -2,17 +2,17 @@
 #include "../Resources/Managers/BufferManager.hpp"
 #include <iostream>
 #include <chrono>
-#include "../GraphicsContexts.hpp"
-#include "../Components/SwapChainComponent.hpp"
-#include "../Components/BufferManagerComponent.hpp"
-#include "../Components/CurrentFrameComponent.hpp"
-#include "../Components/DrawInfoComponent.hpp"
-#include "../Resources/Components/ModelDSetComponent.hpp"
-#include "../Resources/Components/MeshInfoComponent.hpp"
+#include "GraphicsCore/GraphicsContexts.hpp"
+#include "GraphicsCore/Components/SwapChainComponent.hpp"
+#include "GraphicsCore/Components/BufferManagerComponent.hpp"
+#include "GraphicsCore/Components/CurrentFrameComponent.hpp"
+#include "GraphicsCore/Components/DrawInfoComponent.hpp"
+#include "GraphicsCore/Resources/Components/ModelDSetComponent.hpp"
+#include "GraphicsCore/Resources/Components/MeshInfoComponent.hpp"
 #include <map>
 #include "../Resources/Managers/ModelManager.hpp"
-#include "../Components/ModelManagerComponent.hpp"
-#include "../Components/TextureManagerComponent.hpp"
+#include "GraphicsCore/Components/ModelManagerComponent.hpp"
+#include "GraphicsCore/Components/TextureManagerComponent.hpp"
 #include "../Resources/Managers/TextureManager.hpp"
 #include "../Resources/ResourceStructures.hpp"
 

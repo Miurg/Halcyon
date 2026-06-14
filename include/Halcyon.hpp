@@ -7,8 +7,8 @@
 
 // Deletion queue
 #include "../src/DeletionQueue.hpp"
-#include "../src/DeletionQueueComponent.hpp"
-#include "../src/DeletionQueueContext.hpp"
+#include "DeletionQueueComponent.hpp"
+#include "DeletionQueueContext.hpp"
 
 // Subsystem aggregates
 #include "HalcyonPlatform.hpp"

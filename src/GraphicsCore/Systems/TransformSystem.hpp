@@ -3,12 +3,12 @@
 #include <vector>
 #include <Orhescyon/GeneralManager.hpp>
 #include <Orhescyon/Systems/SystemCore.hpp>
-#include "../Resources/Components/TextureInfoComponent.hpp"
-#include "../Resources/Components/MeshInfoComponent.hpp"
+#include "GraphicsCore/Resources/Components/TextureInfoComponent.hpp"
+#include "GraphicsCore/Resources/Components/MeshInfoComponent.hpp"
 #include "BufferUpdateSystem.hpp"
-#include "../Components/LocalTransformComponent.hpp"
-#include "../Components/GlobalTransformComponent.hpp"
-#include "../Components/RelationshipComponent.hpp"
+#include "GraphicsCore/Components/LocalTransformComponent.hpp"
+#include "GraphicsCore/Components/GlobalTransformComponent.hpp"
+#include "GraphicsCore/Components/RelationshipComponent.hpp"
 #include "FrameBeginSystem.hpp"
 #include "DeltaTimeSystem.hpp"
 

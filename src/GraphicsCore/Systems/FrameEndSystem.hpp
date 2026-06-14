@@ -2,8 +2,8 @@
 
 #include <Orhescyon/GeneralManager.hpp>
 #include <Orhescyon/Systems/SystemCore.hpp>
-#include "../Components/CurrentFrameComponent.hpp"
-#include "../Components/FrameImageComponent.hpp"
+#include "GraphicsCore/Components/CurrentFrameComponent.hpp"
+#include "GraphicsCore/Components/FrameImageComponent.hpp"
 
 using Orhescyon::GeneralManager;
 class FrameEndSystem : public Orhescyon::SystemCore<FrameEndSystem>

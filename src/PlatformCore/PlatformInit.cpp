@@ -1,18 +1,18 @@
 #include "PlatformInit.hpp"
 #include <iostream>
 #include "Systems/InputSolverSystem.hpp"
-#include "PlatformContexts.hpp"
+#include "PlatformCore/PlatformContexts.hpp"
 #include "Window.hpp"
-#include "Components/WindowComponent.hpp"
-#include "Components/KeyboardStateComponent.hpp"
-#include "Components/MouseStateComponent.hpp"
-#include "Components/CursorPositionComponent.hpp"
-#include "Components/ScrollDeltaComponent.hpp"
-#include "Components/WindowSizeComponent.hpp"
-#include "../GraphicsCore/Components/NameComponent.hpp"
+#include "PlatformCore/Components/WindowComponent.hpp"
+#include "PlatformCore/Components/KeyboardStateComponent.hpp"
+#include "PlatformCore/Components/MouseStateComponent.hpp"
+#include "PlatformCore/Components/CursorPositionComponent.hpp"
+#include "PlatformCore/Components/ScrollDeltaComponent.hpp"
+#include "PlatformCore/Components/WindowSizeComponent.hpp"
+#include "GraphicsCore/Components/NameComponent.hpp"
 
-#include "../DeletionQueueComponent.hpp"
-#include "../DeletionQueueContext.hpp"
+#include "DeletionQueueComponent.hpp"
+#include "DeletionQueueContext.hpp"
 
 #pragma region Run
 void PlatformInit::Run(Orhescyon::GeneralManager& gm)

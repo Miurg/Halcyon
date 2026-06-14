@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../../PhysicsCore/Components/PhysTransformSnapshotComponent.hpp"
-#include "../Components/GlobalTransformComponent.hpp"
+#include "PhysicsCore/Components/PhysTransformSnapshotComponent.hpp"
+#include "GraphicsCore/Components/GlobalTransformComponent.hpp"
 #include <Orhescyon/GeneralManager.hpp>
 #include <Orhescyon/Systems/SystemCore.hpp>
 #include "FrameBeginSystem.hpp"

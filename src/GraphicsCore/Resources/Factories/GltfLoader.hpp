@@ -1,7 +1,7 @@
 #pragma once
 #include "../Managers/VertexIndexBuffer.hpp"
 #include "../Managers/Texture.hpp"
-#include "../Components/MeshInfoComponent.hpp"
+#include "GraphicsCore/Resources/Components/MeshInfoComponent.hpp"
 #include <memory>
 #include "../../VulkanDevice.hpp"
 #include "../Managers/PrimitivesInfo.hpp"

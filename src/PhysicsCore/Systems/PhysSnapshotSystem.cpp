@@ -1,7 +1,7 @@
 #include "PhysSnapshotSystem.hpp"
 #include <Jolt/Jolt.h>
-#include "../Components/PhysManagerComponent.hpp"
-#include "../PhysContexts.hpp"
+#include "PhysicsCore/Components/PhysManagerComponent.hpp"
+#include "PhysicsCore/PhysContexts.hpp"
 #include "../Managers/PhysManager.hpp"
 
 #ifdef TRACY_ENABLE

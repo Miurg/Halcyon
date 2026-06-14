@@ -5,8 +5,8 @@
 #include <Orhescyon/GeneralManager.hpp>
 #include <Orhescyon/Systems/SystemCore.hpp>
 
-#include "../Components/PhysTransformSnapshotComponent.hpp"
-#include "../Components/PhysBodyComponent.hpp"
+#include "PhysicsCore/Components/PhysTransformSnapshotComponent.hpp"
+#include "PhysicsCore/Components/PhysBodyComponent.hpp"
 #include "../../GraphicsCore/Systems/TransformSystem.hpp"
 #include "PhysUpdateSystem.hpp"
 

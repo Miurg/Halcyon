@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../VulkanDevice.hpp"
+#include "GraphicsCore/VulkanDevice.hpp"
 
 struct VMAllocatorComponent
 {

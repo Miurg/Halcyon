@@ -1,9 +1,9 @@
 #pragma once
-#include "../Components/GlobalTransformComponent.hpp"
-#include "../Components/CurrentFrameComponent.hpp"
-#include "../Components/DrawInfoComponent.hpp"
-#include "../Resources/Components/TextureInfoComponent.hpp"
-#include "../Resources/Components/MeshInfoComponent.hpp"
+#include "GraphicsCore/Components/GlobalTransformComponent.hpp"
+#include "GraphicsCore/Components/CurrentFrameComponent.hpp"
+#include "GraphicsCore/Components/DrawInfoComponent.hpp"
+#include "GraphicsCore/Resources/Components/TextureInfoComponent.hpp"
+#include "GraphicsCore/Resources/Components/MeshInfoComponent.hpp"
 #include <Orhescyon/GeneralManager.hpp>
 #include <Orhescyon/Systems/SystemCore.hpp>
 #include "FrameBeginSystem.hpp"

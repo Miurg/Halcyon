@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../Managers/PipelineManager.hpp"
+#include "GraphicsCore/Managers/PipelineManager.hpp"
 
 struct PipelineManagerComponent
 {

@@ -1,8 +1,8 @@
 #pragma once
 #include <Orhescyon/GeneralManager.hpp>
 #include <Orhescyon/Systems/SystemCore.hpp>
-#include "../Components/ParticleEmitorComponent.hpp"
-#include "../Components/GlobalTransformComponent.hpp"
+#include "GraphicsCore/Components/ParticleEmitorComponent.hpp"
+#include "GraphicsCore/Components/GlobalTransformComponent.hpp"
 #include "FrameBeginSystem.hpp"
 #include "FrameEndSystem.hpp"
 

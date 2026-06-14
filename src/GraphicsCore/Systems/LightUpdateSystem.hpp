@@ -1,8 +1,8 @@
 #pragma once
-#include "../Components/GlobalTransformComponent.hpp"
-#include "../Components/PointLightComponent.hpp"
-#include "../Components/CurrentFrameComponent.hpp"
-#include "../Resources/Components/TextureInfoComponent.hpp"
+#include "GraphicsCore/Components/GlobalTransformComponent.hpp"
+#include "GraphicsCore/Components/PointLightComponent.hpp"
+#include "GraphicsCore/Components/CurrentFrameComponent.hpp"
+#include "GraphicsCore/Resources/Components/TextureInfoComponent.hpp"
 #include <Orhescyon/GeneralManager.hpp>
 #include <Orhescyon/Systems/SystemCore.hpp>
 #include "FrameBeginSystem.hpp"

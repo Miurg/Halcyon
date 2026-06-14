@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../Resources/Managers/BufferManager.hpp"
+#include "GraphicsCore/Resources/Managers/BufferManager.hpp"
 
 struct BufferManagerComponent
 {

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../Resources/Managers/ModelManager.hpp"
+#include "GraphicsCore/Resources/Managers/ModelManager.hpp"
 
 struct ModelManagerComponent
 {

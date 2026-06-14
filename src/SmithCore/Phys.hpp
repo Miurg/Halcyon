@@ -1,8 +1,8 @@
 #pragma once
 
-#include "../PhysicsCore/Components/PhysBodyComponent.hpp"
-#include "../PhysicsCore/Components/PhysManagerComponent.hpp"
-#include "../PhysicsCore/Components/PhysTransformSnapshotComponent.hpp"
+#include "PhysicsCore/Components/PhysBodyComponent.hpp"
+#include "PhysicsCore/Components/PhysManagerComponent.hpp"
+#include "PhysicsCore/Components/PhysTransformSnapshotComponent.hpp"
 #include "../PhysicsCore/Systems/PhysSnapshotSystem.hpp"
 #include "../PhysicsCore/PhysShapes.hpp"
 #include "../GraphicsCore/Systems/PhysSyncSystem.hpp"

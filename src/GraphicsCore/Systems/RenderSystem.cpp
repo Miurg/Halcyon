@@ -3,17 +3,17 @@
 #include <iostream>
 #include <imgui.h>
 
-#include "../GraphicsContexts.hpp"
+#include "GraphicsCore/GraphicsContexts.hpp"
 #include "../SwapChain.hpp"
 #include "../VulkanDevice.hpp"
-#include "../Components/SwapChainComponent.hpp"
-#include "../Components/CurrentFrameComponent.hpp"
-#include "../Components/FrameImageComponent.hpp"
-#include "../Components/TextureManagerComponent.hpp"
-#include "../Components/VulkanDeviceComponent.hpp"
-#include "../Components/DirectLightComponent.hpp"
-#include "../Components/RenderGraphComponent.hpp"
-#include "../Components/GraphicsSettingsComponent.hpp"
+#include "GraphicsCore/Components/SwapChainComponent.hpp"
+#include "GraphicsCore/Components/CurrentFrameComponent.hpp"
+#include "GraphicsCore/Components/FrameImageComponent.hpp"
+#include "GraphicsCore/Components/TextureManagerComponent.hpp"
+#include "GraphicsCore/Components/VulkanDeviceComponent.hpp"
+#include "GraphicsCore/Components/DirectLightComponent.hpp"
+#include "GraphicsCore/Components/RenderGraphComponent.hpp"
+#include "GraphicsCore/Components/GraphicsSettingsComponent.hpp"
 #include "../Resources/Managers/TextureManager.hpp"
 #include "../RenderGraph/RenderGraph.hpp"
 

@@ -2,8 +2,8 @@
 #include <iostream>
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
-#include "../GraphicsContexts.hpp"
-#include "../Components/RelationshipComponent.hpp"
+#include "GraphicsCore/GraphicsContexts.hpp"
+#include "GraphicsCore/Components/RelationshipComponent.hpp"
 
 #ifdef TRACY_ENABLE
 #include <tracy/Tracy.hpp>

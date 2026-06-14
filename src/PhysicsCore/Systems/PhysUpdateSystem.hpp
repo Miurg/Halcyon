@@ -4,7 +4,7 @@
 #include <Orhescyon/GeneralManager.hpp>
 #include <Orhescyon/Systems/SystemCore.hpp>
 
-#include "../Components/PhysBodyComponent.hpp"
+#include "PhysicsCore/Components/PhysBodyComponent.hpp"
 #include "../../GraphicsCore/Systems/FrameBeginSystem.hpp"
 #include "../../GraphicsCore/Systems/DeltaTimeSystem.hpp"
 

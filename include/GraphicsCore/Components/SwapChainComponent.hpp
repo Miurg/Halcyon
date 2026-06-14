@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../SwapChain.hpp"
+#include "GraphicsCore/SwapChain.hpp"
 
 struct SwapChainComponent
 {

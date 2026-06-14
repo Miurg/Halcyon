@@ -1,5 +1,5 @@
 #pragma once
-#include "../Resources/Managers/ResourceHandles.hpp"
+#include "GraphicsCore/Resources/Managers/ResourceHandles.hpp"
 
 struct ParticlesBufferComponent
 {
