@@ -1,6 +1,5 @@
 #include "GameInit.hpp"
 #include <iostream>
-#include <vulkan/vulkan_raii.hpp>
 
 #include "Game/Systems/ControlSystem.hpp"
 #include "Game/Systems/RotationSystem.hpp"

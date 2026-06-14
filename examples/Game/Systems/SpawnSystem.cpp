@@ -2,7 +2,6 @@
 #include "RotationSystem.hpp"
 
 #include <iostream>
-#include <vulkan/vulkan_raii.hpp>
 
 #include <HalcyonGraphics.hpp>
 

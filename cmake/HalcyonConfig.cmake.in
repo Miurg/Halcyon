@@ -1,0 +1,16 @@
+@PACKAGE_INIT@
+
+include(CMakeFindDependencyMacro)
+
+find_dependency(Vulkan)
+find_dependency(glm CONFIG)
+find_dependency(glfw3 CONFIG)
+find_dependency(tinyobjloader CONFIG)
+find_dependency(VulkanMemoryAllocator CONFIG)
+find_dependency(imgui CONFIG)
+find_dependency(Jolt CONFIG)
+find_dependency(Ktx CONFIG)
+
+include("${CMAKE_CURRENT_LIST_DIR}/HalcyonTargets.cmake")
+
+check_required_components(Halcyon)

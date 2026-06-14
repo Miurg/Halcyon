@@ -5,7 +5,7 @@ if(POLICY CMP0141)
     set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT "$<IF:$<AND:$<C_COMPILER_ID:MSVC>,$<CXX_COMPILER_ID:MSVC>>,$<$<CONFIG:Debug,RelWithDebInfo>:EditAndContinue>,$<$<CONFIG:Debug,RelWithDebInfo>:ProgramDatabase>>")
 endif()
 
-project(Halcyon LANGUAGES CXX)
+project(Halcyon LANGUAGES CXX VERSION 0.1.0)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -45,18 +45,24 @@ if(HALCYON_TRACY)
     FetchContent_MakeAvailable(tracy)
 endif()
 
+# === Options ===
+option(BUILD_SHARED_LIBS "Build Halcyon as a shared library" OFF)
+option(HALCYON_BUILD_EXAMPLES "Build Halcyon examples" ON)
+
 # === Library ===
 file(GLOB_RECURSE HALCYON_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
 
-add_library(${PROJECT_NAME} STATIC ${HALCYON_SOURCES})
+add_library(${PROJECT_NAME} ${HALCYON_SOURCES})
+add_library(Halcyon::Halcyon ALIAS ${PROJECT_NAME})
 
 set_source_files_properties("${CMAKE_CURRENT_SOURCE_DIR}/src/ThirdPartyImpl.cpp" PROPERTIES SKIP_PRECOMPILE_HEADERS ON)
 target_precompile_headers(${PROJECT_NAME} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src/pch.h")
 
 # === Linking and Includes ===
 target_include_directories(${PROJECT_NAME} PUBLIC
-    ${CMAKE_CURRENT_SOURCE_DIR}/include
-    ${CMAKE_CURRENT_SOURCE_DIR}/src
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
+    $<INSTALL_INTERFACE:include>
 )
 
 target_include_directories(${PROJECT_NAME} PRIVATE
@@ -176,4 +182,63 @@ foreach(SHADER_FILE ${SLANG_SHADER_FILES})
     list(APPEND HALCYON_SHADER_TARGETS "shader_${SHADER_NAME_LOWER}")
 endforeach()
 
-add_subdirectory(examples)
+if(HALCYON_BUILD_EXAMPLES)
+    add_subdirectory(examples)
+endif()
+
+# === Installation ===
+include(GNUInstallDirs)
+include(CMakePackageConfigHelpers)
+
+install(TARGETS ${PROJECT_NAME}
+    EXPORT HalcyonTargets
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+)
+
+install(DIRECTORY include/
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+)
+
+install(TARGETS Orhescyon
+    EXPORT HalcyonTargets
+)
+
+install(DIRECTORY ${orhescyon_SOURCE_DIR}/include/
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+    FILES_MATCHING
+    PATTERN "*.hpp"
+    PATTERN "*.h"
+)
+
+install(DIRECTORY src/
+    DESTINATION src
+    FILES_MATCHING
+    PATTERN "*.hpp"
+    PATTERN "*.h"
+)
+
+install(EXPORT HalcyonTargets
+    FILE HalcyonTargets.cmake
+    NAMESPACE Halcyon::
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/Halcyon
+)
+
+configure_package_config_file(
+    "${CMAKE_CURRENT_SOURCE_DIR}/cmake/HalcyonConfig.cmake.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/HalcyonConfig.cmake"
+    INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/Halcyon
+)
+
+write_basic_package_version_file(
+    "${CMAKE_CURRENT_BINARY_DIR}/HalcyonConfigVersion.cmake"
+    VERSION ${PROJECT_VERSION}
+    COMPATIBILITY SameMajorVersion
+)
+
+install(FILES
+    "${CMAKE_CURRENT_BINARY_DIR}/HalcyonConfig.cmake"
+    "${CMAKE_CURRENT_BINARY_DIR}/HalcyonConfigVersion.cmake"
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/Halcyon
+)
