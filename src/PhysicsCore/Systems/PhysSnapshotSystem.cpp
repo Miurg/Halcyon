@@ -2,7 +2,7 @@
 #include <Jolt/Jolt.h>
 #include "PhysicsCore/Components/PhysManagerComponent.hpp"
 #include "PhysicsCore/PhysContexts.hpp"
-#include "../Managers/PhysManager.hpp"
+#include "PhysicsCore/Managers/PhysManager.hpp"
 
 #ifdef TRACY_ENABLE
 #include <tracy/Tracy.hpp>

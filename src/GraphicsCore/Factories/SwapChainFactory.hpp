@@ -2,7 +2,7 @@
 
 #include <vulkan/vulkan_raii.hpp>
 #include "../VulkanDevice.hpp"
-#include "../../PlatformCore/Window.hpp"
+#include "PlatformCore/Window.hpp"
 #include "../SwapChain.hpp"
 #include "../Resources/Managers/BufferManager.hpp"
 

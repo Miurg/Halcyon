@@ -1,4 +1,4 @@
 #pragma once
 
-#include "../src/SmithCore/Phys.hpp"
-#include "../src/SmithCore/Renderables.hpp"
+#include "SmithCore/Phys.hpp"
+#include "SmithCore/Renderables.hpp"

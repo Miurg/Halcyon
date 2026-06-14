@@ -19,7 +19,7 @@
 #include "PhysicsCore/PhysContexts.hpp"
 #include "Systems/PhysUpdateSystem.hpp"
 #include "Systems/PhysSnapshotSystem.hpp"
-#include "PhysLayers.hpp"
+#include "PhysicsCore/PhysLayers.hpp"
 
 #include "DeletionQueueComponent.hpp"
 #include "DeletionQueueContext.hpp"

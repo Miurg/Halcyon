@@ -2,7 +2,7 @@
 #include <iostream>
 #include "Systems/InputSolverSystem.hpp"
 #include "PlatformCore/PlatformContexts.hpp"
-#include "Window.hpp"
+#include "PlatformCore/Window.hpp"
 #include "PlatformCore/Components/WindowComponent.hpp"
 #include "PlatformCore/Components/KeyboardStateComponent.hpp"
 #include "PlatformCore/Components/MouseStateComponent.hpp"

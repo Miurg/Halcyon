@@ -1,6 +1,6 @@
 #pragma once
 
-#include "PhysLayers.hpp"
+#include "PhysicsCore/PhysLayers.hpp"
 #include <glm/ext/vector_float3.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <span>

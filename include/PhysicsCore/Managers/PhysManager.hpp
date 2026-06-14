@@ -6,8 +6,8 @@
 #include <Jolt/Physics/Collision/Shape/Shape.h>
 #include <Jolt/Core/TempAllocator.h>
 #include <Jolt/Core/JobSystemThreadPool.h>
-#include "../PhysLayers.hpp"
-#include "../PhysShapes.hpp"
+#include "PhysicsCore/PhysLayers.hpp"
+#include "PhysicsCore/PhysShapes.hpp"
 #include <glm/ext/vector_float3.hpp>
 
 struct SnapshotIndices

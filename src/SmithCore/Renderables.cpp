@@ -1,4 +1,4 @@
-#include "Renderables.hpp"
+#include "SmithCore/Renderables.hpp"
 #include "GraphicsCore/Components/GlobalTransformComponent.hpp"
 #include "GraphicsCore/Components/LocalTransformComponent.hpp"
 #include "GraphicsCore/Components/RelationshipComponent.hpp"

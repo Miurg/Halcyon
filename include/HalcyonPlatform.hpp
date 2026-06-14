@@ -5,8 +5,8 @@
 #include "PlatformCore/PlatformContexts.hpp"
 
 // Core
-#include "../src/PlatformCore/Window.hpp"
-#include "../src/PlatformCore/InputEvent.hpp"
+#include "PlatformCore/Window.hpp"
+#include "PlatformCore/InputEvent.hpp"
 
 // Components
 #include "PlatformCore/Components/CursorPositionComponent.hpp"

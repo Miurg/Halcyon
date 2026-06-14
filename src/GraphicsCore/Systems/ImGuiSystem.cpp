@@ -32,7 +32,7 @@
 #include "PhysicsCore/PhysContexts.hpp"
 #include "PhysicsCore/Components/PhysManagerComponent.hpp"
 #include "PhysicsCore/Components/PhysBodyComponent.hpp"
-#include "../../PhysicsCore/JoltGlm.hpp"
+#include "PhysicsCore/JoltGlm.hpp"
 
 #ifdef TRACY_ENABLE
 #include <tracy/Tracy.hpp>

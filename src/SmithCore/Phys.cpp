@@ -1,9 +1,9 @@
-#include "Phys.hpp"
+#include "SmithCore/Phys.hpp"
 
 #include <Jolt/Physics/Body/BodyID.h>
-#include "../PhysicsCore/Managers/PhysManager.hpp"
+#include "PhysicsCore/Managers/PhysManager.hpp"
 #include "PhysicsCore/PhysContexts.hpp"
-#include "../PhysicsCore/PhysShapes.hpp"
+#include "PhysicsCore/PhysShapes.hpp"
 
 static void internalForgeBody(Orhescyon::GeneralManager& gm, Orhescyon::Entity e, Body b, Shape shape)
 {

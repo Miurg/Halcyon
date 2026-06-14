@@ -1,5 +1,5 @@
-#include "PhysManager.hpp"
-#include "../JoltGlm.hpp"
+#include "PhysicsCore/Managers/PhysManager.hpp"
+#include "PhysicsCore/JoltGlm.hpp"
 #include <Jolt/Physics/Body/BodyCreationSettings.h>
 #include <Jolt/Physics/Collision/Shape/SphereShape.h>
 #include <Jolt/Physics/Collision/Shape/BoxShape.h>

@@ -5,9 +5,9 @@
 #include "PhysicsCore/PhysContexts.hpp"
 
 // Utilities
-#include "../src/PhysicsCore/JoltGlm.hpp"
-#include "../src/PhysicsCore/PhysLayers.hpp"
-#include "../src/PhysicsCore/PhysShapes.hpp"
+#include "PhysicsCore/JoltGlm.hpp"
+#include "PhysicsCore/PhysLayers.hpp"
+#include "PhysicsCore/PhysShapes.hpp"
 
 // Components
 #include "PhysicsCore/Components/PhysBodyComponent.hpp"
@@ -16,7 +16,7 @@
 #include "PhysicsCore/Components/PhysTransformSnapshotComponent.hpp"
 
 // Managers
-#include "../src/PhysicsCore/Managers/PhysManager.hpp"
+#include "PhysicsCore/Managers/PhysManager.hpp"
 
 // Systems
 #include "../src/PhysicsCore/Systems/PhysSnapshotSystem.hpp"

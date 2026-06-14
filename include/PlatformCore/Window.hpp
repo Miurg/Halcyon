@@ -4,7 +4,7 @@
 #include <functional>
 #include <mutex>
 #include <string>
-#include "InputEvent.hpp"
+#include "PlatformCore/InputEvent.hpp"
 #include <vulkan/vulkan.hpp>
 
 struct GLFWwindow;
