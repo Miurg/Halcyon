@@ -23,6 +23,7 @@
 #include "../Managers/PipelineManager.hpp"
 #include "../Factories/PipelineFactory.hpp"
 #include "../RenderGraph/RenderGraph.hpp"
+#include "../Resources/Data/GtaoNoiseTexture.hpp"
 
 namespace
 {
@@ -108,8 +109,10 @@ void GTAOPass::onInit(Orhescyon::GeneralManager& gm)
 	noiseTexture.textureSampler = (*vulkanDevice.device).createSampler(samplerInfo);
 
 	_noiseTexture.id = static_cast<int>(tManager.textures.size() - 1);
-	TextureUploader::uploadTextureFromFile("assets/textures/LDR_RG01_56.png",
-	                                       tManager.textures[_noiseTexture.id], allocator, vulkanDevice);
+	TextureUploader::uploadTextureFromBuffer(Halcyon::Graphics::Data::GTAO_NOISE_PIXELS,
+	                                         static_cast<int>(Halcyon::Graphics::Data::GTAO_NOISE_WIDTH),
+	                                         static_cast<int>(Halcyon::Graphics::Data::GTAO_NOISE_HEIGHT),
+	                                         tManager.textures[_noiseTexture.id], allocator, vulkanDevice);
 
 	dManager.updateSingleTextureDSet(_gtaoDset, GtaoBinding::NoiseInput,
 	                                 tManager.textures[_noiseTexture.id].textureImageView,
