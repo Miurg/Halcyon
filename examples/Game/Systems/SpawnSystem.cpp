@@ -1,21 +1,10 @@
 #include "SpawnSystem.hpp"
-#include "../../GraphicsCore/Components/DeltaTimeComponent.hpp"
-#include <iostream>
-#include "../../GraphicsCore/Components/LocalTransformComponent.hpp"
-#include "../../GraphicsCore/Components/GlobalTransformComponent.hpp"
-#include "../../GraphicsCore/Resources/Components/MeshInfoComponent.hpp"
-#include "../../GraphicsCore/Resources/Managers/BufferManager.hpp"
-#include "../../GraphicsCore/Resources/Components/TextureInfoComponent.hpp"
-#include "../../GraphicsCore/GraphicsContexts.hpp"
-#include "../../GraphicsCore/Components/BufferManagerComponent.hpp"
-#include "../../GraphicsCore/Components/DescriptorManagerComponent.hpp"
-#include <vulkan/vulkan_raii.hpp>
-#include "../../GraphicsCore/Components/GlobalTransformComponent.hpp"
-#include "../../GraphicsCore/Components/LocalTransformComponent.hpp"
-#include "../../GraphicsCore/Components/RelationshipComponent.hpp"
-#include "../../GraphicsCore/Systems/TransformSystem.hpp"
 #include "RotationSystem.hpp"
-#include "../../GraphicsCore/Systems/RenderSystem.hpp"
+
+#include <iostream>
+#include <vulkan/vulkan_raii.hpp>
+
+#include <HalcyonGraphics.hpp>
 
 #ifdef TRACY_ENABLE
 #include <tracy/Tracy.hpp>

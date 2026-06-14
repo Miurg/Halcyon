@@ -45,21 +45,26 @@ if(HALCYON_TRACY)
     FetchContent_MakeAvailable(tracy)
 endif()
 
-# === Sources and Target ===
-file(GLOB_RECURSE MY_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
+# === Library ===
+file(GLOB_RECURSE HALCYON_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
 
-add_executable(${PROJECT_NAME} ${MY_SOURCES})
+add_library(${PROJECT_NAME} STATIC ${HALCYON_SOURCES})
 
 set_source_files_properties("${CMAKE_CURRENT_SOURCE_DIR}/src/ThirdPartyImpl.cpp" PROPERTIES SKIP_PRECOMPILE_HEADERS ON)
 target_precompile_headers(${PROJECT_NAME} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src/pch.h")
 
 # === Linking and Includes ===
+target_include_directories(${PROJECT_NAME} PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+)
+
 target_include_directories(${PROJECT_NAME} PRIVATE
     ${TINYGLTF_INCLUDE_DIRS}
     ${STB_INCLUDE_DIRS}
 )
 
-target_link_libraries(${PROJECT_NAME} PRIVATE
+target_link_libraries(${PROJECT_NAME} PUBLIC
     Vulkan::Vulkan
     glm::glm
     glfw
@@ -77,8 +82,9 @@ if(HALCYON_TRACY)
 endif()
 
 # === Defines and Compiler Options ===
+target_compile_definitions(${PROJECT_NAME} PUBLIC ORHESCYON_HIGH_CHECK)
+
 target_compile_definitions(${PROJECT_NAME} PRIVATE
-    ORHESCYON_HIGH_CHECK
     HALCYON_DEV_BUILD
     HALCYON_SHADER_SRC_DIR="assets/shaders"
 )
@@ -134,6 +140,8 @@ function(add_slang_shader_target TARGET_NAME)
     add_custom_target(${TARGET_NAME} ALL DEPENDS "${OUT_FILE}")
 endfunction()
 
+set(HALCYON_SHADER_TARGETS "")
+
 # Auto gather shader files and create targets
 file(GLOB_RECURSE SLANG_SHADER_FILES "${CMAKE_CURRENT_LIST_DIR}/assets/shaders/*.slang")
 foreach(SHADER_FILE ${SLANG_SHADER_FILES})
@@ -165,18 +173,7 @@ foreach(SHADER_FILE ${SLANG_SHADER_FILES})
         ENTRY ${ENTRY_POINTS}
     )
 
-    add_dependencies(${PROJECT_NAME} "shader_${SHADER_NAME_LOWER}")
+    list(APPEND HALCYON_SHADER_TARGETS "shader_${SHADER_NAME_LOWER}")
 endforeach()
 
-# === Post-Build ===
-add_custom_command(
-    TARGET ${PROJECT_NAME} POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-        "${CMAKE_CURRENT_LIST_DIR}/assets/textures"
-        "$<TARGET_FILE_DIR:${PROJECT_NAME}>/assets/textures"
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-        "${CMAKE_CURRENT_LIST_DIR}/assets/models"
-        "$<TARGET_FILE_DIR:${PROJECT_NAME}>/assets/models"
-    COMMENT "Copying assets to target directory..."
-    VERBATIM
-)
+add_subdirectory(examples)

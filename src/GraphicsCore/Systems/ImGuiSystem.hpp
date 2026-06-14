@@ -14,7 +14,6 @@
 #include "../Components/GtaoSettingsComponent.hpp"
 #include "../Components/GraphicsSettingsComponent.hpp"
 #include "../Components/LightProbeGridComponent.hpp"
-#include "../../Game/Components/ControlComponent.hpp"
 #include "../Components/DeltaTimeComponent.hpp"
 #include "../../PhysicsCore/Components/PhysBodyComponent.hpp"
 
@@ -35,8 +34,8 @@ public:
 	}
 	std::vector<std::type_index> getReadComponents() override
 	{
-		return {typeid(NameComponent),     typeid(RelationshipComponent), typeid(CameraComponent),
-		        typeid(ControlComponent),  typeid(GraphicsSettingsComponent),
+		return {typeid(NameComponent),      typeid(RelationshipComponent),
+		        typeid(CameraComponent),    typeid(GraphicsSettingsComponent),
 		        typeid(DeltaTimeComponent), typeid(PhysBodyComponent)};
 	}
 	std::vector<std::type_index> getWriteComponents() override
@@ -53,7 +52,7 @@ public:
 	std::vector<float> frameTimes;
 	float avgFrameTime = 0.0f;
 	float onePercentLowFrameTime = 0.0f;
-	
+
 	bool autoShaderReload = false;
 
 private:

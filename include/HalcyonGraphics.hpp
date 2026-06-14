@@ -10,7 +10,7 @@
 #include "../src/GraphicsCore/FrameData.hpp"
 #include "../src/GraphicsCore/VulkanConst.hpp"
 #include "../src/GraphicsCore/VulkanUtils.hpp"
-#include "../src/GraphicsCore/ResourceStructures.hpp"
+#include "../src/GraphicsCore/Resources/ResourceStructures.hpp"
 
 // Components
 #include "../src/GraphicsCore/Components/AutoExposureSettingsComponent.hpp"

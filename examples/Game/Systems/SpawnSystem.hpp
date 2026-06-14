@@ -1,12 +1,9 @@
 #pragma once
 
 #include <vector>
-#include "../../GraphicsCore/Components/LocalTransformComponent.hpp"
-#include "../../GraphicsCore/Components/DeltaTimeComponent.hpp"
 #include <Orhescyon/GeneralManager.hpp>
 #include <Orhescyon/Systems/SystemCore.hpp>
-#include "../../GraphicsCore/Systems/DeltaTimeSystem.hpp"
-#include "../../GraphicsCore/Systems/FrameBeginSystem.hpp"
+#include <HalcyonGraphics.hpp>
 
 using Orhescyon::GeneralManager;
 class SpawnSystem : public Orhescyon::SystemCore<SpawnSystem>

@@ -11,7 +11,6 @@
 #include "../Components/DirectLightComponent.hpp"
 #include "../Components/LocalTransformComponent.hpp"
 #include "../Components/RelationshipComponent.hpp"
-#include "../../Game/Components/ControlComponent.hpp"
 #include "../Components/NameComponent.hpp"
 #include <glm/gtc/type_ptr.hpp>
 #include <functional>
@@ -344,16 +343,6 @@ void ImGuiSystem::update(GeneralManager& gm)
 				ImGui::DragFloat("Near Plane", &camera->zNear, 0.01f, 0.001f, 10.0f);
 				ImGui::DragFloat("Far Plane", &camera->zFar, 1.0f, 10.0f, 10000.0f);
 				ImGui::DragFloat("Ortho size", &camera->orthoSize, 0.1f, 0.1f, 100.0f);
-			}
-		}
-
-		// Control Component
-		if (auto* control = gm.getComponent<ControlComponent>(selectedEntity))
-		{
-			if (ImGui::CollapsingHeader("Control Component", ImGuiTreeNodeFlags_DefaultOpen))
-			{
-				ImGui::DragFloat("Movement Speed", &control->movementSpeed, 0.1f, 0.0f, 100.0f);
-				ImGui::DragFloat("Mouse Sensitivity", &control->mouseSensitivity, 0.01f, 0.0f, 5.0f);
 			}
 		}
 

@@ -3,7 +3,6 @@
 #include <iostream>
 #include <exception>
 
-#include "Game/GameInit.hpp"
 #include "GraphicsCore/GraphicsInit/GraphicsInit.hpp"
 #include "MainLoop.hpp"
 #include "PhysicsCore/PhysicsInit.hpp"

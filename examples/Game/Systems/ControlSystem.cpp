@@ -1,16 +1,11 @@
 #include "ControlSystem.hpp"
-#include "../../GraphicsCore/Components/LocalTransformComponent.hpp"
-#include "../../GraphicsCore/Components/CameraComponent.hpp"
-#include "../../PlatformCore/Components/KeyboardStateComponent.hpp"
-#include "../../PlatformCore/Components/CursorPositionComponent.hpp"
-#include <GLFW/glfw3.h>
-#include "../../GraphicsCore/GraphicsContexts.hpp"
-#include "../../PlatformCore/PlatformContexts.hpp"
-#include "../../GraphicsCore/Components/DeltaTimeComponent.hpp"
 #include "../Components/ControlComponent.hpp"
-#include "../../PlatformCore/Components/WindowComponent.hpp"
-#include "../../PlatformCore/Window.hpp"
-#include "../../GraphicsCore/Components/GlobalTransformComponent.hpp"
+
+#include <GLFW/glfw3.h>
+#include <iostream>
+
+#include <HalcyonGraphics.hpp>
+#include <HalcyonPlatform.hpp>
 
 #ifdef TRACY_ENABLE
 #include <tracy/Tracy.hpp>

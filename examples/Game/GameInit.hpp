@@ -1,7 +1,6 @@
 #pragma once
 
-#include <Orhescyon/GeneralManager.hpp>
-#include "../IStartUp.hpp"
+#include <Halcyon.hpp>
 
 using Orhescyon::GeneralManager;
 class GameInit : public IStartUp

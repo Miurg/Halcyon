@@ -1,4 +1,4 @@
-#include "App.hpp"
+#include <Halcyon.hpp>
 #include "Game/GameInit.hpp"
 
 int main()
