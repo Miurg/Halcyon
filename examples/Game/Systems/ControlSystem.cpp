@@ -4,10 +4,6 @@
 #include <GLFW/glfw3.h>
 #include <iostream>
 
-#ifdef TRACY_ENABLE
-#include <tracy/Tracy.hpp>
-#endif
-
 #include <PlatformCore/PlatformContexts.hpp>
 #include <GraphicsCore/GraphicsContexts.hpp>
 
@@ -32,11 +28,6 @@ void ControlSystem::cursorDisableToggle(Window* window)
 
 void ControlSystem::update(GeneralManager& gm)
 {
-#ifdef TRACY_ENABLE
-	ZoneScopedN("ControlSystem");
-#endif
-
-
 	float deltaTime = gm.getContextComponent<DeltaTimeContext, DeltaTimeComponent>()->deltaTime;
 	KeyboardStateComponent* keyboardState = gm.getContextComponent<InputDataContext, KeyboardStateComponent>();
 	CursorPositionComponent* cursorPositionState = gm.getContextComponent<InputDataContext, CursorPositionComponent>();

@@ -3,10 +3,6 @@
 
 #include <GraphicsCore/GraphicsContexts.hpp>
 
-#ifdef TRACY_ENABLE
-#include <tracy/Tracy.hpp>
-#endif
-
 void RotationSystem::onRegistered(GeneralManager& gm)
 {
 	std::cout << "RotationSystem registered!" << std::endl;
@@ -35,11 +31,6 @@ void RotationSystem::onEntityUnsubscribed(Orhescyon::Entity entity, GeneralManag
 
 void RotationSystem::update(GeneralManager& gm)
 {
-#ifdef TRACY_ENABLE
-	ZoneScopedN("RotationSystem");
-#endif
-
-
 	float deltaTime = gm.getContextComponent<DeltaTimeContext, DeltaTimeComponent>()->deltaTime;
 	for (auto& agent : _agents)
 	{

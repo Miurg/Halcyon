@@ -4,17 +4,8 @@
 #include <iostream>
 #include <GraphicsCore/GraphicsContexts.hpp>
 
-#ifdef TRACY_ENABLE
-#include <tracy/Tracy.hpp>
-#endif
-
 void SpawnSystem::update(GeneralManager& gm)
 {
-	
-#ifdef TRACY_ENABLE
-	ZoneScopedN("SpawnSystem");
-#endif
-
 	float deltaTime = gm.getContextComponent<DeltaTimeContext, DeltaTimeComponent>()->deltaTime;
 	time += deltaTime;
 	//if (time > 0.1)
