@@ -1,6 +1,7 @@
 #pragma once
 
-struct AutoExposureSettingsComponent
+#include "HalcyonExport.hpp"
+struct HALCYON_API AutoExposureSettingsComponent
 {
     float tauUp = 0.5f;
     float tauDown = 0.5f;

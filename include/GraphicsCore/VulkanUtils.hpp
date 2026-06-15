@@ -1,18 +1,19 @@
 #pragma once
 
+#include "HalcyonExport.hpp"
 #include <vulkan/vulkan_raii.hpp>
 #include <vk_mem_alloc.h>
 #include "GraphicsCore/VulkanDevice.hpp"
 #include <vector>
 
-struct StagingBuffer
+struct HALCYON_API StagingBuffer
 {
 	VkBuffer buffer = VK_NULL_HANDLE;
 	VmaAllocation allocation = VK_NULL_HANDLE;
 };
 
 // Stateless Vulkan helpers — buffer/image creation, memory queries, one-shot command buffers.
-class VulkanUtils
+class HALCYON_API VulkanUtils
 {
 public:
 	static std::string nameFromPath(const std::string& path);

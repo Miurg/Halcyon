@@ -1,7 +1,9 @@
 #pragma once
+
+#include "HalcyonExport.hpp"
 #include "GraphicsCore/Resources/Managers/ResourceHandles.hpp"
 
-struct TextureInfoComponent
+struct HALCYON_API TextureInfoComponent
 {
 	TextureHandle textureIndex;
 };

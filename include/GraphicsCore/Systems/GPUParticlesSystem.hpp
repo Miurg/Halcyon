@@ -1,4 +1,6 @@
 #pragma once
+
+#include "HalcyonExport.hpp"
 #include <Orhescyon/GeneralManager.hpp>
 #include <Orhescyon/Systems/SystemCore.hpp>
 #include "GraphicsCore/Components/ParticleEmitorComponent.hpp"
@@ -7,11 +9,11 @@
 #include "GraphicsCore/Systems/FrameEndSystem.hpp"
 
 using Orhescyon::GeneralManager;
-class GPUParticlesSystem
+class HALCYON_API GPUParticlesSystem
     : public Orhescyon::SystemCore<GPUParticlesSystem, ParticleEmitorComponent, GlobalTransformComponent>
 {
 public:
-	struct Agent
+	struct HALCYON_API Agent
 	{
 		Orhescyon::Entity entity;
 		ParticleEmitorComponent* particleEmitor;

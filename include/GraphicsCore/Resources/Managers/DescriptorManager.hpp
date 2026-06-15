@@ -1,4 +1,6 @@
 #pragma once
+
+#include "HalcyonExport.hpp"
 #include <vulkan/vulkan_raii.hpp>
 #include "GraphicsCore/VulkanDevice.hpp"
 #include "GraphicsCore/Resources/Components/BindlessTextureDSetComponent.hpp"
@@ -11,7 +13,7 @@ class BufferManager;
 
 // Allocates and updates descriptor sets from a single pool.
 // Also owns the DescriptorLayoutRegistry - all layout work goes through here.
-class DescriptorManager
+class HALCYON_API DescriptorManager
 {
 public:
 	DescriptorManager(VulkanDevice& vulkanDevice);

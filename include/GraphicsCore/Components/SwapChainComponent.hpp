@@ -1,8 +1,9 @@
 #pragma once
 
+#include "HalcyonExport.hpp"
 #include "GraphicsCore/SwapChain.hpp"
 
-struct SwapChainComponent
+struct HALCYON_API SwapChainComponent
 {
 	SwapChain* swapChainInstance;
 

@@ -1,6 +1,7 @@
 #pragma once
 
-struct DeltaTimeComponent
+#include "HalcyonExport.hpp"
+struct HALCYON_API DeltaTimeComponent
 {
 	float deltaTime = 0.0f;
 	float totalTime = 0.0f;

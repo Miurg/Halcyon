@@ -1,4 +1,6 @@
 #pragma once
+
+#include "HalcyonExport.hpp"
 #include <queue>
 #include <vector>
 #include <functional>
@@ -9,7 +11,7 @@
 
 struct GLFWwindow;
 
-class Window
+class HALCYON_API Window
 {
 private:
 	GLFWwindow* _GLFWwindow;

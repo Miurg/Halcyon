@@ -1,4 +1,6 @@
 #pragma once
+
+#include "HalcyonExport.hpp"
 #include <Orhescyon/GeneralManager.hpp>
 #include <Orhescyon/Systems/SystemCore.hpp>
 #include <vector>
@@ -18,7 +20,7 @@
 #include "PhysicsCore/Components/PhysBodyComponent.hpp"
 
 using Orhescyon::GeneralManager;
-class ImGuiSystem : public Orhescyon::SystemCore<ImGuiSystem>
+class HALCYON_API ImGuiSystem : public Orhescyon::SystemCore<ImGuiSystem>
 {
 public:
 	void update(GeneralManager& gm) override;

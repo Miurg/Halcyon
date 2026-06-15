@@ -1,7 +1,9 @@
 #pragma once
+
+#include "HalcyonExport.hpp"
 #include "GraphicsCore/Resources/Managers/ResourceHandles.hpp"
 
-struct GlobalDSetComponent
+struct HALCYON_API GlobalDSetComponent
 {
 	DSetHandle globalDSets;
 	BufferHandle cameraBuffers;

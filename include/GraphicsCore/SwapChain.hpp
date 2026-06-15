@@ -1,8 +1,9 @@
 #pragma once
 
+#include "HalcyonExport.hpp"
 #include <vulkan/vulkan_raii.hpp>
 
-class SwapChain
+class HALCYON_API SwapChain
 {
 public:
 	vk::Extent2D swapChainExtent = vk::Extent2D();

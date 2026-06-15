@@ -1,5 +1,6 @@
 #pragma once
 
+#include "HalcyonExport.hpp"
 #include <vector>
 #include <Orhescyon/GeneralManager.hpp>
 #include <Orhescyon/Systems/SystemCore.hpp>
@@ -13,11 +14,11 @@
 #include "GraphicsCore/Systems/DeltaTimeSystem.hpp"
 
 using Orhescyon::GeneralManager;
-class TransformSystem : public Orhescyon::SystemCore<TransformSystem, GlobalTransformComponent, LocalTransformComponent,
+class HALCYON_API TransformSystem : public Orhescyon::SystemCore<TransformSystem, GlobalTransformComponent, LocalTransformComponent,
                                                    RelationshipComponent>
 {
 public:
-	struct Agent
+	struct HALCYON_API Agent
 	{
 		Orhescyon::Entity entity;
 		GlobalTransformComponent* global;

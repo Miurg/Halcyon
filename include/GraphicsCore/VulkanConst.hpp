@@ -1,5 +1,6 @@
 #pragma once
 
+#include "HalcyonExport.hpp"
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -10,7 +11,7 @@ constexpr uint_fast32_t MAX_SIZE_OF_VERTEX_INDEX_BUFFER = 6710886400; // 64 MB
 constexpr int MAX_BINDLESS_TEXTURES = 2048;
 constexpr uint32_t MAX_SH_PROBES = 4096; // 127 scene probes + slot 0 (skybox fallback)
 
-struct UniformBufferObject
+struct HALCYON_API UniformBufferObject
 {
 	alignas(16) glm::mat4 model;
 	alignas(16) glm::mat4 view;

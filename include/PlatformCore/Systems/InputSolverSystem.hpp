@@ -1,5 +1,6 @@
 #pragma once
 
+#include "HalcyonExport.hpp"
 #include <Orhescyon/GeneralManager.hpp>
 #include <Orhescyon/Systems/SystemCore.hpp>
 #include "PlatformCore/Components/CursorPositionComponent.hpp"
@@ -12,7 +13,7 @@
 #include "GraphicsCore/Systems/FrameBeginSystem.hpp"
 
 using Orhescyon::GeneralManager;
-class InputSolverSystem
+class HALCYON_API InputSolverSystem
     : public Orhescyon::SystemCore<InputSolverSystem, WindowComponent, CursorPositionComponent, WindowSizeComponent,
                         KeyboardStateComponent, MouseStateComponent, ScrollDeltaComponent>
 {

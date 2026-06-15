@@ -1,8 +1,9 @@
 #pragma once
 
+#include "HalcyonExport.hpp"
 #include <glm/fwd.hpp>
 
-struct PrimitivesInfo
+struct HALCYON_API PrimitivesInfo
 {
 	uint32_t vertexOffset = -1;
 	uint32_t indexOffset = -1;

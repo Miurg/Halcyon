@@ -1,8 +1,9 @@
 #pragma once
 
+#include "HalcyonExport.hpp"
 #include "GraphicsCore/Resources/Managers/DescriptorManager.hpp"
 
-struct DescriptorManagerComponent
+struct HALCYON_API DescriptorManagerComponent
 {
 	DescriptorManager* descriptorManager;
 

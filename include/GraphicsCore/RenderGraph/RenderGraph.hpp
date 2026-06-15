@@ -1,5 +1,6 @@
 #pragma once
 
+#include "HalcyonExport.hpp"
 #include "GraphicsCore/RenderGraph/RGPass.hpp"
 #include "GraphicsCore/RenderGraph/RGResource.hpp"
 #include <vk_mem_alloc.h>
@@ -16,7 +17,7 @@ struct GraphicsSettingsComponent;
 class DescriptorManager;
 
 // Tracks the last known state of a single subresource (one mip) for barrier computation.
-struct RGSubresourceState
+struct HALCYON_API RGSubresourceState
 {
 	vk::ImageLayout layout = vk::ImageLayout::eUndefined;
 	vk::AccessFlags2 accessMask = {};
@@ -24,7 +25,7 @@ struct RGSubresourceState
 };
 
 // Barrier to be inserted before a pass.
-struct RGBarrier
+struct HALCYON_API RGBarrier
 {
 	vk::Image image;
 	vk::ImageLayout oldLayout;
@@ -39,13 +40,13 @@ struct RGBarrier
 };
 
 // Compiled pass — the pass itself plus any barriers that must precede it.
-struct RGCompiledPass
+struct HALCYON_API RGCompiledPass
 {
 	const RGPass* pass = nullptr;
 	std::vector<RGBarrier> barriers;
 };
 
-class RenderGraph
+class HALCYON_API RenderGraph
 {
 public:
 	RenderGraph(VulkanDevice& device, VmaAllocator allocator);

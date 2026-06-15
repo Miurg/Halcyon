@@ -1,7 +1,9 @@
 #pragma once
+
+#include "HalcyonExport.hpp"
 #include "GraphicsCore/Resources/Managers/ResourceHandles.hpp"
 
-struct DirectLightComponent
+struct HALCYON_API DirectLightComponent
 {
 	float sizeX = 4096;
 	float sizeY = 4096;

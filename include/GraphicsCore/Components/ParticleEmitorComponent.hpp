@@ -1,7 +1,9 @@
 #pragma once
+
+#include "HalcyonExport.hpp"
 #include <glm/glm.hpp>
 
-struct ParticleEmitorComponent
+struct HALCYON_API ParticleEmitorComponent
 {
 	bool active = true;
 	uint32_t spawnCount = 10;

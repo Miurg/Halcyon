@@ -1,7 +1,9 @@
 #pragma once
+
+#include "HalcyonExport.hpp"
 #include "GraphicsCore/Resources/Managers/ResourceHandles.hpp"
 
-struct ModelDSetComponent
+struct HALCYON_API ModelDSetComponent
 {
 	DSetHandle modelBufferDSet;
 	BufferHandle primitiveBuffer;

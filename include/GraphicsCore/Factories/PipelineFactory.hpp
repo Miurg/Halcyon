@@ -1,11 +1,12 @@
 #pragma once
 
+#include "HalcyonExport.hpp"
 #include <vulkan/vulkan_raii.hpp>
 #include <vector>
 #include <string>
 #include <optional>
 
-struct ColorBlendAttachmentDesc
+struct HALCYON_API ColorBlendAttachmentDesc
 {
 	bool blendEnable = false;
 	vk::BlendFactor srcColor = vk::BlendFactor::eSrcAlpha;
@@ -18,7 +19,7 @@ struct ColorBlendAttachmentDesc
 	                                    vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA;
 };
 
-struct PipelineDescription
+struct HALCYON_API PipelineDescription
 {
 	bool isCompute = false;
 	std::string shaderPath;
@@ -55,14 +56,14 @@ struct PipelineDescription
 };
 
 // Result of build - pipeline + layout + desc
-struct BuiltPipeline
+struct HALCYON_API BuiltPipeline
 {
 	vk::raii::PipelineLayout layout{nullptr};
 	vk::raii::Pipeline pipeline{nullptr};
 	PipelineDescription desc;
 };
 
-class PipelineFactory
+class HALCYON_API PipelineFactory
 {
 public:
 	static BuiltPipeline build(vk::raii::Device& device, const PipelineDescription& desc,

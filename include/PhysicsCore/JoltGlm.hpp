@@ -1,5 +1,6 @@
 #pragma once
 
+#include "HalcyonExport.hpp"
 #include <Jolt/Jolt.h>
 #include <Jolt/Math/Vec3.h>
 #include <Jolt/Math/Quat.h>

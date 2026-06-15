@@ -1,4 +1,6 @@
 #pragma once
+
+#include "HalcyonExport.hpp"
 #include <vulkan/vulkan_raii.hpp>
 #include <cstdint>
 

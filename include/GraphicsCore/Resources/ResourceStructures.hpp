@@ -1,7 +1,9 @@
 #pragma once
+
+#include "HalcyonExport.hpp"
 #include <glm/fwd.hpp>
 
-struct CameraStructure
+struct HALCYON_API CameraStructure
 {
 	alignas(16) glm::mat4 cameraSpaceMatrix;
 	alignas(16) glm::mat4 viewMatrix;
@@ -11,7 +13,7 @@ struct CameraStructure
 	alignas(16) glm::vec4 frustumPlanes[6];
 };
 
-struct DirectLightStructure
+struct HALCYON_API DirectLightStructure
 {
 	alignas(16) glm::mat4 lightSpaceMatrix;
 	alignas(16) glm::vec4 direction; // xyz: direction, w: padding
@@ -38,13 +40,13 @@ struct PrimitiveSctructure // (16 + 16 + 16 + 4 + 4 + 4 + 4 = 64 bytes)
 	uint32_t drawCommandIndex;     // index to the indirect draw command of the primitive
 };
 
-struct TransformStructure
+struct HALCYON_API TransformStructure
 {
 	alignas(16) glm::mat4 model;
 };
 
 // Mirrors VkDrawIndexedIndirectCommand for GPU-driven indirect draws.
-struct IndirectDrawStructure
+struct HALCYON_API IndirectDrawStructure
 {
 	uint32_t indexCount;
 	uint32_t instanceCount;
@@ -53,7 +55,7 @@ struct IndirectDrawStructure
 	uint32_t firstInstance;
 };
 
-struct MaterialStructure
+struct HALCYON_API MaterialStructure
 {
 	uint32_t textureIndex = ~0u;
 	uint32_t normalMapIndex = ~0u;
@@ -75,7 +77,7 @@ struct MaterialStructure
 // Unified SH light probe entry (160 bytes, 16-byte aligned).
 // Slot 0 = skybox fallback (influenceRadius = FLT_MAX, position ignored).
 // SH coefficients are float3 + float pad to match std430 vec4 stride.
-struct SHProbeEntry
+struct HALCYON_API SHProbeEntry
 {
     alignas(16) glm::vec3 position;
     float influenceRadius; // FLT_MAX = global fallback (skybox slot)
@@ -92,7 +94,7 @@ struct SHProbeEntry
     // Total: 10 × 16 = 160 bytes
 };
 
-struct PointLightStructure
+struct HALCYON_API PointLightStructure
 {
 	alignas(16) glm::vec3 position;
 	float radius;

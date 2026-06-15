@@ -1,5 +1,6 @@
 #pragma once
 
+#include "HalcyonExport.hpp"
 #include <Orhescyon/GeneralManager.hpp>
 #include <Orhescyon/Systems/SystemCore.hpp>
 #include "GraphicsCore/Systems/FrameEndSystem.hpp"
@@ -8,7 +9,7 @@
 #include "GraphicsCore/Components/FrameImageComponent.hpp"
 
 using Orhescyon::GeneralManager;
-class FrameBeginSystem : public Orhescyon::SystemCore<FrameBeginSystem>
+class HALCYON_API FrameBeginSystem : public Orhescyon::SystemCore<FrameBeginSystem>
 {
 public:
 	void update(GeneralManager& gm) override;

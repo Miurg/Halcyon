@@ -1,12 +1,13 @@
 #pragma once
 
+#include "HalcyonExport.hpp"
 #include <vulkan/vulkan_raii.hpp>
 
 #ifdef TRACY_ENABLE
 #include <tracy/TracyVulkan.hpp>
 #endif
 
-struct VulkanDevice
+struct HALCYON_API VulkanDevice
 {
 public:
 	vk::raii::Context context = vk::raii::Context();

@@ -1,9 +1,10 @@
 #pragma once
 
+#include "HalcyonExport.hpp"
 #include "GraphicsCore/Resources/Managers/ResourceHandles.hpp"
 #include <vulkan/vulkan.hpp>
 
-struct SkyboxComponent
+struct HALCYON_API SkyboxComponent
 {
 	TextureHandle cubemapTexture;
 	TextureHandle prefilteredMap;

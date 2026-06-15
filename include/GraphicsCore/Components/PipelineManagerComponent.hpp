@@ -1,8 +1,9 @@
 #pragma once
 
+#include "HalcyonExport.hpp"
 #include "GraphicsCore/Managers/PipelineManager.hpp"
 
-struct PipelineManagerComponent
+struct HALCYON_API PipelineManagerComponent
 {
 	PipelineManager* pipelineManager;
 

@@ -1,11 +1,12 @@
 #pragma once
 
+#include "HalcyonExport.hpp"
 #include <Orhescyon/GeneralManager.hpp>
 
 #include "DeletionQueue.hpp"
 #include "IStartUp.hpp"
 
-class App
+class HALCYON_API App
 {
 public:
 	App();

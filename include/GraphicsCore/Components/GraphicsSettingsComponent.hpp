@@ -1,9 +1,10 @@
 #pragma once
 
+#include "HalcyonExport.hpp"
 #include <vulkan/vulkan_raii.hpp>
 #include <Orhescyon/Entitys/EntityManager.hpp>
 
-struct GraphicsSettingsComponent
+struct HALCYON_API GraphicsSettingsComponent
 {
 	//bool enableFrustumCulling = true;
 	//bool enableShadowCulling = true;

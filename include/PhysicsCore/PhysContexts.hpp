@@ -1,9 +1,10 @@
 #pragma once
 
-struct PhysManagerContext
+#include "HalcyonExport.hpp"
+struct HALCYON_API PhysManagerContext
 {
 };
 
-struct PhysTickRateContext
+struct HALCYON_API PhysTickRateContext
 {
 };

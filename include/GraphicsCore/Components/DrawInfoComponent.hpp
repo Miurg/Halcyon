@@ -1,7 +1,9 @@
 #pragma once
+
+#include "HalcyonExport.hpp"
 #include <cstdint>
 
-struct DrawInfoComponent
+struct HALCYON_API DrawInfoComponent
 {
 	uint32_t totalDrawCount = 0;
 	uint32_t totalObjectCount = 0;

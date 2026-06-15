@@ -1,5 +1,6 @@
 #pragma once
 
+#include "HalcyonExport.hpp"
 #include <vector>
 #include <unordered_map>
 #include "GraphicsCore/Resources/Components/MeshInfoComponent.hpp"
@@ -18,7 +19,7 @@ class TextureManager;
 class PipelineManager;
 
 // Manages GPU buffers — creates and tracks allocations via VMA.
-class BufferManager
+class HALCYON_API BufferManager
 {
 public:
 	BufferManager(VulkanDevice& vulkanDevice, VmaAllocator allocator);

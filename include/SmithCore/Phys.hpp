@@ -1,5 +1,6 @@
 #pragma once
 
+#include "HalcyonExport.hpp"
 #include "PhysicsCore/Components/PhysBodyComponent.hpp"
 #include "PhysicsCore/Components/PhysManagerComponent.hpp"
 #include "PhysicsCore/Components/PhysTransformSnapshotComponent.hpp"

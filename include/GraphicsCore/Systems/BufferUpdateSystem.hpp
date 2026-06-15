@@ -1,4 +1,6 @@
 #pragma once
+
+#include "HalcyonExport.hpp"
 #include "GraphicsCore/Components/GlobalTransformComponent.hpp"
 #include "GraphicsCore/Components/CurrentFrameComponent.hpp"
 #include "GraphicsCore/Components/DrawInfoComponent.hpp"
@@ -10,10 +12,10 @@
 #include "GraphicsCore/Systems/FrameEndSystem.hpp"
 
 using Orhescyon::GeneralManager;
-class BufferUpdateSystem : public Orhescyon::SystemCore<BufferUpdateSystem, GlobalTransformComponent, MeshInfoComponent>
+class HALCYON_API BufferUpdateSystem : public Orhescyon::SystemCore<BufferUpdateSystem, GlobalTransformComponent, MeshInfoComponent>
 {
 public:
-	struct Agent
+	struct HALCYON_API Agent
 	{
 		Orhescyon::Entity entity;
 		GlobalTransformComponent* transform;

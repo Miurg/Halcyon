@@ -1,8 +1,9 @@
 #pragma once
 
+#include "HalcyonExport.hpp"
 #include "GraphicsCore/Resources/Managers/BufferManager.hpp"
 
-struct BufferManagerComponent
+struct HALCYON_API BufferManagerComponent
 {
 	BufferManager* bufferManager;
 

@@ -1,4 +1,6 @@
 #pragma once
+
+#include "HalcyonExport.hpp"
 #include <cstdint>
 
 namespace Orhescyon
@@ -8,7 +10,7 @@ class GeneralManager;
 
 class RenderGraph;
 
-class IPass
+class HALCYON_API IPass
 {
 public:
 	virtual ~IPass() = default;

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "HalcyonExport.hpp"
 #include <cstdint>
 #include <optional>
 #include <string>
@@ -24,7 +25,7 @@ enum class RGResourceUsage
 };
 
 // A single read or write declaration for a resource in a pass
-struct RGResourceAccess
+struct HALCYON_API RGResourceAccess
 {
 	std::string name;
 	RGResourceUsage usage = RGResourceUsage::ShaderRead;
@@ -45,7 +46,7 @@ enum class RGSizeMode
 };
 
 // Description of a transient image resource
-struct RGImageDesc
+struct HALCYON_API RGImageDesc
 {
 	vk::Format format = vk::Format::eUndefined;
 	RGSizeMode sizeMode = RGSizeMode::FullExtent;
@@ -57,7 +58,7 @@ struct RGImageDesc
 };
 
 // Unified resource entry — covers both imported and transient resources
-struct RGResourceEntry
+struct HALCYON_API RGResourceEntry
 {
 	std::string name;
 	vk::Image image = {};

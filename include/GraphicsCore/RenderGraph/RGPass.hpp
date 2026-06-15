@@ -1,5 +1,6 @@
 #pragma once
 
+#include "HalcyonExport.hpp"
 #include "GraphicsCore/RenderGraph/RGResource.hpp"
 #include <functional>
 #include <optional>
@@ -12,7 +13,7 @@
 // loadOp   — what to do with contents at pass start (eClear / eLoad / eDontCare).
 // storeOp  — what to do with results at pass end  (eStore / eDontCare).
 // clearValue — clear color/depth if loadOp == eClear.
-struct RGAttachmentConfig
+struct HALCYON_API RGAttachmentConfig
 {
 	std::string name;
 	vk::AttachmentLoadOp loadOp = vk::AttachmentLoadOp::eClear;
@@ -29,7 +30,7 @@ struct RGAttachmentConfig
 // customExtent     — override render area size. If nullopt, auto-derived from first attachment dimensions.
 //                    Only needed for external resources (e.g. shadow map with non-swapchain size).
 // isCompute        — if true, skip beginRendering entirely (for compute/dispatch passes).
-struct RGPassDesc
+struct HALCYON_API RGPassDesc
 {
 	std::vector<RGAttachmentConfig> colorAttachments;
 	std::optional<RGAttachmentConfig> depthAttachment;
@@ -39,7 +40,7 @@ struct RGPassDesc
 
 class RenderGraph;
 
-struct RGPass
+struct HALCYON_API RGPass
 {
 	std::string name;
 	RGPassDesc desc;

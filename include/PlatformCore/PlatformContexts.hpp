@@ -1,4 +1,5 @@
 #pragma once
 
-class InputDataContext{};
-class MainWindowContext{};
+#include "HalcyonExport.hpp"
+class HALCYON_API InputDataContext{};
+class HALCYON_API MainWindowContext{};

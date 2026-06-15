@@ -1,10 +1,11 @@
 #pragma once
 
+#include "HalcyonExport.hpp"
 #include <vulkan/vulkan_raii.hpp>
 #include <vk_mem_alloc.h>
 #include <cstdint>
 
-struct Texture
+struct HALCYON_API Texture
 {
 	vk::Image textureImage;
 	VmaAllocation textureImageAllocation;

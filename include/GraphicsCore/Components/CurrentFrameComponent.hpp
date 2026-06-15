@@ -1,6 +1,7 @@
 #pragma once
 
-struct CurrentFrameComponent
+#include "HalcyonExport.hpp"
+struct HALCYON_API CurrentFrameComponent
 {
 	uint32_t currentFrame = 0; // Current frame in frame in flight
 	bool frameValid = false;

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "HalcyonExport.hpp"
 #include "PhysicsCore/PhysLayers.hpp"
 #include <glm/ext/vector_float3.hpp>
 #include <glm/gtc/quaternion.hpp>
@@ -7,29 +8,29 @@
 #include <cstdint>
 #include <variant>
 
-struct Sphere
+struct HALCYON_API Sphere
 {
 	float radius;
 };
 
-struct Box
+struct HALCYON_API Box
 {
 	glm::vec3 halfExtents;
 };
 
-struct Capsule
+struct HALCYON_API Capsule
 {
 	float halfHeight;
 	float radius;
 };
 
-struct Cylinder
+struct HALCYON_API Cylinder
 {
 	float halfHeight;
 	float radius;
 };
 
-struct ConvexHull
+struct HALCYON_API ConvexHull
 {
 	std::span<const glm::vec3> points;
 };
@@ -43,7 +44,7 @@ enum class Motion
 	Dynamic
 };
 
-struct Body
+struct HALCYON_API Body
 {
 	glm::vec3 pos         = {0, 0, 0};
 	glm::quat rot         = {1, 0, 0, 0};

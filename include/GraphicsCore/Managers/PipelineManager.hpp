@@ -1,12 +1,13 @@
 #pragma once
 
+#include "HalcyonExport.hpp"
 #include <vector>
 #include "GraphicsCore/Factories/PipelineFactory.hpp"
 #include "GraphicsCore/VulkanDevice.hpp"
 
 class DescriptorManager;
 
-class PipelineManager
+class HALCYON_API PipelineManager
 {
 public:
 	PipelineManager(VulkanDevice& vulkanDevice, DescriptorManager& descriptorManager);

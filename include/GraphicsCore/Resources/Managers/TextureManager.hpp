@@ -1,5 +1,6 @@
 #pragma once
 
+#include "HalcyonExport.hpp"
 #include "GraphicsCore/Resources/Managers/VertexIndexBuffer.hpp"
 #include <vector>
 #include <unordered_map>
@@ -21,7 +22,7 @@ class PipelineFactory;
 class PipelineHandler;
 
 // Creates and caches textures (VMA-allocated). Deduplicates by file path.
-class TextureManager
+class HALCYON_API TextureManager
 {
 public:
 	TextureManager(VulkanDevice& vulkanDevice, VmaAllocator allocator);

@@ -1,12 +1,13 @@
 #pragma once
 
+#include "HalcyonExport.hpp"
 #include <Orhescyon/GeneralManager.hpp>
 #include <Orhescyon/Systems/SystemCore.hpp>
 #include "GraphicsCore/Components/CurrentFrameComponent.hpp"
 #include "GraphicsCore/Components/FrameImageComponent.hpp"
 
 using Orhescyon::GeneralManager;
-class FrameEndSystem : public Orhescyon::SystemCore<FrameEndSystem>
+class HALCYON_API FrameEndSystem : public Orhescyon::SystemCore<FrameEndSystem>
 {
 public:
 	void update(GeneralManager& gm) override;

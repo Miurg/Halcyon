@@ -1,5 +1,6 @@
 #pragma once
 
+#include "HalcyonExport.hpp"
 #include "GraphicsCore/Resources/Managers/VertexIndexBuffer.hpp"
 #include "GraphicsCore/Resources/Managers/Texture.hpp"
 #include "GraphicsCore/Resources/Components/MeshInfoComponent.hpp"
@@ -9,7 +10,7 @@
 
 class TextureManager;
 
-class TextureUploader
+class HALCYON_API TextureUploader
 {
 public:
 	static void uploadTextureFromFile(const char* texturePath, Texture& texture, VmaAllocator& allocator,

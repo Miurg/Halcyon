@@ -1,5 +1,6 @@
 #pragma once
 
+#include "HalcyonExport.hpp"
 #include <deque>
 #include <functional>
 
@@ -12,7 +13,7 @@
 #include <tracy/TracyVulkan.hpp>
 #endif
 
-struct DeletionQueue
+struct HALCYON_API DeletionQueue
 {
     Orhescyon::GeneralManager* gm = nullptr;
 

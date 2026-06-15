@@ -1,6 +1,7 @@
 #pragma once
 
-struct InputEvent
+#include "HalcyonExport.hpp"
+struct HALCYON_API InputEvent
 {
 	enum class Type
 	{

@@ -1,10 +1,11 @@
 #pragma once
 
+#include "HalcyonExport.hpp"
 #include <array>
 #include <vulkan/vulkan_raii.hpp>
 #include <glm/glm.hpp>
 
-struct Vertex
+struct HALCYON_API Vertex
 {
 	glm::vec3 pos;
 	glm::vec3 color;

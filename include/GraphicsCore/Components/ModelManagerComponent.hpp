@@ -1,8 +1,9 @@
 #pragma once
 
+#include "HalcyonExport.hpp"
 #include "GraphicsCore/Resources/Managers/ModelManager.hpp"
 
-struct ModelManagerComponent
+struct HALCYON_API ModelManagerComponent
 {
 	ModelManager* modelManager;
 

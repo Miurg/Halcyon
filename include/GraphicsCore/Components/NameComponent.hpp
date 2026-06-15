@@ -1,8 +1,10 @@
 #pragma once
+
+#include "HalcyonExport.hpp"
 #include <string>
 #include <cstring>
 
-struct NameComponent
+struct HALCYON_API NameComponent
 {
 	char name[256];
 

@@ -1,6 +1,7 @@
 #pragma once
 
-struct FrameDataComponent
+#include "HalcyonExport.hpp"
+struct HALCYON_API FrameDataComponent
 {
 	int frameDataIndex = -1;
 };

@@ -55,6 +55,11 @@ file(GLOB_RECURSE HALCYON_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}
 add_library(${PROJECT_NAME} ${HALCYON_SOURCES})
 add_library(Halcyon::Halcyon ALIAS ${PROJECT_NAME})
 
+if(BUILD_SHARED_LIBS)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE HALCYON_BUILD_SHARED HALCYON_EXPORTS)
+    target_compile_definitions(${PROJECT_NAME} INTERFACE HALCYON_BUILD_SHARED)
+endif()
+
 set_source_files_properties("${CMAKE_CURRENT_SOURCE_DIR}/src/ThirdPartyImpl.cpp" PROPERTIES SKIP_PRECOMPILE_HEADERS ON)
 target_precompile_headers(${PROJECT_NAME} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src/pch.h")
 

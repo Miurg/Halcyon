@@ -1,6 +1,7 @@
 #pragma once
 
-struct CameraComponent
+#include "HalcyonExport.hpp"
+struct HALCYON_API CameraComponent
 {
 	float fov = 60.0f;
 	float zNear = 0.1f;

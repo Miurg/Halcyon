@@ -1,9 +1,11 @@
 #pragma once
+
+#include "HalcyonExport.hpp"
 #include <Orhescyon/GeneralManager.hpp>
 
 const Orhescyon::Entity NULL_ENTITY = 0;
 // Intrusive linked-list scene hierarchy. addChild() prepends to sibling list.
-struct RelationshipComponent
+struct HALCYON_API RelationshipComponent
 {
 	Orhescyon::Entity parent = NULL_ENTITY;
 	Orhescyon::Entity firstChild = NULL_ENTITY;

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "HalcyonExport.hpp"
 #include <vector>
 #include <mutex>
 #include <Orhescyon/GeneralManager.hpp>
@@ -11,11 +12,11 @@
 #include "PhysicsCore/Systems/PhysUpdateSystem.hpp"
 
 using Orhescyon::GeneralManager;
-class PhysSnapshotSystem
+class HALCYON_API PhysSnapshotSystem
     : public Orhescyon::SystemCore<PhysSnapshotSystem, PhysTransformSnapshotComponent, PhysBodyComponent>
 {
 public:
-	struct Agent
+	struct HALCYON_API Agent
 	{
 		Orhescyon::Entity entity;
 		PhysTransformSnapshotComponent* transSnapshot;

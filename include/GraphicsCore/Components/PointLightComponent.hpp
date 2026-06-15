@@ -1,6 +1,7 @@
 #pragma once
 
-struct PointLightComponent
+#include "HalcyonExport.hpp"
+struct HALCYON_API PointLightComponent
 {
 	float radius = 10.0f;
 	glm::vec3 color = glm::vec3(1.0f, 1.0f, 1.0f);

@@ -1,8 +1,9 @@
 #pragma once
 
+#include "HalcyonExport.hpp"
 #include "GraphicsCore/VulkanDevice.hpp"
 
-struct VulkanDeviceComponent
+struct HALCYON_API VulkanDeviceComponent
 {
     VulkanDevice* vulkanDeviceInstance;
 

@@ -1,12 +1,13 @@
 #pragma once
 
+#include "HalcyonExport.hpp"
 #include <vulkan/vulkan_raii.hpp>
 #include <span>
 #include <string>
 #include <unordered_map>
 
 // A registry of named descriptor set layouts.
-class DescriptorLayoutRegistry
+class HALCYON_API DescriptorLayoutRegistry
 {
 public:
 	DescriptorLayoutRegistry(vk::raii::Device& device) : device(device) {}

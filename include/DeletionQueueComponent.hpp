@@ -1,8 +1,9 @@
 #pragma once
 
+#include "HalcyonExport.hpp"
 #include "DeletionQueue.hpp"
 
-struct DeletionQueueComponent
+struct HALCYON_API DeletionQueueComponent
 {
     DeletionQueue* queue = nullptr;
 

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "HalcyonExport.hpp"
 #include "GraphicsCore/Resources/Managers/VertexIndexBuffer.hpp"
 #include <vector>
 #include <unordered_map>
@@ -14,7 +15,7 @@
 #include "GraphicsCore/Resources/Managers/MeshInfo.hpp"
 
 // Stores loaded meshes and their GPU vertex/index buffers. Deduplicates by file path.
-class ModelManager
+class HALCYON_API ModelManager
 {
 public:
 	ModelManager(VulkanDevice& vulkanDevice, VmaAllocator allocator);

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "HalcyonExport.hpp"
 #include <Orhescyon/GeneralManager.hpp>
 #include <Jolt/Jolt.h>
 #include <Jolt/Physics/PhysicsSystem.h>
@@ -10,7 +11,7 @@
 #include "PhysicsCore/PhysShapes.hpp"
 #include <glm/ext/vector_float3.hpp>
 
-struct SnapshotIndices
+struct HALCYON_API SnapshotIndices
 {
 	uint8_t previous;
 	uint8_t current;
@@ -18,7 +19,7 @@ struct SnapshotIndices
 };
 
 using Orhescyon::GeneralManager;
-class PhysManager
+class HALCYON_API PhysManager
 {
 public:
 	PhysManager(GeneralManager& gm);

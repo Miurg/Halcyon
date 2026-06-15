@@ -1,5 +1,6 @@
 #pragma once
 
+#include "HalcyonExport.hpp"
 #include <memory>
 #include <vector>
 #include <Orhescyon/GeneralManager.hpp>
@@ -16,7 +17,7 @@
 class RenderGraph;
 
 using Orhescyon::GeneralManager;
-class RenderSystem : public Orhescyon::SystemCore<RenderSystem, GlobalTransformComponent, MeshInfoComponent>
+class HALCYON_API RenderSystem : public Orhescyon::SystemCore<RenderSystem, GlobalTransformComponent, MeshInfoComponent>
 {
 public:
 	void update(GeneralManager& gm) override;

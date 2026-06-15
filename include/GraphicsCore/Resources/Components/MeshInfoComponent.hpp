@@ -1,8 +1,9 @@
 #pragma once
 
+#include "HalcyonExport.hpp"
 #include "GraphicsCore/VulkanConst.hpp"
 
-struct MeshInfoComponent
+struct HALCYON_API MeshInfoComponent
 {
 	int mesh;
 };

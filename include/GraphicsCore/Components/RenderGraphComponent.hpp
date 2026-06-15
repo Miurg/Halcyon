@@ -1,8 +1,9 @@
 #pragma once
 
+#include "HalcyonExport.hpp"
 class RenderGraph;
 
-struct RenderGraphComponent
+struct HALCYON_API RenderGraphComponent
 {
 	RenderGraph* renderGraph;
 };

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "HalcyonExport.hpp"
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #define GLM_ENABLE_EXPERIMENTAL
@@ -8,7 +9,7 @@
 
 class TransformSystem;
 
-struct GlobalTransformComponent
+struct HALCYON_API GlobalTransformComponent
 {
 public:
 	GlobalTransformComponent() = default;

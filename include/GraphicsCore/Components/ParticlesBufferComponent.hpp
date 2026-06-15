@@ -1,7 +1,9 @@
 #pragma once
+
+#include "HalcyonExport.hpp"
 #include "GraphicsCore/Resources/Managers/ResourceHandles.hpp"
 
-struct ParticlesBufferComponent
+struct HALCYON_API ParticlesBufferComponent
 {
 	BufferHandle particlesBuffer;
 	BufferHandle indirectBuffer;

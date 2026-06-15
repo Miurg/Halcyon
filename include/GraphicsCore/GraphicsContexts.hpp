@@ -1,80 +1,81 @@
 #pragma once
 
-class MainVulkanDeviceContext
+#include "HalcyonExport.hpp"
+class HALCYON_API MainVulkanDeviceContext
 {
 };
-class MainSwapChainContext
+class HALCYON_API MainSwapChainContext
 {
 };
-class BufferManagerContext
+class HALCYON_API BufferManagerContext
 {
 };
-class MainSignatureContext
+class HALCYON_API MainSignatureContext
 {
 };
-class MainFrameDataContext
+class HALCYON_API MainFrameDataContext
 {
 };
-class CurrentFrameContext
+class HALCYON_API CurrentFrameContext
 {
 };
-class MainCameraContext
+class HALCYON_API MainCameraContext
 {
 };
-class ModelSSBOsContext
+class HALCYON_API ModelSSBOsContext
 {
 };
-class SunContext
+class HALCYON_API SunContext
 {
 };
-class MainDSetsContext
+class HALCYON_API MainDSetsContext
 {
 };
-class DescriptorManagerContext
+class HALCYON_API DescriptorManagerContext
 {
 };
-class FrameImageContext
+class HALCYON_API FrameImageContext
 {
 };
-class TextureManagerContext
+class HALCYON_API TextureManagerContext
 {
 };
-class VMAllocatorContext
+class HALCYON_API VMAllocatorContext
 {
 };
-class ModelManagerContext
+class HALCYON_API ModelManagerContext
 {
 };
-class FrameManagerContext
+class HALCYON_API FrameManagerContext
 {
 };
-class GtaoSettingsContext
+class HALCYON_API GtaoSettingsContext
 {
 };
-class SkyBoxContext
+class HALCYON_API SkyBoxContext
 {
 };
-class RenderGraphContext
+class HALCYON_API RenderGraphContext
 {
 };
-class GraphicsSettingsContext
+class HALCYON_API GraphicsSettingsContext
 {
 };
-class PipelineManagerContext
+class HALCYON_API PipelineManagerContext
 {
 };
-class ShaderReloaderContext
+class HALCYON_API ShaderReloaderContext
 {
 };
-class LightProbeGridContext
+class HALCYON_API LightProbeGridContext
 {
 };
-class DeltaTimeContext
+class HALCYON_API DeltaTimeContext
 {
 };
-class ExposureBufferContext
+class HALCYON_API ExposureBufferContext
 {
 };
-class ParticlesBufferContext
+class HALCYON_API ParticlesBufferContext
 {
 };

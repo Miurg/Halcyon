@@ -1,5 +1,6 @@
 #pragma once
 
-struct DeletionQueueContext
+#include "HalcyonExport.hpp"
+struct HALCYON_API DeletionQueueContext
 {
 };

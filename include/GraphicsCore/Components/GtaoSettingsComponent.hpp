@@ -1,6 +1,7 @@
 #pragma once
 
-struct GtaoSettingsComponent
+#include "HalcyonExport.hpp"
+struct HALCYON_API GtaoSettingsComponent
 {
 	int kernelSize = 4;
 	float radius = 2.0f;
