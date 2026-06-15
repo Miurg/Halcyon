@@ -3,7 +3,7 @@
 #include <Orhescyon/GeneralManager.hpp>
 
 #include "GraphicsCore/GraphicsContexts.hpp"
-#include "../SwapChain.hpp"
+#include "GraphicsCore/SwapChain.hpp"
 #include "GraphicsCore/Components/SwapChainComponent.hpp"
 #include "GraphicsCore/Components/BufferManagerComponent.hpp"
 #include "GraphicsCore/Components/ModelManagerComponent.hpp"
@@ -16,14 +16,14 @@
 #include "GraphicsCore/Resources/Components/GlobalDSetComponent.hpp"
 #include "GraphicsCore/Resources/Components/ModelDSetComponent.hpp"
 #include "GraphicsCore/Resources/Components/BindlessTextureDSetComponent.hpp"
-#include "../Resources/Managers/BufferManager.hpp"
-#include "../Resources/Managers/ModelManager.hpp"
-#include "../Resources/Managers/TextureManager.hpp"
-#include "../Resources/Managers/DescriptorManager.hpp"
+#include "GraphicsCore/Resources/Managers/BufferManager.hpp"
+#include "GraphicsCore/Resources/Managers/ModelManager.hpp"
+#include "GraphicsCore/Resources/Managers/TextureManager.hpp"
+#include "GraphicsCore/Resources/Managers/DescriptorManager.hpp"
 #include "../Resources/Managers/Vertex.hpp"
-#include "../Managers/PipelineManager.hpp"
-#include "../Factories/PipelineFactory.hpp"
-#include "../RenderGraph/RenderGraph.hpp"
+#include "GraphicsCore/Managers/PipelineManager.hpp"
+#include "GraphicsCore/Factories/PipelineFactory.hpp"
+#include "GraphicsCore/RenderGraph/RenderGraph.hpp"
 
 void DepthPrepass::declareStreams(Orhescyon::GeneralManager& gm, vk::SampleCountFlagBits samples)
 {

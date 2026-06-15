@@ -2,8 +2,7 @@
 #include "RotationSystem.hpp"
 
 #include <iostream>
-
-#include <HalcyonGraphics.hpp>
+#include <GraphicsCore/GraphicsContexts.hpp>
 
 #ifdef TRACY_ENABLE
 #include <tracy/Tracy.hpp>

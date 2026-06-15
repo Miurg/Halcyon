@@ -1,11 +1,11 @@
 #pragma once
 
-#include "../Managers/VertexIndexBuffer.hpp"
-#include "../Managers/Texture.hpp"
+#include "GraphicsCore/Resources/Managers/VertexIndexBuffer.hpp"
+#include "GraphicsCore/Resources/Managers/Texture.hpp"
 #include "GraphicsCore/Resources/Components/MeshInfoComponent.hpp"
 #include <vk_mem_alloc.h>
-#include "../../VulkanDevice.hpp"
-#include "../Managers/PrimitivesInfo.hpp"
+#include "GraphicsCore/VulkanDevice.hpp"
+#include "GraphicsCore/Resources/Managers/PrimitivesInfo.hpp"
 
 class TextureManager;
 

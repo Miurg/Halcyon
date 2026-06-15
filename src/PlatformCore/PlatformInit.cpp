@@ -1,6 +1,6 @@
 #include "PlatformInit.hpp"
 #include <iostream>
-#include "Systems/InputSolverSystem.hpp"
+#include "PlatformCore/Systems/InputSolverSystem.hpp"
 #include "PlatformCore/PlatformContexts.hpp"
 #include "PlatformCore/Window.hpp"
 #include "PlatformCore/Components/WindowComponent.hpp"

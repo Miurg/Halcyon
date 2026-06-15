@@ -1,23 +1,21 @@
 #pragma once
-#include "GraphicsCore/Components/GlobalTransformComponent.hpp"
-#include "GraphicsCore/Components/CurrentFrameComponent.hpp"
-#include "GraphicsCore/Components/DrawInfoComponent.hpp"
-#include "GraphicsCore/Resources/Components/TextureInfoComponent.hpp"
-#include "GraphicsCore/Resources/Components/MeshInfoComponent.hpp"
 #include <Orhescyon/GeneralManager.hpp>
 #include <Orhescyon/Systems/SystemCore.hpp>
-#include "FrameBeginSystem.hpp"
-#include "FrameEndSystem.hpp"
+#include "GraphicsCore/Components/ParticleEmitorComponent.hpp"
+#include "GraphicsCore/Components/GlobalTransformComponent.hpp"
+#include "GraphicsCore/Systems/FrameBeginSystem.hpp"
+#include "GraphicsCore/Systems/FrameEndSystem.hpp"
 
 using Orhescyon::GeneralManager;
-class BufferUpdateSystem : public Orhescyon::SystemCore<BufferUpdateSystem, GlobalTransformComponent, MeshInfoComponent>
+class GPUParticlesSystem
+    : public Orhescyon::SystemCore<GPUParticlesSystem, ParticleEmitorComponent, GlobalTransformComponent>
 {
 public:
 	struct Agent
 	{
 		Orhescyon::Entity entity;
+		ParticleEmitorComponent* particleEmitor;
 		GlobalTransformComponent* transform;
-		MeshInfoComponent* meshInfo;
 	};
 
 	std::vector<Agent> _agents;
@@ -37,10 +35,10 @@ public:
 	}
 	std::vector<std::type_index> getReadComponents() override
 	{
-		return {typeid(GlobalTransformComponent), typeid(MeshInfoComponent), typeid(CurrentFrameComponent)};
+		return {typeid(ParticleEmitorComponent), typeid(GlobalTransformComponent)};
 	}
-	std::vector<std::type_index> getWriteComponents() override
-	{
-		return {typeid(DrawInfoComponent)};
-	}
+
+private:
+	uint32_t numberOfEmiters;
+	uint32_t numberOfParticles;
 };

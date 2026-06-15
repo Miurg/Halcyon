@@ -1,6 +1,6 @@
-#include "DescriptorManager.hpp"
-#include "BufferManager.hpp"
-#include "Bindings.hpp"
+#include "GraphicsCore/Resources/Managers/DescriptorManager.hpp"
+#include "GraphicsCore/Resources/Managers/BufferManager.hpp"
+#include "GraphicsCore/Resources/Managers/Bindings.hpp"
 
 DescriptorManager::DescriptorManager(VulkanDevice& vulkanDevice)
     : vulkanDevice(vulkanDevice), layoutRegistry(vulkanDevice.device)

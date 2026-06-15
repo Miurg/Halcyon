@@ -1,5 +1,5 @@
 #include "GraphicsPipelinesInit.hpp"
-#include "../Factories/PipelineFactory.hpp"
+#include "GraphicsCore/Factories/PipelineFactory.hpp"
 #include <iostream>
 
 #include "DeletionQueueComponent.hpp"
@@ -14,16 +14,16 @@
 #include "GraphicsCore/Components/RenderGraphComponent.hpp"
 #include "GraphicsCore/Components/PipelineManagerComponent.hpp"
 #include "GraphicsCore/Components/GraphicsSettingsComponent.hpp"
-#include "../RenderGraph/RenderGraph.hpp"
+#include "GraphicsCore/RenderGraph/RenderGraph.hpp"
 #include "GraphicsCore/Components/NameComponent.hpp"
-#include "../VulkanDevice.hpp"
-#include "../SwapChain.hpp"
-#include "../Resources/Managers/TextureManager.hpp"
-#include "../Resources/Managers/DescriptorManager.hpp"
-#include "../Resources/Managers/Bindings.hpp"
-#include "../Managers/PipelineManager.hpp"
+#include "GraphicsCore/VulkanDevice.hpp"
+#include "GraphicsCore/SwapChain.hpp"
+#include "GraphicsCore/Resources/Managers/TextureManager.hpp"
+#include "GraphicsCore/Resources/Managers/DescriptorManager.hpp"
+#include "GraphicsCore/Resources/Managers/Bindings.hpp"
+#include "GraphicsCore/Managers/PipelineManager.hpp"
 #include "GraphicsCore/GraphicsContexts.hpp"
-#include "../ShaderReloader.hpp"
+#include "GraphicsCore/ShaderReloader.hpp"
 #include "GraphicsCore/Components/ShaderReloaderComponent.hpp"
 #include <cstdint>
 #include <vector>
@@ -32,7 +32,7 @@
 #include <vulkan/vulkan_structs.hpp>
 #include <Orhescyon/Entitys/ActiveEntitySet.hpp>
 #include <Orhescyon/GeneralManager.hpp>
-#include "../RenderGraph/RGResource.hpp"
+#include "GraphicsCore/RenderGraph/RGResource.hpp"
 
 #pragma region initPipelines
 void GraphicsPipelinesInit::initPipelines(GeneralManager& gm)

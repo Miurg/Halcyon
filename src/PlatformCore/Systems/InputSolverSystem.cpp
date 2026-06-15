@@ -1,4 +1,4 @@
-#include "InputSolverSystem.hpp"
+#include "PlatformCore/Systems/InputSolverSystem.hpp"
 
 #include <GLFW/glfw3.h>
 #include "PlatformCore/PlatformContexts.hpp"

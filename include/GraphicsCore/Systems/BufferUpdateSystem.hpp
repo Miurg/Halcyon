@@ -1,21 +1,23 @@
 #pragma once
-
-#include "PhysicsCore/Components/PhysTransformSnapshotComponent.hpp"
 #include "GraphicsCore/Components/GlobalTransformComponent.hpp"
+#include "GraphicsCore/Components/CurrentFrameComponent.hpp"
+#include "GraphicsCore/Components/DrawInfoComponent.hpp"
+#include "GraphicsCore/Resources/Components/TextureInfoComponent.hpp"
+#include "GraphicsCore/Resources/Components/MeshInfoComponent.hpp"
 #include <Orhescyon/GeneralManager.hpp>
 #include <Orhescyon/Systems/SystemCore.hpp>
-#include "FrameBeginSystem.hpp"
-#include "BufferUpdateSystem.hpp"
+#include "GraphicsCore/Systems/FrameBeginSystem.hpp"
+#include "GraphicsCore/Systems/FrameEndSystem.hpp"
 
 using Orhescyon::GeneralManager;
-class PhysSyncSystem : public Orhescyon::SystemCore<PhysSyncSystem, GlobalTransformComponent, PhysTransformSnapshotComponent>
+class BufferUpdateSystem : public Orhescyon::SystemCore<BufferUpdateSystem, GlobalTransformComponent, MeshInfoComponent>
 {
 public:
 	struct Agent
 	{
 		Orhescyon::Entity entity;
 		GlobalTransformComponent* transform;
-		PhysTransformSnapshotComponent* physSnap;
+		MeshInfoComponent* meshInfo;
 	};
 
 	std::vector<Agent> _agents;
@@ -31,14 +33,14 @@ public:
 	}
 	std::vector<std::type_index> getBeforeSystems() override
 	{
-		return {typeid(BufferUpdateSystem)};
+		return {typeid(FrameEndSystem)};
 	}
 	std::vector<std::type_index> getReadComponents() override
 	{
-		return {typeid(PhysTransformSnapshotComponent)};
+		return {typeid(GlobalTransformComponent), typeid(MeshInfoComponent), typeid(CurrentFrameComponent)};
 	}
 	std::vector<std::type_index> getWriteComponents() override
 	{
-		return {typeid(GlobalTransformComponent)};
+		return {typeid(DrawInfoComponent)};
 	}
 };

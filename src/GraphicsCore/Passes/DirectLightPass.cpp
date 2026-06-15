@@ -1,5 +1,5 @@
 #include "DirectLightPass.hpp"
-#include "PassCommands.hpp"
+#include "GraphicsCore/Passes/PassCommands.hpp"
 
 #include <Orhescyon/GeneralManager.hpp>
 
@@ -15,13 +15,13 @@
 #include "GraphicsCore/Resources/Components/GlobalDSetComponent.hpp"
 #include "GraphicsCore/Resources/Components/ModelDSetComponent.hpp"
 #include "GraphicsCore/Resources/Components/BindlessTextureDSetComponent.hpp"
-#include "../Resources/Managers/BufferManager.hpp"
-#include "../Resources/Managers/ModelManager.hpp"
-#include "../Resources/Managers/TextureManager.hpp"
+#include "GraphicsCore/Resources/Managers/BufferManager.hpp"
+#include "GraphicsCore/Resources/Managers/ModelManager.hpp"
+#include "GraphicsCore/Resources/Managers/TextureManager.hpp"
 #include "../Resources/Managers/Vertex.hpp"
-#include "../Managers/PipelineManager.hpp"
-#include "../Factories/PipelineFactory.hpp"
-#include "../RenderGraph/RenderGraph.hpp"
+#include "GraphicsCore/Managers/PipelineManager.hpp"
+#include "GraphicsCore/Factories/PipelineFactory.hpp"
+#include "GraphicsCore/RenderGraph/RenderGraph.hpp"
 
 void DirectLightPass::onInit(Orhescyon::GeneralManager& gm)
 {

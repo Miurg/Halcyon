@@ -1,5 +1,5 @@
-#include "FrameEndSystem.hpp"
-#include "../VulkanConst.hpp"
+#include "GraphicsCore/Systems/FrameEndSystem.hpp"
+#include "GraphicsCore/VulkanConst.hpp"
 #include <iostream>
 #include <vulkan/vulkan_raii.hpp>
 #include "../Factories/SwapChainFactory.hpp"
@@ -8,14 +8,14 @@
 #include "GraphicsCore/Components/SwapChainComponent.hpp"
 #include "PlatformCore/PlatformContexts.hpp"
 #include "PlatformCore/Components/WindowComponent.hpp"
-#include "../FrameData.hpp"
+#include "GraphicsCore/FrameData.hpp"
 #include "GraphicsCore/Components/FrameDataComponent.hpp"
 #include "GraphicsCore/Components/CurrentFrameComponent.hpp"
 #include "GraphicsCore/Components/FrameImageComponent.hpp"
 #include "../Managers/FrameManager.hpp"
 #include "GraphicsCore/Components/FrameManagerComponent.hpp"
 #include "GraphicsCore/Components/RenderGraphComponent.hpp"
-#include "../RenderGraph/RenderGraph.hpp"
+#include "GraphicsCore/RenderGraph/RenderGraph.hpp"
 #include "GraphicsCore/Components/LightProbeGridComponent.hpp"
 #include "../GIBaker/LightProbeGIBaking.hpp"
 

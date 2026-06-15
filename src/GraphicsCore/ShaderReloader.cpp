@@ -1,4 +1,4 @@
-#include "ShaderReloader.hpp"
+#include "GraphicsCore/ShaderReloader.hpp"
 #include <iostream>
 #include <fstream>
 #include <sstream>

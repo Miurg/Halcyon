@@ -1,6 +1,6 @@
 #pragma once
 
-#include "RGResource.hpp"
+#include "GraphicsCore/RenderGraph/RGResource.hpp"
 #include <functional>
 #include <optional>
 #include <string>

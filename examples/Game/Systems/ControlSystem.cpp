@@ -4,12 +4,14 @@
 #include <GLFW/glfw3.h>
 #include <iostream>
 
-#include <HalcyonGraphics.hpp>
-#include <HalcyonPlatform.hpp>
-
 #ifdef TRACY_ENABLE
 #include <tracy/Tracy.hpp>
 #endif
+
+#include <PlatformCore/PlatformContexts.hpp>
+#include <GraphicsCore/GraphicsContexts.hpp>
+
+
 
 void ControlSystem::cursorDisableToggle(Window* window)
 {

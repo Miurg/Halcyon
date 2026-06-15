@@ -4,7 +4,7 @@
 #include <Orhescyon/Entitys/EntityManager.hpp>
 
 #include "GraphicsCore/GraphicsContexts.hpp"
-#include "../SwapChain.hpp"
+#include "GraphicsCore/SwapChain.hpp"
 #include "GraphicsCore/Components/SwapChainComponent.hpp"
 #include "GraphicsCore/Components/TextureManagerComponent.hpp"
 #include "GraphicsCore/Components/DescriptorManagerComponent.hpp"
@@ -16,11 +16,11 @@
 #include "GraphicsCore/Components/GlobalTransformComponent.hpp"
 #include "GraphicsCore/Resources/Components/GlobalDSetComponent.hpp"
 #include "GraphicsCore/Resources/Components/MeshInfoComponent.hpp"
-#include "../Resources/Managers/ModelManager.hpp"
-#include "../Resources/Managers/TextureManager.hpp"
-#include "../Managers/PipelineManager.hpp"
-#include "../Factories/PipelineFactory.hpp"
-#include "../RenderGraph/RenderGraph.hpp"
+#include "GraphicsCore/Resources/Managers/ModelManager.hpp"
+#include "GraphicsCore/Resources/Managers/TextureManager.hpp"
+#include "GraphicsCore/Managers/PipelineManager.hpp"
+#include "GraphicsCore/Factories/PipelineFactory.hpp"
+#include "GraphicsCore/RenderGraph/RenderGraph.hpp"
 
 struct AABBPush
 {

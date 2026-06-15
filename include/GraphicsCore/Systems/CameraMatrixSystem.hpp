@@ -1,8 +1,8 @@
 #pragma once
 #include <Orhescyon/GeneralManager.hpp>
 #include <Orhescyon/Systems/SystemCore.hpp>
-#include "FrameBeginSystem.hpp"
-#include "BufferUpdateSystem.hpp"
+#include "GraphicsCore/Systems/FrameBeginSystem.hpp"
+#include "GraphicsCore/Systems/BufferUpdateSystem.hpp"
 #include "GraphicsCore/Components/CameraComponent.hpp"
 #include "GraphicsCore/Components/GlobalTransformComponent.hpp"
 #include "GraphicsCore/Components/DirectLightComponent.hpp"

@@ -1,8 +1,8 @@
 #pragma once
 
 #include <vector>
-#include "../Factories/PipelineFactory.hpp"
-#include "../VulkanDevice.hpp"
+#include "GraphicsCore/Factories/PipelineFactory.hpp"
+#include "GraphicsCore/VulkanDevice.hpp"
 
 class DescriptorManager;
 

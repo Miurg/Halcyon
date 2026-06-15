@@ -7,8 +7,8 @@
 
 #include "PhysicsCore/Components/PhysTransformSnapshotComponent.hpp"
 #include "PhysicsCore/Components/PhysBodyComponent.hpp"
-#include "../../GraphicsCore/Systems/TransformSystem.hpp"
-#include "PhysUpdateSystem.hpp"
+#include "GraphicsCore/Systems/TransformSystem.hpp"
+#include "PhysicsCore/Systems/PhysUpdateSystem.hpp"
 
 using Orhescyon::GeneralManager;
 class PhysSnapshotSystem

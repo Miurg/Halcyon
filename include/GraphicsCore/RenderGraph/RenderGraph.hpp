@@ -1,7 +1,8 @@
 #pragma once
 
-#include "RGPass.hpp"
-#include "RGResource.hpp"
+#include "GraphicsCore/RenderGraph/RGPass.hpp"
+#include "GraphicsCore/RenderGraph/RGResource.hpp"
+#include <vk_mem_alloc.h>
 #include <vector>
 #include <unordered_map>
 

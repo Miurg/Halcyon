@@ -2,7 +2,7 @@
 
 #include <vulkan/vulkan_raii.hpp>
 #include "PlatformCore/Window.hpp"
-#include "../VulkanDevice.hpp"
+#include "GraphicsCore/VulkanDevice.hpp"
 
 
 class VulkanDeviceFactory

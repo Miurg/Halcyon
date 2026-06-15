@@ -1,5 +1,5 @@
-#include "CameraMatrixSystem.hpp"
-#include "../Resources/Managers/BufferManager.hpp"
+#include "GraphicsCore/Systems/CameraMatrixSystem.hpp"
+#include "GraphicsCore/Resources/Managers/BufferManager.hpp"
 #include <iostream>
 #include <chrono>
 #include <vector>
@@ -13,7 +13,7 @@
 #include "GraphicsCore/Components/CameraComponent.hpp"
 #include "GraphicsCore/Components/GlobalTransformComponent.hpp"
 #include "GraphicsCore/Components/DirectLightComponent.hpp"
-#include "../Resources/ResourceStructures.hpp"
+#include "GraphicsCore/Resources/ResourceStructures.hpp"
 
 #ifdef TRACY_ENABLE
 #include <tracy/Tracy.hpp>

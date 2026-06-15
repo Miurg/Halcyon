@@ -3,7 +3,12 @@
 #include <vector>
 #include <Orhescyon/GeneralManager.hpp>
 #include <Orhescyon/Systems/SystemCore.hpp>
-#include <HalcyonGraphics.hpp>
+
+#include <GraphicsCore/Components/LocalTransformComponent.hpp>
+#include <GraphicsCore/Components/DeltaTimeComponent.hpp>
+#include <GraphicsCore/Systems/DeltaTimeSystem.hpp>
+#include <GraphicsCore/Systems/FrameBeginSystem.hpp>
+
 
 using Orhescyon::GeneralManager;
 

@@ -3,16 +3,16 @@
 #include <Orhescyon/GeneralManager.hpp>
 
 #include "GraphicsCore/GraphicsContexts.hpp"
-#include "../SwapChain.hpp"
+#include "GraphicsCore/SwapChain.hpp"
 #include "GraphicsCore/Components/SwapChainComponent.hpp"
 #include "GraphicsCore/Components/DescriptorManagerComponent.hpp"
 #include "GraphicsCore/Components/PipelineManagerComponent.hpp"
 #include "GraphicsCore/Components/GraphicsSettingsComponent.hpp"
 #include "GraphicsCore/Components/RenderGraphComponent.hpp"
-#include "../Resources/Managers/DescriptorManager.hpp"
-#include "../Managers/PipelineManager.hpp"
-#include "../Factories/PipelineFactory.hpp"
-#include "../RenderGraph/RenderGraph.hpp"
+#include "GraphicsCore/Resources/Managers/DescriptorManager.hpp"
+#include "GraphicsCore/Managers/PipelineManager.hpp"
+#include "GraphicsCore/Factories/PipelineFactory.hpp"
+#include "GraphicsCore/RenderGraph/RenderGraph.hpp"
 
 namespace
 {

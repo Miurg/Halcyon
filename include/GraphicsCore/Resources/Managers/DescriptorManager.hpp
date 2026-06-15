@@ -1,11 +1,11 @@
 #pragma once
 #include <vulkan/vulkan_raii.hpp>
-#include "../../VulkanDevice.hpp"
+#include "GraphicsCore/VulkanDevice.hpp"
 #include "GraphicsCore/Resources/Components/BindlessTextureDSetComponent.hpp"
-#include "Buffer.hpp"
-#include "ResourceHandles.hpp"
-#include "../../VulkanConst.hpp"
-#include "DescriptorLayoutRegistry.hpp"
+#include "GraphicsCore/Resources/Managers/Buffer.hpp"
+#include "GraphicsCore/Resources/Managers/ResourceHandles.hpp"
+#include "GraphicsCore/VulkanConst.hpp"
+#include "GraphicsCore/Resources/Managers/DescriptorLayoutRegistry.hpp"
 
 class BufferManager;
 

@@ -1,7 +1,7 @@
 #pragma once
 
 #include <vulkan/vulkan_raii.hpp>
-#include "VulkanDevice.hpp"
+#include "GraphicsCore/VulkanDevice.hpp"
 
 struct FrameData
 {

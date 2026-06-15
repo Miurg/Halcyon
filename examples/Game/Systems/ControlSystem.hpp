@@ -1,9 +1,17 @@
 #pragma once
 #include <Orhescyon/GeneralManager.hpp>
 #include <Orhescyon/Systems/SystemCore.hpp>
-#include <HalcyonPlatform.hpp>
-#include <HalcyonGraphics.hpp>
+
 #include "../Components/ControlComponent.hpp"
+#include <GraphicsCore/Systems/FrameBeginSystem.hpp>
+#include <GraphicsCore/Systems/DeltaTimeSystem.hpp>
+
+#include <PlatformCore/Components/KeyboardStateComponent.hpp>
+#include <PlatformCore/Components/CursorPositionComponent.hpp>
+#include <GraphicsCore/Components/DeltaTimeComponent.hpp>
+#include <GraphicsCore/Components/GlobalTransformComponent.hpp>
+#include <GraphicsCore/Components/CameraComponent.hpp>
+#include <PlatformCore/Components/WindowComponent.hpp>
 
 using Orhescyon::GeneralManager;
 

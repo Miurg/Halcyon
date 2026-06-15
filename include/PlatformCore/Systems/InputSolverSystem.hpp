@@ -8,8 +8,8 @@
 #include "PlatformCore/Components/MouseStateComponent.hpp"
 #include "PlatformCore/Components/ScrollDeltaComponent.hpp"
 #include "PlatformCore/Components/WindowComponent.hpp"
-#include "../../GraphicsCore/Systems/DeltaTimeSystem.hpp"
-#include "../../GraphicsCore/Systems/FrameBeginSystem.hpp"
+#include "GraphicsCore/Systems/DeltaTimeSystem.hpp"
+#include "GraphicsCore/Systems/FrameBeginSystem.hpp"
 
 using Orhescyon::GeneralManager;
 class InputSolverSystem

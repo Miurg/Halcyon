@@ -17,8 +17,8 @@
 #include "PhysicsCore/Components/PhysBodyComponent.hpp"
 #include "PhysicsCore/Components/PhysTickRateComponent.hpp"
 #include "PhysicsCore/PhysContexts.hpp"
-#include "Systems/PhysUpdateSystem.hpp"
-#include "Systems/PhysSnapshotSystem.hpp"
+#include "PhysicsCore/Systems/PhysUpdateSystem.hpp"
+#include "PhysicsCore/Systems/PhysSnapshotSystem.hpp"
 #include "PhysicsCore/PhysLayers.hpp"
 
 #include "DeletionQueueComponent.hpp"

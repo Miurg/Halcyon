@@ -1,9 +1,22 @@
 #include "GameInit.hpp"
 #include <iostream>
 
-#include "Game/Systems/ControlSystem.hpp"
-#include "Game/Systems/RotationSystem.hpp"
-#include "Game/Systems/SpawnSystem.hpp"
+#include <Game/Systems/ControlSystem.hpp>
+#include <Game/Systems/RotationSystem.hpp>
+#include <Game/Systems/SpawnSystem.hpp>
+#include <GraphicsCore/Systems/GPUParticlesSystem.hpp>
+#include <GraphicsCore/Components/BufferManagerComponent.hpp>
+#include <GraphicsCore/Components/TextureManagerComponent.hpp>
+#include <GraphicsCore/Components/ModelManagerComponent.hpp>
+#include <GraphicsCore/Components/DescriptorManagerComponent.hpp>
+#include <GraphicsCore/Components/NameComponent.hpp>
+#include <PhysicsCore/Components/PhysManagerComponent.hpp>
+#include <PhysicsCore/PhysContexts.hpp>
+#include <GraphicsCore/Resources/Factories/SkyboxFactory.hpp>
+#include <GraphicsCore/Resources/Factories/ModelFactory.hpp>
+#include <SmithCore/Renderables.hpp>
+#include <SmithCore/Phys.hpp>
+
 
 #pragma region Run
 void GameInit::Run(GeneralManager& gm)

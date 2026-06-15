@@ -5,8 +5,8 @@
 #include "GraphicsCore/Resources/Components/TextureInfoComponent.hpp"
 #include <Orhescyon/GeneralManager.hpp>
 #include <Orhescyon/Systems/SystemCore.hpp>
-#include "FrameBeginSystem.hpp"
-#include "BufferUpdateSystem.hpp"
+#include "GraphicsCore/Systems/FrameBeginSystem.hpp"
+#include "GraphicsCore/Systems/BufferUpdateSystem.hpp"
 
 using Orhescyon::GeneralManager;
 class LightUpdateSystem : public Orhescyon::SystemCore<LightUpdateSystem, GlobalTransformComponent, PointLightComponent>

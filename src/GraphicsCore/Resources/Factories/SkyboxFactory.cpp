@@ -1,9 +1,9 @@
-#include "SkyboxFactory.hpp"
+#include "GraphicsCore/Resources/Factories/SkyboxFactory.hpp"
 
-#include "../Managers/TextureManager.hpp"
-#include "../Managers/DescriptorManager.hpp"
-#include "../Managers/BufferManager.hpp"
-#include "TextureUploader.hpp"
+#include "GraphicsCore/Resources/Managers/TextureManager.hpp"
+#include "GraphicsCore/Resources/Managers/DescriptorManager.hpp"
+#include "GraphicsCore/Resources/Managers/BufferManager.hpp"
+#include "GraphicsCore/Resources/Factories/TextureUploader.hpp"
 #include "GraphicsCore/Components/TextureManagerComponent.hpp"
 #include "GraphicsCore/Components/DescriptorManagerComponent.hpp"
 #include "GraphicsCore/Components/VMAllocatorComponent.hpp"
@@ -13,7 +13,7 @@
 #include "GraphicsCore/Resources/Components/BindlessTextureDSetComponent.hpp"
 #include "GraphicsCore/Resources/Components/GlobalDSetComponent.hpp"
 #include "GraphicsCore/GraphicsContexts.hpp"
-#include "../../Managers/PipelineManager.hpp"
+#include "GraphicsCore/Managers/PipelineManager.hpp"
 #include "GraphicsCore/Components/PipelineManagerComponent.hpp"
 
 void SkyboxFactory::loadSkybox(const std::string& hdrPath, GeneralManager& gm)

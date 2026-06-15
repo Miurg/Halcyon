@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../VulkanConst.hpp"
+#include "GraphicsCore/VulkanConst.hpp"
 #include "PrimitivesInfo.hpp"
 
 struct MeshInfo

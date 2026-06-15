@@ -3,13 +3,13 @@
 #include "../Managers/Texture.hpp"
 #include "GraphicsCore/Resources/Components/MeshInfoComponent.hpp"
 #include <memory>
-#include "../../VulkanDevice.hpp"
+#include "GraphicsCore/VulkanDevice.hpp"
 #include "../Managers/PrimitivesInfo.hpp"
 #include <tiny_gltf.h>
 #include "../Managers/MeshInfo.hpp"
-#include "../Managers/BufferManager.hpp"
-#include "../Managers/TextureManager.hpp"
-#include "../Managers/ModelManager.hpp"
+#include "GraphicsCore/Resources/Managers/BufferManager.hpp"
+#include "GraphicsCore/Resources/Managers/TextureManager.hpp"
+#include "GraphicsCore/Resources/Managers/ModelManager.hpp"
 
 struct TextureData
 {

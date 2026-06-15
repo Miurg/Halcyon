@@ -1,8 +1,8 @@
-#include "RenderGraph.hpp"
-#include "../VulkanDevice.hpp"
-#include "../Resources/Managers/DescriptorManager.hpp"
+#include "GraphicsCore/RenderGraph/RenderGraph.hpp"
+#include "GraphicsCore/VulkanDevice.hpp"
+#include "GraphicsCore/Resources/Managers/DescriptorManager.hpp"
 #include "GraphicsCore/Resources/Components/GlobalDSetComponent.hpp"
-#include "../Resources/Managers/Bindings.hpp"
+#include "GraphicsCore/Resources/Managers/Bindings.hpp"
 #include "GraphicsCore/Components/GraphicsSettingsComponent.hpp"
 
 #include <algorithm>

@@ -1,11 +1,11 @@
-#include "RenderSystem.hpp"
+#include "GraphicsCore/Systems/RenderSystem.hpp"
 
 #include <iostream>
 #include <imgui.h>
 
 #include "GraphicsCore/GraphicsContexts.hpp"
-#include "../SwapChain.hpp"
-#include "../VulkanDevice.hpp"
+#include "GraphicsCore/SwapChain.hpp"
+#include "GraphicsCore/VulkanDevice.hpp"
 #include "GraphicsCore/Components/SwapChainComponent.hpp"
 #include "GraphicsCore/Components/CurrentFrameComponent.hpp"
 #include "GraphicsCore/Components/FrameImageComponent.hpp"
@@ -14,8 +14,8 @@
 #include "GraphicsCore/Components/DirectLightComponent.hpp"
 #include "GraphicsCore/Components/RenderGraphComponent.hpp"
 #include "GraphicsCore/Components/GraphicsSettingsComponent.hpp"
-#include "../Resources/Managers/TextureManager.hpp"
-#include "../RenderGraph/RenderGraph.hpp"
+#include "GraphicsCore/Resources/Managers/TextureManager.hpp"
+#include "GraphicsCore/RenderGraph/RenderGraph.hpp"
 
 #include "../Passes/IPass.hpp"
 #include "../Passes/DirectLightPass.hpp"

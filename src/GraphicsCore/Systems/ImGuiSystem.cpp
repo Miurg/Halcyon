@@ -1,4 +1,4 @@
-#include "ImGuiSystem.hpp"
+#include "GraphicsCore/Systems/ImGuiSystem.hpp"
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_vulkan.h>
@@ -20,9 +20,9 @@
 #include "GraphicsCore/Components/GraphicsSettingsComponent.hpp"
 #include "GraphicsCore/Components/AutoExposureSettingsComponent.hpp"
 #include "GraphicsCore/Components/VulkanDeviceComponent.hpp"
-#include "../VulkanDevice.hpp"
+#include "GraphicsCore/VulkanDevice.hpp"
 #include "GraphicsCore/Components/PointLightComponent.hpp"
-#include "../ShaderReloader.hpp"
+#include "GraphicsCore/ShaderReloader.hpp"
 #include "GraphicsCore/Components/ShaderReloaderComponent.hpp"
 #include "GraphicsCore/Components/PipelineManagerComponent.hpp"
 #include "GraphicsCore/Components/GraphicsSettingsComponent.hpp"

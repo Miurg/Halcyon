@@ -1,4 +1,4 @@
-#include "ModelFactory.hpp"
+#include "GraphicsCore/Resources/Factories/ModelFactory.hpp"
 #include <ktx.h>
 #include <stb_image.h>
 #include <glm/glm.hpp>
@@ -8,12 +8,12 @@
 #include "GraphicsCore/Components/GlobalTransformComponent.hpp"
 #include "GraphicsCore/Components/LocalTransformComponent.hpp"
 #include "GraphicsCore/Components/RelationshipComponent.hpp"
-#include "../../Systems/TransformSystem.hpp"
-#include "../../Systems/RenderSystem.hpp"
+#include "GraphicsCore/Systems/TransformSystem.hpp"
+#include "GraphicsCore/Systems/RenderSystem.hpp"
 #include "GraphicsCore/Components/NameComponent.hpp"
 #include <string>
 #include "GraphicsCore/Components/PointLightComponent.hpp"
-#include "../../Systems/LightUpdateSystem.hpp"
+#include "GraphicsCore/Systems/LightUpdateSystem.hpp"
 
 glm::mat4 convertGLTFMatrix(const std::vector<double>& matrix)
 {

@@ -1,4 +1,4 @@
-#include "DescriptorLayoutRegistry.hpp"
+#include "GraphicsCore/Resources/Managers/DescriptorLayoutRegistry.hpp"
 #include <stdexcept>
 
 void DescriptorLayoutRegistry::create(const std::string& name, std::span<const vk::DescriptorSetLayoutBinding> bindings,

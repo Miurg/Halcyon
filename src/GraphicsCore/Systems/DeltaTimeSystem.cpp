@@ -1,4 +1,4 @@
-#include "DeltaTimeSystem.hpp"
+#include "GraphicsCore/Systems/DeltaTimeSystem.hpp"
 #include "GraphicsCore/GraphicsContexts.hpp"
 #include "GraphicsCore/Components/DeltaTimeComponent.hpp"
 #include "PlatformCore/Window.hpp"

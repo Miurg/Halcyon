@@ -9,9 +9,9 @@
 #include "GraphicsCore/Components/DrawInfoComponent.hpp"
 #include "GraphicsCore/Resources/Components/TextureInfoComponent.hpp"
 #include "GraphicsCore/Resources/Components/MeshInfoComponent.hpp"
-#include "BufferUpdateSystem.hpp"
-#include "FrameEndSystem.hpp"
-#include "../Passes/IPass.hpp"
+#include "GraphicsCore/Systems/BufferUpdateSystem.hpp"
+#include "GraphicsCore/Systems/FrameEndSystem.hpp"
+#include "GraphicsCore/Passes/IPass.hpp"
 
 class RenderGraph;
 

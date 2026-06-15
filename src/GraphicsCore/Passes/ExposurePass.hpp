@@ -1,7 +1,7 @@
 #pragma once
 #include "IPass.hpp"
-#include "../Resources/Managers/ResourceHandles.hpp"
-#include "../Resources/Managers/BufferManager.hpp"
+#include "GraphicsCore/Resources/Managers/ResourceHandles.hpp"
+#include "GraphicsCore/Resources/Managers/BufferManager.hpp"
 #include "GraphicsCore/Components/SwapChainComponent.hpp"
 #include "GraphicsCore/Components/DescriptorManagerComponent.hpp"
 #include "GraphicsCore/Components/AutoExposureSettingsComponent.hpp"

@@ -5,8 +5,8 @@
 #include <Orhescyon/GeneralManager.hpp>
 
 #include "GraphicsCore/GraphicsContexts.hpp"
-#include "../SwapChain.hpp"
-#include "../VulkanDevice.hpp"
+#include "GraphicsCore/SwapChain.hpp"
+#include "GraphicsCore/VulkanDevice.hpp"
 #include "GraphicsCore/Components/SwapChainComponent.hpp"
 #include "GraphicsCore/Components/VulkanDeviceComponent.hpp"
 #include "GraphicsCore/Components/VMAllocatorComponent.hpp"
@@ -17,12 +17,12 @@
 #include "GraphicsCore/Components/GtaoSettingsComponent.hpp"
 #include "GraphicsCore/Components/RenderGraphComponent.hpp"
 #include "GraphicsCore/Resources/Components/GlobalDSetComponent.hpp"
-#include "../Resources/Managers/TextureManager.hpp"
-#include "../Resources/Managers/DescriptorManager.hpp"
-#include "../Resources/Factories/TextureUploader.hpp"
-#include "../Managers/PipelineManager.hpp"
-#include "../Factories/PipelineFactory.hpp"
-#include "../RenderGraph/RenderGraph.hpp"
+#include "GraphicsCore/Resources/Managers/TextureManager.hpp"
+#include "GraphicsCore/Resources/Managers/DescriptorManager.hpp"
+#include "GraphicsCore/Resources/Factories/TextureUploader.hpp"
+#include "GraphicsCore/Managers/PipelineManager.hpp"
+#include "GraphicsCore/Factories/PipelineFactory.hpp"
+#include "GraphicsCore/RenderGraph/RenderGraph.hpp"
 #include "../Resources/Data/GtaoNoiseTexture.hpp"
 
 namespace

@@ -1,5 +1,5 @@
 #include "SwapChainFactory.hpp"
-#include "../VulkanUtils.hpp"
+#include "GraphicsCore/VulkanUtils.hpp"
 #include <iostream>
 
 void SwapChainFactory::createSwapChain(SwapChain& swapChain, VulkanDevice& deviceContext, Window& window,

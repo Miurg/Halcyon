@@ -4,7 +4,7 @@
 #include "../Managers/Texture.hpp"
 #include "GraphicsCore/Resources/Components/MeshInfoComponent.hpp"
 #include <vk_mem_alloc.h>
-#include "../../VulkanDevice.hpp"
+#include "GraphicsCore/VulkanDevice.hpp"
 #include "../Managers/PrimitivesInfo.hpp"
 #include <tiny_gltf.h>
 

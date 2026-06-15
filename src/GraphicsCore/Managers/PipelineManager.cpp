@@ -1,6 +1,6 @@
-#include "PipelineManager.hpp"
-#include "../VulkanUtils.hpp"
-#include "../Resources/Managers/DescriptorManager.hpp"
+#include "GraphicsCore/Managers/PipelineManager.hpp"
+#include "GraphicsCore/VulkanUtils.hpp"
+#include "GraphicsCore/Resources/Managers/DescriptorManager.hpp"
 
 PipelineManager::PipelineManager(VulkanDevice& vulkanDevice, DescriptorManager& descriptorManager)
     : vulkanDevice(vulkanDevice), descriptorManager(descriptorManager)

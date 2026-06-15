@@ -1,17 +1,17 @@
 #pragma once
 
-#include "VertexIndexBuffer.hpp"
+#include "GraphicsCore/Resources/Managers/VertexIndexBuffer.hpp"
 #include <vector>
 #include <unordered_map>
 #include "GraphicsCore/Resources/Components/MeshInfoComponent.hpp"
-#include "../../VulkanConst.hpp"
+#include "GraphicsCore/VulkanConst.hpp"
 #include <vk_mem_alloc.h>
-#include "Texture.hpp"
-#include "Buffer.hpp"
+#include "GraphicsCore/Resources/Managers/Texture.hpp"
+#include "GraphicsCore/Resources/Managers/Buffer.hpp"
 #include "GraphicsCore/Resources/Components/BindlessTextureDSetComponent.hpp"
-#include "../../VulkanDevice.hpp"
-#include "DescriptorManager.hpp"
-#include "MeshInfo.hpp"
+#include "GraphicsCore/VulkanDevice.hpp"
+#include "GraphicsCore/Resources/Managers/DescriptorManager.hpp"
+#include "GraphicsCore/Resources/Managers/MeshInfo.hpp"
 
 // Stores loaded meshes and their GPU vertex/index buffers. Deduplicates by file path.
 class ModelManager

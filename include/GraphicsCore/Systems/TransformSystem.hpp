@@ -5,12 +5,12 @@
 #include <Orhescyon/Systems/SystemCore.hpp>
 #include "GraphicsCore/Resources/Components/TextureInfoComponent.hpp"
 #include "GraphicsCore/Resources/Components/MeshInfoComponent.hpp"
-#include "BufferUpdateSystem.hpp"
+#include "GraphicsCore/Systems/BufferUpdateSystem.hpp"
 #include "GraphicsCore/Components/LocalTransformComponent.hpp"
 #include "GraphicsCore/Components/GlobalTransformComponent.hpp"
 #include "GraphicsCore/Components/RelationshipComponent.hpp"
-#include "FrameBeginSystem.hpp"
-#include "DeltaTimeSystem.hpp"
+#include "GraphicsCore/Systems/FrameBeginSystem.hpp"
+#include "GraphicsCore/Systems/DeltaTimeSystem.hpp"
 
 using Orhescyon::GeneralManager;
 class TransformSystem : public Orhescyon::SystemCore<TransformSystem, GlobalTransformComponent, LocalTransformComponent,

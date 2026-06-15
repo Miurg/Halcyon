@@ -1,9 +1,9 @@
-#include "GPUParticlesSystem.hpp"
+#include "GraphicsCore/Systems/GPUParticlesSystem.hpp"
 
 #include "GraphicsCore/Components/ParticleEmitorComponent.hpp"
 #include "GraphicsCore/GraphicsContexts.hpp"
 #include "GraphicsCore/Components/ParticlesBufferComponent.hpp"
-#include "../Resources/Managers/BufferManager.hpp"
+#include "GraphicsCore/Resources/Managers/BufferManager.hpp"
 #include "GraphicsCore/Components/BufferManagerComponent.hpp"
 #include "../Passes/ParticleSystemComputePass.hpp"
 

@@ -1,5 +1,5 @@
-#include "LightUpdateSystem.hpp"
-#include "../Resources/Managers/BufferManager.hpp"
+#include "GraphicsCore/Systems/LightUpdateSystem.hpp"
+#include "GraphicsCore/Resources/Managers/BufferManager.hpp"
 #include <iostream>
 #include <chrono>
 #include "GraphicsCore/GraphicsContexts.hpp"
@@ -10,11 +10,11 @@
 #include "GraphicsCore/Resources/Components/ModelDSetComponent.hpp"
 #include "GraphicsCore/Resources/Components/MeshInfoComponent.hpp"
 #include <map>
-#include "../Resources/Managers/ModelManager.hpp"
+#include "GraphicsCore/Resources/Managers/ModelManager.hpp"
 #include "GraphicsCore/Components/ModelManagerComponent.hpp"
 #include "GraphicsCore/Components/TextureManagerComponent.hpp"
-#include "../Resources/Managers/TextureManager.hpp"
-#include "../Resources/ResourceStructures.hpp"
+#include "GraphicsCore/Resources/Managers/TextureManager.hpp"
+#include "GraphicsCore/Resources/ResourceStructures.hpp"
 #include "GraphicsCore/Resources/Components/GlobalDSetComponent.hpp"
 
 #ifdef TRACY_ENABLE

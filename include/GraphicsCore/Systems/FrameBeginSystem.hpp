@@ -2,8 +2,8 @@
 
 #include <Orhescyon/GeneralManager.hpp>
 #include <Orhescyon/Systems/SystemCore.hpp>
-#include "FrameEndSystem.hpp"
-#include "DeltaTimeSystem.hpp"
+#include "GraphicsCore/Systems/FrameEndSystem.hpp"
+#include "GraphicsCore/Systems/DeltaTimeSystem.hpp"
 #include "GraphicsCore/Components/CurrentFrameComponent.hpp"
 #include "GraphicsCore/Components/FrameImageComponent.hpp"
 

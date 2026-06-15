@@ -2,8 +2,8 @@
 #include <Orhescyon/GeneralManager.hpp>
 #include <Orhescyon/Systems/SystemCore.hpp>
 #include <vector>
-#include "FrameBeginSystem.hpp"
-#include "BufferUpdateSystem.hpp"
+#include "GraphicsCore/Systems/FrameBeginSystem.hpp"
+#include "GraphicsCore/Systems/BufferUpdateSystem.hpp"
 #include "GraphicsCore/Components/NameComponent.hpp"
 #include "GraphicsCore/Components/RelationshipComponent.hpp"
 #include "GraphicsCore/Components/GlobalTransformComponent.hpp"

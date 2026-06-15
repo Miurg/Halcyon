@@ -3,7 +3,10 @@
 #include <vector>
 #include <Orhescyon/GeneralManager.hpp>
 #include <Orhescyon/Systems/SystemCore.hpp>
-#include <HalcyonGraphics.hpp>
+
+#include <GraphicsCore/Systems/DeltaTimeSystem.hpp>
+#include <GraphicsCore/Systems/FrameBeginSystem.hpp>
+#include <GraphicsCore/Components/DeltaTimeComponent.hpp>
 
 using Orhescyon::GeneralManager;
 class SpawnSystem : public Orhescyon::SystemCore<SpawnSystem>

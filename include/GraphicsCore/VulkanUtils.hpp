@@ -1,7 +1,8 @@
 #pragma once
 
 #include <vulkan/vulkan_raii.hpp>
-#include "VulkanDevice.hpp"
+#include <vk_mem_alloc.h>
+#include "GraphicsCore/VulkanDevice.hpp"
 #include <vector>
 
 struct StagingBuffer

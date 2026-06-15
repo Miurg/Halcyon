@@ -4,8 +4,8 @@
 #include <vector>
 #include <filesystem>
 #include <unordered_map>
-#include "Managers/PipelineManager.hpp"
-#include "VulkanDevice.hpp"
+#include "GraphicsCore/Managers/PipelineManager.hpp"
+#include "GraphicsCore/VulkanDevice.hpp"
 
 class ShaderReloader
 {

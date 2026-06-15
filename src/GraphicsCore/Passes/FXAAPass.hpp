@@ -1,6 +1,6 @@
 #pragma once
 #include "IPass.hpp"
-#include "../Resources/Managers/ResourceHandles.hpp"
+#include "GraphicsCore/Resources/Managers/ResourceHandles.hpp"
 
 class FXAAPass : public IPass
 {

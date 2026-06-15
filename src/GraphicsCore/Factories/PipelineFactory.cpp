@@ -1,5 +1,5 @@
-#include "PipelineFactory.hpp"
-#include "../VulkanUtils.hpp"
+#include "GraphicsCore/Factories/PipelineFactory.hpp"
+#include "GraphicsCore/VulkanUtils.hpp"
 #include "../Resources/Managers/Vertex.hpp"
 #include "PipelineBuilder.hpp"
 
