@@ -17,7 +17,7 @@
 #include "GraphicsCore/Resources/Managers/TextureManager.hpp"
 #include "GraphicsCore/RenderGraph/RenderGraph.hpp"
 
-#include "../Passes/IPass.hpp"
+#include "GraphicsCore/Passes/IPass.hpp"
 #include "../Passes/DirectLightPass.hpp"
 #include "../Passes/CullPass.hpp"
 #include "../Passes/DepthPrepass.hpp"

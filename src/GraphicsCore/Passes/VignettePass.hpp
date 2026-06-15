@@ -1,5 +1,5 @@
 #pragma once
-#include "IPass.hpp"
+#include "GraphicsCore/Passes/IPass.hpp"
 #include "GraphicsCore/Resources/Managers/ResourceHandles.hpp"
 
 class VignettePass : public IPass
