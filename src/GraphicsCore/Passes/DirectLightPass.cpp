@@ -18,7 +18,7 @@
 #include "GraphicsCore/Resources/Managers/BufferManager.hpp"
 #include "GraphicsCore/Resources/Managers/ModelManager.hpp"
 #include "GraphicsCore/Resources/Managers/TextureManager.hpp"
-#include "../Resources/Managers/Vertex.hpp"
+#include "GraphicsCore/Resources/Managers/Vertex.hpp"
 #include "GraphicsCore/Managers/PipelineManager.hpp"
 #include "GraphicsCore/Factories/PipelineFactory.hpp"
 #include "GraphicsCore/RenderGraph/RenderGraph.hpp"

@@ -3,7 +3,7 @@
 #include <vector>
 #include <vulkan/vulkan_raii.hpp>
 #include <vk_mem_alloc.h>
-#include "Vertex.hpp"
+#include "GraphicsCore/Resources/Managers/Vertex.hpp"
 
 class VertexIndexBuffer
 {

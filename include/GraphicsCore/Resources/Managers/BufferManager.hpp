@@ -1,6 +1,5 @@
 #pragma once
 
-#include "GraphicsCore/Resources/Managers/VertexIndexBuffer.hpp"
 #include <vector>
 #include <unordered_map>
 #include "GraphicsCore/Resources/Components/MeshInfoComponent.hpp"

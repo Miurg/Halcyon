@@ -1,12 +1,12 @@
 #pragma once
-#include "../Managers/VertexIndexBuffer.hpp"
-#include "../Managers/Texture.hpp"
+#include "GraphicsCore/Resources/Managers/VertexIndexBuffer.hpp"
+#include "GraphicsCore/Resources/Managers/Texture.hpp"
 #include "GraphicsCore/Resources/Components/MeshInfoComponent.hpp"
 #include <memory>
 #include "GraphicsCore/VulkanDevice.hpp"
-#include "../Managers/PrimitivesInfo.hpp"
+#include "GraphicsCore/Resources/Managers/PrimitivesInfo.hpp"
 #include <tiny_gltf.h>
-#include "../Managers/MeshInfo.hpp"
+#include "GraphicsCore/Resources/Managers/MeshInfo.hpp"
 #include "GraphicsCore/Resources/Managers/BufferManager.hpp"
 #include "GraphicsCore/Resources/Managers/TextureManager.hpp"
 #include "GraphicsCore/Resources/Managers/ModelManager.hpp"

@@ -1,6 +1,6 @@
 #include "GraphicsCore/Factories/PipelineFactory.hpp"
 #include "GraphicsCore/VulkanUtils.hpp"
-#include "../Resources/Managers/Vertex.hpp"
+#include "GraphicsCore/Resources/Managers/Vertex.hpp"
 #include "PipelineBuilder.hpp"
 
 ColorBlendAttachmentDesc PipelineFactory::blendedAttachment()

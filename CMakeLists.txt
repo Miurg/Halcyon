@@ -61,13 +61,13 @@ target_precompile_headers(${PROJECT_NAME} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/s
 # === Linking and Includes ===
 target_include_directories(${PROJECT_NAME} PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
     $<INSTALL_INTERFACE:include>
 )
 
 target_include_directories(${PROJECT_NAME} PRIVATE
     ${TINYGLTF_INCLUDE_DIRS}
     ${STB_INCLUDE_DIRS}
+     ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 
 target_link_libraries(${PROJECT_NAME} PUBLIC
@@ -207,13 +207,6 @@ install(TARGETS Orhescyon
 
 install(DIRECTORY ${orhescyon_SOURCE_DIR}/include/
     DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-    FILES_MATCHING
-    PATTERN "*.hpp"
-    PATTERN "*.h"
-)
-
-install(DIRECTORY src/
-    DESTINATION src
     FILES_MATCHING
     PATTERN "*.hpp"
     PATTERN "*.h"

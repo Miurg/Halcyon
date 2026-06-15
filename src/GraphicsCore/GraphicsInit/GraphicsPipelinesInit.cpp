@@ -5,7 +5,7 @@
 #include "DeletionQueueComponent.hpp"
 #include "DeletionQueueContext.hpp"
 #include <vk_mem_alloc.h>
-#include "../Resources/Managers/Vertex.hpp"
+#include "GraphicsCore/Resources/Managers/Vertex.hpp"
 #include "GraphicsCore/Components/VulkanDeviceComponent.hpp"
 #include "GraphicsCore/Components/SwapChainComponent.hpp"
 #include "GraphicsCore/Components/VMAllocatorComponent.hpp"

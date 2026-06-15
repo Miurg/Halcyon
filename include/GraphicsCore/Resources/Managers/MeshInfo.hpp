@@ -1,7 +1,7 @@
 #pragma once
 
 #include "GraphicsCore/VulkanConst.hpp"
-#include "PrimitivesInfo.hpp"
+#include "GraphicsCore/Resources/Managers/PrimitivesInfo.hpp"
 
 struct MeshInfo
 {

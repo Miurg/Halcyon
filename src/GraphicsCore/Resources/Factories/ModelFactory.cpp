@@ -15,6 +15,8 @@
 #include "GraphicsCore/Components/PointLightComponent.hpp"
 #include "GraphicsCore/Systems/LightUpdateSystem.hpp"
 
+#include "GraphicsCore/Resources/Factories/GltfLoader.hpp"
+
 glm::mat4 convertGLTFMatrix(const std::vector<double>& matrix)
 {
 	float m[16];
@@ -25,7 +27,7 @@ glm::mat4 convertGLTFMatrix(const std::vector<double>& matrix)
 
 	return glm::make_mat4(m);
 }
-Orhescyon::Entity ModelFactory::createEntityHierarchy(int parentEntity, tinygltf::Model& model, GeneralManager& gm, int offset,
+Orhescyon::Entity createEntityHierarchy(int parentEntity, tinygltf::Model& model, GeneralManager& gm, int offset,
                                            BufferManager& bManager, int nodeIndex)
 {
 	tinygltf::Node& node = model.nodes[nodeIndex];
