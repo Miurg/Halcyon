@@ -8,5 +8,5 @@
 
 namespace Smith::Renderables
 {
-void forgeTransform(Orhescyon::GeneralManager& gm, Orhescyon::Entity e, glm::vec3 pos, glm::quat rot);
+HALCYON_API void forgeTransform(Orhescyon::GeneralManager& gm, Orhescyon::Entity e, glm::vec3 pos, glm::quat rot);
 } // namespace Smith::Renderables

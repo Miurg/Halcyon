@@ -14,10 +14,10 @@
 
 namespace Smith::Phys
 {
-void forgeBody(Orhescyon::GeneralManager& gm, Orhescyon::Entity e, Body b, Sphere sphere);
-void forgeBody(Orhescyon::GeneralManager& gm, Orhescyon::Entity e, Body b, Box box);
-void forgeBody(Orhescyon::GeneralManager& gm, Orhescyon::Entity e, Body b, Capsule capsule);
-void forgeBody(Orhescyon::GeneralManager& gm, Orhescyon::Entity e, Body b, Cylinder cylinder);
-void forgeBody(Orhescyon::GeneralManager& gm, Orhescyon::Entity e, Body b, ConvexHull convexHull);
-void forgeBody(Orhescyon::GeneralManager& gm, Orhescyon::Entity e, JPH::BodyID bodyID);
+HALCYON_API void forgeBody(Orhescyon::GeneralManager& gm, Orhescyon::Entity e, Body b, Sphere sphere);
+HALCYON_API void forgeBody(Orhescyon::GeneralManager& gm, Orhescyon::Entity e, Body b, Box box);
+HALCYON_API void forgeBody(Orhescyon::GeneralManager& gm, Orhescyon::Entity e, Body b, Capsule capsule);
+HALCYON_API void forgeBody(Orhescyon::GeneralManager& gm, Orhescyon::Entity e, Body b, Cylinder cylinder);
+HALCYON_API void forgeBody(Orhescyon::GeneralManager& gm, Orhescyon::Entity e, Body b, ConvexHull convexHull);
+HALCYON_API void forgeBody(Orhescyon::GeneralManager& gm, Orhescyon::Entity e, JPH::BodyID bodyID);
 } // namespace Smith::Phys

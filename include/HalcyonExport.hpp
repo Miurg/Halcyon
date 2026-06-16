@@ -1,6 +1,5 @@
 #pragma once
 
-#include "HalcyonExport.hpp"
 #ifdef _WIN32
     #ifdef HALCYON_BUILD_SHARED
         #ifdef HALCYON_EXPORTS

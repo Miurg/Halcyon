@@ -29,7 +29,7 @@ struct HALCYON_API DirectLightStructure
 };
 
 // GPU-side per-primitive data (64 bytes, 16-byte aligned). Matches shader SSBO layout.
-struct PrimitiveSctructure // (16 + 16 + 16 + 4 + 4 + 4 + 4 = 64 bytes)
+struct HALCYON_API PrimitiveSctructure // (16 + 16 + 16 + 4 + 4 + 4 + 4 = 64 bytes)
 {
 	alignas(16) glm::vec3 AABBMin; // xyz: min
 	float padding0;                // w: padding
