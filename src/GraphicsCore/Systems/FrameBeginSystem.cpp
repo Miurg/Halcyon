@@ -49,8 +49,32 @@ void FrameBeginSystem::update(GeneralManager& gm)
 #ifdef TRACY_ENABLE
 		ZoneScopedN("waitForFences");
 #endif
-		vulkanDevice.device.waitForFences(*frameManager->frames[currentFrameComp->currentFrame].inFlightFence, vk::True,
-		                                  UINT64_MAX);
+		try
+		{
+			vk::Result fenceResult = vulkanDevice.device.waitForFences(
+			    *frameManager->frames[currentFrameComp->currentFrame].inFlightFence, vk::True, UINT64_MAX);
+
+			switch (fenceResult)
+			{
+				case vk::Result::eSuccess:
+					break;
+
+				case vk::Result::eTimeout:
+					std::cerr << "[FrameBeginSystem] waitForFences timed out. Skipping frame." << std::endl;
+					return;
+
+				case vk::Result::eErrorDeviceLost:
+					throw std::runtime_error("[FrameBeginSystem] Device lost while waiting for fence!");
+
+				default:
+					throw std::runtime_error("[FrameBeginSystem] waitForFences returned unexpected error!");
+			}
+		}
+		catch (vk::SystemError& e)
+		{
+			throw std::runtime_error(
+			    std::string("[FrameBeginSystem] waitForFences failed with exception: ") + e.what());
+		}
 	}
 
 	// Handle window resize

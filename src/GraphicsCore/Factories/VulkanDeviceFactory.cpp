@@ -230,6 +230,7 @@ void VulkanDeviceFactory::createLogicalDevice(VulkanDevice& vulkanDevice)
 	    featureChain{};
 	featureChain.get<vk::PhysicalDeviceVulkan13Features>().dynamicRendering = true;
 	featureChain.get<vk::PhysicalDeviceVulkan13Features>().synchronization2 = true;
+	featureChain.get<vk::PhysicalDeviceVulkan13Features>().shaderDemoteToHelperInvocation = true;
 	featureChain.get<vk::PhysicalDeviceExtendedDynamicStateFeaturesEXT>().extendedDynamicState = true;
 	featureChain.get<vk::PhysicalDeviceVulkan11Features>().shaderDrawParameters = true;
 	featureChain.get<vk::PhysicalDeviceFeatures2>().features.samplerAnisotropy = true;

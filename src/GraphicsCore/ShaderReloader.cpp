@@ -66,7 +66,7 @@ bool ShaderReloader::compileShader(const std::string& slangPath, const std::stri
 	}
 
 	std::string command =
-	    "slangc \"" + slangPath + "\" -target spirv -profile spirv_1_4 -emit-spirv-directly -fvk-use-entrypoint-name";
+	    "slangc \"" + slangPath + "\" -target spirv -profile spirv_1_6 -emit-spirv-directly -fvk-use-entrypoint-name";
 	for (const auto& entry : entries)
 	{
 		command += " -entry " + entry;

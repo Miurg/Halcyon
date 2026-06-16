@@ -137,9 +137,10 @@ function(add_slang_shader_target TARGET_NAME)
         COMMAND ${SLANGC_EXECUTABLE}
                 "${ARG_SOURCES}"
                 -target spirv
-                -profile spirv_1_4
+                -profile spirv_1_6
                 -emit-spirv-directly
                 -fvk-use-entrypoint-name
+                -capability SPV_KHR_non_semantic_info+SPV_GOOGLE_user_type+spvDerivativeControl+spvImageQuery+spvImageGatherExtended+spvSparseResidency+spvMinLod+spvFragmentFullyCoveredEXT+spvShaderNonUniformEXT
                 ${ENTRY_FLAGS}
                 -o "${OUT_FILE}"
         WORKING_DIRECTORY "${CMAKE_CURRENT_LIST_DIR}"

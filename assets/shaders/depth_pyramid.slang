@@ -22,7 +22,7 @@ struct PushConstants
 	uint dstWidth;
 	uint dstHeight;
 	uint passIdx;
-	float edgeRange;  // width of the weighted average around the farthest sample
+	float edgeRange; // width of the weighted average around the farthest sample
 };
 [[vk::push_constant]]
 PushConstants push;
@@ -58,17 +58,17 @@ void computeMain(uint3 id: SV_DispatchThreadID)
 	depths[n++] = srcTex.Load(int3(base + uint2(0, 1), 0));
 	depths[n++] = srcTex.Load(int3(base + uint2(1, 1), 0));
 
-	if (srcSize.x & 1)
+	if ((srcSize.x & 1) != 0)
 	{
 		depths[n++] = srcTex.Load(int3(base + uint2(2, 0), 0));
 		depths[n++] = srcTex.Load(int3(base + uint2(2, 1), 0));
 	}
-	if (srcSize.y & 1)
+	if ((srcSize.y & 1) != 0)
 	{
 		depths[n++] = srcTex.Load(int3(base + uint2(0, 2), 0));
 		depths[n++] = srcTex.Load(int3(base + uint2(1, 2), 0));
 	}
-	if ((srcSize.x & 1) && (srcSize.y & 1))
+	if (((srcSize.x & 1) != 0) && ((srcSize.y & 1) != 0))
 	{
 		depths[n++] = srcTex.Load(int3(base + uint2(2, 2), 0));
 	}
