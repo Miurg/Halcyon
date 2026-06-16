@@ -30,7 +30,6 @@ void VulkanDeviceFactory::createVulkanDevice(Window& window, VulkanDevice& vulka
 	pickPhysicalDevice(vulkanDevice);
 	createLogicalDevice(vulkanDevice);
 	createCommandPool(vulkanDevice);
-	createTracyContext(vulkanDevice);
 }
 
 void VulkanDeviceFactory::createInstance(Window& window, VulkanDevice& vulkanDevice)
@@ -271,7 +270,7 @@ void VulkanDeviceFactory::createCommandPool(VulkanDevice& vulkanDevice)
 	poolInfo.queueFamilyIndex = vulkanDevice.graphicsIndex;
 	vulkanDevice.commandPool = vk::raii::CommandPool(vulkanDevice.device, poolInfo);
 }
-void VulkanDeviceFactory::createTracyContext(VulkanDevice& vulkanDevice)
+TracyVkCtx VulkanDeviceFactory::createTracyContext(const VulkanDevice& vulkanDevice)
 {
 #ifdef TRACY_ENABLE
 	vk::CommandBufferAllocateInfo allocInfo;
@@ -284,12 +283,15 @@ void VulkanDeviceFactory::createTracyContext(VulkanDevice& vulkanDevice)
 
 	// TracyVkContextCalibrated can spin forever in Calibrate() when
 	// vkGetCalibratedTimestampsEXT always reports deviation > m_deviation (seen on some Windows/GPU drivers).
-	vulkanDevice.tracyContext =
+	TracyVkCtx tracyContext =
 	    TracyVkContext(*vulkanDevice.physicalDevice, *vulkanDevice.device, *vulkanDevice.graphicsQueue, rawCmd);
 
 	vulkanDevice.graphicsQueue.waitIdle();
 	(*vulkanDevice.device).freeCommandBuffers(*vulkanDevice.commandPool, vk::CommandBuffer(rawCmd));
+
+	return tracyContext;
 #else
 	(void)vulkanDevice;
+	return nullptr;
 #endif
 }

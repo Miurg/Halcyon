@@ -53,7 +53,7 @@ void GraphicsPipelinesInit::initPipelines(GeneralManager& gm)
 #pragma region RenderGraph
 
 	Orhescyon::Entity rgEntity = gm.createEntity();
-	RenderGraph* rg = new RenderGraph(*vulkanDevice, vmaAlloc);
+	RenderGraph* rg = new RenderGraph(*vulkanDevice, vmaAlloc, &gm);
 	gm.registerContext<RenderGraphContext>(rgEntity);
 	gm.addComponent<RenderGraphComponent>(rgEntity, rg);
 	gm.addComponent<NameComponent>(rgEntity, "SYSTEM Render Graph");

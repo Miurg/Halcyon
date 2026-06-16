@@ -17,6 +17,7 @@
 #include "GraphicsCore/Components/FrameDataComponent.hpp"
 #include "GraphicsCore/Components/CurrentFrameComponent.hpp"
 #include "GraphicsCore/Components/FrameImageComponent.hpp"
+#include "GraphicsCore/Components/TracyContextComponent.hpp"
 #include "GraphicsCore/Resources/Components/GlobalDSetComponent.hpp"
 #include "GraphicsCore/Resources/Components/ModelDSetComponent.hpp"
 #include "GraphicsCore/Components/DrawInfoComponent.hpp"
@@ -48,6 +49,10 @@
 #include "GraphicsCore/Systems/FrameEndSystem.hpp"
 #include "GraphicsCore/Components/DeltaTimeComponent.hpp"
 #include "GraphicsCore/Systems/GPUParticlesSystem.hpp"
+
+#ifdef TRACY_ENABLE
+#include <tracy/TracyVulkan.hpp>
+#endif
 
 #pragma region Run
 void GraphicsInit::Run(GeneralManager& gm)
@@ -106,8 +111,22 @@ void GraphicsInit::initVulkanCore(GeneralManager& gm)
 	VulkanDevice* vulkanDevice = new VulkanDevice();
 	VulkanDeviceFactory::createVulkanDevice(*window, *vulkanDevice);
 	gm.addComponent<VulkanDeviceComponent>(vulkanDeviceEntity, vulkanDevice);
+#ifdef TRACY_ENABLE
+	gm.registerContext<TracyContextContext>(vulkanDeviceEntity);
+	gm.addComponent<TracyContextComponent>(vulkanDeviceEntity, VulkanDeviceFactory::createTracyContext(*vulkanDevice));
+#endif
 	gm.addComponent<NameComponent>(vulkanDeviceEntity, "SYSTEM Vulkan Device");
 	dq->push_function([vulkanDevice]() { delete vulkanDevice; });
+
+#ifdef TRACY_ENABLE
+	TracyContextComponent* tracyCtxComp = gm.getContextComponent<TracyContextContext, TracyContextComponent>();
+	TracyVkCtx tracyCtx = tracyCtxComp->context;
+	dq->push_function(
+	    [tracyCtx]()
+	    {
+		    TracyVkDestroy(tracyCtx);
+	    });
+#endif
 
 	// VMA Allocator
 	Orhescyon::Entity vmaAllocatorEntity = gm.createEntity();

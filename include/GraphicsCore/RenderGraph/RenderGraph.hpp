@@ -7,10 +7,6 @@
 #include <vector>
 #include <unordered_map>
 
-#ifdef TRACY_ENABLE
-#include <tracy/TracyVulkan.hpp>
-#endif
-
 struct VulkanDevice;
 struct GlobalDSetComponent;
 struct GraphicsSettingsComponent;
@@ -46,10 +42,15 @@ struct HALCYON_API RGCompiledPass
 	std::vector<RGBarrier> barriers;
 };
 
+namespace Orhescyon
+{
+	class GeneralManager;
+}
+
 class HALCYON_API RenderGraph
 {
 public:
-	RenderGraph(VulkanDevice& device, VmaAllocator allocator);
+	RenderGraph(VulkanDevice& device, VmaAllocator allocator, Orhescyon::GeneralManager* gm);
 	~RenderGraph();
 
 	// Resource API
@@ -112,6 +113,7 @@ private:
 
 	VulkanDevice& vulkanDevice;
 	VmaAllocator allocator;
+	Orhescyon::GeneralManager* gm;
 	bool needsDescriptorUpdate = false;
 	uint32_t currentWidth = 0;
 	uint32_t currentHeight = 0;

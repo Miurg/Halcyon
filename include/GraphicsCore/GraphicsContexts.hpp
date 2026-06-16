@@ -4,6 +4,9 @@
 class HALCYON_API MainVulkanDeviceContext
 {
 };
+class HALCYON_API TracyContextContext
+{
+};
 class HALCYON_API MainSwapChainContext
 {
 };

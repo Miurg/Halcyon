@@ -4,28 +4,43 @@
 #include "GraphicsCore/Resources/Components/GlobalDSetComponent.hpp"
 #include "GraphicsCore/Resources/Managers/Bindings.hpp"
 #include "GraphicsCore/Components/GraphicsSettingsComponent.hpp"
+#include "GraphicsCore/Components/TracyContextComponent.hpp"
+
+#include <Orhescyon/GeneralManager.hpp>
 
 #include <algorithm>
 
+#ifdef TRACY_ENABLE
+#include <tracy/TracyVulkan.hpp>
+#endif
+#include <GraphicsCore/GraphicsContexts.hpp>
+
 namespace
 {
-	uint32_t mipsForExtent(uint32_t w, uint32_t h)
+uint32_t mipsForExtent(uint32_t w, uint32_t h)
+{
+	uint32_t m = std::max(w, h);
+	uint32_t count = 1;
+	while (m > 1)
 	{
-		uint32_t m = std::max(w, h);
-		uint32_t count = 1;
-		while (m > 1) { m >>= 1; ++count; }
-		return count;
+		m >>= 1;
+		++count;
 	}
-
-	bool mipRangesOverlap(uint32_t baseA, uint32_t countA, uint32_t baseB, uint32_t countB)
-	{
-		uint64_t endA = (countA == RG_ALL_MIPS) ? UINT64_MAX : uint64_t(baseA) + countA;
-		uint64_t endB = (countB == RG_ALL_MIPS) ? UINT64_MAX : uint64_t(baseB) + countB;
-		return baseA < endB && baseB < endA;
-	}
+	return count;
 }
 
-RenderGraph::RenderGraph(VulkanDevice& device, VmaAllocator alloc) : vulkanDevice(device), allocator(alloc) {}
+bool mipRangesOverlap(uint32_t baseA, uint32_t countA, uint32_t baseB, uint32_t countB)
+{
+	uint64_t endA = (countA == RG_ALL_MIPS) ? UINT64_MAX : uint64_t(baseA) + countA;
+	uint64_t endB = (countB == RG_ALL_MIPS) ? UINT64_MAX : uint64_t(baseB) + countB;
+	return baseA < endB && baseB < endA;
+}
+} // namespace
+
+RenderGraph::RenderGraph(VulkanDevice& device, VmaAllocator alloc, Orhescyon::GeneralManager* generalManager)
+    : vulkanDevice(device), allocator(alloc), gm(generalManager)
+{
+}
 
 RenderGraph::~RenderGraph()
 {
@@ -146,14 +161,14 @@ void RenderGraph::declareLogicalStream(const std::string& name, const RGImageDes
 		if ((res.name == name || res.name.find(name + "_V") == 0) && res.isTransient)
 		{
 			res.desc = desc;
-			destroyTransientImage(res);   // Force destruction immediately
+			destroyTransientImage(res); // Force destruction immediately
 			if (res.sampler)
 			{
 				(*vulkanDevice.device).destroySampler(res.sampler);
 				res.sampler = nullptr;
 			}
 			res.currentLayouts.clear();
-			res.currentWidth = 0;         // Force recreation during next handleResize
+			res.currentWidth = 0; // Force recreation during next handleResize
 		}
 	}
 }
@@ -292,8 +307,7 @@ void RenderGraph::compile()
 			bool isPingPong = false;
 			for (const auto& write : pass.writes)
 			{
-				if (write.name == read.name &&
-				    mipRangesOverlap(read.baseMip, read.mipCount, write.baseMip, write.mipCount))
+				if (write.name == read.name && mipRangesOverlap(read.baseMip, read.mipCount, write.baseMip, write.mipCount))
 				{
 					isPingPong = true;
 					break;
@@ -430,7 +444,8 @@ void RenderGraph::execute(vk::raii::CommandBuffer& cmd)
 	for (const auto& compiled : compiledPasses)
 	{
 #ifdef TRACY_ENABLE
-		TracyVkZoneTransient(vulkanDevice.tracyContext, gpuZone, static_cast<VkCommandBuffer>(*cmd),
+		TracyContextComponent* tracyCtxComp = gm->getContextComponent<TracyContextContext, TracyContextComponent>();
+		TracyVkZoneTransient(tracyCtxComp->context, gpuZone, static_cast<VkCommandBuffer>(*cmd),
 		                     compiled.pass->name.c_str(), true);
 #endif
 		// Emit barriers
@@ -491,7 +506,9 @@ void RenderGraph::execute(vk::raii::CommandBuffer& cmd)
 					RGResourceHandle resolveHnd = compiled.pass->getPhysicalWrite(att.resolveTarget);
 					if (resolveHnd != RG_INVALID_HANDLE)
 					{
-						info.resolveMode = att.resolveMode == vk::ResolveModeFlagBits::eNone ? vk::ResolveModeFlagBits::eAverage : att.resolveMode;
+						info.resolveMode = att.resolveMode == vk::ResolveModeFlagBits::eNone
+						                       ? vk::ResolveModeFlagBits::eAverage
+						                       : att.resolveMode;
 						info.resolveImageView = getImageView(resolveHnd, att.mipLevel);
 						info.resolveImageLayout = vk::ImageLayout::eColorAttachmentOptimal;
 					}
@@ -519,7 +536,9 @@ void RenderGraph::execute(vk::raii::CommandBuffer& cmd)
 						RGResourceHandle resolveHnd = compiled.pass->getPhysicalWrite(da.resolveTarget);
 						if (resolveHnd != RG_INVALID_HANDLE)
 						{
-							depthInfo.resolveMode = da.resolveMode == vk::ResolveModeFlagBits::eNone ? vk::ResolveModeFlagBits::eSampleZero : da.resolveMode;
+							depthInfo.resolveMode = da.resolveMode == vk::ResolveModeFlagBits::eNone
+							                            ? vk::ResolveModeFlagBits::eSampleZero
+							                            : da.resolveMode;
 							depthInfo.resolveImageView = getImageView(resolveHnd, da.mipLevel);
 							depthInfo.resolveImageLayout = vk::ImageLayout::eDepthAttachmentOptimal;
 						}
@@ -588,10 +607,8 @@ void RenderGraph::execute(vk::raii::CommandBuffer& cmd)
 	}
 
 #ifdef TRACY_ENABLE
-	if (vulkanDevice.tracyContext)
-	{
-		TracyVkCollect(vulkanDevice.tracyContext, static_cast<VkCommandBuffer>(*cmd));
-	}
+	TracyContextComponent* tracyCtxComp = gm->getContextComponent<TracyContextContext, TracyContextComponent>();
+	TracyVkCollect(tracyCtxComp->context, static_cast<VkCommandBuffer>(*cmd));
 #endif
 
 	cmd.end();
@@ -868,4 +885,3 @@ vk::PipelineStageFlags2 RenderGraph::usageToCompleteStageMask(RGResourceUsage us
 		return vk::PipelineStageFlagBits2::eTopOfPipe;
 	}
 }
-
