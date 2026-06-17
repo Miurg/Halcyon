@@ -11,7 +11,7 @@ static constexpr JPH::ObjectLayer MOVING = 1;
 static constexpr JPH::ObjectLayer NUM_LAYERS = 2;
 } // namespace Layers
 
-class MyBroadPhaseLayerInterface final : public JPH::BroadPhaseLayerInterface
+HALCYON_API class MyBroadPhaseLayerInterface final : public JPH::BroadPhaseLayerInterface
 {
 public:
 	virtual JPH::uint GetNumBroadPhaseLayers() const override
@@ -34,7 +34,7 @@ public:
 	}
 };
 
-class MyObjectVsBroadPhaseLayerFilter final : public JPH::ObjectVsBroadPhaseLayerFilter
+HALCYON_API class MyObjectVsBroadPhaseLayerFilter final : public JPH::ObjectVsBroadPhaseLayerFilter
 {
 public:
 	virtual bool ShouldCollide(JPH::ObjectLayer inLayer1, JPH::BroadPhaseLayer inLayer2) const override
@@ -47,7 +47,7 @@ public:
 	}
 };
 
-class MyObjectLayerPairFilter final : public JPH::ObjectLayerPairFilter
+HALCYON_API class MyObjectLayerPairFilter final : public JPH::ObjectLayerPairFilter
 {
 public:
 	virtual bool ShouldCollide(JPH::ObjectLayer inLayer1, JPH::ObjectLayer inLayer2) const override

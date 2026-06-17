@@ -47,7 +47,7 @@ endif()
 
 # === Options ===
 option(BUILD_SHARED_LIBS "Build Halcyon as a shared library" OFF)
-option(HALCYON_BUILD_EXAMPLES "Build Halcyon examples" ON)
+option(HALCYON_BUILD_EXAMPLES "Build Halcyon examples" ${PROJECT_IS_TOP_LEVEL})
 
 # === Library ===
 file(GLOB_RECURSE HALCYON_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
