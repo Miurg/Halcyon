@@ -37,7 +37,7 @@ void DirectLightPass::onInit(Orhescyon::GeneralManager& gm)
 	rg.setTerminalOutput("shadowMap", "shadowMap");
 
 	pManager.build(PipelineDescription{
-	    .shaderPath = "shaders/shadow.spv",
+	    .shaderPath = HALCYON_SHADER_OUT_DIR "/shadow.spv",
 	    .fragEntry = "", // vertex only
 	    .vertexBindings = {bindingDesc},
 	    .vertexAttributes = std::vector<vk::VertexInputAttributeDescription>(attrDescs.begin(), attrDescs.end()),
@@ -54,7 +54,7 @@ void DirectLightPass::onInit(Orhescyon::GeneralManager& gm)
 	// Alpha-tested shadow caster: samples base color and discards below alphaCutoff.
 	pManager.build(
 	    PipelineDescription{
-	        .shaderPath = "shaders/shadow.spv",
+	        .shaderPath = HALCYON_SHADER_OUT_DIR "/shadow.spv",
 	        .specializationValues = {1}, // ALPHA_TEST_ENABLED=1
 	        .vertexBindings = {bindingDesc},
 	        .vertexAttributes = std::vector<vk::VertexInputAttributeDescription>(attrDescs.begin(), attrDescs.end()),

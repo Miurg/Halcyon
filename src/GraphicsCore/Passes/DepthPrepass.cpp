@@ -54,7 +54,7 @@ void DepthPrepass::buildPipelines(Orhescyon::GeneralManager& gm, vk::SampleCount
 	auto makeDesc = [&](int alphaTest, bool useA2C)
 	{
 		return PipelineDescription{
-		    .shaderPath = "shaders/depth_prepass.spv",
+		    .shaderPath = HALCYON_SHADER_OUT_DIR "/depth_prepass.spv",
 		    .specializationValues = {alphaTest, useA2C ? 1 : 0},
 		    .vertexBindings = {bindingDesc},
 		    .vertexAttributes = std::vector<vk::VertexInputAttributeDescription>(attrDescs.begin(), attrDescs.end()),

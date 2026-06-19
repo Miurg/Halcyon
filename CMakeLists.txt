@@ -49,6 +49,12 @@ endif()
 option(BUILD_SHARED_LIBS "Build Halcyon as a shared library" OFF)
 option(HALCYON_BUILD_EXAMPLES "Build Halcyon examples" ${PROJECT_IS_TOP_LEVEL})
 
+set(HALCYON_SHADER_OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/shaders" CACHE PATH "Output directory for Halcyon compiled shaders")
+file(TO_CMAKE_PATH "${HALCYON_SHADER_OUTPUT_DIR}" HALCYON_SHADER_OUTPUT_DIR)
+
+set(HALCYON_SHADER_SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/assets/shaders" CACHE PATH "Source directory for Halcyon shaders")
+file(TO_CMAKE_PATH "${HALCYON_SHADER_SRC_DIR}" HALCYON_SHADER_SRC_DIR)
+
 # === Library ===
 file(GLOB_RECURSE HALCYON_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
 
@@ -97,7 +103,11 @@ target_compile_definitions(${PROJECT_NAME} PUBLIC ORHESCYON_HIGH_CHECK)
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE
     HALCYON_DEV_BUILD
-    HALCYON_SHADER_SRC_DIR="assets/shaders"
+    HALCYON_SHADER_SRC_DIR="${HALCYON_SHADER_SRC_DIR}"
+)
+
+target_compile_definitions(${PROJECT_NAME} PUBLIC
+    HALCYON_SHADER_OUT_DIR="${HALCYON_SHADER_OUTPUT_DIR}"
 )
 
 if(MSVC)
@@ -127,7 +137,7 @@ function(add_slang_shader_target TARGET_NAME)
         set(ARG_OUTPUT_NAME "${TARGET_NAME}")
     endif()
 
-    set(OUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/shaders")
+    set(OUT_DIR "${HALCYON_SHADER_OUTPUT_DIR}")
     set(OUT_FILE "${OUT_DIR}/${ARG_OUTPUT_NAME}.spv")
 
     file(MAKE_DIRECTORY "${OUT_DIR}")

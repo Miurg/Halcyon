@@ -23,7 +23,7 @@ void CullPass::onInit(Orhescyon::GeneralManager& gm)
 
 	pManager.build(PipelineDescription{
 	    .isCompute = true,
-	    .shaderPath = "shaders/frustum_culling.spv",
+	    .shaderPath = HALCYON_SHADER_OUT_DIR "/frustum_culling.spv",
 	    .setLayoutNames = {"globalSet", "modelSet"},
 	    .pushConstants = {{vk::ShaderStageFlagBits::eCompute, 0, sizeof(uint32_t)}},
 	});

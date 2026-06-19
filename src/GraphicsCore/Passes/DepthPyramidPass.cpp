@@ -57,7 +57,7 @@ void DepthPyramidPass::onInit(Orhescyon::GeneralManager& gm)
 	pManager.build(
 	    PipelineDescription{
 	        .isCompute = true,
-	        .shaderPath = "shaders/depth_pyramid.spv",
+	        .shaderPath = HALCYON_SHADER_OUT_DIR "/depth_pyramid.spv",
 	        .setLayoutNames = {"hiZSet", "globalSet"},
 	        .pushConstants = {{vk::ShaderStageFlagBits::eCompute, 0, sizeof(uint32_t) * 3 + sizeof(float)}},
 	        // push = { dstWidth, dstHeight, passIdx, edgeRange }

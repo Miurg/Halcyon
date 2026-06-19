@@ -35,7 +35,7 @@ void VignettePass::onInit(Orhescyon::GeneralManager& gm)
 	_dset = dManager.allocate("screenSpaceSet");
 
 	pManager.build(PipelineDescription{
-	    .shaderPath = "shaders/vignette.spv",
+	    .shaderPath = HALCYON_SHADER_OUT_DIR "/vignette.spv",
 	    .cullMode = vk::CullModeFlagBits::eNone,
 	    .colorAttachments = {PipelineFactory::opaqueAttachment()},
 	    .colorFormats = {swapChain.swapChainImageFormat},

@@ -327,14 +327,14 @@ void ParticleSystemComputePass::onInit(Orhescyon::GeneralManager& gm)
 
 	pManager.build(PipelineDescription{
 	    .isCompute = true,
-	    .shaderPath = "shaders/particles_spawner.spv",
+	    .shaderPath = HALCYON_SHADER_OUT_DIR "/particles_spawner.spv",
 	    .setLayoutNames = {"particleSystemSet"},
 	    .pushConstants = {{vk::ShaderStageFlagBits::eCompute, 0, sizeof(uint32_t)}},
 	});
 
 	pManager.build(PipelineDescription{
 	    .isCompute = true,
-	    .shaderPath = "shaders/particles_emiter.spv",
+	    .shaderPath = HALCYON_SHADER_OUT_DIR "/particles_emiter.spv",
 	    .setLayoutNames = {"particleSystemSet"},
 	    .pushConstants = {{vk::ShaderStageFlagBits::eCompute, 0, sizeof(EmitorPushConst)}},
 	});

@@ -54,7 +54,7 @@ void BloomPass::onInit(Orhescyon::GeneralManager& gm)
 	                                       vk::SampleCountFlagBits::e1, kMipCount});
 
 	pManager.build(PipelineDescription{
-	    .shaderPath = "shaders/bloom_downsample.spv",
+	    .shaderPath = HALCYON_SHADER_OUT_DIR "/bloom_downsample.spv",
 	    .cullMode = vk::CullModeFlagBits::eNone,
 	    .colorAttachments = {PipelineFactory::opaqueAttachment()},
 	    .colorFormats = {swapChain.hdrFormat},
@@ -62,7 +62,7 @@ void BloomPass::onInit(Orhescyon::GeneralManager& gm)
 	    .pushConstants = {{vk::ShaderStageFlagBits::eFragment, 0, 20u}},
 	});
 	pManager.build(PipelineDescription{
-	    .shaderPath = "shaders/bloom_upsample.spv",
+	    .shaderPath = HALCYON_SHADER_OUT_DIR "/bloom_upsample.spv",
 	    .cullMode = vk::CullModeFlagBits::eNone,
 	    .colorAttachments = {PipelineFactory::additiveAttachment()},
 	    .colorFormats = {swapChain.hdrFormat},

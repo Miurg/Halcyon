@@ -61,7 +61,7 @@ void GraphicsPipelinesInit::initPipelines(GeneralManager& gm)
 
 #pragma endregion
 
-	ShaderReloader* shaderReloader = new ShaderReloader(HALCYON_SHADER_SRC_DIR, "shaders");
+	ShaderReloader* shaderReloader = new ShaderReloader(HALCYON_SHADER_SRC_DIR, HALCYON_SHADER_OUT_DIR);
 	Orhescyon::Entity shaderReloaderEntity = gm.createEntity();
 	gm.registerContext<ShaderReloaderContext>(shaderReloaderEntity);
 	gm.addComponent<ShaderReloaderComponent>(shaderReloaderEntity, shaderReloader);
@@ -84,7 +84,7 @@ void GraphicsPipelinesInit::initPipelines(GeneralManager& gm)
 	// === Capture ===
 	pManager->build(
 	    PipelineDescription{
-	        .shaderPath = "shaders/global_illumination_forward.spv",
+	        .shaderPath = HALCYON_SHADER_OUT_DIR "/global_illumination_forward.spv",
 	        .specializationValues = {0, 1}, // ALPHA_TEST=0, IBL=1
 	        .vertexBindings = {bindingDesc},
 	        .vertexAttributes = std::vector<vk::VertexInputAttributeDescription>(attrDescs.begin(), attrDescs.end()),
@@ -103,7 +103,7 @@ void GraphicsPipelinesInit::initPipelines(GeneralManager& gm)
 	// === Capture alpha  ===
 	pManager->build(
 	    PipelineDescription{
-	        .shaderPath = "shaders/global_illumination_forward.spv",
+	        .shaderPath = HALCYON_SHADER_OUT_DIR "/global_illumination_forward.spv",
 	        .specializationValues = {1, 1}, // ALPHA_TEST=1, IBL=1
 	        .vertexBindings = {bindingDesc},
 	        .vertexAttributes = std::vector<vk::VertexInputAttributeDescription>(attrDescs.begin(), attrDescs.end()),
@@ -122,7 +122,7 @@ void GraphicsPipelinesInit::initPipelines(GeneralManager& gm)
 	// === Skybox for baking ===
 	pManager->build(
 	    PipelineDescription{
-	        .shaderPath = "shaders/global_illumination_skybox.spv",
+	        .shaderPath = HALCYON_SHADER_OUT_DIR "/global_illumination_skybox.spv",
 	        .cullMode = vk::CullModeFlagBits::eNone,
 	        .depthTest = true,
 	        .depthWrite = false,
@@ -138,53 +138,53 @@ void GraphicsPipelinesInit::initPipelines(GeneralManager& gm)
 	// === Compute pipelines ===
 	pManager->build(PipelineDescription{
 	    .isCompute = true,
-	    .shaderPath = "shaders/shadow_frustum_culling.spv",
+	    .shaderPath = HALCYON_SHADER_OUT_DIR "/shadow_frustum_culling.spv",
 	    .setLayoutNames = {"globalSet", "modelSet"},
 	    .pushConstants = {{vk::ShaderStageFlagBits::eCompute, 0, sizeof(uint32_t)}},
 	});
 
 	pManager->build(PipelineDescription{
 	    .isCompute = true,
-	    .shaderPath = "shaders/frustum_compaction.spv",
+	    .shaderPath = HALCYON_SHADER_OUT_DIR "/frustum_compaction.spv",
 	    .setLayoutNames = {"modelSet"},
 	    .pushConstants = {{vk::ShaderStageFlagBits::eCompute, 0, sizeof(uint32_t) * 4}},
 	});
 
 	pManager->build(PipelineDescription{
 	    .isCompute = true,
-	    .shaderPath = "shaders/reset_instance_count.spv",
+	    .shaderPath = HALCYON_SHADER_OUT_DIR "/reset_instance_count.spv",
 	    .setLayoutNames = {"modelSet"},
 	    .pushConstants = {{vk::ShaderStageFlagBits::eCompute, 0, sizeof(uint32_t)}},
 	});
 
 	pManager->build(PipelineDescription{
 	    .isCompute = true,
-	    .shaderPath = "shaders/equirect_to_cube.spv",
+	    .shaderPath = HALCYON_SHADER_OUT_DIR "/equirect_to_cube.spv",
 	    .setLayoutNames = {"textureSet"},
 	    .pushConstants = {{vk::ShaderStageFlagBits::eCompute, 0, sizeof(uint32_t)}},
 	});
 	pManager->build(PipelineDescription{
 	    .isCompute = true,
-	    .shaderPath = "shaders/sh_projection.spv",
+	    .shaderPath = HALCYON_SHADER_OUT_DIR "/sh_projection.spv",
 	    .setLayoutNames = {"globalSet", "textureSet"},
 	    .pushConstants = {{vk::ShaderStageFlagBits::eCompute, 0, sizeof(int) * 2}},
 	});
 	pManager->build(PipelineDescription{
 	    .isCompute = true,
-	    .shaderPath = "shaders/prefilter_env_map.spv",
+	    .shaderPath = HALCYON_SHADER_OUT_DIR "/prefilter_env_map.spv",
 	    .setLayoutNames = {"textureSet"},
 	    .pushConstants = {{vk::ShaderStageFlagBits::eCompute, 0, sizeof(float)}},
 	});
 	pManager->build(PipelineDescription{
 	    .isCompute = true,
-	    .shaderPath = "shaders/brdf_lut.spv",
+	    .shaderPath = HALCYON_SHADER_OUT_DIR "/brdf_lut.spv",
 	    .setLayoutNames = {"textureSet"},
 	});
 
 	// === GI light source bake ===
 	pManager->build(
 	    PipelineDescription{
-	        .shaderPath = "shaders/gi_light_source_bake.spv",
+	        .shaderPath = HALCYON_SHADER_OUT_DIR "/gi_light_source_bake.spv",
 	        .topology = vk::PrimitiveTopology::eTriangleList,
 	        .cullMode = vk::CullModeFlagBits::eBack,
 	        .depthTest = true,

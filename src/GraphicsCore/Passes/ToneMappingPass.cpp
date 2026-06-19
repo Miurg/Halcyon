@@ -49,7 +49,7 @@ void ToneMappingPass::onInit(Orhescyon::GeneralManager& gm)
 	}
 
 	pManager.build(PipelineDescription{
-	    .shaderPath = "shaders/tone_mapping.spv",
+	    .shaderPath = HALCYON_SHADER_OUT_DIR "/tone_mapping.spv",
 	    .specializationValues = {1},
 	    .cullMode = vk::CullModeFlagBits::eNone,
 	    .colorAttachments = {PipelineFactory::opaqueAttachment()},
@@ -65,7 +65,7 @@ void ToneMappingPass::onSettingsChanged(Orhescyon::GeneralManager& gm)
 	auto& settings = *gm.getContextComponent<GraphicsSettingsContext, GraphicsSettingsComponent>();
 
 	pManager.rebuild(PipelineDescription{
-	    .shaderPath = "shaders/tone_mapping.spv",
+	    .shaderPath = HALCYON_SHADER_OUT_DIR "/tone_mapping.spv",
 	    .specializationValues = {settings.enableAutoExposure ? 1 : 0},
 	    .cullMode = vk::CullModeFlagBits::eNone,
 	    .colorAttachments = {PipelineFactory::opaqueAttachment()},

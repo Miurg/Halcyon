@@ -92,7 +92,7 @@ void ParticleSystemRenderPass::onInit(Orhescyon::GeneralManager& gm)
 	}
 
 	pManager.build(PipelineDescription{
-	    .shaderPath = "shaders/system_render.spv",
+	    .shaderPath = HALCYON_SHADER_OUT_DIR "/system_render.spv",
 	    .cullMode = vk::CullModeFlagBits::eNone,
 	    .depthTest = true,
 	    .depthWrite = false,
