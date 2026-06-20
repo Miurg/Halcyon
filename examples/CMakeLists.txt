@@ -1,22 +1,27 @@
 cmake_minimum_required(VERSION 3.20)
 
+# vcpkg needs to know where dependencies are installed before project() is called.
+# In this example we reuse the dependencies already installed for Halcyon itself.
 set(VCPKG_INSTALLED_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../vcpkg_installed")
 
 project(HalcyonSample LANGUAGES CXX)
 
-set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
+if(NOT VCPKG_TARGET_TRIPLET)
+    if(WIN32)
+        set(VCPKG_TARGET_TRIPLET "x64-windows")
+    else()
+        set(VCPKG_TARGET_TRIPLET "x64-linux")
+    endif()
+endif()
 
-# Path to Halcyon root from this example directory.
+list(APPEND CMAKE_PREFIX_PATH "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}")
+
 set(HALCYON_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/..")
 
-list(APPEND CMAKE_PREFIX_PATH "${HALCYON_ROOT}/vcpkg_installed/x64-windows")
-
-# Example: the user sets the shader output directory before adding Halcyon.
-# When this example is built standalone, this controls where compiled shaders go.
+# User-configurable: where compiled stock shaders should be written.
 set(HALCYON_SHADER_OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/shaders" CACHE PATH "Output directory for Halcyon compiled shaders")
 
+# In-source build specific settings
 if(NOT TARGET Halcyon)
     add_subdirectory("${HALCYON_ROOT}" Halcyon)
 endif()
@@ -29,21 +34,24 @@ add_executable(HalcyonSample
     Game/Systems/SpawnSystem.cpp
 )
 
-target_include_directories(HalcyonSample PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+target_compile_features(HalcyonSample PRIVATE cxx_std_20)
 
+target_include_directories(HalcyonSample PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(HalcyonSample PRIVATE Halcyon)
 
-# Copy sample textures and models next to the executable on every build
-add_custom_target(copy_sample_assets ALL
+# In-source build specific settings
+if(HALCYON_SHADER_TARGETS)
+    add_dependencies(HalcyonSample ${HALCYON_SHADER_TARGETS})
+endif()
+
+# Copy runtime assets next to the executable.
+add_custom_command(TARGET HalcyonSample POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
         "${HALCYON_ROOT}/assets/textures"
-        "${CMAKE_CURRENT_BINARY_DIR}/assets/textures"
+        "$<TARGET_FILE_DIR:HalcyonSample>/assets/textures"
     COMMAND ${CMAKE_COMMAND} -E copy_directory
         "${HALCYON_ROOT}/assets/models"
-        "${CMAKE_CURRENT_BINARY_DIR}/assets/models"
-    DEPENDS ${HALCYON_SHADER_TARGETS}
+        "$<TARGET_FILE_DIR:HalcyonSample>/assets/models"
     COMMENT "Copying sample assets..."
     VERBATIM
 )
-
-add_dependencies(HalcyonSample copy_sample_assets)
