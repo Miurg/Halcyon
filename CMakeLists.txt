@@ -5,7 +5,7 @@ if(POLICY CMP0141)
     set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT "$<IF:$<AND:$<C_COMPILER_ID:MSVC>,$<CXX_COMPILER_ID:MSVC>>,$<$<CONFIG:Debug,RelWithDebInfo>:EditAndContinue>,$<$<CONFIG:Debug,RelWithDebInfo>:ProgramDatabase>>")
 endif()
 
-project(Halcyon LANGUAGES CXX VERSION 0.1.0)
+project(Halcyon LANGUAGES CXX VERSION 0.2.1)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -27,12 +27,7 @@ find_package(Ktx CONFIG REQUIRED)
 
 option(HALCYON_TRACY "Enable Tracy profiler" OFF)
 
-FetchContent_Declare(
-    Orhescyon
-    GIT_REPOSITORY https://github.com/Miurg/Orhescyon.git
-    GIT_TAG v0.2.0
-)
-FetchContent_MakeAvailable(Orhescyon)
+add_subdirectory(thirdparty/Orhescyon)
 
 if(HALCYON_TRACY)
     FetchContent_Declare(
@@ -90,7 +85,7 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
     imgui::imgui
     Jolt::Jolt
     KTX::ktx
-    Orhescyon
+    $<BUILD_INTERFACE:Orhescyon>
 )
 
 if(HALCYON_TRACY)
@@ -174,12 +169,15 @@ foreach(SHADER_FILE ${SLANG_SHADER_FILES})
     file(READ "${SHADER_FILE}" SHADER_CONTENT)
     
     set(ENTRY_POINTS "")
-    foreach(PREFIX vert frag compute)
-        string(FIND "${SHADER_CONTENT}" "${PREFIX}Main" FOUND_POS)
-        if(NOT FOUND_POS EQUAL -1)
-            list(APPEND ENTRY_POINTS "${PREFIX}Main")
-        endif()
-    endforeach()
+    if(SHADER_CONTENT MATCHES "\\[ *shader *\\( *\"vertex\" *\\) *\\]")
+        list(APPEND ENTRY_POINTS "vertMain")
+    endif()
+    if(SHADER_CONTENT MATCHES "\\[ *shader *\\( *\"fragment\" *\\) *\\]")
+        list(APPEND ENTRY_POINTS "fragMain")
+    endif()
+    if(SHADER_CONTENT MATCHES "\\[ *shader *\\( *\"compute\" *\\) *\\]")
+        list(APPEND ENTRY_POINTS "computeMain")
+    endif()
 
     if(NOT ENTRY_POINTS)
         message(WARNING "No known entry points found in ${SHADER_NAME}.slang, skipping")
@@ -197,6 +195,8 @@ foreach(SHADER_FILE ${SLANG_SHADER_FILES})
 
     list(APPEND HALCYON_SHADER_TARGETS "shader_${SHADER_NAME_LOWER}")
 endforeach()
+
+add_dependencies(${PROJECT_NAME} ${HALCYON_SHADER_TARGETS})
 
 if(HALCYON_BUILD_EXAMPLES)
     add_subdirectory(examples)
@@ -217,15 +217,8 @@ install(DIRECTORY include/
     DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
 )
 
-install(TARGETS Orhescyon
-    EXPORT HalcyonTargets
-)
-
-install(DIRECTORY ${orhescyon_SOURCE_DIR}/include/
+install(DIRECTORY thirdparty/Orhescyon/include/
     DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-    FILES_MATCHING
-    PATTERN "*.hpp"
-    PATTERN "*.h"
 )
 
 install(EXPORT HalcyonTargets
