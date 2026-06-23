@@ -18,12 +18,22 @@ find_package(Vulkan REQUIRED)
 find_package(glm CONFIG REQUIRED)
 find_package(glfw3 CONFIG REQUIRED)
 find_package(tinyobjloader CONFIG REQUIRED)
-find_path(TINYGLTF_INCLUDE_DIRS "tiny_gltf.h")
-find_path(STB_INCLUDE_DIRS "stb_image.h")
 find_package(VulkanMemoryAllocator CONFIG REQUIRED)
 find_package(imgui CONFIG REQUIRED)
 find_package(Jolt CONFIG REQUIRED)
-find_package(Ktx CONFIG REQUIRED)
+find_package(KTX CONFIG REQUIRED)
+
+find_path(TINYGLTF_INCLUDE_BASE_DIR "tiny_gltf.h")
+if(TINYGLTF_INCLUDE_BASE_DIR AND NOT TARGET tinygltf::tinygltf)
+    add_library(tinygltf::tinygltf INTERFACE IMPORTED)
+    target_include_directories(tinygltf::tinygltf INTERFACE ${TINYGLTF_INCLUDE_BASE_DIR})
+endif()
+
+find_path(STB_INCLUDE_BASE_DIR "stb_image.h")
+if(STB_INCLUDE_BASE_DIR AND NOT TARGET stb::stb)
+    add_library(stb::stb INTERFACE IMPORTED)
+    target_include_directories(stb::stb INTERFACE ${STB_INCLUDE_BASE_DIR})
+endif()
 
 option(HALCYON_TRACY "Enable Tracy profiler" OFF)
 
@@ -36,7 +46,7 @@ if(HALCYON_TRACY)
         GIT_TAG v0.13.1
         GIT_SHALLOW TRUE
         GIT_PROGRESS TRUE
-    )
+    )    
     FetchContent_MakeAvailable(tracy)
 endif()
 
@@ -71,8 +81,6 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 )
 
 target_include_directories(${PROJECT_NAME} PRIVATE
-    ${TINYGLTF_INCLUDE_DIRS}
-    ${STB_INCLUDE_DIRS}
      ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 
@@ -85,6 +93,8 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
     imgui::imgui
     Jolt::Jolt
     KTX::ktx
+    tinygltf::tinygltf
+    stb::stb
     $<BUILD_INTERFACE:Orhescyon>
 )
 
@@ -102,7 +112,8 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE
 )
 
 target_compile_definitions(${PROJECT_NAME} PUBLIC
-    HALCYON_SHADER_OUT_DIR="${HALCYON_SHADER_OUTPUT_DIR}"
+    "$<BUILD_INTERFACE:HALCYON_SHADER_OUT_DIR=\"${HALCYON_SHADER_OUTPUT_DIR}\">"
+    "$<INSTALL_INTERFACE:HALCYON_SHADER_OUT_DIR=\"${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_DATADIR}/Halcyon/shaders\">"
 )
 
 if(MSVC)
@@ -176,7 +187,7 @@ foreach(SHADER_FILE ${SLANG_SHADER_FILES})
         list(APPEND ENTRY_POINTS "fragMain")
     endif()
     if(SHADER_CONTENT MATCHES "\\[ *shader *\\( *\"compute\" *\\) *\\]")
-        list(APPEND ENTRY_POINTS "computeMain")
+         list(APPEND ENTRY_POINTS "computeMain")
     endif()
 
     if(NOT ENTRY_POINTS)
@@ -243,4 +254,8 @@ install(FILES
     "${CMAKE_CURRENT_BINARY_DIR}/HalcyonConfig.cmake"
     "${CMAKE_CURRENT_BINARY_DIR}/HalcyonConfigVersion.cmake"
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/Halcyon
+)
+
+install(DIRECTORY "${HALCYON_SHADER_OUTPUT_DIR}/"
+    DESTINATION ${CMAKE_INSTALL_DATADIR}/Halcyon/shaders
 )
