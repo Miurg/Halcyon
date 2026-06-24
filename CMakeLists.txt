@@ -57,7 +57,7 @@ option(HALCYON_BUILD_EXAMPLES "Build Halcyon examples" ${PROJECT_IS_TOP_LEVEL})
 set(HALCYON_SHADER_OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/shaders" CACHE PATH "Output directory for Halcyon compiled shaders")
 file(TO_CMAKE_PATH "${HALCYON_SHADER_OUTPUT_DIR}" HALCYON_SHADER_OUTPUT_DIR)
 
-set(HALCYON_SHADER_SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/assets/shaders" CACHE PATH "Source directory for Halcyon shaders")
+set(HALCYON_SHADER_SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/shaders" CACHE PATH "Source directory for Halcyon shaders")
 file(TO_CMAKE_PATH "${HALCYON_SHADER_SRC_DIR}" HALCYON_SHADER_SRC_DIR)
 
 # === Library ===
@@ -171,7 +171,7 @@ endfunction()
 set(HALCYON_SHADER_TARGETS "")
 
 # Auto gather shader files and create targets
-file(GLOB_RECURSE SLANG_SHADER_FILES "${CMAKE_CURRENT_LIST_DIR}/assets/shaders/*.slang")
+file(GLOB_RECURSE SLANG_SHADER_FILES "${CMAKE_CURRENT_LIST_DIR}/shaders/*.slang")
 foreach(SHADER_FILE ${SLANG_SHADER_FILES})
     get_filename_component(SHADER_NAME "${SHADER_FILE}" NAME_WE)
     string(TOLOWER "${SHADER_NAME}" SHADER_NAME_LOWER)

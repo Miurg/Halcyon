@@ -11,7 +11,7 @@
 class HALCYON_API ShaderReloader
 {
 public:
-	ShaderReloader(const std::string& shadersDir = "assets/shaders", const std::string& outDir = "shaders");
+	ShaderReloader(const std::string& shadersDir = "shaders", const std::string& outDir = "shaders");
 	void update(PipelineManager& pManager, VulkanDevice& device);
 
 private:
