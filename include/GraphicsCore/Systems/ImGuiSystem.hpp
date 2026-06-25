@@ -55,8 +55,7 @@ public:
 	float avgFrameTime = 0.0f;
 	float onePercentLowFrameTime = 0.0f;
 
-	bool autoShaderReload = false;
-
 private:
+	bool autoShaderReload = false;
 	void drawEntityNode(Orhescyon::Entity entity, GeneralManager& gm);
 };

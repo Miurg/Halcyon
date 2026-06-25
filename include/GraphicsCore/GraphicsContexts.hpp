@@ -67,9 +67,6 @@ class HALCYON_API GraphicsSettingsContext
 class HALCYON_API PipelineManagerContext
 {
 };
-class HALCYON_API ShaderReloaderContext
-{
-};
 class HALCYON_API LightProbeGridContext
 {
 };

@@ -1,9 +1,12 @@
 #pragma once
 
-#include "HalcyonExport.hpp"
 class ShaderReloader;
 
-struct HALCYON_API ShaderReloaderComponent
+class ShaderReloaderContext
+{
+};
+
+struct ShaderReloaderComponent
 {
 	ShaderReloader* shaderReloader;
 };

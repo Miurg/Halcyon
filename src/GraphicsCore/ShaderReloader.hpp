@@ -1,6 +1,5 @@
 #pragma once
 
-#include "HalcyonExport.hpp"
 #include <string>
 #include <vector>
 #include <filesystem>
@@ -8,14 +7,14 @@
 #include "GraphicsCore/Managers/PipelineManager.hpp"
 #include "GraphicsCore/VulkanDevice.hpp"
 
-class HALCYON_API ShaderReloader
+class ShaderReloader
 {
 public:
 	ShaderReloader(const std::string& shadersDir = "shaders", const std::string& outDir = "shaders");
 	void update(PipelineManager& pManager, VulkanDevice& device);
 
 private:
-	struct HALCYON_API ShaderInfo
+	struct ShaderInfo
 	{
 		std::filesystem::file_time_type lastWriteTime;
 		std::string name; // filename without extension
