@@ -44,6 +44,8 @@ if(HALCYON_SHADER_TARGETS)
     add_dependencies(HalcyonSample ${HALCYON_SHADER_TARGETS})
 endif()
 
+halcyon_copy_shaders(HalcyonSample)
+
 # Copy runtime assets next to the executable.
 add_custom_command(TARGET HalcyonSample POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory

@@ -5,7 +5,7 @@ if(POLICY CMP0141)
     set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT "$<IF:$<AND:$<C_COMPILER_ID:MSVC>,$<CXX_COMPILER_ID:MSVC>>,$<$<CONFIG:Debug,RelWithDebInfo>:EditAndContinue>,$<$<CONFIG:Debug,RelWithDebInfo>:ProgramDatabase>>")
 endif()
 
-project(Halcyon LANGUAGES CXX VERSION 0.2.1)
+project(Halcyon LANGUAGES CXX VERSION 0.1.0)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -59,6 +59,9 @@ file(TO_CMAKE_PATH "${HALCYON_SHADER_OUTPUT_DIR}" HALCYON_SHADER_OUTPUT_DIR)
 
 set(HALCYON_SHADER_SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/shaders" CACHE PATH "Source directory for Halcyon shaders")
 file(TO_CMAKE_PATH "${HALCYON_SHADER_SRC_DIR}" HALCYON_SHADER_SRC_DIR)
+
+set(Halcyon_SHADER_DIR "${HALCYON_SHADER_OUTPUT_DIR}" CACHE INTERNAL "Location of Halcyon compiled shaders")
+include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/HalcyonHelpers.cmake")
 
 # === Library ===
 file(GLOB_RECURSE HALCYON_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
@@ -242,10 +245,12 @@ install(EXPORT HalcyonTargets
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/Halcyon
 )
 
+set(HALCYON_INSTALL_SHADERDIR "${CMAKE_INSTALL_DATADIR}/Halcyon/shaders")
 configure_package_config_file(
     "${CMAKE_CURRENT_SOURCE_DIR}/cmake/HalcyonConfig.cmake.in"
     "${CMAKE_CURRENT_BINARY_DIR}/HalcyonConfig.cmake"
     INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/Halcyon
+    PATH_VARS HALCYON_INSTALL_SHADERDIR
 )
 
 write_basic_package_version_file(
@@ -257,6 +262,7 @@ write_basic_package_version_file(
 install(FILES
     "${CMAKE_CURRENT_BINARY_DIR}/HalcyonConfig.cmake"
     "${CMAKE_CURRENT_BINARY_DIR}/HalcyonConfigVersion.cmake"
+    "${CMAKE_CURRENT_SOURCE_DIR}/cmake/HalcyonHelpers.cmake"
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/Halcyon
 )
 
