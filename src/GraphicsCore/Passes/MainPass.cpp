@@ -53,7 +53,7 @@ void MainPass::buildPipelines(Orhescyon::GeneralManager& gm, vk::SampleCountFlag
 	auto makeForward = [&](int alphaTest, int ibl, bool useA2C, vk::CompareOp depthOp)
 	{
 		return PipelineDescription{
-		    .shaderPath = HALCYON_SHADER_OUT_DIR "/standard_forward.spv",
+		    .shaderPath = "standard_forward.spv",
 		    .specializationValues = {alphaTest, ibl, gtaoEnabled, useA2C ? 1 : 0},
 		    .vertexBindings = {bindingDesc},
 		    .vertexAttributes = std::vector<vk::VertexInputAttributeDescription>(attrDescs.begin(), attrDescs.end()),
@@ -71,7 +71,7 @@ void MainPass::buildPipelines(Orhescyon::GeneralManager& gm, vk::SampleCountFlag
 	};
 
 	PipelineDescription skyboxDesc{
-	    .shaderPath = HALCYON_SHADER_OUT_DIR "/skybox.spv",
+	    .shaderPath = "skybox.spv",
 	    .cullMode = vk::CullModeFlagBits::eNone,
 	    .depthTest = true,
 	    .depthWrite = false,

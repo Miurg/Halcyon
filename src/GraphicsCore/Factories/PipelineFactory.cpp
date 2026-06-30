@@ -2,6 +2,7 @@
 #include "GraphicsCore/VulkanUtils.hpp"
 #include "GraphicsCore/Resources/Managers/Vertex.hpp"
 #include "PipelineBuilder.hpp"
+#include <filesystem>
 
 ColorBlendAttachmentDesc PipelineFactory::blendedAttachment()
 {
@@ -57,9 +58,13 @@ vk::raii::PipelineLayout PipelineFactory::buildLayout(vk::raii::Device& device,
 
 // Graphics build
 BuiltPipeline PipelineFactory::build(vk::raii::Device& device, const PipelineDescription& desc,
-                                      const std::vector<vk::DescriptorSetLayout>& resolvedLayouts)
+                                      const std::vector<vk::DescriptorSetLayout>& resolvedLayouts,
+                                      const std::string& shaderDir)
 {
-	auto shader = loadShader(device, desc.shaderPath);
+	std::filesystem::path shaderFile = desc.shaderPath;
+	std::string fullPath =
+	    shaderFile.is_absolute() ? desc.shaderPath : (std::filesystem::path(shaderDir) / shaderFile).string();
+	auto shader = loadShader(device, fullPath);
 
 	// Specialization constants (index == constant_id)
 	std::vector<vk::SpecializationMapEntry> specEntries;

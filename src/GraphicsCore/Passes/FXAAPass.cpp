@@ -35,7 +35,7 @@ void FXAAPass::onInit(Orhescyon::GeneralManager& gm)
 	_dset = dManager.allocate("screenSpaceSet");
 
 	pManager.build(PipelineDescription{
-	    .shaderPath = HALCYON_SHADER_OUT_DIR "/fxaa.spv",
+	    .shaderPath = "fxaa.spv",
 	    .cullMode = vk::CullModeFlagBits::eNone,
 	    .colorAttachments = {PipelineFactory::opaqueAttachment()},
 	    .colorFormats = {swapChain.swapChainImageFormat},

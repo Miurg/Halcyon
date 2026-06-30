@@ -23,6 +23,7 @@ public:
 private:
 	VulkanDevice& vulkanDevice;
 	DescriptorManager& descriptorManager;
+	std::string shaderDir;
 
 	// Resolves desc.setLayoutNames to raw vk::DescriptorSetLayout handles via DescriptorManager
 	std::vector<vk::DescriptorSetLayout> resolveLayouts(const PipelineDescription& desc) const;

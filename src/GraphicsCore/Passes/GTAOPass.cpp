@@ -69,7 +69,7 @@ void GTAOPass::onInit(Orhescyon::GeneralManager& gm)
 	_blurVDset = dManager.allocate("screenSpaceSet");
 
 	pManager.build(PipelineDescription{
-	    .shaderPath = HALCYON_SHADER_OUT_DIR "/gtao.spv",
+	    .shaderPath = "gtao.spv",
 	    .cullMode = vk::CullModeFlagBits::eNone,
 	    .colorAttachments = {PipelineFactory::opaqueAttachment()},
 	    .colorFormats = {vk::Format::eR8Unorm},
@@ -77,7 +77,7 @@ void GTAOPass::onInit(Orhescyon::GeneralManager& gm)
 	    .pushConstants = {{vk::ShaderStageFlagBits::eFragment, 0, 56u}},
 	});
 	pManager.build(PipelineDescription{
-	    .shaderPath = HALCYON_SHADER_OUT_DIR "/gtao_blur.spv",
+	    .shaderPath = "gtao_blur.spv",
 	    .cullMode = vk::CullModeFlagBits::eNone,
 	    .colorAttachments = {PipelineFactory::opaqueAttachment()},
 	    .colorFormats = {vk::Format::eR8Unorm},

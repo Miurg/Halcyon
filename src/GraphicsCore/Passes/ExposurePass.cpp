@@ -157,14 +157,14 @@ void ExposurePass::onInit(Orhescyon::GeneralManager& gm)
 
 	pManager.build(PipelineDescription{
 	    .isCompute = true,
-	    .shaderPath = HALCYON_SHADER_OUT_DIR "/histogram.spv",
+	    .shaderPath = "histogram.spv",
 	    .setLayoutNames = {"screenSpaceSet", "exposureSet"},
 	    .pushConstants = {{vk::ShaderStageFlagBits::eCompute, 0, sizeof(HistogramPush)}},
 	});
 
 	pManager.build(PipelineDescription{
 	    .isCompute = true,
-	    .shaderPath = HALCYON_SHADER_OUT_DIR "/exposure.spv",
+	    .shaderPath = "exposure.spv",
 	    .setLayoutNames = {"exposureSet"},
 	    .pushConstants = {{vk::ShaderStageFlagBits::eCompute, 0, sizeof(ExposurePush)}},
 	});

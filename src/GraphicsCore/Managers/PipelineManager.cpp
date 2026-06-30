@@ -3,7 +3,7 @@
 #include "GraphicsCore/Resources/Managers/DescriptorManager.hpp"
 
 PipelineManager::PipelineManager(VulkanDevice& vulkanDevice, DescriptorManager& descriptorManager)
-    : vulkanDevice(vulkanDevice), descriptorManager(descriptorManager)
+    : vulkanDevice(vulkanDevice), descriptorManager(descriptorManager), shaderDir(VulkanUtils::resolveShaderDir())
 {
 }
 
@@ -24,7 +24,7 @@ std::vector<vk::DescriptorSetLayout> PipelineManager::resolveLayouts(const Pipel
 void PipelineManager::build(const PipelineDescription& desc)
 {
 	auto layouts = resolveLayouts(desc);
-	BuiltPipeline newpipeline = PipelineFactory::build(vulkanDevice.device, desc, layouts);
+	BuiltPipeline newpipeline = PipelineFactory::build(vulkanDevice.device, desc, layouts, shaderDir);
 	newpipeline.desc = desc;
 	std::string pipelineName = VulkanUtils::nameFromPath(desc.shaderPath);
 
@@ -39,7 +39,7 @@ void PipelineManager::build(const PipelineDescription& desc)
 void PipelineManager::build(const PipelineDescription& desc, std::string pipelineName)
 {
 	auto layouts = resolveLayouts(desc);
-	BuiltPipeline newpipeline = PipelineFactory::build(vulkanDevice.device, desc, layouts);
+	BuiltPipeline newpipeline = PipelineFactory::build(vulkanDevice.device, desc, layouts, shaderDir);
 	newpipeline.desc = desc;
 	auto [it, inserted] = pipelines.try_emplace(pipelineName, std::move(newpipeline));
 	if (!inserted)
@@ -53,7 +53,7 @@ void PipelineManager::rebuild(std::string pipelineName)
 {
 	PipelineDescription desc = pipelines[pipelineName].desc;
 	auto layouts = resolveLayouts(desc);
-	BuiltPipeline newpipeline = PipelineFactory::build(vulkanDevice.device, desc, layouts);
+	BuiltPipeline newpipeline = PipelineFactory::build(vulkanDevice.device, desc, layouts, shaderDir);
 	newpipeline.desc = desc;
 	pipelines[pipelineName] = std::move(newpipeline);
 }
@@ -61,7 +61,7 @@ void PipelineManager::rebuild(std::string pipelineName)
 void PipelineManager::rebuild(const PipelineDescription& desc, std::string pipelineName)
 {
 	auto layouts = resolveLayouts(desc);
-	BuiltPipeline newpipeline = PipelineFactory::build(vulkanDevice.device, desc, layouts);
+	BuiltPipeline newpipeline = PipelineFactory::build(vulkanDevice.device, desc, layouts, shaderDir);
 	newpipeline.desc = desc;
 	pipelines[pipelineName] = std::move(newpipeline);
 }

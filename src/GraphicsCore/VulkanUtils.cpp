@@ -1,10 +1,24 @@
 #include "GraphicsCore/VulkanUtils.hpp"
+#include "PlatformCore/Platform.hpp"
 #include <fstream>
 #include <filesystem>
 
 std::string VulkanUtils::nameFromPath(const std::string& path)
 {
 	return std::filesystem::path(path).stem().string(); // "shaders/mesh.slang" -> "mesh"
+}
+
+std::string VulkanUtils::resolveShaderDir()
+{
+	if (std::string env = Platform::getEnv("HALCYON_SHADER_DIR"); !env.empty()) return env;
+
+	if (std::string exeDir = Platform::executableDir(); !exeDir.empty())
+	{
+		std::filesystem::path candidate = std::filesystem::path(exeDir) / "shaders";
+		if (std::filesystem::exists(candidate)) return candidate.string();
+	}
+
+	return HALCYON_SHADER_OUT_DIR;
 }
 
 // Creates a buffer and allocates memory for it.

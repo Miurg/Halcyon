@@ -40,7 +40,7 @@ void DebugPass::onInit(Orhescyon::GeneralManager& gm)
 
 	pManager.build(
 	    PipelineDescription{
-	        .shaderPath = HALCYON_SHADER_OUT_DIR "/aabb_debug.spv",
+	        .shaderPath = "aabb_debug.spv",
 	        .topology = vk::PrimitiveTopology::eLineList,
 	        .cullMode = vk::CullModeFlagBits::eNone,
 	        .depthTest = true,
@@ -56,7 +56,7 @@ void DebugPass::onInit(Orhescyon::GeneralManager& gm)
 
 	pManager.build(
 	    PipelineDescription{
-	        .shaderPath = HALCYON_SHADER_OUT_DIR "/aabb_debug.spv",
+	        .shaderPath = "aabb_debug.spv",
 	        .topology = vk::PrimitiveTopology::eLineList,
 	        .cullMode = vk::CullModeFlagBits::eNone,
 	        .depthTest = false,
@@ -71,7 +71,7 @@ void DebugPass::onInit(Orhescyon::GeneralManager& gm)
 
 	pManager.build(
 	    PipelineDescription{
-	        .shaderPath = HALCYON_SHADER_OUT_DIR "/gi_probe_debug.spv",
+	        .shaderPath = "gi_probe_debug.spv",
 	        .topology = vk::PrimitiveTopology::eTriangleList,
 	        .cullMode = vk::CullModeFlagBits::eBack,
 	        .depthTest = true,

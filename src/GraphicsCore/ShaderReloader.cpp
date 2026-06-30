@@ -121,10 +121,7 @@ void ShaderReloader::update(PipelineManager& pManager, VulkanDevice& device)
 				std::vector<std::string> pipelinesToRebuild;
 				for (auto& [pipelineName, builtDesc] : pManager.pipelines)
 				{
-					// Check if the shaderPath ends with the compiled spv path
-					// e.g. "shaders/standard_forward.spv"
-					if (builtDesc.desc.shaderPath == outDir + "/" + info.name + ".spv" ||
-					    builtDesc.desc.shaderPath == outDir + "\\" + info.name + ".spv")
+					if (builtDesc.desc.shaderPath == info.name + ".spv")
 					{
 						pipelinesToRebuild.push_back(pipelineName);
 					}

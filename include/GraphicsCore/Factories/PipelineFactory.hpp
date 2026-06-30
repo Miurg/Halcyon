@@ -67,7 +67,8 @@ class HALCYON_API PipelineFactory
 {
 public:
 	static BuiltPipeline build(vk::raii::Device& device, const PipelineDescription& desc,
-	                           const std::vector<vk::DescriptorSetLayout>& resolvedLayouts);
+	                           const std::vector<vk::DescriptorSetLayout>& resolvedLayouts,
+	                           const std::string& shaderDir);
 
 	// Standart blended attachment (HDR + normals RT)
 	static ColorBlendAttachmentDesc blendedAttachment();
