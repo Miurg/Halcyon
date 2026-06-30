@@ -93,9 +93,13 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
     imgui::imgui
     Jolt::Jolt
     KTX::ktx
-    tinygltf::tinygltf
-    stb::stb
     $<BUILD_INTERFACE:Orhescyon>
+)
+
+# header-only impl-only deps must not leak into the export set
+target_link_libraries(${PROJECT_NAME} PRIVATE
+    $<BUILD_INTERFACE:tinygltf::tinygltf>
+    $<BUILD_INTERFACE:stb::stb>
 )
 
 if(HALCYON_TRACY)
