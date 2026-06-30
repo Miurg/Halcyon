@@ -16,14 +16,20 @@ endif()
 
 list(APPEND CMAKE_PREFIX_PATH "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}")
 
-set(HALCYON_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/..")
+set(HALCYON_SOURCE_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/..")
 
 # User-configurable: where compiled stock shaders should be written.
 set(HALCYON_SHADER_OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/shaders" CACHE PATH "Output directory for Halcyon compiled shaders")
 
-# In-source build specific settings
-if(NOT TARGET Halcyon)
-    add_subdirectory("${HALCYON_ROOT}" Halcyon)
+if(NOT TARGET Halcyon::Halcyon)
+    find_package(Halcyon CONFIG QUIET)
+endif()
+
+if(Halcyon_FOUND)
+    message(STATUS "HalcyonSample: linking installed Halcyon SDK (find_package)")
+elseif(NOT TARGET Halcyon::Halcyon)
+    message(STATUS "HalcyonSample: building Halcyon in-source (add_subdirectory)")
+    add_subdirectory("${HALCYON_SOURCE_ROOT}" Halcyon)
 endif()
 
 add_executable(HalcyonSample
@@ -37,7 +43,7 @@ add_executable(HalcyonSample
 target_compile_features(HalcyonSample PRIVATE cxx_std_20)
 
 target_include_directories(HalcyonSample PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries(HalcyonSample PRIVATE Halcyon)
+target_link_libraries(HalcyonSample PRIVATE Halcyon::Halcyon)
 
 # In-source build specific settings
 if(HALCYON_SHADER_TARGETS)
