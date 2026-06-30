@@ -24,8 +24,10 @@
 #include "GraphicsCore/Managers/PipelineManager.hpp"
 #include "GraphicsCore/VulkanUtils.hpp"
 #include "GraphicsCore/GraphicsContexts.hpp"
+#ifdef HALCYON_DEV_TOOLS
 #include "GraphicsCore/ShaderReloader.hpp"
 #include "GraphicsCore/Components/ShaderReloaderComponent.hpp"
+#endif
 #include <cstdint>
 #include <vector>
 #include <vulkan/vulkan_enums.hpp>
@@ -62,11 +64,13 @@ void GraphicsPipelinesInit::initPipelines(GeneralManager& gm)
 
 #pragma endregion
 
+#ifdef HALCYON_DEV_TOOLS
 	ShaderReloader* shaderReloader = new ShaderReloader(HALCYON_SHADER_SRC_DIR, VulkanUtils::resolveShaderDir());
 	Orhescyon::Entity shaderReloaderEntity = gm.createEntity();
 	gm.registerContext<ShaderReloaderContext>(shaderReloaderEntity);
 	gm.addComponent<ShaderReloaderComponent>(shaderReloaderEntity, shaderReloader);
 	gm.addComponent<NameComponent>(shaderReloaderEntity, "SYSTEM Shader Reloader");
+#endif
 
 #pragma region Pipelines
 	Orhescyon::Entity pManagerEntity = gm.createEntity();

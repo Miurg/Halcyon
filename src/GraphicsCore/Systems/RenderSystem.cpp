@@ -1,7 +1,9 @@
 #include "GraphicsCore/Systems/RenderSystem.hpp"
 
 #include <iostream>
+#ifdef HALCYON_DEV_TOOLS
 #include <imgui.h>
+#endif
 
 #include "GraphicsCore/GraphicsContexts.hpp"
 #include "GraphicsCore/SwapChain.hpp"
@@ -28,7 +30,9 @@
 #include "../Passes/ToneMappingPass.hpp"
 #include "../Passes/FXAAPass.hpp"
 #include "../Passes/VignettePass.hpp"
+#ifdef HALCYON_DEV_TOOLS
 #include "../Passes/ImGuiPass.hpp"
+#endif
 #include "../Passes/PresentPass.hpp"
 #include "../Passes/DepthPyramidPass.hpp"
 #include "../Passes/ExposurePass.hpp"
@@ -62,7 +66,9 @@ void RenderSystem::onRegistered(GeneralManager& gm)
 	add(std::make_unique<ToneMappingPass>());
 	add(std::make_unique<FXAAPass>());
 	add(std::make_unique<VignettePass>());
+#ifdef HALCYON_DEV_TOOLS
 	add(std::make_unique<ImGuiPass>());
+#endif
 	add(std::make_unique<PresentPass>());
 
 	std::cout << "RenderSystem registered!" << std::endl;
@@ -124,7 +130,9 @@ void RenderSystem::update(GeneralManager& gm)
 	auto& currentFrameComp = *gm.getContextComponent<CurrentFrameContext, CurrentFrameComponent>();
 	if (!currentFrameComp.frameValid) return;
 
+#ifdef HALCYON_DEV_TOOLS
 	ImGui::Render();
+#endif
 
 	auto& rg = *gm.getContextComponent<RenderGraphContext, RenderGraphComponent>()->renderGraph;
 	uint32_t frame = currentFrameComp.currentFrame;

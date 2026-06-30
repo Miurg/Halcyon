@@ -53,6 +53,7 @@ endif()
 # === Options ===
 option(BUILD_SHARED_LIBS "Build Halcyon as a shared library" OFF)
 option(HALCYON_BUILD_EXAMPLES "Build Halcyon examples" ${PROJECT_IS_TOP_LEVEL})
+option(HALCYON_DEV_TOOLS "Build in-engine dev tools (ImGui debug UI, shader hot-reload)" ON)
 
 set(HALCYON_SHADER_OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/shaders" CACHE PATH "Output directory for Halcyon compiled shaders")
 file(TO_CMAKE_PATH "${HALCYON_SHADER_OUTPUT_DIR}" HALCYON_SHADER_OUTPUT_DIR)
@@ -65,6 +66,10 @@ include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/HalcyonHelpers.cmake")
 
 # === Library ===
 file(GLOB_RECURSE HALCYON_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
+
+if(NOT HALCYON_DEV_TOOLS)
+    list(FILTER HALCYON_SOURCES EXCLUDE REGEX "(ImGuiPass|ImGuiSystem|ShaderReloader)\\.cpp$")
+endif()
 
 add_library(${PROJECT_NAME} ${HALCYON_SOURCES})
 add_library(Halcyon::Halcyon ALIAS ${PROJECT_NAME})
@@ -93,11 +98,14 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
     glfw
     tinyobjloader::tinyobjloader
     GPUOpen::VulkanMemoryAllocator
-    imgui::imgui
     Jolt::Jolt
     KTX::ktx
     $<BUILD_INTERFACE:Orhescyon>
 )
+
+if(HALCYON_DEV_TOOLS)
+    target_link_libraries(${PROJECT_NAME} PUBLIC imgui::imgui)
+endif()
 
 # header-only impl-only deps must not leak into the export set
 target_link_libraries(${PROJECT_NAME} PRIVATE
@@ -114,9 +122,12 @@ endif()
 target_compile_definitions(${PROJECT_NAME} PUBLIC ORHESCYON_HIGH_CHECK)
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE
-    HALCYON_DEV_BUILD
     HALCYON_SHADER_SRC_DIR="${HALCYON_SHADER_SRC_DIR}"
 )
+
+if(HALCYON_DEV_TOOLS)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE HALCYON_DEV_TOOLS)
+endif()
 
 target_compile_definitions(${PROJECT_NAME} PUBLIC
     "$<BUILD_INTERFACE:HALCYON_SHADER_OUT_DIR=\"${HALCYON_SHADER_OUTPUT_DIR}\">"
@@ -231,9 +242,16 @@ install(TARGETS ${PROJECT_NAME}
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
 
-install(DIRECTORY include/
-    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-)
+if(HALCYON_DEV_TOOLS)
+    install(DIRECTORY include/
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+    )
+else()
+    install(DIRECTORY include/
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+        PATTERN "ImGuiSystem.hpp" EXCLUDE
+    )
+endif()
 
 install(DIRECTORY thirdparty/Orhescyon/include/
     DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}

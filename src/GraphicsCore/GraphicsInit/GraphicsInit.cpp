@@ -33,15 +33,19 @@
 #include "../Managers/FrameManager.hpp"
 #include "GraphicsCore/GraphicsContexts.hpp"
 #include "GraphicsPipelinesInit.hpp"
+#ifdef HALCYON_DEV_TOOLS
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_vulkan.h>
+#endif
 #include "PlaceholdersInit.hpp"
 #include "GraphicsCore/Systems/DeltaTimeSystem.hpp"
 #include "GraphicsCore/Systems/TransformSystem.hpp"
 #include "GraphicsCore/Systems/FrameBeginSystem.hpp"
 #include "GraphicsCore/Systems/PhysSyncSystem.hpp"
+#ifdef HALCYON_DEV_TOOLS
 #include "GraphicsCore/Systems/ImGuiSystem.hpp"
+#endif
 #include "GraphicsCore/Systems/CameraMatrixSystem.hpp"
 #include "GraphicsCore/Systems/LightUpdateSystem.hpp"
 #include "GraphicsCore/Systems/BufferUpdateSystem.hpp"
@@ -66,7 +70,9 @@ void GraphicsInit::Run(GeneralManager& gm)
 	initFrameData(gm);
 	GraphicsPipelinesInit::initPipelines(gm);
 	PlaceholdersInit::initPlaceholders(gm);
+#ifdef HALCYON_DEV_TOOLS
 	initImGui(gm);
+#endif
 	coreInit(gm);
 	PlaceholdersInit::initAfterCorePlaceholders(gm);
 
@@ -85,7 +91,9 @@ void GraphicsInit::coreInit(GeneralManager& gm)
 	gm.registerSystem<FrameBeginSystem>();
 	gm.registerSystem<GPUParticlesSystem>();
 	gm.registerSystem<PhysSyncSystem>();
+#ifdef HALCYON_DEV_TOOLS
 	gm.registerSystem<ImGuiSystem>();
+#endif
 	gm.registerSystem<CameraMatrixSystem>();
 	gm.registerSystem<LightUpdateSystem>();
 	gm.registerSystem<BufferUpdateSystem>();
@@ -257,6 +265,7 @@ void GraphicsInit::initFrameData(GeneralManager& gm)
 }
 #pragma endregion
 
+#ifdef HALCYON_DEV_TOOLS
 #pragma region initImGui
 void GraphicsInit::initImGui(GeneralManager& gm)
 {
@@ -326,3 +335,4 @@ void GraphicsInit::initImGui(GeneralManager& gm)
 #endif //_DEBUG
 }
 #pragma endregion
+#endif // HALCYON_DEV_TOOLS
