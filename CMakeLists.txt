@@ -21,7 +21,7 @@ find_package(tinyobjloader CONFIG REQUIRED)
 find_package(VulkanMemoryAllocator CONFIG REQUIRED)
 find_package(imgui CONFIG REQUIRED)
 find_package(Jolt CONFIG REQUIRED)
-find_package(KTX CONFIG REQUIRED)
+find_package(Ktx CONFIG REQUIRED)
 
 find_path(TINYGLTF_INCLUDE_BASE_DIR "tiny_gltf.h")
 if(TINYGLTF_INCLUDE_BASE_DIR AND NOT TARGET tinygltf::tinygltf)
