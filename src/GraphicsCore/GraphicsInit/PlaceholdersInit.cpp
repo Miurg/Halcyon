@@ -1,36 +1,36 @@
 #include "PlaceholdersInit.hpp"
 #include <limits>
 #include "GraphicsInit.hpp"
-#include "../Components/VulkanDeviceComponent.hpp"
-#include "../Components/TextureManagerComponent.hpp"
-#include "../Components/BufferManagerComponent.hpp"
-#include "../Components/DescriptorManagerComponent.hpp"
-#include "../Components/GraphicsSettingsComponent.hpp"
-#include "../Resources/Components/GlobalDSetComponent.hpp"
-#include "../Resources/Components/ModelDSetComponent.hpp"
-#include "../Components/GtaoSettingsComponent.hpp"
-#include "../Components/AutoExposureSettingsComponent.hpp"
-#include "../Components/NameComponent.hpp"
-#include "../Components/CameraComponent.hpp"
-#include "../Components/DirectLightComponent.hpp"
-#include "../Components/LocalTransformComponent.hpp"
-#include "../Components/GlobalTransformComponent.hpp"
-#include "../Components/RelationshipComponent.hpp"
-#include "../Components/SkyboxComponent.hpp"
-#include "../VulkanDevice.hpp"
-#include "../Resources/Managers/TextureManager.hpp"
-#include "../Resources/Managers/BufferManager.hpp"
-#include "../Resources/Managers/ModelManager.hpp"
-#include "../Resources/Managers/DescriptorManager.hpp"
-#include "../VulkanUtils.hpp"
-#include "../GraphicsContexts.hpp"
-#include "../Resources/ResourceStructures.hpp"
-#include "../Resources/Managers/Bindings.hpp"
-#include "../Components/PipelineManagerComponent.hpp"
+#include "GraphicsCore/Components/VulkanDeviceComponent.hpp"
+#include "GraphicsCore/Components/TextureManagerComponent.hpp"
+#include "GraphicsCore/Components/BufferManagerComponent.hpp"
+#include "GraphicsCore/Components/DescriptorManagerComponent.hpp"
+#include "GraphicsCore/Components/GraphicsSettingsComponent.hpp"
+#include "GraphicsCore/Resources/Components/GlobalDSetComponent.hpp"
+#include "GraphicsCore/Resources/Components/ModelDSetComponent.hpp"
+#include "GraphicsCore/Components/GtaoSettingsComponent.hpp"
+#include "GraphicsCore/Components/AutoExposureSettingsComponent.hpp"
+#include "GraphicsCore/Components/NameComponent.hpp"
+#include "GraphicsCore/Components/CameraComponent.hpp"
+#include "GraphicsCore/Components/DirectLightComponent.hpp"
+#include "GraphicsCore/Components/LocalTransformComponent.hpp"
+#include "GraphicsCore/Components/GlobalTransformComponent.hpp"
+#include "GraphicsCore/Components/RelationshipComponent.hpp"
+#include "GraphicsCore/Components/SkyboxComponent.hpp"
+#include "GraphicsCore/VulkanDevice.hpp"
+#include "GraphicsCore/Resources/Managers/TextureManager.hpp"
+#include "GraphicsCore/Resources/Managers/BufferManager.hpp"
+#include "GraphicsCore/Resources/Managers/ModelManager.hpp"
+#include "GraphicsCore/Resources/Managers/DescriptorManager.hpp"
+#include "GraphicsCore/VulkanUtils.hpp"
+#include "GraphicsCore/GraphicsContexts.hpp"
+#include "GraphicsCore/Resources/ResourceStructures.hpp"
+#include "GraphicsCore/Resources/Managers/Bindings.hpp"
+#include "GraphicsCore/Components/PipelineManagerComponent.hpp"
 #include "../Resources/Factories/GltfLoader.hpp"
-#include "../Components/LightProbeGridComponent.hpp"
-#include "../Components/DeltaTimeComponent.hpp"
-#include "../Systems/TransformSystem.hpp"
+#include "GraphicsCore/Components/LightProbeGridComponent.hpp"
+#include "GraphicsCore/Components/DeltaTimeComponent.hpp"
+#include "GraphicsCore/Systems/TransformSystem.hpp"
 
 void PlaceholdersInit::initPlaceholders(GeneralManager& gm)
 {
@@ -56,8 +56,8 @@ void PlaceholdersInit::initPlaceholders(GeneralManager& gm)
 	Orhescyon::Entity cameraEntity = gm.createEntity();
 	gm.addComponent<NameComponent>(cameraEntity, "Main Camera");
 	gm.addComponent<CameraComponent>(cameraEntity);
-	gm.addComponent<GlobalTransformComponent>(cameraEntity, glm::vec3(-5.0f, 5.0f, 3.0f));
-	gm.addComponent<LocalTransformComponent>(cameraEntity, glm::vec3(-5.0f, 5.0f, 3.0f));
+	gm.addComponent<GlobalTransformComponent>(cameraEntity, glm::vec3(0.0f, 0.0f, 0.0f));
+	gm.addComponent<LocalTransformComponent>(cameraEntity, glm::vec3(0.0f, 0.0f, 0.0f));
 	gm.addComponent<RelationshipComponent>(cameraEntity);
 	gm.registerContext<MainCameraContext>(cameraEntity);
 	CameraComponent* camera = gm.getContextComponent<MainCameraContext, CameraComponent>();

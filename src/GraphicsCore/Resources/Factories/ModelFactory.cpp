@@ -1,19 +1,21 @@
-#include "ModelFactory.hpp"
+#include "GraphicsCore/Resources/Factories/ModelFactory.hpp"
 #include <ktx.h>
 #include <stb_image.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/matrix_decompose.hpp>
-#include "../../Components/GlobalTransformComponent.hpp"
-#include "../../Components/LocalTransformComponent.hpp"
-#include "../../Components/RelationshipComponent.hpp"
-#include "../../Systems/TransformSystem.hpp"
-#include "../../Systems/RenderSystem.hpp"
-#include "../../Components/NameComponent.hpp"
+#include "GraphicsCore/Components/GlobalTransformComponent.hpp"
+#include "GraphicsCore/Components/LocalTransformComponent.hpp"
+#include "GraphicsCore/Components/RelationshipComponent.hpp"
+#include "GraphicsCore/Systems/TransformSystem.hpp"
+#include "GraphicsCore/Systems/RenderSystem.hpp"
+#include "GraphicsCore/Components/NameComponent.hpp"
 #include <string>
-#include "../../Components/PointLightComponent.hpp"
-#include "../../Systems/LightUpdateSystem.hpp"
+#include "GraphicsCore/Components/PointLightComponent.hpp"
+#include "GraphicsCore/Systems/LightUpdateSystem.hpp"
+
+#include "GraphicsCore/Resources/Factories/GltfLoader.hpp"
 
 glm::mat4 convertGLTFMatrix(const std::vector<double>& matrix)
 {
@@ -25,7 +27,7 @@ glm::mat4 convertGLTFMatrix(const std::vector<double>& matrix)
 
 	return glm::make_mat4(m);
 }
-Orhescyon::Entity ModelFactory::createEntityHierarchy(int parentEntity, tinygltf::Model& model, GeneralManager& gm, int offset,
+Orhescyon::Entity createEntityHierarchy(int parentEntity, tinygltf::Model& model, GeneralManager& gm, int offset,
                                            BufferManager& bManager, int nodeIndex)
 {
 	tinygltf::Node& node = model.nodes[nodeIndex];

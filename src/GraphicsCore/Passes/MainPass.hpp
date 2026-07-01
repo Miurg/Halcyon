@@ -1,5 +1,5 @@
 #pragma once
-#include "IPass.hpp"
+#include "GraphicsCore/Passes/IPass.hpp"
 #include <vulkan/vulkan_raii.hpp>
 
 class SwapChain;

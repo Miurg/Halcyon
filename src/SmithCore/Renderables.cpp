@@ -1,8 +1,8 @@
-#include "Renderables.hpp"
-#include "../GraphicsCore/Components/GlobalTransformComponent.hpp"
-#include "../GraphicsCore/Components/LocalTransformComponent.hpp"
-#include "../GraphicsCore/Components/RelationshipComponent.hpp"
-#include "../GraphicsCore/Systems/TransformSystem.hpp"
+#include "SmithCore/Renderables.hpp"
+#include "GraphicsCore/Components/GlobalTransformComponent.hpp"
+#include "GraphicsCore/Components/LocalTransformComponent.hpp"
+#include "GraphicsCore/Components/RelationshipComponent.hpp"
+#include "GraphicsCore/Systems/TransformSystem.hpp"
 
 void Smith::Renderables::forgeTransform(Orhescyon::GeneralManager& gm, Orhescyon::Entity e, glm::vec3 pos,
                                         glm::quat rot)
@@ -26,4 +26,9 @@ void Smith::Renderables::forgeTransform(Orhescyon::GeneralManager& gm, Orhescyon
 	{
 		gm.subscribeEntity<TransformSystem>(e);
 	}
+
+	// Raise the dirty flag so TransformSystem applies pos/rot; construction alone does not.
+	GlobalTransformComponent* global = gm.getComponent<GlobalTransformComponent>(e);
+	global->setGlobalPosition(pos);
+	global->setGlobalRotation(rot);
 }

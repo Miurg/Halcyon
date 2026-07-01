@@ -1,5 +1,5 @@
 #pragma once
-#include "IPass.hpp"
+#include "GraphicsCore/Passes/IPass.hpp"
 
 class CullPass : public IPass
 {

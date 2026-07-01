@@ -1,23 +1,25 @@
-#include "RenderSystem.hpp"
+#include "GraphicsCore/Systems/RenderSystem.hpp"
 
 #include <iostream>
+#ifdef HALCYON_DEV_TOOLS
 #include <imgui.h>
+#endif
 
-#include "../GraphicsContexts.hpp"
-#include "../SwapChain.hpp"
-#include "../VulkanDevice.hpp"
-#include "../Components/SwapChainComponent.hpp"
-#include "../Components/CurrentFrameComponent.hpp"
-#include "../Components/FrameImageComponent.hpp"
-#include "../Components/TextureManagerComponent.hpp"
-#include "../Components/VulkanDeviceComponent.hpp"
-#include "../Components/DirectLightComponent.hpp"
-#include "../Components/RenderGraphComponent.hpp"
-#include "../Components/GraphicsSettingsComponent.hpp"
-#include "../Resources/Managers/TextureManager.hpp"
-#include "../RenderGraph/RenderGraph.hpp"
+#include "GraphicsCore/GraphicsContexts.hpp"
+#include "GraphicsCore/SwapChain.hpp"
+#include "GraphicsCore/VulkanDevice.hpp"
+#include "GraphicsCore/Components/SwapChainComponent.hpp"
+#include "GraphicsCore/Components/CurrentFrameComponent.hpp"
+#include "GraphicsCore/Components/FrameImageComponent.hpp"
+#include "GraphicsCore/Components/TextureManagerComponent.hpp"
+#include "GraphicsCore/Components/VulkanDeviceComponent.hpp"
+#include "GraphicsCore/Components/DirectLightComponent.hpp"
+#include "GraphicsCore/Components/RenderGraphComponent.hpp"
+#include "GraphicsCore/Components/GraphicsSettingsComponent.hpp"
+#include "GraphicsCore/Resources/Managers/TextureManager.hpp"
+#include "GraphicsCore/RenderGraph/RenderGraph.hpp"
 
-#include "../Passes/IPass.hpp"
+#include "GraphicsCore/Passes/IPass.hpp"
 #include "../Passes/DirectLightPass.hpp"
 #include "../Passes/CullPass.hpp"
 #include "../Passes/DepthPrepass.hpp"
@@ -28,7 +30,9 @@
 #include "../Passes/ToneMappingPass.hpp"
 #include "../Passes/FXAAPass.hpp"
 #include "../Passes/VignettePass.hpp"
+#ifdef HALCYON_DEV_TOOLS
 #include "../Passes/ImGuiPass.hpp"
+#endif
 #include "../Passes/PresentPass.hpp"
 #include "../Passes/DepthPyramidPass.hpp"
 #include "../Passes/ExposurePass.hpp"
@@ -62,7 +66,9 @@ void RenderSystem::onRegistered(GeneralManager& gm)
 	add(std::make_unique<ToneMappingPass>());
 	add(std::make_unique<FXAAPass>());
 	add(std::make_unique<VignettePass>());
+#ifdef HALCYON_DEV_TOOLS
 	add(std::make_unique<ImGuiPass>());
+#endif
 	add(std::make_unique<PresentPass>());
 
 	std::cout << "RenderSystem registered!" << std::endl;
@@ -124,7 +130,9 @@ void RenderSystem::update(GeneralManager& gm)
 	auto& currentFrameComp = *gm.getContextComponent<CurrentFrameContext, CurrentFrameComponent>();
 	if (!currentFrameComp.frameValid) return;
 
+#ifdef HALCYON_DEV_TOOLS
 	ImGui::Render();
+#endif
 
 	auto& rg = *gm.getContextComponent<RenderGraphContext, RenderGraphComponent>()->renderGraph;
 	uint32_t frame = currentFrameComp.currentFrame;

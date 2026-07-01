@@ -1,7 +1,7 @@
-#include "InputSolverSystem.hpp"
+#include "PlatformCore/Systems/InputSolverSystem.hpp"
 
 #include <GLFW/glfw3.h>
-#include "../PlatformContexts.hpp"
+#include "PlatformCore/PlatformContexts.hpp"
 
 #ifdef TRACY_ENABLE
 #include <tracy/Tracy.hpp>

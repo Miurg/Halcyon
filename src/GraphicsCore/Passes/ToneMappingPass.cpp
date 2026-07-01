@@ -2,19 +2,19 @@
 
 #include <Orhescyon/GeneralManager.hpp>
 
-#include "../GraphicsContexts.hpp"
-#include "../SwapChain.hpp"
-#include "../Components/SwapChainComponent.hpp"
-#include "../Components/DescriptorManagerComponent.hpp"
-#include "../Components/PipelineManagerComponent.hpp"
-#include "../Components/RenderGraphComponent.hpp"
-#include "../Resources/Managers/DescriptorManager.hpp"
-#include "../Managers/PipelineManager.hpp"
-#include "../Factories/PipelineFactory.hpp"
-#include "../RenderGraph/RenderGraph.hpp"
-#include "../Components/ExposureBufferComponent.hpp"
-#include "../Components/BufferManagerComponent.hpp"
-#include "../Components/GraphicsSettingsComponent.hpp"
+#include "GraphicsCore/GraphicsContexts.hpp"
+#include "GraphicsCore/SwapChain.hpp"
+#include "GraphicsCore/Components/SwapChainComponent.hpp"
+#include "GraphicsCore/Components/DescriptorManagerComponent.hpp"
+#include "GraphicsCore/Components/PipelineManagerComponent.hpp"
+#include "GraphicsCore/Components/RenderGraphComponent.hpp"
+#include "GraphicsCore/Resources/Managers/DescriptorManager.hpp"
+#include "GraphicsCore/Managers/PipelineManager.hpp"
+#include "GraphicsCore/Factories/PipelineFactory.hpp"
+#include "GraphicsCore/RenderGraph/RenderGraph.hpp"
+#include "GraphicsCore/Components/ExposureBufferComponent.hpp"
+#include "GraphicsCore/Components/BufferManagerComponent.hpp"
+#include "GraphicsCore/Components/GraphicsSettingsComponent.hpp"
 
 namespace
 {
@@ -49,7 +49,7 @@ void ToneMappingPass::onInit(Orhescyon::GeneralManager& gm)
 	}
 
 	pManager.build(PipelineDescription{
-	    .shaderPath = "shaders/tone_mapping.spv",
+	    .shaderPath = "tone_mapping.spv",
 	    .specializationValues = {1},
 	    .cullMode = vk::CullModeFlagBits::eNone,
 	    .colorAttachments = {PipelineFactory::opaqueAttachment()},
@@ -65,7 +65,7 @@ void ToneMappingPass::onSettingsChanged(Orhescyon::GeneralManager& gm)
 	auto& settings = *gm.getContextComponent<GraphicsSettingsContext, GraphicsSettingsComponent>();
 
 	pManager.rebuild(PipelineDescription{
-	    .shaderPath = "shaders/tone_mapping.spv",
+	    .shaderPath = "tone_mapping.spv",
 	    .specializationValues = {settings.enableAutoExposure ? 1 : 0},
 	    .cullMode = vk::CullModeFlagBits::eNone,
 	    .colorAttachments = {PipelineFactory::opaqueAttachment()},

@@ -13,16 +13,16 @@
 #include <Jolt/Physics/Body/BodyCreationSettings.h>
 #include <Jolt/Physics/Collision/Shape/BoxShape.h>
 #include <Jolt/Physics/Collision/Shape/SphereShape.h>
-#include "Components/PhysManagerComponent.hpp"
-#include "Components/PhysBodyComponent.hpp"
-#include "Components/PhysTickRateComponent.hpp"
-#include "PhysContexts.hpp"
-#include "Systems/PhysUpdateSystem.hpp"
-#include "Systems/PhysSnapshotSystem.hpp"
-#include "PhysLayers.hpp"
+#include "PhysicsCore/Components/PhysManagerComponent.hpp"
+#include "PhysicsCore/Components/PhysBodyComponent.hpp"
+#include "PhysicsCore/Components/PhysTickRateComponent.hpp"
+#include "PhysicsCore/PhysContexts.hpp"
+#include "PhysicsCore/Systems/PhysUpdateSystem.hpp"
+#include "PhysicsCore/Systems/PhysSnapshotSystem.hpp"
+#include "PhysicsCore/PhysLayers.hpp"
 
-#include "../DeletionQueueComponent.hpp"
-#include "../DeletionQueueContext.hpp"
+#include "DeletionQueueComponent.hpp"
+#include "DeletionQueueContext.hpp"
 
 #pragma region Run
 void PhysicsInit::Run(Orhescyon::GeneralManager& gm)

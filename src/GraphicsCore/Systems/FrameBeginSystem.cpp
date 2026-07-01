@@ -1,20 +1,20 @@
-#include "FrameBeginSystem.hpp"
+#include "GraphicsCore/Systems/FrameBeginSystem.hpp"
 #include <iostream>
 #include <vulkan/vulkan_raii.hpp>
 #include "../Factories/SwapChainFactory.hpp"
-#include "../GraphicsContexts.hpp"
-#include "../Components/VulkanDeviceComponent.hpp"
-#include "../Components/SwapChainComponent.hpp"
-#include "../../PlatformCore/PlatformContexts.hpp"
-#include "../../PlatformCore/Components/WindowComponent.hpp"
-#include "../FrameData.hpp"
-#include "../Components/FrameDataComponent.hpp"
-#include "../Components/CurrentFrameComponent.hpp"
-#include "../Components/FrameImageComponent.hpp"
+#include "GraphicsCore/GraphicsContexts.hpp"
+#include "GraphicsCore/Components/VulkanDeviceComponent.hpp"
+#include "GraphicsCore/Components/SwapChainComponent.hpp"
+#include "PlatformCore/PlatformContexts.hpp"
+#include "PlatformCore/Components/WindowComponent.hpp"
+#include "GraphicsCore/FrameData.hpp"
+#include "GraphicsCore/Components/FrameDataComponent.hpp"
+#include "GraphicsCore/Components/CurrentFrameComponent.hpp"
+#include "GraphicsCore/Components/FrameImageComponent.hpp"
 #include "../Managers/FrameManager.hpp"
-#include "../Components/FrameManagerComponent.hpp"
-#include "../Components/RenderGraphComponent.hpp"
-#include "../RenderGraph/RenderGraph.hpp"
+#include "GraphicsCore/Components/FrameManagerComponent.hpp"
+#include "GraphicsCore/Components/RenderGraphComponent.hpp"
+#include "GraphicsCore/RenderGraph/RenderGraph.hpp"
 
 #ifdef TRACY_ENABLE
 #include <tracy/Tracy.hpp>
@@ -49,8 +49,32 @@ void FrameBeginSystem::update(GeneralManager& gm)
 #ifdef TRACY_ENABLE
 		ZoneScopedN("waitForFences");
 #endif
-		vulkanDevice.device.waitForFences(*frameManager->frames[currentFrameComp->currentFrame].inFlightFence, vk::True,
-		                                  UINT64_MAX);
+		try
+		{
+			vk::Result fenceResult = vulkanDevice.device.waitForFences(
+			    *frameManager->frames[currentFrameComp->currentFrame].inFlightFence, vk::True, UINT64_MAX);
+
+			switch (fenceResult)
+			{
+				case vk::Result::eSuccess:
+					break;
+
+				case vk::Result::eTimeout:
+					std::cerr << "[FrameBeginSystem] waitForFences timed out. Skipping frame." << std::endl;
+					return;
+
+				case vk::Result::eErrorDeviceLost:
+					throw std::runtime_error("[FrameBeginSystem] Device lost while waiting for fence!");
+
+				default:
+					throw std::runtime_error("[FrameBeginSystem] waitForFences returned unexpected error!");
+			}
+		}
+		catch (vk::SystemError& e)
+		{
+			throw std::runtime_error(
+			    std::string("[FrameBeginSystem] waitForFences failed with exception: ") + e.what());
+		}
 	}
 
 	// Handle window resize

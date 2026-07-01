@@ -3,7 +3,7 @@
 #include <imgui.h>
 #include <imgui_impl_vulkan.h>
 
-#include "../RenderGraph/RenderGraph.hpp"
+#include "GraphicsCore/RenderGraph/RenderGraph.hpp"
 
 void ImGuiPass::addToGraph(Orhescyon::GeneralManager& /*gm*/, RenderGraph& rg, uint32_t /*frame*/)
 {

@@ -18,21 +18,26 @@ find_package(Vulkan REQUIRED)
 find_package(glm CONFIG REQUIRED)
 find_package(glfw3 CONFIG REQUIRED)
 find_package(tinyobjloader CONFIG REQUIRED)
-find_path(TINYGLTF_INCLUDE_DIRS "tiny_gltf.h")
-find_path(STB_INCLUDE_DIRS "stb_image.h")
 find_package(VulkanMemoryAllocator CONFIG REQUIRED)
 find_package(imgui CONFIG REQUIRED)
 find_package(Jolt CONFIG REQUIRED)
 find_package(Ktx CONFIG REQUIRED)
 
+find_path(TINYGLTF_INCLUDE_BASE_DIR "tiny_gltf.h")
+if(TINYGLTF_INCLUDE_BASE_DIR AND NOT TARGET tinygltf::tinygltf)
+    add_library(tinygltf::tinygltf INTERFACE IMPORTED)
+    target_include_directories(tinygltf::tinygltf INTERFACE ${TINYGLTF_INCLUDE_BASE_DIR})
+endif()
+
+find_path(STB_INCLUDE_BASE_DIR "stb_image.h")
+if(STB_INCLUDE_BASE_DIR AND NOT TARGET stb::stb)
+    add_library(stb::stb INTERFACE IMPORTED)
+    target_include_directories(stb::stb INTERFACE ${STB_INCLUDE_BASE_DIR})
+endif()
+
 option(HALCYON_TRACY "Enable Tracy profiler" OFF)
 
-FetchContent_Declare(
-    Orhescyon
-    GIT_REPOSITORY https://github.com/Miurg/Orhescyon.git
-    GIT_TAG v0.2.0
-)
-FetchContent_MakeAvailable(Orhescyon)
+add_subdirectory(thirdparty/Orhescyon)
 
 if(HALCYON_TRACY)
     FetchContent_Declare(
@@ -41,34 +46,71 @@ if(HALCYON_TRACY)
         GIT_TAG v0.13.1
         GIT_SHALLOW TRUE
         GIT_PROGRESS TRUE
-    )
+    )    
     FetchContent_MakeAvailable(tracy)
 endif()
 
-# === Sources and Target ===
-file(GLOB_RECURSE MY_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
+# === Options ===
+option(BUILD_SHARED_LIBS "Build Halcyon as a shared library" OFF)
+option(HALCYON_BUILD_EXAMPLES "Build Halcyon examples" ${PROJECT_IS_TOP_LEVEL})
+option(HALCYON_DEV_TOOLS "Build in-engine dev tools (ImGui debug UI, shader hot-reload)" ON)
 
-add_executable(${PROJECT_NAME} ${MY_SOURCES})
+set(HALCYON_SHADER_OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/shaders" CACHE PATH "Output directory for Halcyon compiled shaders")
+file(TO_CMAKE_PATH "${HALCYON_SHADER_OUTPUT_DIR}" HALCYON_SHADER_OUTPUT_DIR)
+
+set(HALCYON_SHADER_SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/shaders" CACHE PATH "Source directory for Halcyon shaders")
+file(TO_CMAKE_PATH "${HALCYON_SHADER_SRC_DIR}" HALCYON_SHADER_SRC_DIR)
+
+set(Halcyon_SHADER_DIR "${HALCYON_SHADER_OUTPUT_DIR}" CACHE INTERNAL "Location of Halcyon compiled shaders")
+include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/HalcyonHelpers.cmake")
+
+# === Library ===
+file(GLOB_RECURSE HALCYON_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
+
+if(NOT HALCYON_DEV_TOOLS)
+    list(FILTER HALCYON_SOURCES EXCLUDE REGEX "(ImGuiPass|ImGuiSystem|ShaderReloader)\\.cpp$")
+endif()
+
+add_library(${PROJECT_NAME} ${HALCYON_SOURCES})
+add_library(Halcyon::Halcyon ALIAS ${PROJECT_NAME})
+
+if(BUILD_SHARED_LIBS)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE HALCYON_BUILD_SHARED HALCYON_EXPORTS)
+    target_compile_definitions(${PROJECT_NAME} INTERFACE HALCYON_BUILD_SHARED)
+endif()
 
 set_source_files_properties("${CMAKE_CURRENT_SOURCE_DIR}/src/ThirdPartyImpl.cpp" PROPERTIES SKIP_PRECOMPILE_HEADERS ON)
 target_precompile_headers(${PROJECT_NAME} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src/pch.h")
 
 # === Linking and Includes ===
-target_include_directories(${PROJECT_NAME} PRIVATE
-    ${TINYGLTF_INCLUDE_DIRS}
-    ${STB_INCLUDE_DIRS}
+target_include_directories(${PROJECT_NAME} PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
 )
 
-target_link_libraries(${PROJECT_NAME} PRIVATE
+target_include_directories(${PROJECT_NAME} PRIVATE
+     ${CMAKE_CURRENT_SOURCE_DIR}/src
+)
+
+target_link_libraries(${PROJECT_NAME} PUBLIC
     Vulkan::Vulkan
     glm::glm
     glfw
     tinyobjloader::tinyobjloader
     GPUOpen::VulkanMemoryAllocator
-    imgui::imgui
     Jolt::Jolt
     KTX::ktx
-    Orhescyon
+    $<BUILD_INTERFACE:Orhescyon>
+)
+
+if(HALCYON_DEV_TOOLS)
+    target_link_libraries(${PROJECT_NAME} PUBLIC imgui::imgui)
+endif()
+
+# header-only impl-only deps must not leak into the export set
+target_link_libraries(${PROJECT_NAME} PRIVATE
+    $<BUILD_INTERFACE:tinygltf::tinygltf>
+    $<BUILD_INTERFACE:stb::stb>
 )
 
 if(HALCYON_TRACY)
@@ -77,10 +119,19 @@ if(HALCYON_TRACY)
 endif()
 
 # === Defines and Compiler Options ===
+target_compile_definitions(${PROJECT_NAME} PUBLIC ORHESCYON_HIGH_CHECK)
+
 target_compile_definitions(${PROJECT_NAME} PRIVATE
-    ORHESCYON_HIGH_CHECK
-    HALCYON_DEV_BUILD
-    HALCYON_SHADER_SRC_DIR="assets/shaders"
+    HALCYON_SHADER_SRC_DIR="${HALCYON_SHADER_SRC_DIR}"
+)
+
+if(HALCYON_DEV_TOOLS)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE HALCYON_DEV_TOOLS)
+endif()
+
+target_compile_definitions(${PROJECT_NAME} PUBLIC
+    "$<BUILD_INTERFACE:HALCYON_SHADER_OUT_DIR=\"${HALCYON_SHADER_OUTPUT_DIR}\">"
+    "$<INSTALL_INTERFACE:HALCYON_SHADER_OUT_DIR=\"${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_DATADIR}/Halcyon/shaders\">"
 )
 
 if(MSVC)
@@ -110,7 +161,7 @@ function(add_slang_shader_target TARGET_NAME)
         set(ARG_OUTPUT_NAME "${TARGET_NAME}")
     endif()
 
-    set(OUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/shaders")
+    set(OUT_DIR "${HALCYON_SHADER_OUTPUT_DIR}")
     set(OUT_FILE "${OUT_DIR}/${ARG_OUTPUT_NAME}.spv")
 
     file(MAKE_DIRECTORY "${OUT_DIR}")
@@ -120,9 +171,10 @@ function(add_slang_shader_target TARGET_NAME)
         COMMAND ${SLANGC_EXECUTABLE}
                 "${ARG_SOURCES}"
                 -target spirv
-                -profile spirv_1_4
+                -profile spirv_1_6
                 -emit-spirv-directly
                 -fvk-use-entrypoint-name
+                -capability SPV_KHR_non_semantic_info+SPV_GOOGLE_user_type+spvDerivativeControl+spvImageQuery+spvImageGatherExtended+spvSparseResidency+spvMinLod+spvFragmentFullyCoveredEXT+spvShaderNonUniformEXT
                 ${ENTRY_FLAGS}
                 -o "${OUT_FILE}"
         WORKING_DIRECTORY "${CMAKE_CURRENT_LIST_DIR}"
@@ -134,8 +186,10 @@ function(add_slang_shader_target TARGET_NAME)
     add_custom_target(${TARGET_NAME} ALL DEPENDS "${OUT_FILE}")
 endfunction()
 
+set(HALCYON_SHADER_TARGETS "")
+
 # Auto gather shader files and create targets
-file(GLOB_RECURSE SLANG_SHADER_FILES "${CMAKE_CURRENT_LIST_DIR}/assets/shaders/*.slang")
+file(GLOB_RECURSE SLANG_SHADER_FILES "${CMAKE_CURRENT_LIST_DIR}/shaders/*.slang")
 foreach(SHADER_FILE ${SLANG_SHADER_FILES})
     get_filename_component(SHADER_NAME "${SHADER_FILE}" NAME_WE)
     string(TOLOWER "${SHADER_NAME}" SHADER_NAME_LOWER)
@@ -144,12 +198,15 @@ foreach(SHADER_FILE ${SLANG_SHADER_FILES})
     file(READ "${SHADER_FILE}" SHADER_CONTENT)
     
     set(ENTRY_POINTS "")
-    foreach(PREFIX vert frag compute)
-        string(FIND "${SHADER_CONTENT}" "${PREFIX}Main" FOUND_POS)
-        if(NOT FOUND_POS EQUAL -1)
-            list(APPEND ENTRY_POINTS "${PREFIX}Main")
-        endif()
-    endforeach()
+    if(SHADER_CONTENT MATCHES "\\[ *shader *\\( *\"vertex\" *\\) *\\]")
+        list(APPEND ENTRY_POINTS "vertMain")
+    endif()
+    if(SHADER_CONTENT MATCHES "\\[ *shader *\\( *\"fragment\" *\\) *\\]")
+        list(APPEND ENTRY_POINTS "fragMain")
+    endif()
+    if(SHADER_CONTENT MATCHES "\\[ *shader *\\( *\"compute\" *\\) *\\]")
+         list(APPEND ENTRY_POINTS "computeMain")
+    endif()
 
     if(NOT ENTRY_POINTS)
         message(WARNING "No known entry points found in ${SHADER_NAME}.slang, skipping")
@@ -165,18 +222,66 @@ foreach(SHADER_FILE ${SLANG_SHADER_FILES})
         ENTRY ${ENTRY_POINTS}
     )
 
-    add_dependencies(${PROJECT_NAME} "shader_${SHADER_NAME_LOWER}")
+    list(APPEND HALCYON_SHADER_TARGETS "shader_${SHADER_NAME_LOWER}")
 endforeach()
 
-# === Post-Build ===
-add_custom_command(
-    TARGET ${PROJECT_NAME} POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-        "${CMAKE_CURRENT_LIST_DIR}/assets/textures"
-        "$<TARGET_FILE_DIR:${PROJECT_NAME}>/assets/textures"
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-        "${CMAKE_CURRENT_LIST_DIR}/assets/models"
-        "$<TARGET_FILE_DIR:${PROJECT_NAME}>/assets/models"
-    COMMENT "Copying assets to target directory..."
-    VERBATIM
+add_dependencies(${PROJECT_NAME} ${HALCYON_SHADER_TARGETS})
+
+if(HALCYON_BUILD_EXAMPLES)
+    add_subdirectory(examples)
+
+    # Optional local playground
+    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/sandbox/CMakeLists.txt")
+        add_subdirectory(sandbox)
+    endif()
+endif()
+
+# === Installation ===
+include(GNUInstallDirs)
+include(CMakePackageConfigHelpers)
+
+install(TARGETS ${PROJECT_NAME}
+    EXPORT HalcyonTargets
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+)
+
+if(HALCYON_DEV_TOOLS)
+    install(DIRECTORY include/
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+    )
+else()
+    install(DIRECTORY include/
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+        PATTERN "ImGuiSystem.hpp" EXCLUDE
+    )
+endif()
+
+install(DIRECTORY thirdparty/Orhescyon/include/
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+)
+
+install(EXPORT HalcyonTargets
+    FILE HalcyonTargets.cmake
+    NAMESPACE Halcyon::
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/Halcyon
+)
+
+set(HALCYON_INSTALL_SHADERDIR "${CMAKE_INSTALL_DATADIR}/Halcyon/shaders")
+configure_package_config_file(
+    "${CMAKE_CURRENT_SOURCE_DIR}/cmake/HalcyonConfig.cmake.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/HalcyonConfig.cmake"
+    INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/Halcyon
+    PATH_VARS HALCYON_INSTALL_SHADERDIR
+)
+
+install(FILES
+    "${CMAKE_CURRENT_BINARY_DIR}/HalcyonConfig.cmake"
+    "${CMAKE_CURRENT_SOURCE_DIR}/cmake/HalcyonHelpers.cmake"
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/Halcyon
+)
+
+install(DIRECTORY "${HALCYON_SHADER_OUTPUT_DIR}/"
+    DESTINATION ${CMAKE_INSTALL_DATADIR}/Halcyon/shaders
 )

@@ -1,27 +1,27 @@
 #include "DirectLightPass.hpp"
-#include "PassCommands.hpp"
+#include "GraphicsCore/Passes/PassCommands.hpp"
 
 #include <Orhescyon/GeneralManager.hpp>
 
-#include "../GraphicsContexts.hpp"
-#include "../Components/BufferManagerComponent.hpp"
-#include "../Components/ModelManagerComponent.hpp"
-#include "../Components/TextureManagerComponent.hpp"
-#include "../Components/DescriptorManagerComponent.hpp"
-#include "../Components/PipelineManagerComponent.hpp"
-#include "../Components/RenderGraphComponent.hpp"
-#include "../Components/DirectLightComponent.hpp"
-#include "../Components/DrawInfoComponent.hpp"
-#include "../Resources/Components/GlobalDSetComponent.hpp"
-#include "../Resources/Components/ModelDSetComponent.hpp"
-#include "../Resources/Components/BindlessTextureDSetComponent.hpp"
-#include "../Resources/Managers/BufferManager.hpp"
-#include "../Resources/Managers/ModelManager.hpp"
-#include "../Resources/Managers/TextureManager.hpp"
-#include "../Resources/Managers/Vertex.hpp"
-#include "../Managers/PipelineManager.hpp"
-#include "../Factories/PipelineFactory.hpp"
-#include "../RenderGraph/RenderGraph.hpp"
+#include "GraphicsCore/GraphicsContexts.hpp"
+#include "GraphicsCore/Components/BufferManagerComponent.hpp"
+#include "GraphicsCore/Components/ModelManagerComponent.hpp"
+#include "GraphicsCore/Components/TextureManagerComponent.hpp"
+#include "GraphicsCore/Components/DescriptorManagerComponent.hpp"
+#include "GraphicsCore/Components/PipelineManagerComponent.hpp"
+#include "GraphicsCore/Components/RenderGraphComponent.hpp"
+#include "GraphicsCore/Components/DirectLightComponent.hpp"
+#include "GraphicsCore/Components/DrawInfoComponent.hpp"
+#include "GraphicsCore/Resources/Components/GlobalDSetComponent.hpp"
+#include "GraphicsCore/Resources/Components/ModelDSetComponent.hpp"
+#include "GraphicsCore/Resources/Components/BindlessTextureDSetComponent.hpp"
+#include "GraphicsCore/Resources/Managers/BufferManager.hpp"
+#include "GraphicsCore/Resources/Managers/ModelManager.hpp"
+#include "GraphicsCore/Resources/Managers/TextureManager.hpp"
+#include "GraphicsCore/Resources/Managers/Vertex.hpp"
+#include "GraphicsCore/Managers/PipelineManager.hpp"
+#include "GraphicsCore/Factories/PipelineFactory.hpp"
+#include "GraphicsCore/RenderGraph/RenderGraph.hpp"
 
 void DirectLightPass::onInit(Orhescyon::GeneralManager& gm)
 {
@@ -37,7 +37,7 @@ void DirectLightPass::onInit(Orhescyon::GeneralManager& gm)
 	rg.setTerminalOutput("shadowMap", "shadowMap");
 
 	pManager.build(PipelineDescription{
-	    .shaderPath = "shaders/shadow.spv",
+	    .shaderPath = "shadow.spv",
 	    .fragEntry = "", // vertex only
 	    .vertexBindings = {bindingDesc},
 	    .vertexAttributes = std::vector<vk::VertexInputAttributeDescription>(attrDescs.begin(), attrDescs.end()),
@@ -54,7 +54,7 @@ void DirectLightPass::onInit(Orhescyon::GeneralManager& gm)
 	// Alpha-tested shadow caster: samples base color and discards below alphaCutoff.
 	pManager.build(
 	    PipelineDescription{
-	        .shaderPath = "shaders/shadow.spv",
+	        .shaderPath = "shadow.spv",
 	        .specializationValues = {1}, // ALPHA_TEST_ENABLED=1
 	        .vertexBindings = {bindingDesc},
 	        .vertexAttributes = std::vector<vk::VertexInputAttributeDescription>(attrDescs.begin(), attrDescs.end()),

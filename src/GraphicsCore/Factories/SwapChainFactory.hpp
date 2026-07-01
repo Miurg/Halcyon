@@ -1,10 +1,10 @@
 #pragma once
 
 #include <vulkan/vulkan_raii.hpp>
-#include "../VulkanDevice.hpp"
-#include "../../PlatformCore/Window.hpp"
-#include "../SwapChain.hpp"
-#include "../Resources/Managers/BufferManager.hpp"
+#include "GraphicsCore/VulkanDevice.hpp"
+#include "PlatformCore/Window.hpp"
+#include "GraphicsCore/SwapChain.hpp"
+#include "GraphicsCore/Resources/Managers/BufferManager.hpp"
 
 class SwapChainFactory
 {

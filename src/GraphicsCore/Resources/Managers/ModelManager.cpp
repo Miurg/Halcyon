@@ -1,6 +1,6 @@
-#include "ModelManager.hpp"
+#include "GraphicsCore/Resources/Managers/ModelManager.hpp"
 #include <stdexcept>
-#include "../../VulkanUtils.hpp"
+#include "GraphicsCore/VulkanUtils.hpp"
 #include <cstring>
 #include "../Factories/GltfLoader.hpp"
 

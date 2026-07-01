@@ -4,25 +4,26 @@
 
 #include <Orhescyon/GeneralManager.hpp>
 
-#include "../GraphicsContexts.hpp"
-#include "../SwapChain.hpp"
-#include "../VulkanDevice.hpp"
-#include "../Components/SwapChainComponent.hpp"
-#include "../Components/VulkanDeviceComponent.hpp"
-#include "../Components/VMAllocatorComponent.hpp"
-#include "../Components/TextureManagerComponent.hpp"
-#include "../Components/DescriptorManagerComponent.hpp"
-#include "../Components/PipelineManagerComponent.hpp"
-#include "../Components/GraphicsSettingsComponent.hpp"
-#include "../Components/GtaoSettingsComponent.hpp"
-#include "../Components/RenderGraphComponent.hpp"
-#include "../Resources/Components/GlobalDSetComponent.hpp"
-#include "../Resources/Managers/TextureManager.hpp"
-#include "../Resources/Managers/DescriptorManager.hpp"
-#include "../Resources/Factories/TextureUploader.hpp"
-#include "../Managers/PipelineManager.hpp"
-#include "../Factories/PipelineFactory.hpp"
-#include "../RenderGraph/RenderGraph.hpp"
+#include "GraphicsCore/GraphicsContexts.hpp"
+#include "GraphicsCore/SwapChain.hpp"
+#include "GraphicsCore/VulkanDevice.hpp"
+#include "GraphicsCore/Components/SwapChainComponent.hpp"
+#include "GraphicsCore/Components/VulkanDeviceComponent.hpp"
+#include "GraphicsCore/Components/VMAllocatorComponent.hpp"
+#include "GraphicsCore/Components/TextureManagerComponent.hpp"
+#include "GraphicsCore/Components/DescriptorManagerComponent.hpp"
+#include "GraphicsCore/Components/PipelineManagerComponent.hpp"
+#include "GraphicsCore/Components/GraphicsSettingsComponent.hpp"
+#include "GraphicsCore/Components/GtaoSettingsComponent.hpp"
+#include "GraphicsCore/Components/RenderGraphComponent.hpp"
+#include "GraphicsCore/Resources/Components/GlobalDSetComponent.hpp"
+#include "GraphicsCore/Resources/Managers/TextureManager.hpp"
+#include "GraphicsCore/Resources/Managers/DescriptorManager.hpp"
+#include "GraphicsCore/Resources/Factories/TextureUploader.hpp"
+#include "GraphicsCore/Managers/PipelineManager.hpp"
+#include "GraphicsCore/Factories/PipelineFactory.hpp"
+#include "GraphicsCore/RenderGraph/RenderGraph.hpp"
+#include "../Resources/Data/GtaoNoiseTexture.hpp"
 
 namespace
 {
@@ -68,7 +69,7 @@ void GTAOPass::onInit(Orhescyon::GeneralManager& gm)
 	_blurVDset = dManager.allocate("screenSpaceSet");
 
 	pManager.build(PipelineDescription{
-	    .shaderPath = "shaders/gtao.spv",
+	    .shaderPath = "gtao.spv",
 	    .cullMode = vk::CullModeFlagBits::eNone,
 	    .colorAttachments = {PipelineFactory::opaqueAttachment()},
 	    .colorFormats = {vk::Format::eR8Unorm},
@@ -76,7 +77,7 @@ void GTAOPass::onInit(Orhescyon::GeneralManager& gm)
 	    .pushConstants = {{vk::ShaderStageFlagBits::eFragment, 0, 56u}},
 	});
 	pManager.build(PipelineDescription{
-	    .shaderPath = "shaders/gtao_blur.spv",
+	    .shaderPath = "gtao_blur.spv",
 	    .cullMode = vk::CullModeFlagBits::eNone,
 	    .colorAttachments = {PipelineFactory::opaqueAttachment()},
 	    .colorFormats = {vk::Format::eR8Unorm},
@@ -108,8 +109,10 @@ void GTAOPass::onInit(Orhescyon::GeneralManager& gm)
 	noiseTexture.textureSampler = (*vulkanDevice.device).createSampler(samplerInfo);
 
 	_noiseTexture.id = static_cast<int>(tManager.textures.size() - 1);
-	TextureUploader::uploadTextureFromFile("assets/textures/LDR_RG01_56.png",
-	                                       tManager.textures[_noiseTexture.id], allocator, vulkanDevice);
+	TextureUploader::uploadTextureFromBuffer(Halcyon::Graphics::Data::GTAO_NOISE_PIXELS,
+	                                         static_cast<int>(Halcyon::Graphics::Data::GTAO_NOISE_WIDTH),
+	                                         static_cast<int>(Halcyon::Graphics::Data::GTAO_NOISE_HEIGHT),
+	                                         tManager.textures[_noiseTexture.id], allocator, vulkanDevice);
 
 	dManager.updateSingleTextureDSet(_gtaoDset, GtaoBinding::NoiseInput,
 	                                 tManager.textures[_noiseTexture.id].textureImageView,

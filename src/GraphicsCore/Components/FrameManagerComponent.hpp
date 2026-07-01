@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../Managers/FrameManager.hpp"
+#include "GraphicsCore/Managers/FrameManager.hpp"
 
 struct FrameManagerComponent
 {

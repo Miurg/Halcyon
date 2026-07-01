@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../FrameData.hpp"
+#include "GraphicsCore/FrameData.hpp"
 #include <vector>
 
 class FrameManager

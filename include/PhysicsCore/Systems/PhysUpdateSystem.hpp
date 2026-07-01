@@ -1,0 +1,23 @@
+#pragma once
+
+#include "HalcyonExport.hpp"
+#include <vector>
+#include <Orhescyon/GeneralManager.hpp>
+#include <Orhescyon/Systems/SystemCore.hpp>
+
+#include "PhysicsCore/Components/PhysBodyComponent.hpp"
+#include "GraphicsCore/Systems/FrameBeginSystem.hpp"
+#include "GraphicsCore/Systems/DeltaTimeSystem.hpp"
+
+using Orhescyon::GeneralManager;
+class HALCYON_API PhysUpdateSystem : public Orhescyon::SystemCore<PhysUpdateSystem>
+{
+public:
+	void update(GeneralManager& gm) override;
+	void onRegistered(GeneralManager& gm) override;
+	void onShutdown(GeneralManager& gm) override;
+	std::string_view getSystemManagerName() const override
+	{
+		return "physics";
+	}
+};
