@@ -26,4 +26,9 @@ void Smith::Renderables::forgeTransform(Orhescyon::GeneralManager& gm, Orhescyon
 	{
 		gm.subscribeEntity<TransformSystem>(e);
 	}
+
+	// Raise the dirty flag so TransformSystem applies pos/rot; construction alone does not.
+	GlobalTransformComponent* global = gm.getComponent<GlobalTransformComponent>(e);
+	global->setGlobalPosition(pos);
+	global->setGlobalRotation(rot);
 }
