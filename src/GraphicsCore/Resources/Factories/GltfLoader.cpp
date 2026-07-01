@@ -350,7 +350,7 @@ MaterialMaps GltfLoader::materialsParser(tinygltf::Model& model, TextureManager&
 		// Double Sided
 		material.doubleSided = model.materials[i].doubleSided ? 1 : 0;
 
-		maps.materials.emplace(i, tManager.emplaceMaterials(dSetComponent, material, bManager));
+		maps.materials.emplace(static_cast<uint32_t>(i), tManager.emplaceMaterials(dSetComponent, material, bManager));
 	}
 	return maps;
 }

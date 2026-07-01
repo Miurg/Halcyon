@@ -1,0 +1,40 @@
+#pragma once
+
+#include "HalcyonExport.hpp"
+#include <cstdint>
+
+namespace Bindings
+{
+namespace Global
+{
+constexpr uint32_t Camera = 0;
+constexpr uint32_t Sun = 1;
+constexpr uint32_t PointLights = 2;
+constexpr uint32_t PointLightCount = 3;
+constexpr uint32_t SHProbes = 4;
+constexpr uint32_t SHProbeCount = 5;
+constexpr uint32_t GtaoTexture = 6;
+} // namespace Global
+
+namespace Model
+{
+constexpr uint32_t Primitives = 0;
+constexpr uint32_t Transforms = 1;
+constexpr uint32_t IndirectDraw = 2;
+constexpr uint32_t VisibleIndices = 3;
+constexpr uint32_t CompactedDraw = 4;
+constexpr uint32_t DrawCount = 5;
+} // namespace Model
+
+namespace Textures
+{
+constexpr uint32_t Array = 0;
+constexpr uint32_t ShadowMap = 1;
+constexpr uint32_t Materials = 2;
+constexpr uint32_t CubemapSampler = 3;
+constexpr uint32_t CubemapStorage = 4;
+constexpr uint32_t PrefilteredMap = 6;
+constexpr uint32_t BrdfLut = 7;
+} // namespace Textures
+
+} // namespace Bindings

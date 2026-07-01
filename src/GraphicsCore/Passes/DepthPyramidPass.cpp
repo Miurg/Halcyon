@@ -2,18 +2,18 @@
 
 #include <Orhescyon/GeneralManager.hpp>
 
-#include "../GraphicsContexts.hpp"
-#include "../SwapChain.hpp"
-#include "../Components/SwapChainComponent.hpp"
-#include "../Components/DescriptorManagerComponent.hpp"
-#include "../Components/PipelineManagerComponent.hpp"
-#include "../Components/RenderGraphComponent.hpp"
-#include "../Components/GtaoSettingsComponent.hpp"
-#include "../Resources/Components/GlobalDSetComponent.hpp"
-#include "../Resources/Managers/DescriptorManager.hpp"
-#include "../Managers/PipelineManager.hpp"
-#include "../Factories/PipelineFactory.hpp"
-#include "../RenderGraph/RenderGraph.hpp"
+#include "GraphicsCore/GraphicsContexts.hpp"
+#include "GraphicsCore/SwapChain.hpp"
+#include "GraphicsCore/Components/SwapChainComponent.hpp"
+#include "GraphicsCore/Components/DescriptorManagerComponent.hpp"
+#include "GraphicsCore/Components/PipelineManagerComponent.hpp"
+#include "GraphicsCore/Components/RenderGraphComponent.hpp"
+#include "GraphicsCore/Components/GtaoSettingsComponent.hpp"
+#include "GraphicsCore/Resources/Components/GlobalDSetComponent.hpp"
+#include "GraphicsCore/Resources/Managers/DescriptorManager.hpp"
+#include "GraphicsCore/Managers/PipelineManager.hpp"
+#include "GraphicsCore/Factories/PipelineFactory.hpp"
+#include "GraphicsCore/RenderGraph/RenderGraph.hpp"
 
 namespace
 {
@@ -57,7 +57,7 @@ void DepthPyramidPass::onInit(Orhescyon::GeneralManager& gm)
 	pManager.build(
 	    PipelineDescription{
 	        .isCompute = true,
-	        .shaderPath = "shaders/depth_pyramid.spv",
+	        .shaderPath = "depth_pyramid.spv",
 	        .setLayoutNames = {"hiZSet", "globalSet"},
 	        .pushConstants = {{vk::ShaderStageFlagBits::eCompute, 0, sizeof(uint32_t) * 3 + sizeof(float)}},
 	        // push = { dstWidth, dstHeight, passIdx, edgeRange }

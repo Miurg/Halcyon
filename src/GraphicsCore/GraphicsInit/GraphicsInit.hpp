@@ -13,5 +13,7 @@ private:
 	static void initVulkanCore(GeneralManager& gm);
 	static void initManagers(GeneralManager& gm);
 	static void initFrameData(GeneralManager& gm);
+#ifdef HALCYON_DEV_TOOLS
 	static void initImGui(GeneralManager& gm);
+#endif
 };

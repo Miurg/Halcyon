@@ -1,6 +1,6 @@
 #include "PresentPass.hpp"
 
-#include "../RenderGraph/RenderGraph.hpp"
+#include "GraphicsCore/RenderGraph/RenderGraph.hpp"
 
 void PresentPass::addToGraph(Orhescyon::GeneralManager& /*gm*/, RenderGraph& rg, uint32_t /*frame*/)
 {

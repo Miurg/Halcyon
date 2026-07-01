@@ -1,9 +1,9 @@
-#include "TextureManager.hpp"
-#include "DescriptorManager.hpp"
-#include "BufferManager.hpp"
-#include "../../Resources/Factories/TextureUploader.hpp"
-#include "../../VulkanUtils.hpp"
-#include "Bindings.hpp"
+#include "GraphicsCore/Resources/Managers/TextureManager.hpp"
+#include "GraphicsCore/Resources/Managers/DescriptorManager.hpp"
+#include "GraphicsCore/Resources/Managers/BufferManager.hpp"
+#include "GraphicsCore/Resources/Factories/TextureUploader.hpp"
+#include "GraphicsCore/VulkanUtils.hpp"
+#include "GraphicsCore/Resources/Managers/Bindings.hpp"
 #include <random>
 #include <cmath>
 

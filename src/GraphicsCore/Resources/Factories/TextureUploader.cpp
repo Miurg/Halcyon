@@ -1,7 +1,7 @@
-#include "TextureUploader.hpp"
-#include "TextureUploader.hpp"
-#include "../../VulkanUtils.hpp"
-#include "../Managers/TextureManager.hpp"
+#include "GraphicsCore/Resources/Factories/TextureUploader.hpp"
+#include "GraphicsCore/Resources/Factories/TextureUploader.hpp"
+#include "GraphicsCore/VulkanUtils.hpp"
+#include "GraphicsCore/Resources/Managers/TextureManager.hpp"
 #include <stb_image.h>
 #include <ktx.h>
 #include <iostream>

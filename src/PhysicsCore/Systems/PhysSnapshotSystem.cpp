@@ -1,8 +1,8 @@
-#include "PhysSnapshotSystem.hpp"
+#include "PhysicsCore/Systems/PhysSnapshotSystem.hpp"
 #include <Jolt/Jolt.h>
-#include "../Components/PhysManagerComponent.hpp"
-#include "../PhysContexts.hpp"
-#include "../Managers/PhysManager.hpp"
+#include "PhysicsCore/Components/PhysManagerComponent.hpp"
+#include "PhysicsCore/PhysContexts.hpp"
+#include "PhysicsCore/Managers/PhysManager.hpp"
 
 #ifdef TRACY_ENABLE
 #include <tracy/Tracy.hpp>

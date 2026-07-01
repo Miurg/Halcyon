@@ -1,22 +1,22 @@
-#include "FrameEndSystem.hpp"
-#include "../VulkanConst.hpp"
+#include "GraphicsCore/Systems/FrameEndSystem.hpp"
+#include "GraphicsCore/VulkanConst.hpp"
 #include <iostream>
 #include <vulkan/vulkan_raii.hpp>
 #include "../Factories/SwapChainFactory.hpp"
-#include "../GraphicsContexts.hpp"
-#include "../Components/VulkanDeviceComponent.hpp"
-#include "../Components/SwapChainComponent.hpp"
-#include "../../PlatformCore/PlatformContexts.hpp"
-#include "../../PlatformCore/Components/WindowComponent.hpp"
-#include "../FrameData.hpp"
-#include "../Components/FrameDataComponent.hpp"
-#include "../Components/CurrentFrameComponent.hpp"
-#include "../Components/FrameImageComponent.hpp"
+#include "GraphicsCore/GraphicsContexts.hpp"
+#include "GraphicsCore/Components/VulkanDeviceComponent.hpp"
+#include "GraphicsCore/Components/SwapChainComponent.hpp"
+#include "PlatformCore/PlatformContexts.hpp"
+#include "PlatformCore/Components/WindowComponent.hpp"
+#include "GraphicsCore/FrameData.hpp"
+#include "GraphicsCore/Components/FrameDataComponent.hpp"
+#include "GraphicsCore/Components/CurrentFrameComponent.hpp"
+#include "GraphicsCore/Components/FrameImageComponent.hpp"
 #include "../Managers/FrameManager.hpp"
-#include "../Components/FrameManagerComponent.hpp"
-#include "../Components/RenderGraphComponent.hpp"
-#include "../RenderGraph/RenderGraph.hpp"
-#include "../Components/LightProbeGridComponent.hpp"
+#include "GraphicsCore/Components/FrameManagerComponent.hpp"
+#include "GraphicsCore/Components/RenderGraphComponent.hpp"
+#include "GraphicsCore/RenderGraph/RenderGraph.hpp"
+#include "GraphicsCore/Components/LightProbeGridComponent.hpp"
 #include "../GIBaker/LightProbeGIBaking.hpp"
 
 #ifdef TRACY_ENABLE
@@ -49,16 +49,7 @@ void FrameEndSystem::update(GeneralManager& gm)
 
 	if (!currentFrameComp->frameValid) return;
 
-	LightProbeGridComponent* probesGrid = gm.getContextComponent<LightProbeGridContext, LightProbeGridComponent>();
-	// Rebake grid if need.
-	if (probesGrid != nullptr && probesGrid->needBake)
-	{
-		if (probesGrid->count.x + probesGrid->count.y + probesGrid->count.z > 0)
-		{
-			LightProbeGIBaking::bakeAll(gm);
-			probesGrid->needBake = false;
-		}
-	}
+
 	{
 #ifdef TRACY_ENABLE
 		ZoneScopedN("RenderGraph");
@@ -93,6 +84,17 @@ void FrameEndSystem::update(GeneralManager& gm)
 	catch (vk::SystemError& e)
 	{
 		throw std::runtime_error("failed to present swap chain image!");
+	}
+
+	LightProbeGridComponent* probesGrid = gm.getContextComponent<LightProbeGridContext, LightProbeGridComponent>();
+	// Rebake grid if need.
+	if (probesGrid != nullptr && probesGrid->needBake)
+	{
+		if (probesGrid->count.x + probesGrid->count.y + probesGrid->count.z > 0)
+		{
+			LightProbeGIBaking::bakeAll(gm);
+			probesGrid->needBake = false;
+		}
 	}
 
 	// Check the result of the presentation

@@ -1,0 +1,78 @@
+#pragma once
+
+#include "HalcyonExport.hpp"
+#include <cstdint>
+#include <optional>
+#include <string>
+#include <vector>
+#include <vk_mem_alloc.h>
+#include <vulkan/vulkan_raii.hpp>
+
+using RGResourceHandle = uint32_t;
+constexpr RGResourceHandle RG_INVALID_HANDLE = UINT32_MAX;
+constexpr uint32_t RG_ALL_MIPS = UINT32_MAX;
+constexpr uint32_t RG_FULL_MIP_CHAIN = 0;
+
+// How a pass accesses this resource
+enum class RGResourceUsage
+{
+	ColorAttachmentWrite,
+	DepthAttachmentWrite,
+	DepthAttachmentRead,
+	ShaderRead,
+	StorageReadWrite,
+	Present,
+};
+
+// A single read or write declaration for a resource in a pass
+struct HALCYON_API RGResourceAccess
+{
+	std::string name;
+	RGResourceUsage usage = RGResourceUsage::ShaderRead;
+	uint32_t baseMip = 0;
+	uint32_t mipCount = RG_ALL_MIPS;
+};
+
+// Resolution mode for transient resources
+enum class RGSizeMode
+{
+	FullExtent,
+	HalfExtent,
+	QuarterExtent,
+	EighthExtent,
+	SixteenthExtent,
+	ThirtySecondExtent,
+	SixtyFourthExtent
+};
+
+// Description of a transient image resource
+struct HALCYON_API RGImageDesc
+{
+	vk::Format format = vk::Format::eUndefined;
+	RGSizeMode sizeMode = RGSizeMode::FullExtent;
+	vk::ImageAspectFlags aspectFlags = vk::ImageAspectFlagBits::eColor;
+	vk::SampleCountFlagBits samples = vk::SampleCountFlagBits::e1;
+	uint32_t mipLevels = 1;
+	vk::ImageUsageFlags extraUsage = {}; // e.g. eStorage for compute UAV writes
+	std::optional<vk::SamplerCreateInfo> customSamplerInfo;
+};
+
+// Unified resource entry — covers both imported and transient resources
+struct HALCYON_API RGResourceEntry
+{
+	std::string name;
+	vk::Image image = {};
+	vk::ImageView imageView = {};
+	std::vector<vk::ImageView> perMipViews;
+	uint32_t mipLevels = 1; 
+	vk::Sampler sampler = {};
+	vk::ImageAspectFlags aspectFlags = vk::ImageAspectFlagBits::eColor;
+	bool isTransient = false;
+	std::vector<vk::ImageLayout> currentLayouts;
+	RGImageDesc desc = {};
+
+	// VMA fields (only for transient resources)
+	VmaAllocation allocation = {};
+	uint32_t currentWidth = 0;
+	uint32_t currentHeight = 0;
+};

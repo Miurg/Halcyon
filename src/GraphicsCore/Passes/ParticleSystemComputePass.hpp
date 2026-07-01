@@ -1,6 +1,6 @@
 #pragma once
-#include "IPass.hpp"
-#include "../Resources/Managers/ResourceHandles.hpp"
+#include "GraphicsCore/Passes/IPass.hpp"
+#include "GraphicsCore/Resources/Managers/ResourceHandles.hpp"
 #include <glm/glm.hpp>
 
 class DescriptorManagerComponent;

@@ -4,13 +4,13 @@
 #include <vector>
 #include <filesystem>
 #include <unordered_map>
-#include "Managers/PipelineManager.hpp"
-#include "VulkanDevice.hpp"
+#include "GraphicsCore/Managers/PipelineManager.hpp"
+#include "GraphicsCore/VulkanDevice.hpp"
 
 class ShaderReloader
 {
 public:
-	ShaderReloader(const std::string& shadersDir = "assets/shaders", const std::string& outDir = "shaders");
+	ShaderReloader(const std::string& shadersDir = "shaders", const std::string& outDir = "shaders");
 	void update(PipelineManager& pManager, VulkanDevice& device);
 
 private:

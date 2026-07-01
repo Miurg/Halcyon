@@ -1,0 +1,3 @@
+[submodule "thirdparty/Orhescyon"]
+	path = thirdparty/Orhescyon
+	url = https://github.com/Miurg/Orhescyon

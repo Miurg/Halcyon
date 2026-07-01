@@ -1,30 +1,33 @@
 #include "GraphicsPipelinesInit.hpp"
-#include "../Factories/PipelineFactory.hpp"
+#include "GraphicsCore/Factories/PipelineFactory.hpp"
 #include <iostream>
 
-#include "../../DeletionQueueComponent.hpp"
-#include "../../DeletionQueueContext.hpp"
+#include "DeletionQueueComponent.hpp"
+#include "DeletionQueueContext.hpp"
 #include <vk_mem_alloc.h>
-#include "../Resources/Managers/Vertex.hpp"
-#include "../Components/VulkanDeviceComponent.hpp"
-#include "../Components/SwapChainComponent.hpp"
-#include "../Components/VMAllocatorComponent.hpp"
-#include "../Components/TextureManagerComponent.hpp"
-#include "../Components/DescriptorManagerComponent.hpp"
-#include "../Components/RenderGraphComponent.hpp"
-#include "../Components/PipelineManagerComponent.hpp"
-#include "../Components/GraphicsSettingsComponent.hpp"
-#include "../RenderGraph/RenderGraph.hpp"
-#include "../Components/NameComponent.hpp"
-#include "../VulkanDevice.hpp"
-#include "../SwapChain.hpp"
-#include "../Resources/Managers/TextureManager.hpp"
-#include "../Resources/Managers/DescriptorManager.hpp"
-#include "../Resources/Managers/Bindings.hpp"
-#include "../Managers/PipelineManager.hpp"
-#include "../GraphicsContexts.hpp"
-#include "../ShaderReloader.hpp"
-#include "../Components/ShaderReloaderComponent.hpp"
+#include "GraphicsCore/Resources/Managers/Vertex.hpp"
+#include "GraphicsCore/Components/VulkanDeviceComponent.hpp"
+#include "GraphicsCore/Components/SwapChainComponent.hpp"
+#include "GraphicsCore/Components/VMAllocatorComponent.hpp"
+#include "GraphicsCore/Components/TextureManagerComponent.hpp"
+#include "GraphicsCore/Components/DescriptorManagerComponent.hpp"
+#include "GraphicsCore/Components/RenderGraphComponent.hpp"
+#include "GraphicsCore/Components/PipelineManagerComponent.hpp"
+#include "GraphicsCore/Components/GraphicsSettingsComponent.hpp"
+#include "GraphicsCore/RenderGraph/RenderGraph.hpp"
+#include "GraphicsCore/Components/NameComponent.hpp"
+#include "GraphicsCore/VulkanDevice.hpp"
+#include "GraphicsCore/SwapChain.hpp"
+#include "GraphicsCore/Resources/Managers/TextureManager.hpp"
+#include "GraphicsCore/Resources/Managers/DescriptorManager.hpp"
+#include "GraphicsCore/Resources/Managers/Bindings.hpp"
+#include "GraphicsCore/Managers/PipelineManager.hpp"
+#include "GraphicsCore/VulkanUtils.hpp"
+#include "GraphicsCore/GraphicsContexts.hpp"
+#ifdef HALCYON_DEV_TOOLS
+#include "GraphicsCore/ShaderReloader.hpp"
+#include "GraphicsCore/Components/ShaderReloaderComponent.hpp"
+#endif
 #include <cstdint>
 #include <vector>
 #include <vulkan/vulkan_enums.hpp>
@@ -32,7 +35,7 @@
 #include <vulkan/vulkan_structs.hpp>
 #include <Orhescyon/Entitys/ActiveEntitySet.hpp>
 #include <Orhescyon/GeneralManager.hpp>
-#include "../RenderGraph/RGResource.hpp"
+#include "GraphicsCore/RenderGraph/RGResource.hpp"
 
 #pragma region initPipelines
 void GraphicsPipelinesInit::initPipelines(GeneralManager& gm)
@@ -53,7 +56,7 @@ void GraphicsPipelinesInit::initPipelines(GeneralManager& gm)
 #pragma region RenderGraph
 
 	Orhescyon::Entity rgEntity = gm.createEntity();
-	RenderGraph* rg = new RenderGraph(*vulkanDevice, vmaAlloc);
+	RenderGraph* rg = new RenderGraph(*vulkanDevice, vmaAlloc, &gm);
 	gm.registerContext<RenderGraphContext>(rgEntity);
 	gm.addComponent<RenderGraphComponent>(rgEntity, rg);
 	gm.addComponent<NameComponent>(rgEntity, "SYSTEM Render Graph");
@@ -61,11 +64,13 @@ void GraphicsPipelinesInit::initPipelines(GeneralManager& gm)
 
 #pragma endregion
 
-	ShaderReloader* shaderReloader = new ShaderReloader(HALCYON_SHADER_SRC_DIR, "shaders");
+#ifdef HALCYON_DEV_TOOLS
+	ShaderReloader* shaderReloader = new ShaderReloader(HALCYON_SHADER_SRC_DIR, VulkanUtils::resolveShaderDir());
 	Orhescyon::Entity shaderReloaderEntity = gm.createEntity();
 	gm.registerContext<ShaderReloaderContext>(shaderReloaderEntity);
 	gm.addComponent<ShaderReloaderComponent>(shaderReloaderEntity, shaderReloader);
 	gm.addComponent<NameComponent>(shaderReloaderEntity, "SYSTEM Shader Reloader");
+#endif
 
 #pragma region Pipelines
 	Orhescyon::Entity pManagerEntity = gm.createEntity();
@@ -84,7 +89,7 @@ void GraphicsPipelinesInit::initPipelines(GeneralManager& gm)
 	// === Capture ===
 	pManager->build(
 	    PipelineDescription{
-	        .shaderPath = "shaders/global_illumination_forward.spv",
+	        .shaderPath = "global_illumination_forward.spv",
 	        .specializationValues = {0, 1}, // ALPHA_TEST=0, IBL=1
 	        .vertexBindings = {bindingDesc},
 	        .vertexAttributes = std::vector<vk::VertexInputAttributeDescription>(attrDescs.begin(), attrDescs.end()),
@@ -103,7 +108,7 @@ void GraphicsPipelinesInit::initPipelines(GeneralManager& gm)
 	// === Capture alpha  ===
 	pManager->build(
 	    PipelineDescription{
-	        .shaderPath = "shaders/global_illumination_forward.spv",
+	        .shaderPath = "global_illumination_forward.spv",
 	        .specializationValues = {1, 1}, // ALPHA_TEST=1, IBL=1
 	        .vertexBindings = {bindingDesc},
 	        .vertexAttributes = std::vector<vk::VertexInputAttributeDescription>(attrDescs.begin(), attrDescs.end()),
@@ -122,7 +127,7 @@ void GraphicsPipelinesInit::initPipelines(GeneralManager& gm)
 	// === Skybox for baking ===
 	pManager->build(
 	    PipelineDescription{
-	        .shaderPath = "shaders/global_illumination_skybox.spv",
+	        .shaderPath = "global_illumination_skybox.spv",
 	        .cullMode = vk::CullModeFlagBits::eNone,
 	        .depthTest = true,
 	        .depthWrite = false,
@@ -138,53 +143,53 @@ void GraphicsPipelinesInit::initPipelines(GeneralManager& gm)
 	// === Compute pipelines ===
 	pManager->build(PipelineDescription{
 	    .isCompute = true,
-	    .shaderPath = "shaders/shadow_frustum_culling.spv",
+	    .shaderPath = "shadow_frustum_culling.spv",
 	    .setLayoutNames = {"globalSet", "modelSet"},
 	    .pushConstants = {{vk::ShaderStageFlagBits::eCompute, 0, sizeof(uint32_t)}},
 	});
 
 	pManager->build(PipelineDescription{
 	    .isCompute = true,
-	    .shaderPath = "shaders/frustum_compaction.spv",
+	    .shaderPath = "frustum_compaction.spv",
 	    .setLayoutNames = {"modelSet"},
 	    .pushConstants = {{vk::ShaderStageFlagBits::eCompute, 0, sizeof(uint32_t) * 4}},
 	});
 
 	pManager->build(PipelineDescription{
 	    .isCompute = true,
-	    .shaderPath = "shaders/reset_instance_count.spv",
+	    .shaderPath = "reset_instance_count.spv",
 	    .setLayoutNames = {"modelSet"},
 	    .pushConstants = {{vk::ShaderStageFlagBits::eCompute, 0, sizeof(uint32_t)}},
 	});
 
 	pManager->build(PipelineDescription{
 	    .isCompute = true,
-	    .shaderPath = "shaders/equirect_to_cube.spv",
+	    .shaderPath = "equirect_to_cube.spv",
 	    .setLayoutNames = {"textureSet"},
 	    .pushConstants = {{vk::ShaderStageFlagBits::eCompute, 0, sizeof(uint32_t)}},
 	});
 	pManager->build(PipelineDescription{
 	    .isCompute = true,
-	    .shaderPath = "shaders/sh_projection.spv",
+	    .shaderPath = "sh_projection.spv",
 	    .setLayoutNames = {"globalSet", "textureSet"},
 	    .pushConstants = {{vk::ShaderStageFlagBits::eCompute, 0, sizeof(int) * 2}},
 	});
 	pManager->build(PipelineDescription{
 	    .isCompute = true,
-	    .shaderPath = "shaders/prefilter_env_map.spv",
+	    .shaderPath = "prefilter_env_map.spv",
 	    .setLayoutNames = {"textureSet"},
 	    .pushConstants = {{vk::ShaderStageFlagBits::eCompute, 0, sizeof(float)}},
 	});
 	pManager->build(PipelineDescription{
 	    .isCompute = true,
-	    .shaderPath = "shaders/brdf_lut.spv",
+	    .shaderPath = "brdf_lut.spv",
 	    .setLayoutNames = {"textureSet"},
 	});
 
 	// === GI light source bake ===
 	pManager->build(
 	    PipelineDescription{
-	        .shaderPath = "shaders/gi_light_source_bake.spv",
+	        .shaderPath = "gi_light_source_bake.spv",
 	        .topology = vk::PrimitiveTopology::eTriangleList,
 	        .cullMode = vk::CullModeFlagBits::eBack,
 	        .depthTest = true,

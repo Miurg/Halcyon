@@ -1,24 +1,24 @@
 #include "ExposurePass.hpp"
 #include <Orhescyon/GeneralManager.hpp>
 
-#include "../GraphicsContexts.hpp"
-#include "../Components/BufferManagerComponent.hpp"
-#include "../Components/ModelManagerComponent.hpp"
-#include "../Components/DescriptorManagerComponent.hpp"
-#include "../Components/PipelineManagerComponent.hpp"
-#include "../Components/DrawInfoComponent.hpp"
-#include "../Resources/Components/GlobalDSetComponent.hpp"
-#include "../Resources/Components/ModelDSetComponent.hpp"
-#include "../Resources/Managers/ModelManager.hpp"
-#include "../Managers/PipelineManager.hpp"
-#include "../Factories/PipelineFactory.hpp"
-#include "../RenderGraph/RenderGraph.hpp"
-#include "../SwapChain.hpp"
-#include "../Components/ExposureBufferComponent.hpp"
-#include "../Components/GraphicsSettingsComponent.hpp"
-#include "../Components/DeltaTimeComponent.hpp"
-#include "../Components/VulkanDeviceComponent.hpp"
-#include "../VulkanUtils.hpp"
+#include "GraphicsCore/GraphicsContexts.hpp"
+#include "GraphicsCore/Components/BufferManagerComponent.hpp"
+#include "GraphicsCore/Components/ModelManagerComponent.hpp"
+#include "GraphicsCore/Components/DescriptorManagerComponent.hpp"
+#include "GraphicsCore/Components/PipelineManagerComponent.hpp"
+#include "GraphicsCore/Components/DrawInfoComponent.hpp"
+#include "GraphicsCore/Resources/Components/GlobalDSetComponent.hpp"
+#include "GraphicsCore/Resources/Components/ModelDSetComponent.hpp"
+#include "GraphicsCore/Resources/Managers/ModelManager.hpp"
+#include "GraphicsCore/Managers/PipelineManager.hpp"
+#include "GraphicsCore/Factories/PipelineFactory.hpp"
+#include "GraphicsCore/RenderGraph/RenderGraph.hpp"
+#include "GraphicsCore/SwapChain.hpp"
+#include "GraphicsCore/Components/ExposureBufferComponent.hpp"
+#include "GraphicsCore/Components/GraphicsSettingsComponent.hpp"
+#include "GraphicsCore/Components/DeltaTimeComponent.hpp"
+#include "GraphicsCore/Components/VulkanDeviceComponent.hpp"
+#include "GraphicsCore/VulkanUtils.hpp"
 
 namespace
 {
@@ -157,14 +157,14 @@ void ExposurePass::onInit(Orhescyon::GeneralManager& gm)
 
 	pManager.build(PipelineDescription{
 	    .isCompute = true,
-	    .shaderPath = "shaders/histogram.spv",
+	    .shaderPath = "histogram.spv",
 	    .setLayoutNames = {"screenSpaceSet", "exposureSet"},
 	    .pushConstants = {{vk::ShaderStageFlagBits::eCompute, 0, sizeof(HistogramPush)}},
 	});
 
 	pManager.build(PipelineDescription{
 	    .isCompute = true,
-	    .shaderPath = "shaders/exposure.spv",
+	    .shaderPath = "exposure.spv",
 	    .setLayoutNames = {"exposureSet"},
 	    .pushConstants = {{vk::ShaderStageFlagBits::eCompute, 0, sizeof(ExposurePush)}},
 	});

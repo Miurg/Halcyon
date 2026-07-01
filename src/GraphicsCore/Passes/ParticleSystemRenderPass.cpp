@@ -2,29 +2,29 @@
 
 #include <Orhescyon/GeneralManager.hpp>
 
-#include "../GraphicsContexts.hpp"
-#include "../Components/BufferManagerComponent.hpp"
-#include "../Components/ModelManagerComponent.hpp"
-#include "../Components/DescriptorManagerComponent.hpp"
-#include "../Components/PipelineManagerComponent.hpp"
-#include "../Components/DrawInfoComponent.hpp"
-#include "../Resources/Components/GlobalDSetComponent.hpp"
-#include "../Resources/Components/ModelDSetComponent.hpp"
-#include "../Resources/Managers/ModelManager.hpp"
-#include "../Managers/PipelineManager.hpp"
-#include "../Factories/PipelineFactory.hpp"
-#include "../RenderGraph/RenderGraph.hpp"
-#include "../SwapChain.hpp"
-#include "../Components/ExposureBufferComponent.hpp"
-#include "../Components/GraphicsSettingsComponent.hpp"
-#include "../Components/DeltaTimeComponent.hpp"
-#include "../Components/VulkanDeviceComponent.hpp"
-#include "../VulkanUtils.hpp"
-#include "../Components/CurrentFrameComponent.hpp"
-#include "../Components/SwapChainComponent.hpp"
-#include "../Components/RenderGraphComponent.hpp"
-#include "../Components/ParticlesBufferComponent.hpp"
-#include "../Components/TextureManagerComponent.hpp"
+#include "GraphicsCore/GraphicsContexts.hpp"
+#include "GraphicsCore/Components/BufferManagerComponent.hpp"
+#include "GraphicsCore/Components/ModelManagerComponent.hpp"
+#include "GraphicsCore/Components/DescriptorManagerComponent.hpp"
+#include "GraphicsCore/Components/PipelineManagerComponent.hpp"
+#include "GraphicsCore/Components/DrawInfoComponent.hpp"
+#include "GraphicsCore/Resources/Components/GlobalDSetComponent.hpp"
+#include "GraphicsCore/Resources/Components/ModelDSetComponent.hpp"
+#include "GraphicsCore/Resources/Managers/ModelManager.hpp"
+#include "GraphicsCore/Managers/PipelineManager.hpp"
+#include "GraphicsCore/Factories/PipelineFactory.hpp"
+#include "GraphicsCore/RenderGraph/RenderGraph.hpp"
+#include "GraphicsCore/SwapChain.hpp"
+#include "GraphicsCore/Components/ExposureBufferComponent.hpp"
+#include "GraphicsCore/Components/GraphicsSettingsComponent.hpp"
+#include "GraphicsCore/Components/DeltaTimeComponent.hpp"
+#include "GraphicsCore/Components/VulkanDeviceComponent.hpp"
+#include "GraphicsCore/VulkanUtils.hpp"
+#include "GraphicsCore/Components/CurrentFrameComponent.hpp"
+#include "GraphicsCore/Components/SwapChainComponent.hpp"
+#include "GraphicsCore/Components/RenderGraphComponent.hpp"
+#include "GraphicsCore/Components/ParticlesBufferComponent.hpp"
+#include "GraphicsCore/Components/TextureManagerComponent.hpp"
 
 const int MAX_NUMBER_PARTICLES = 100000;
 
@@ -92,7 +92,7 @@ void ParticleSystemRenderPass::onInit(Orhescyon::GeneralManager& gm)
 	}
 
 	pManager.build(PipelineDescription{
-	    .shaderPath = "shaders/system_render.spv",
+	    .shaderPath = "system_render.spv",
 	    .cullMode = vk::CullModeFlagBits::eNone,
 	    .depthTest = true,
 	    .depthWrite = false,

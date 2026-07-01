@@ -1,39 +1,38 @@
-#include "ImGuiSystem.hpp"
+#include "GraphicsCore/Systems/ImGuiSystem.hpp"
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_vulkan.h>
 #include <iostream>
 #include <numeric>
 #include <algorithm>
-#include "../GraphicsContexts.hpp"
-#include "../Components/GlobalTransformComponent.hpp"
-#include "../Components/CameraComponent.hpp"
-#include "../Components/DirectLightComponent.hpp"
-#include "../Components/LocalTransformComponent.hpp"
-#include "../Components/RelationshipComponent.hpp"
-#include "../../Game/Components/ControlComponent.hpp"
-#include "../Components/NameComponent.hpp"
+#include "GraphicsCore/GraphicsContexts.hpp"
+#include "GraphicsCore/Components/GlobalTransformComponent.hpp"
+#include "GraphicsCore/Components/CameraComponent.hpp"
+#include "GraphicsCore/Components/DirectLightComponent.hpp"
+#include "GraphicsCore/Components/LocalTransformComponent.hpp"
+#include "GraphicsCore/Components/RelationshipComponent.hpp"
+#include "GraphicsCore/Components/NameComponent.hpp"
 #include <glm/gtc/type_ptr.hpp>
 #include <functional>
-#include "../Components/CurrentFrameComponent.hpp"
-#include "../Components/DeltaTimeComponent.hpp"
-#include "../Components/GtaoSettingsComponent.hpp"
-#include "../Components/GraphicsSettingsComponent.hpp"
-#include "../Components/AutoExposureSettingsComponent.hpp"
-#include "../Components/VulkanDeviceComponent.hpp"
-#include "../VulkanDevice.hpp"
-#include "../Components/PointLightComponent.hpp"
-#include "../ShaderReloader.hpp"
-#include "../Components/ShaderReloaderComponent.hpp"
-#include "../Components/PipelineManagerComponent.hpp"
-#include "../Components/GraphicsSettingsComponent.hpp"
-#include "../Components/LightProbeGridComponent.hpp"
+#include "GraphicsCore/Components/CurrentFrameComponent.hpp"
+#include "GraphicsCore/Components/DeltaTimeComponent.hpp"
+#include "GraphicsCore/Components/GtaoSettingsComponent.hpp"
+#include "GraphicsCore/Components/GraphicsSettingsComponent.hpp"
+#include "GraphicsCore/Components/AutoExposureSettingsComponent.hpp"
+#include "GraphicsCore/Components/VulkanDeviceComponent.hpp"
+#include "GraphicsCore/VulkanDevice.hpp"
+#include "GraphicsCore/Components/PointLightComponent.hpp"
+#include "GraphicsCore/ShaderReloader.hpp"
+#include "GraphicsCore/Components/ShaderReloaderComponent.hpp"
+#include "GraphicsCore/Components/PipelineManagerComponent.hpp"
+#include "GraphicsCore/Components/GraphicsSettingsComponent.hpp"
+#include "GraphicsCore/Components/LightProbeGridComponent.hpp"
 #include <Jolt/Jolt.h>
 #include <Jolt/Physics/PhysicsSystem.h>
-#include "../../PhysicsCore/PhysContexts.hpp"
-#include "../../PhysicsCore/Components/PhysManagerComponent.hpp"
-#include "../../PhysicsCore/Components/PhysBodyComponent.hpp"
-#include "../../PhysicsCore/JoltGlm.hpp"
+#include "PhysicsCore/PhysContexts.hpp"
+#include "PhysicsCore/Components/PhysManagerComponent.hpp"
+#include "PhysicsCore/Components/PhysBodyComponent.hpp"
+#include "PhysicsCore/JoltGlm.hpp"
 
 #ifdef TRACY_ENABLE
 #include <tracy/Tracy.hpp>
@@ -344,16 +343,6 @@ void ImGuiSystem::update(GeneralManager& gm)
 				ImGui::DragFloat("Near Plane", &camera->zNear, 0.01f, 0.001f, 10.0f);
 				ImGui::DragFloat("Far Plane", &camera->zFar, 1.0f, 10.0f, 10000.0f);
 				ImGui::DragFloat("Ortho size", &camera->orthoSize, 0.1f, 0.1f, 100.0f);
-			}
-		}
-
-		// Control Component
-		if (auto* control = gm.getComponent<ControlComponent>(selectedEntity))
-		{
-			if (ImGui::CollapsingHeader("Control Component", ImGuiTreeNodeFlags_DefaultOpen))
-			{
-				ImGui::DragFloat("Movement Speed", &control->movementSpeed, 0.1f, 0.0f, 100.0f);
-				ImGui::DragFloat("Mouse Sensitivity", &control->mouseSensitivity, 0.01f, 0.0f, 5.0f);
 			}
 		}
 

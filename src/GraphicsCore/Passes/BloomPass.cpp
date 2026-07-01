@@ -2,17 +2,17 @@
 
 #include <Orhescyon/GeneralManager.hpp>
 
-#include "../GraphicsContexts.hpp"
-#include "../SwapChain.hpp"
-#include "../Components/SwapChainComponent.hpp"
-#include "../Components/DescriptorManagerComponent.hpp"
-#include "../Components/PipelineManagerComponent.hpp"
-#include "../Components/GraphicsSettingsComponent.hpp"
-#include "../Components/RenderGraphComponent.hpp"
-#include "../Resources/Managers/DescriptorManager.hpp"
-#include "../Managers/PipelineManager.hpp"
-#include "../Factories/PipelineFactory.hpp"
-#include "../RenderGraph/RenderGraph.hpp"
+#include "GraphicsCore/GraphicsContexts.hpp"
+#include "GraphicsCore/SwapChain.hpp"
+#include "GraphicsCore/Components/SwapChainComponent.hpp"
+#include "GraphicsCore/Components/DescriptorManagerComponent.hpp"
+#include "GraphicsCore/Components/PipelineManagerComponent.hpp"
+#include "GraphicsCore/Components/GraphicsSettingsComponent.hpp"
+#include "GraphicsCore/Components/RenderGraphComponent.hpp"
+#include "GraphicsCore/Resources/Managers/DescriptorManager.hpp"
+#include "GraphicsCore/Managers/PipelineManager.hpp"
+#include "GraphicsCore/Factories/PipelineFactory.hpp"
+#include "GraphicsCore/RenderGraph/RenderGraph.hpp"
 
 namespace
 {
@@ -54,7 +54,7 @@ void BloomPass::onInit(Orhescyon::GeneralManager& gm)
 	                                       vk::SampleCountFlagBits::e1, kMipCount});
 
 	pManager.build(PipelineDescription{
-	    .shaderPath = "shaders/bloom_downsample.spv",
+	    .shaderPath = "bloom_downsample.spv",
 	    .cullMode = vk::CullModeFlagBits::eNone,
 	    .colorAttachments = {PipelineFactory::opaqueAttachment()},
 	    .colorFormats = {swapChain.hdrFormat},
@@ -62,7 +62,7 @@ void BloomPass::onInit(Orhescyon::GeneralManager& gm)
 	    .pushConstants = {{vk::ShaderStageFlagBits::eFragment, 0, 20u}},
 	});
 	pManager.build(PipelineDescription{
-	    .shaderPath = "shaders/bloom_upsample.spv",
+	    .shaderPath = "bloom_upsample.spv",
 	    .cullMode = vk::CullModeFlagBits::eNone,
 	    .colorAttachments = {PipelineFactory::additiveAttachment()},
 	    .colorFormats = {swapChain.hdrFormat},

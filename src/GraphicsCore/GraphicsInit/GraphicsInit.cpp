@@ -2,52 +2,61 @@
 #include <iostream>
 #include <stdexcept>
 
-#include "../../DeletionQueueComponent.hpp"
-#include "../../DeletionQueueContext.hpp"
+#include "DeletionQueueComponent.hpp"
+#include "DeletionQueueContext.hpp"
 #include "../Factories/VulkanDeviceFactory.hpp"
 #include "../Factories/SwapChainFactory.hpp"
-#include "../Components/VulkanDeviceComponent.hpp"
-#include "../Components/SwapChainComponent.hpp"
-#include "../Components/VMAllocatorComponent.hpp"
-#include "../Components/TextureManagerComponent.hpp"
-#include "../Components/BufferManagerComponent.hpp"
-#include "../Components/ModelManagerComponent.hpp"
-#include "../Components/DescriptorManagerComponent.hpp"
-#include "../Components/FrameManagerComponent.hpp"
-#include "../Components/FrameDataComponent.hpp"
-#include "../Components/CurrentFrameComponent.hpp"
-#include "../Components/FrameImageComponent.hpp"
-#include "../Resources/Components/GlobalDSetComponent.hpp"
-#include "../Resources/Components/ModelDSetComponent.hpp"
-#include "../Components/DrawInfoComponent.hpp"
-#include "../Components/NameComponent.hpp"
-#include "../../PlatformCore/PlatformContexts.hpp"
-#include "../../PlatformCore/Components/WindowComponent.hpp"
-#include "../VulkanDevice.hpp"
-#include "../SwapChain.hpp"
-#include "../Resources/Managers/TextureManager.hpp"
-#include "../Resources/Managers/BufferManager.hpp"
-#include "../Resources/Managers/ModelManager.hpp"
-#include "../Resources/Managers/DescriptorManager.hpp"
+#include "GraphicsCore/Components/VulkanDeviceComponent.hpp"
+#include "GraphicsCore/Components/SwapChainComponent.hpp"
+#include "GraphicsCore/Components/VMAllocatorComponent.hpp"
+#include "GraphicsCore/Components/TextureManagerComponent.hpp"
+#include "GraphicsCore/Components/BufferManagerComponent.hpp"
+#include "GraphicsCore/Components/ModelManagerComponent.hpp"
+#include "GraphicsCore/Components/DescriptorManagerComponent.hpp"
+#include "GraphicsCore/Components/FrameManagerComponent.hpp"
+#include "GraphicsCore/Components/FrameDataComponent.hpp"
+#include "GraphicsCore/Components/CurrentFrameComponent.hpp"
+#include "GraphicsCore/Components/FrameImageComponent.hpp"
+#include "GraphicsCore/Components/TracyContextComponent.hpp"
+#include "GraphicsCore/Resources/Components/GlobalDSetComponent.hpp"
+#include "GraphicsCore/Resources/Components/ModelDSetComponent.hpp"
+#include "GraphicsCore/Components/DrawInfoComponent.hpp"
+#include "GraphicsCore/Components/NameComponent.hpp"
+#include "PlatformCore/PlatformContexts.hpp"
+#include "PlatformCore/Components/WindowComponent.hpp"
+#include "GraphicsCore/VulkanDevice.hpp"
+#include "GraphicsCore/SwapChain.hpp"
+#include "GraphicsCore/Resources/Managers/TextureManager.hpp"
+#include "GraphicsCore/Resources/Managers/BufferManager.hpp"
+#include "GraphicsCore/Resources/Managers/ModelManager.hpp"
+#include "GraphicsCore/Resources/Managers/DescriptorManager.hpp"
 #include "../Managers/FrameManager.hpp"
-#include "../GraphicsContexts.hpp"
+#include "GraphicsCore/GraphicsContexts.hpp"
 #include "GraphicsPipelinesInit.hpp"
+#ifdef HALCYON_DEV_TOOLS
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_vulkan.h>
+#endif
 #include "PlaceholdersInit.hpp"
-#include "../Systems/DeltaTimeSystem.hpp"
-#include "../Systems/TransformSystem.hpp"
-#include "../Systems/FrameBeginSystem.hpp"
-#include "../Systems/PhysSyncSystem.hpp"
-#include "../Systems/ImGuiSystem.hpp"
-#include "../Systems/CameraMatrixSystem.hpp"
-#include "../Systems/LightUpdateSystem.hpp"
-#include "../Systems/BufferUpdateSystem.hpp"
-#include "../Systems/RenderSystem.hpp"
-#include "../Systems/FrameEndSystem.hpp"
-#include "../Components/DeltaTimeComponent.hpp"
-#include "../Systems/GPUParticlesSystem.hpp"
+#include "GraphicsCore/Systems/DeltaTimeSystem.hpp"
+#include "GraphicsCore/Systems/TransformSystem.hpp"
+#include "GraphicsCore/Systems/FrameBeginSystem.hpp"
+#include "GraphicsCore/Systems/PhysSyncSystem.hpp"
+#ifdef HALCYON_DEV_TOOLS
+#include "GraphicsCore/Systems/ImGuiSystem.hpp"
+#endif
+#include "GraphicsCore/Systems/CameraMatrixSystem.hpp"
+#include "GraphicsCore/Systems/LightUpdateSystem.hpp"
+#include "GraphicsCore/Systems/BufferUpdateSystem.hpp"
+#include "GraphicsCore/Systems/RenderSystem.hpp"
+#include "GraphicsCore/Systems/FrameEndSystem.hpp"
+#include "GraphicsCore/Components/DeltaTimeComponent.hpp"
+#include "GraphicsCore/Systems/GPUParticlesSystem.hpp"
+
+#ifdef TRACY_ENABLE
+#include <tracy/TracyVulkan.hpp>
+#endif
 
 #pragma region Run
 void GraphicsInit::Run(GeneralManager& gm)
@@ -61,7 +70,9 @@ void GraphicsInit::Run(GeneralManager& gm)
 	initFrameData(gm);
 	GraphicsPipelinesInit::initPipelines(gm);
 	PlaceholdersInit::initPlaceholders(gm);
+#ifdef HALCYON_DEV_TOOLS
 	initImGui(gm);
+#endif
 	coreInit(gm);
 	PlaceholdersInit::initAfterCorePlaceholders(gm);
 
@@ -80,7 +91,9 @@ void GraphicsInit::coreInit(GeneralManager& gm)
 	gm.registerSystem<FrameBeginSystem>();
 	gm.registerSystem<GPUParticlesSystem>();
 	gm.registerSystem<PhysSyncSystem>();
+#ifdef HALCYON_DEV_TOOLS
 	gm.registerSystem<ImGuiSystem>();
+#endif
 	gm.registerSystem<CameraMatrixSystem>();
 	gm.registerSystem<LightUpdateSystem>();
 	gm.registerSystem<BufferUpdateSystem>();
@@ -106,8 +119,22 @@ void GraphicsInit::initVulkanCore(GeneralManager& gm)
 	VulkanDevice* vulkanDevice = new VulkanDevice();
 	VulkanDeviceFactory::createVulkanDevice(*window, *vulkanDevice);
 	gm.addComponent<VulkanDeviceComponent>(vulkanDeviceEntity, vulkanDevice);
+#ifdef TRACY_ENABLE
+	gm.registerContext<TracyContextContext>(vulkanDeviceEntity);
+	gm.addComponent<TracyContextComponent>(vulkanDeviceEntity, VulkanDeviceFactory::createTracyContext(*vulkanDevice));
+#endif
 	gm.addComponent<NameComponent>(vulkanDeviceEntity, "SYSTEM Vulkan Device");
 	dq->push_function([vulkanDevice]() { delete vulkanDevice; });
+
+#ifdef TRACY_ENABLE
+	TracyContextComponent* tracyCtxComp = gm.getContextComponent<TracyContextContext, TracyContextComponent>();
+	TracyVkCtx tracyCtx = tracyCtxComp->context;
+	dq->push_function(
+	    [tracyCtx]()
+	    {
+		    TracyVkDestroy(tracyCtx);
+	    });
+#endif
 
 	// VMA Allocator
 	Orhescyon::Entity vmaAllocatorEntity = gm.createEntity();
@@ -238,6 +265,7 @@ void GraphicsInit::initFrameData(GeneralManager& gm)
 }
 #pragma endregion
 
+#ifdef HALCYON_DEV_TOOLS
 #pragma region initImGui
 void GraphicsInit::initImGui(GeneralManager& gm)
 {
@@ -307,3 +335,4 @@ void GraphicsInit::initImGui(GeneralManager& gm)
 #endif //_DEBUG
 }
 #pragma endregion
+#endif // HALCYON_DEV_TOOLS

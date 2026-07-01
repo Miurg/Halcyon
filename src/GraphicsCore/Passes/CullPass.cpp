@@ -1,21 +1,21 @@
 #include "CullPass.hpp"
-#include "PassCommands.hpp"
+#include "GraphicsCore/Passes/PassCommands.hpp"
 
 #include <Orhescyon/GeneralManager.hpp>
 
-#include "../GraphicsContexts.hpp"
-#include "../Components/BufferManagerComponent.hpp"
-#include "../Components/ModelManagerComponent.hpp"
-#include "../Components/DescriptorManagerComponent.hpp"
-#include "../Components/PipelineManagerComponent.hpp"
-#include "../Components/DrawInfoComponent.hpp"
-#include "../Resources/Components/GlobalDSetComponent.hpp"
-#include "../Resources/Components/ModelDSetComponent.hpp"
-#include "../Resources/Managers/BufferManager.hpp"
-#include "../Resources/Managers/ModelManager.hpp"
-#include "../Managers/PipelineManager.hpp"
-#include "../Factories/PipelineFactory.hpp"
-#include "../RenderGraph/RenderGraph.hpp"
+#include "GraphicsCore/GraphicsContexts.hpp"
+#include "GraphicsCore/Components/BufferManagerComponent.hpp"
+#include "GraphicsCore/Components/ModelManagerComponent.hpp"
+#include "GraphicsCore/Components/DescriptorManagerComponent.hpp"
+#include "GraphicsCore/Components/PipelineManagerComponent.hpp"
+#include "GraphicsCore/Components/DrawInfoComponent.hpp"
+#include "GraphicsCore/Resources/Components/GlobalDSetComponent.hpp"
+#include "GraphicsCore/Resources/Components/ModelDSetComponent.hpp"
+#include "GraphicsCore/Resources/Managers/BufferManager.hpp"
+#include "GraphicsCore/Resources/Managers/ModelManager.hpp"
+#include "GraphicsCore/Managers/PipelineManager.hpp"
+#include "GraphicsCore/Factories/PipelineFactory.hpp"
+#include "GraphicsCore/RenderGraph/RenderGraph.hpp"
 
 void CullPass::onInit(Orhescyon::GeneralManager& gm)
 {
@@ -23,7 +23,7 @@ void CullPass::onInit(Orhescyon::GeneralManager& gm)
 
 	pManager.build(PipelineDescription{
 	    .isCompute = true,
-	    .shaderPath = "shaders/frustum_culling.spv",
+	    .shaderPath = "frustum_culling.spv",
 	    .setLayoutNames = {"globalSet", "modelSet"},
 	    .pushConstants = {{vk::ShaderStageFlagBits::eCompute, 0, sizeof(uint32_t)}},
 	});

@@ -1,4 +1,4 @@
-#include "ShaderReloader.hpp"
+#include "GraphicsCore/ShaderReloader.hpp"
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -66,7 +66,7 @@ bool ShaderReloader::compileShader(const std::string& slangPath, const std::stri
 	}
 
 	std::string command =
-	    "slangc \"" + slangPath + "\" -target spirv -profile spirv_1_4 -emit-spirv-directly -fvk-use-entrypoint-name";
+	    "slangc \"" + slangPath + "\" -target spirv -profile spirv_1_6 -emit-spirv-directly -fvk-use-entrypoint-name";
 	for (const auto& entry : entries)
 	{
 		command += " -entry " + entry;
@@ -121,10 +121,7 @@ void ShaderReloader::update(PipelineManager& pManager, VulkanDevice& device)
 				std::vector<std::string> pipelinesToRebuild;
 				for (auto& [pipelineName, builtDesc] : pManager.pipelines)
 				{
-					// Check if the shaderPath ends with the compiled spv path
-					// e.g. "shaders/standard_forward.spv"
-					if (builtDesc.desc.shaderPath == outDir + "/" + info.name + ".spv" ||
-					    builtDesc.desc.shaderPath == outDir + "\\" + info.name + ".spv")
+					if (builtDesc.desc.shaderPath == info.name + ".spv")
 					{
 						pipelinesToRebuild.push_back(pipelineName);
 					}

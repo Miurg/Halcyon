@@ -3,24 +3,24 @@
 #include <Orhescyon/GeneralManager.hpp>
 #include <Orhescyon/Entitys/EntityManager.hpp>
 
-#include "../GraphicsContexts.hpp"
-#include "../SwapChain.hpp"
-#include "../Components/SwapChainComponent.hpp"
-#include "../Components/TextureManagerComponent.hpp"
-#include "../Components/DescriptorManagerComponent.hpp"
-#include "../Components/PipelineManagerComponent.hpp"
-#include "../Components/GraphicsSettingsComponent.hpp"
-#include "../Components/ModelManagerComponent.hpp"
-#include "../Components/LightProbeGridComponent.hpp"
-#include "../Components/RelationshipComponent.hpp"
-#include "../Components/GlobalTransformComponent.hpp"
-#include "../Resources/Components/GlobalDSetComponent.hpp"
-#include "../Resources/Components/MeshInfoComponent.hpp"
-#include "../Resources/Managers/ModelManager.hpp"
-#include "../Resources/Managers/TextureManager.hpp"
-#include "../Managers/PipelineManager.hpp"
-#include "../Factories/PipelineFactory.hpp"
-#include "../RenderGraph/RenderGraph.hpp"
+#include "GraphicsCore/GraphicsContexts.hpp"
+#include "GraphicsCore/SwapChain.hpp"
+#include "GraphicsCore/Components/SwapChainComponent.hpp"
+#include "GraphicsCore/Components/TextureManagerComponent.hpp"
+#include "GraphicsCore/Components/DescriptorManagerComponent.hpp"
+#include "GraphicsCore/Components/PipelineManagerComponent.hpp"
+#include "GraphicsCore/Components/GraphicsSettingsComponent.hpp"
+#include "GraphicsCore/Components/ModelManagerComponent.hpp"
+#include "GraphicsCore/Components/LightProbeGridComponent.hpp"
+#include "GraphicsCore/Components/RelationshipComponent.hpp"
+#include "GraphicsCore/Components/GlobalTransformComponent.hpp"
+#include "GraphicsCore/Resources/Components/GlobalDSetComponent.hpp"
+#include "GraphicsCore/Resources/Components/MeshInfoComponent.hpp"
+#include "GraphicsCore/Resources/Managers/ModelManager.hpp"
+#include "GraphicsCore/Resources/Managers/TextureManager.hpp"
+#include "GraphicsCore/Managers/PipelineManager.hpp"
+#include "GraphicsCore/Factories/PipelineFactory.hpp"
+#include "GraphicsCore/RenderGraph/RenderGraph.hpp"
 
 struct AABBPush
 {
@@ -40,7 +40,7 @@ void DebugPass::onInit(Orhescyon::GeneralManager& gm)
 
 	pManager.build(
 	    PipelineDescription{
-	        .shaderPath = "shaders/aabb_debug.spv",
+	        .shaderPath = "aabb_debug.spv",
 	        .topology = vk::PrimitiveTopology::eLineList,
 	        .cullMode = vk::CullModeFlagBits::eNone,
 	        .depthTest = true,
@@ -56,7 +56,7 @@ void DebugPass::onInit(Orhescyon::GeneralManager& gm)
 
 	pManager.build(
 	    PipelineDescription{
-	        .shaderPath = "shaders/aabb_debug.spv",
+	        .shaderPath = "aabb_debug.spv",
 	        .topology = vk::PrimitiveTopology::eLineList,
 	        .cullMode = vk::CullModeFlagBits::eNone,
 	        .depthTest = false,
@@ -71,7 +71,7 @@ void DebugPass::onInit(Orhescyon::GeneralManager& gm)
 
 	pManager.build(
 	    PipelineDescription{
-	        .shaderPath = "shaders/gi_probe_debug.spv",
+	        .shaderPath = "gi_probe_debug.spv",
 	        .topology = vk::PrimitiveTopology::eTriangleList,
 	        .cullMode = vk::CullModeFlagBits::eBack,
 	        .depthTest = true,

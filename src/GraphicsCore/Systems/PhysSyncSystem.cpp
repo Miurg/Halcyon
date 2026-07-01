@@ -1,11 +1,11 @@
-#include "PhysSyncSystem.hpp"
+#include "GraphicsCore/Systems/PhysSyncSystem.hpp"
 
 #include <Jolt/Jolt.h>
 #include <Jolt/Physics/PhysicsSystem.h>
-#include "../../PhysicsCore/PhysContexts.hpp"
-#include "../../PhysicsCore/Components/PhysManagerComponent.hpp"
-#include "../../PhysicsCore/Components/PhysBodyComponent.hpp"
-#include "../../PhysicsCore/JoltGlm.hpp"
+#include "PhysicsCore/PhysContexts.hpp"
+#include "PhysicsCore/Components/PhysManagerComponent.hpp"
+#include "PhysicsCore/Components/PhysBodyComponent.hpp"
+#include "PhysicsCore/JoltGlm.hpp"
 
 #ifdef TRACY_ENABLE
 #include <tracy/Tracy.hpp>

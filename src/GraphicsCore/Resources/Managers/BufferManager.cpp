@@ -1,8 +1,8 @@
-#include "BufferManager.hpp"
-#include "DescriptorManager.hpp"
-#include "TextureManager.hpp"
-#include "../../Managers/PipelineManager.hpp"
-#include "../../VulkanUtils.hpp"
+#include "GraphicsCore/Resources/Managers/BufferManager.hpp"
+#include "GraphicsCore/Resources/Managers/DescriptorManager.hpp"
+#include "GraphicsCore/Resources/Managers/TextureManager.hpp"
+#include "GraphicsCore/Managers/PipelineManager.hpp"
+#include "GraphicsCore/VulkanUtils.hpp"
 #include <stdexcept>
 
 BufferManager::BufferManager(VulkanDevice& vulkanDevice, VmaAllocator allocator)

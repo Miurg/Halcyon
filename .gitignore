@@ -19,3 +19,4 @@ Debug/
 Release/
 vcpkg_installed/
 packages/
+/sandbox/

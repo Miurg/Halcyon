@@ -1,15 +1,15 @@
-#include "PassCommands.hpp"
+#include "GraphicsCore/Passes/PassCommands.hpp"
 
-#include "../Components/DescriptorManagerComponent.hpp"
-#include "../Components/DrawInfoComponent.hpp"
-#include "../Components/DirectLightComponent.hpp"
-#include "../Resources/Components/GlobalDSetComponent.hpp"
-#include "../Resources/Components/ModelDSetComponent.hpp"
-#include "../Resources/Components/BindlessTextureDSetComponent.hpp"
-#include "../Resources/Managers/BufferManager.hpp"
-#include "../Resources/Managers/ModelManager.hpp"
-#include "../Resources/Managers/TextureManager.hpp"
-#include "../Managers/PipelineManager.hpp"
+#include "GraphicsCore/Components/DescriptorManagerComponent.hpp"
+#include "GraphicsCore/Components/DrawInfoComponent.hpp"
+#include "GraphicsCore/Components/DirectLightComponent.hpp"
+#include "GraphicsCore/Resources/Components/GlobalDSetComponent.hpp"
+#include "GraphicsCore/Resources/Components/ModelDSetComponent.hpp"
+#include "GraphicsCore/Resources/Components/BindlessTextureDSetComponent.hpp"
+#include "GraphicsCore/Resources/Managers/BufferManager.hpp"
+#include "GraphicsCore/Resources/Managers/ModelManager.hpp"
+#include "GraphicsCore/Resources/Managers/TextureManager.hpp"
+#include "GraphicsCore/Managers/PipelineManager.hpp"
 
 void drawResetInstancePass(vk::raii::CommandBuffer& cmd, uint32_t frame, DescriptorManagerComponent& dManager,
                            ModelDSetComponent& objectDSetComponent, const DrawInfoComponent& drawInfo,
