@@ -36,8 +36,6 @@ add_executable(HalcyonSample
     main.cpp
     Game/GameInit.cpp
     Game/Systems/ControlSystem.cpp
-    Game/Systems/RotationSystem.cpp
-    Game/Systems/SpawnSystem.cpp
 )
 
 target_compile_features(HalcyonSample PRIVATE cxx_std_20)
@@ -54,9 +52,6 @@ halcyon_copy_shaders(HalcyonSample)
 
 # Copy runtime assets next to the executable.
 add_custom_command(TARGET HalcyonSample POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-        "${CMAKE_CURRENT_SOURCE_DIR}/assets/textures"
-        "$<TARGET_FILE_DIR:HalcyonSample>/assets/textures"
     COMMAND ${CMAKE_COMMAND} -E copy_directory
         "${CMAKE_CURRENT_SOURCE_DIR}/assets/models"
         "$<TARGET_FILE_DIR:HalcyonSample>/assets/models"

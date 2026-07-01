@@ -229,6 +229,11 @@ add_dependencies(${PROJECT_NAME} ${HALCYON_SHADER_TARGETS})
 
 if(HALCYON_BUILD_EXAMPLES)
     add_subdirectory(examples)
+
+    # Optional local playground
+    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/sandbox/CMakeLists.txt")
+        add_subdirectory(sandbox)
+    endif()
 endif()
 
 # === Installation ===
