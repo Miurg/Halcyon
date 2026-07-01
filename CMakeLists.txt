@@ -5,7 +5,7 @@ if(POLICY CMP0141)
     set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT "$<IF:$<AND:$<C_COMPILER_ID:MSVC>,$<CXX_COMPILER_ID:MSVC>>,$<$<CONFIG:Debug,RelWithDebInfo>:EditAndContinue>,$<$<CONFIG:Debug,RelWithDebInfo>:ProgramDatabase>>")
 endif()
 
-project(Halcyon LANGUAGES CXX VERSION 0.1.0)
+project(Halcyon LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -276,15 +276,8 @@ configure_package_config_file(
     PATH_VARS HALCYON_INSTALL_SHADERDIR
 )
 
-write_basic_package_version_file(
-    "${CMAKE_CURRENT_BINARY_DIR}/HalcyonConfigVersion.cmake"
-    VERSION ${PROJECT_VERSION}
-    COMPATIBILITY SameMajorVersion
-)
-
 install(FILES
     "${CMAKE_CURRENT_BINARY_DIR}/HalcyonConfig.cmake"
-    "${CMAKE_CURRENT_BINARY_DIR}/HalcyonConfigVersion.cmake"
     "${CMAKE_CURRENT_SOURCE_DIR}/cmake/HalcyonHelpers.cmake"
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/Halcyon
 )
