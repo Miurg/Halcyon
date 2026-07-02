@@ -86,8 +86,8 @@ void GTAOPass::onInit(Orhescyon::GeneralManager& gm)
 	});
 
 	// Noise texture (static, 64x64, lives for the entire app — sampled per pixel by gtao.slang)
-	tManager.textures.push_back(Texture());
-	Texture& noiseTexture = tManager.textures.back();
+	int noiseSlot = tManager.allocateTextureSlot();
+	Texture& noiseTexture = tManager.textures[noiseSlot];
 	tManager.createImage(64, 64, vk::Format::eR8G8B8A8Unorm, vk::ImageTiling::eOptimal,
 	                     vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eTransferDst |
 	                         vk::ImageUsageFlagBits::eSampled,
@@ -108,7 +108,7 @@ void GTAOPass::onInit(Orhescyon::GeneralManager& gm)
 	samplerInfo.maxLod = 0.0f;
 	noiseTexture.textureSampler = (*vulkanDevice.device).createSampler(samplerInfo);
 
-	_noiseTexture.id = static_cast<int>(tManager.textures.size() - 1);
+	_noiseTexture.id = noiseSlot;
 	TextureUploader::uploadTextureFromBuffer(Halcyon::Graphics::Data::GTAO_NOISE_PIXELS,
 	                                         static_cast<int>(Halcyon::Graphics::Data::GTAO_NOISE_WIDTH),
 	                                         static_cast<int>(Halcyon::Graphics::Data::GTAO_NOISE_HEIGHT),

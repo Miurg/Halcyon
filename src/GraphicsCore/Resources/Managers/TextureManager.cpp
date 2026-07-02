@@ -16,27 +16,16 @@ TextureManager::~TextureManager()
 {
 	for (auto& texture : textures)
 	{
-		if (texture.textureSampler)
-		{
-			(*vulkanDevice.device).destroySampler(texture.textureSampler);
-		}
-
-		if (texture.textureImageView)
-		{
-			(*vulkanDevice.device).destroyImageView(texture.textureImageView);
-		}
-
-		if (texture.textureImage)
-		{
-			vmaDestroyImage(allocator, texture.textureImage, texture.textureImageAllocation);
-		}
+		destroyTextureResources(texture);
+	}
+	for (auto& pending : _pendingFrees)
+	{
+		destroyTextureResources(pending.texture);
 	}
 }
 
-void TextureManager::destroyTexture(TextureHandle handle)
+void TextureManager::destroyTextureResources(Texture& texture)
 {
-	Texture& texture = textures[handle.id];
-
 	if (texture.textureSampler)
 	{
 		(*vulkanDevice.device).destroySampler(texture.textureSampler);
@@ -57,10 +46,66 @@ void TextureManager::destroyTexture(TextureHandle handle)
 	}
 }
 
+void TextureManager::destroyTexture(TextureHandle handle)
+{
+	destroyTextureResources(textures[handle.id]);
+}
+
+int TextureManager::allocateTextureSlot()
+{
+	if (!_freeTextureSlots.empty())
+	{
+		int slot = _freeTextureSlots.back();
+		_freeTextureSlots.pop_back();
+		textures[slot] = Texture();
+		return slot;
+	}
+	textures.push_back(Texture());
+	return static_cast<int>(textures.size() - 1);
+}
+
+void TextureManager::freeTexture(TextureHandle handle, uint64_t frameNumber)
+{
+	if (handle.id < 0 || handle.id >= static_cast<int>(textures.size())) return;
+
+	// Otherwise isTextureLoaded would later hand out this freed texture.
+	for (auto it = texturePaths.begin(); it != texturePaths.end();)
+	{
+		if (it->second.id == handle.id)
+			it = texturePaths.erase(it);
+		else
+			++it;
+	}
+
+	Texture& live = textures[handle.id];
+	_pendingFrees.push_back({live, handle.id, frameNumber + MAX_FRAMES_IN_FLIGHT});
+
+	// Nulled so slot reuse and the destructor don't double-free these handles.
+	live.textureImage = nullptr;
+	live.textureImageView = nullptr;
+	live.textureSampler = nullptr;
+	live.textureImageAllocation = nullptr;
+}
+
+void TextureManager::collectTextureFrees(uint64_t frameNumber)
+{
+	for (auto it = _pendingFrees.begin(); it != _pendingFrees.end();)
+	{
+		if (it->retireFrame <= frameNumber)
+		{
+			destroyTextureResources(it->texture);
+			_freeTextureSlots.push_back(it->slot);
+			it = _pendingFrees.erase(it);
+		}
+		else
+			++it;
+	}
+}
+
 TextureHandle TextureManager::createDepthImage(uint32_t resolutionWidth, uint32_t resolutionHeight)
 {
-	textures.push_back(Texture());
-	Texture& texture = textures.back();
+	int slot = allocateTextureSlot();
+	Texture& texture = textures[slot];
 	vk::Format depthFormat = findBestFormat();
 
 	TextureManager::createImage(resolutionWidth, resolutionHeight, depthFormat, vk::ImageTiling::eOptimal,
@@ -68,21 +113,21 @@ TextureHandle TextureManager::createDepthImage(uint32_t resolutionWidth, uint32_
 	                            VMA_MEMORY_USAGE_AUTO, texture);
 	TextureManager::createImageView(texture, depthFormat, vk::ImageAspectFlagBits::eDepth);
 	TextureManager::createTextureSampler(texture);
-	return TextureHandle{static_cast<int>(textures.size() - 1)};
+	return TextureHandle{slot};
 }
 
 TextureHandle TextureManager::createOffscreenImage(uint32_t resolutionWidth, uint32_t resolutionHeight,
                                                    vk::Format offscreenFormat)
 {
-	textures.push_back(Texture());
-	Texture& texture = textures.back();
+	int slot = allocateTextureSlot();
+	Texture& texture = textures[slot];
 
 	TextureManager::createImage(resolutionWidth, resolutionHeight, offscreenFormat, vk::ImageTiling::eOptimal,
 	                            vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eSampled,
 	                            VMA_MEMORY_USAGE_AUTO, texture);
 	TextureManager::createImageView(texture, offscreenFormat, vk::ImageAspectFlagBits::eColor);
 	TextureManager::createShadowSampler(texture);
-	return TextureHandle{static_cast<int>(textures.size() - 1)};
+	return TextureHandle{slot};
 }
 
 void TextureManager::createOffscreenSampler(Texture& texture)
@@ -109,8 +154,8 @@ void TextureManager::createOffscreenSampler(Texture& texture)
 
 TextureHandle TextureManager::createShadowMap(uint32_t shadowResolutionX, uint32_t shadowResolutionY)
 {
-	textures.push_back(Texture());
-	Texture& texture = textures.back();
+	int slot = allocateTextureSlot();
+	Texture& texture = textures[slot];
 	vk::Format shadowFormat = findBestFormat();
 
 	TextureManager::createImage(shadowResolutionX, shadowResolutionY, shadowFormat, vk::ImageTiling::eOptimal,
@@ -118,7 +163,7 @@ TextureHandle TextureManager::createShadowMap(uint32_t shadowResolutionX, uint32
 	                            VMA_MEMORY_USAGE_AUTO, texture);
 	TextureManager::createImageView(texture, shadowFormat, vk::ImageAspectFlagBits::eDepth);
 	TextureManager::createShadowSampler(texture);
-	return TextureHandle{static_cast<int>(textures.size() - 1)};
+	return TextureHandle{slot};
 }
 
 void TextureManager::createShadowSampler(Texture& texture)
@@ -177,8 +222,8 @@ TextureHandle TextureManager::generateTextureData(const char texturePath[MAX_PAT
 	{
 		throw std::runtime_error("Invalid texture dimensions!");
 	}
-	textures.push_back(Texture());
-	Texture& texture = textures.back();
+	int slot = allocateTextureSlot();
+	Texture& texture = textures[slot];
 
 	uint32_t mipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(texWidth, texHeight)))) + 1;
 	TextureManager::createImage(texWidth, texHeight, format, vk::ImageTiling::eOptimal,
@@ -189,7 +234,7 @@ TextureHandle TextureManager::generateTextureData(const char texturePath[MAX_PAT
 	TextureManager::createImageView(texture, format, vk::ImageAspectFlagBits::eColor);
 	TextureManager::createTextureSampler(texture);
 
-	TextureHandle handle{static_cast<int>(textures.size() - 1)};
+	TextureHandle handle{slot};
 	texturePaths[std::string(texturePath)] = handle;
 	dManager.updateBindlessTextureSet(texture.textureImageView, texture.textureSampler, dSetComponent, handle.id);
 	return handle;
@@ -200,14 +245,14 @@ TextureHandle TextureManager::generateTextureDataFromKtx(const char texturePath[
                                                          BindlessTextureDSetComponent& dSetComponent,
                                                          DescriptorManager& dManager, bool isSrgb)
 {
-	textures.push_back(Texture());
-	Texture& texture = textures.back();
+	int slot = allocateTextureSlot();
+	Texture& texture = textures[slot];
 
 	TextureUploader::uploadKtxTextureData(ktxData, dataSize, texture, isSrgb, allocator, vulkanDevice);
 	createImageView(texture, texture.format, vk::ImageAspectFlagBits::eColor);
 	createTextureSampler(texture); // maxLod uses texture.mipLevels set inside uploadKtxTextureData
 
-	TextureHandle handle{static_cast<int>(textures.size() - 1)};
+	TextureHandle handle{slot};
 	texturePaths[std::string(texturePath)] = handle;
 	dManager.updateBindlessTextureSet(texture.textureImageView, texture.textureSampler, dSetComponent, handle.id);
 	return handle;
@@ -272,8 +317,8 @@ int TextureManager::emplaceMaterials(BindlessTextureDSetComponent& dSetComponent
 TextureHandle TextureManager::createCubemapImage(uint32_t width, uint32_t height, vk::Format format,
                                                  vk::ImageUsageFlags usage, uint32_t mipLevels)
 {
-	textures.push_back(Texture());
-	Texture& texture = textures.back();
+	int slot = allocateTextureSlot();
+	Texture& texture = textures[slot];
 
 	texture.width = width;
 	texture.height = height;
@@ -312,7 +357,7 @@ TextureHandle TextureManager::createCubemapImage(uint32_t width, uint32_t height
 	}
 	texture.textureImage = vk::Image(textureImageRaw);
 
-	return TextureHandle{static_cast<int>(textures.size() - 1)};
+	return TextureHandle{slot};
 }
 
 void TextureManager::createImageView(Texture& texture, vk::Format format, vk::ImageAspectFlags aspectFlags)
@@ -552,8 +597,8 @@ TextureHandle TextureManager::generateBrdfLut(DescriptorManager& dManager, Bindl
 {
 	const uint32_t brdfLutSize = 512;
 
-	textures.push_back(Texture());
-	Texture& brdfLutTexture = textures.back();
+	int slot = allocateTextureSlot();
+	Texture& brdfLutTexture = textures[slot];
 
 	createImage(brdfLutSize, brdfLutSize, vk::Format::eR32G32Sfloat, vk::ImageTiling::eOptimal,
 	            vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eStorage, VMA_MEMORY_USAGE_AUTO,
@@ -617,5 +662,5 @@ TextureHandle TextureManager::generateBrdfLut(DescriptorManager& dManager, Bindl
 
 	VulkanUtils::endSingleTimeCommands(cmd, vulkanDevice);
 
-	return TextureHandle{static_cast<int>(textures.size() - 1)};
+	return TextureHandle{slot};
 }

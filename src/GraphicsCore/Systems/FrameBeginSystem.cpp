@@ -15,6 +15,8 @@
 #include "GraphicsCore/Components/FrameManagerComponent.hpp"
 #include "GraphicsCore/Components/RenderGraphComponent.hpp"
 #include "GraphicsCore/RenderGraph/RenderGraph.hpp"
+#include "GraphicsCore/Components/TextureManagerComponent.hpp"
+#include "GraphicsCore/Resources/Managers/TextureManager.hpp"
 
 #ifdef TRACY_ENABLE
 #include <tracy/Tracy.hpp>
@@ -76,6 +78,11 @@ void FrameBeginSystem::update(GeneralManager& gm)
 			    std::string("[FrameBeginSystem] waitForFences failed with exception: ") + e.what());
 		}
 	}
+
+	// Must run after the fence wait: only then is it safe to reclaim retired textures.
+	TextureManager& textureManager =
+	    *gm.getContextComponent<TextureManagerContext, TextureManagerComponent>()->textureManager;
+	textureManager.collectTextureFrees(currentFrameComp->frameNumber);
 
 	// Handle window resize
 	if (window.framebufferResized)

@@ -52,6 +52,9 @@ public:
 	TextureHandle createCubemapImage(uint32_t width, uint32_t height, vk::Format format,
 	                                 vk::ImageUsageFlags usage, uint32_t mipLevels = 1);
 	void destroyTexture(TextureHandle handle);
+	int allocateTextureSlot();
+	void freeTexture(TextureHandle handle, uint64_t frameNumber);
+	void collectTextureFrees(uint64_t frameNumber);
 	TextureHandle generateCubemapFromHdr(TextureHandle hdrTexture,
 	                                     DescriptorManager& dManager, BindlessTextureDSetComponent& dSetComponent,
 	                                     PipelineManager& pManager);
@@ -70,4 +73,15 @@ public:
 private:
 	VulkanDevice& vulkanDevice;
 	VmaAllocator allocator = {};
+	std::vector<int> _freeTextureSlots;
+
+	struct PendingTextureFree
+	{
+		Texture texture;
+		int slot;
+		uint64_t retireFrame;
+	};
+	std::vector<PendingTextureFree> _pendingFrees;
+
+	void destroyTextureResources(Texture& texture);
 };
