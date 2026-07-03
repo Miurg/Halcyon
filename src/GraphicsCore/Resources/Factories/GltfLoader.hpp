@@ -29,6 +29,7 @@ struct LoadedPrimitive
 struct MaterialMaps
 {
 	std::unordered_map<uint32_t, uint32_t> materials;
+	std::vector<int> ownedTextures;
 };
 
 // Parses glTF files — extracts materials, primitives, and mesh hierarchy into engine resources.

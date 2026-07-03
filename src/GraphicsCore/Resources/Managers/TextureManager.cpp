@@ -309,9 +309,39 @@ void TextureManager::createImage(uint32_t width, uint32_t height, vk::Format for
 int TextureManager::emplaceMaterials(BindlessTextureDSetComponent& dSetComponent, MaterialStructure materialStr,
                                      BufferManager& bManager)
 {
-	materials.push_back(materialStr);
-	bManager.writeToBuffer(dSetComponent.materialBuffer, 0, materials.size() - 1, materialStr);
-	return materials.size() - 1;
+	int slot;
+	if (!_freeMaterialSlots.empty())
+	{
+		slot = _freeMaterialSlots.back();
+		_freeMaterialSlots.pop_back();
+		materials[slot] = materialStr;
+	}
+	else
+	{
+		materials.push_back(materialStr);
+		slot = static_cast<int>(materials.size() - 1);
+	}
+	bManager.writeToBuffer(dSetComponent.materialBuffer, 0, slot, materialStr);
+	return slot;
+}
+
+void TextureManager::freeMaterial(int slot, uint64_t frameNumber)
+{
+	_pendingMaterialFrees.push_back({slot, frameNumber + MAX_FRAMES_IN_FLIGHT});
+}
+
+void TextureManager::collectMaterialFrees(uint64_t frameNumber)
+{
+	for (auto it = _pendingMaterialFrees.begin(); it != _pendingMaterialFrees.end();)
+	{
+		if (it->retireFrame <= frameNumber)
+		{
+			_freeMaterialSlots.push_back(it->slot);
+			it = _pendingMaterialFrees.erase(it);
+		}
+		else
+			++it;
+	}
 }
 
 TextureHandle TextureManager::createCubemapImage(uint32_t width, uint32_t height, vk::Format format,

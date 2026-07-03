@@ -12,6 +12,8 @@
 #include "GraphicsCore/Systems/RenderSystem.hpp"
 #include "GraphicsCore/Components/NameComponent.hpp"
 #include "GraphicsCore/Resources/Components/ModelComponent.hpp"
+#include "GraphicsCore/Components/CurrentFrameComponent.hpp"
+#include "GraphicsCore/GraphicsContexts.hpp"
 #include <string>
 #include "GraphicsCore/Components/PointLightComponent.hpp"
 #include "GraphicsCore/Systems/LightUpdateSystem.hpp"
@@ -201,8 +203,17 @@ Orhescyon::Entity ModelFactory::loadModel(const char path[MAX_PATH_LEN], int ver
 		throw std::runtime_error("Failed to load glTF model");
 	}
 
-	int modelIndex = GltfLoader::loadModelFromFile(path, vertexIndexBInt, bManager, dSetComponent, dManager, model,
-	                                               tManager, mManager);
+	int modelIndex;
+	if (mManager.isModelLoaded(path))
+	{
+		modelIndex = mManager.modelPaths[path];
+		mManager.models[modelIndex].refCount++;
+	}
+	else
+	{
+		modelIndex = GltfLoader::loadModelFromFile(path, vertexIndexBInt, bManager, dSetComponent, dManager, model,
+		                                           tManager, mManager);
+	}
 
 	// Create root entity for the model
 	Orhescyon::Entity modelRootEntity = gm.createEntity();
@@ -225,4 +236,60 @@ Orhescyon::Entity ModelFactory::loadModel(const char path[MAX_PATH_LEN], int ver
 	}
 	std::cout << "Loaded model: " << path << std::endl;
 	return modelRootEntity;
+}
+
+void collectSubtree(Orhescyon::Entity entity, GeneralManager& gm, std::vector<Orhescyon::Entity>& out)
+{
+	out.push_back(entity);
+	RelationshipComponent* rel = gm.getComponent<RelationshipComponent>(entity);
+	for (Orhescyon::Entity child = rel->firstChild; child != NULL_ENTITY;)
+	{
+		Orhescyon::Entity next = gm.getComponent<RelationshipComponent>(child)->nextSibling;
+		collectSubtree(child, gm, out);
+		child = next;
+	}
+}
+
+bool ModelFactory::unloadModel(Orhescyon::Entity modelRootEntity, GeneralManager& gm, ModelManager& mManager,
+                               TextureManager& tManager)
+{
+	if (!gm.hasComponent<ModelComponent>(modelRootEntity)) return false;
+	int modelIndex = gm.getComponent<ModelComponent>(modelRootEntity)->modelIndex;
+
+	// destroyEntity does not repair neighbours — unlink the root from its parent's child list first.
+	RelationshipComponent* rootRel = gm.getComponent<RelationshipComponent>(modelRootEntity);
+	if (rootRel->parent != NULL_ENTITY)
+	{
+		RelationshipComponent* parentRel = gm.getComponent<RelationshipComponent>(rootRel->parent);
+		if (parentRel->firstChild == modelRootEntity) parentRel->firstChild = rootRel->nextSibling;
+		if (rootRel->prevSibling != NULL_ENTITY)
+			gm.getComponent<RelationshipComponent>(rootRel->prevSibling)->nextSibling = rootRel->nextSibling;
+		if (rootRel->nextSibling != NULL_ENTITY)
+			gm.getComponent<RelationshipComponent>(rootRel->nextSibling)->prevSibling = rootRel->prevSibling;
+	}
+
+	// Snapshot the subtree before destroying — destroyEntity erases RelationshipComponent.
+	std::vector<Orhescyon::Entity> toDestroy;
+	collectSubtree(modelRootEntity, gm, toDestroy);
+	for (Orhescyon::Entity entity : toDestroy) gm.destroyEntity(entity);
+
+	Model& model = mManager.models[modelIndex];
+	model.refCount--;
+	if (model.refCount > 0) return true;
+
+	uint32_t frameNumber = gm.getContextComponent<CurrentFrameContext, CurrentFrameComponent>()->frameNumber;
+	mManager.freeGeometry(model.allocation, frameNumber);
+	for (int slot : model.meshes) mManager.freeMeshSlot(slot);
+	for (int textureId : model.textures) tManager.freeTexture(TextureHandle{textureId}, frameNumber);
+	for (int materialSlot : model.materials) tManager.freeMaterial(materialSlot, frameNumber);
+	for (auto it = mManager.modelPaths.begin(); it != mManager.modelPaths.end();)
+	{
+		if (it->second == modelIndex)
+			it = mManager.modelPaths.erase(it);
+		else
+			++it;
+	}
+	mManager.freeModelSlot(modelIndex);
+
+	return true;
 }

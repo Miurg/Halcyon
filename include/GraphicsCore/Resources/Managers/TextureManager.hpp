@@ -68,6 +68,8 @@ public:
 
 	int emplaceMaterials(BindlessTextureDSetComponent& dSetComponent, MaterialStructure materialMaps,
 	                     BufferManager& bManager);
+	void freeMaterial(int slot, uint64_t frameNumber);
+	void collectMaterialFrees(uint64_t frameNumber);
 	std::vector<MaterialStructure> materials;
 
 private:
@@ -82,6 +84,14 @@ private:
 		uint64_t retireFrame;
 	};
 	std::vector<PendingTextureFree> _pendingFrees;
+
+	struct PendingMaterialFree
+	{
+		int slot;
+		uint64_t retireFrame;
+	};
+	std::vector<PendingMaterialFree> _pendingMaterialFrees;
+	std::vector<int> _freeMaterialSlots;
 
 	void destroyTextureResources(Texture& texture);
 };

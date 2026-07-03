@@ -30,6 +30,9 @@ struct HALCYON_API Model
 {
 	GeometryAllocation allocation;
 	std::vector<int> meshes;
+	std::vector<int> textures;
+	std::vector<int> materials;
+	int refCount = 0;
 };
 
 // Stores loaded meshes and their GPU vertex/index buffers. Deduplicates by file path.
@@ -38,7 +41,7 @@ class HALCYON_API ModelManager
 public:
 	ModelManager(VulkanDevice& vulkanDevice, VmaAllocator allocator);
 	~ModelManager();
-	bool isMeshLoaded(const char path[MAX_PATH_LEN]);
+	bool isModelLoaded(const char path[MAX_PATH_LEN]);
 
 	std::optional<GeometryAllocation> allocateGeometry(int bufferIndex, uint32_t vertexCount, uint32_t indexCount);
 	void uploadVertices(int bufferIndex, uint32_t vertexBase, const Vertex* data, uint32_t count);
@@ -48,9 +51,11 @@ public:
 
 	int allocateMeshSlot();
 	int allocateModelSlot();
+	void freeMeshSlot(int slot);
+	void freeModelSlot(int slot);
 
 	std::vector<VertexIndexBuffer> vertexIndexBuffers;
-	std::unordered_map<std::string, int> meshPaths;
+	std::unordered_map<std::string, int> modelPaths;
 	std::vector<MeshInfo> meshes;
 	std::vector<Model> models;
 

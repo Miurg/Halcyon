@@ -1,5 +1,6 @@
 #include "GltfLoader.hpp"
 #include "ImageConverter.hpp"
+#include <algorithm>
 #include <stdexcept>
 #include <utility>
 
@@ -58,9 +59,18 @@ int GltfLoader::loadModelFromFile(const char path[MAX_PATH_LEN], int vertexIndex
 		meshSlots.push_back(slot);
 	}
 
+	std::vector<int> ownedMaterials;
+	ownedMaterials.reserve(materialMaps.materials.size());
+	for (const auto& [gltfIndex, materialSlot] : materialMaps.materials)
+		ownedMaterials.push_back(static_cast<int>(materialSlot));
+
 	int modelIndex = mManager.allocateModelSlot();
 	mManager.models[modelIndex].allocation = allocation;
 	mManager.models[modelIndex].meshes = std::move(meshSlots);
+	mManager.models[modelIndex].textures = std::move(materialMaps.ownedTextures);
+	mManager.models[modelIndex].materials = std::move(ownedMaterials);
+	mManager.models[modelIndex].refCount = 1;
+	mManager.modelPaths[path] = modelIndex;
 
 	return modelIndex;
 }
@@ -390,6 +400,26 @@ MaterialMaps GltfLoader::materialsParser(tinygltf::Model& model, TextureManager&
 
 		maps.materials.emplace(static_cast<uint32_t>(i), tManager.emplaceMaterials(dSetComponent, material, bManager));
 	}
+
+	// sys_default_* are engine-owned and shared by every model — never part of a model's ownership.
+	auto noteOwned = [&](uint32_t textureId)
+	{
+		if (textureId == static_cast<uint32_t>(whiteTexture) || textureId == static_cast<uint32_t>(defaultNormalTexture) ||
+		    textureId == static_cast<uint32_t>(defaultMRTexture) || textureId == static_cast<uint32_t>(defaultEmissiveTexture))
+			return;
+		int id = static_cast<int>(textureId);
+		if (std::find(maps.ownedTextures.begin(), maps.ownedTextures.end(), id) == maps.ownedTextures.end())
+			maps.ownedTextures.push_back(id);
+	};
+	for (const auto& [gltfIndex, materialSlot] : maps.materials)
+	{
+		const MaterialStructure& material = tManager.materials[materialSlot];
+		noteOwned(material.textureIndex);
+		noteOwned(material.normalMapIndex);
+		noteOwned(material.metallicRoughnessIndex);
+		noteOwned(material.emissiveIndex);
+	}
+
 	return maps;
 }
 

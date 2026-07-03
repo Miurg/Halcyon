@@ -18,4 +18,6 @@ public:
 	static Orhescyon::Entity loadModel(const char path[MAX_PATH_LEN], int vertexIndexBInt, BufferManager& bManager,
 	                        BindlessTextureDSetComponent& dSetComponent, DescriptorManager& dManager,
 	                        GeneralManager& gm, TextureManager& tManager, ModelManager& mManager);
+	static bool unloadModel(Orhescyon::Entity modelRootEntity, GeneralManager& gm, ModelManager& mManager,
+	                        TextureManager& tManager);
 };
