@@ -70,6 +70,10 @@ public:
 	                     BufferManager& bManager);
 	void freeMaterial(int slot, uint64_t frameNumber);
 	void collectMaterialFrees(uint64_t frameNumber);
+	size_t freeTextureSlotCount() const;
+	size_t pendingTextureFreeCount() const;
+	size_t freeMaterialSlotCount() const;
+	size_t pendingMaterialFreeCount() const;
 	std::vector<MaterialStructure> materials;
 
 private:

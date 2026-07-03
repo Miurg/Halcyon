@@ -344,6 +344,26 @@ void TextureManager::collectMaterialFrees(uint64_t frameNumber)
 	}
 }
 
+size_t TextureManager::freeTextureSlotCount() const
+{
+	return _freeTextureSlots.size();
+}
+
+size_t TextureManager::pendingTextureFreeCount() const
+{
+	return _pendingFrees.size();
+}
+
+size_t TextureManager::freeMaterialSlotCount() const
+{
+	return _freeMaterialSlots.size();
+}
+
+size_t TextureManager::pendingMaterialFreeCount() const
+{
+	return _pendingMaterialFrees.size();
+}
+
 TextureHandle TextureManager::createCubemapImage(uint32_t width, uint32_t height, vk::Format format,
                                                  vk::ImageUsageFlags usage, uint32_t mipLevels)
 {

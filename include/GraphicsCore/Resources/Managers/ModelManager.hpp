@@ -53,6 +53,9 @@ public:
 	int allocateModelSlot();
 	void freeMeshSlot(int slot);
 	void freeModelSlot(int slot);
+	size_t freeMeshSlotCount() const;
+	size_t freeModelSlotCount() const;
+	size_t pendingGeometryFreeCount() const;
 
 	std::vector<VertexIndexBuffer> vertexIndexBuffers;
 	std::unordered_map<std::string, int> modelPaths;

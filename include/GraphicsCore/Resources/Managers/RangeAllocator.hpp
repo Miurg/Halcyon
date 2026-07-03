@@ -82,6 +82,11 @@ public:
 		return _totalFree;
 	}
 
+	const std::vector<Range>& freeRanges() const
+	{
+		return _free;
+	}
+
 private:
 	uint32_t _capacity = 0; // one element size, not "bytes"
 	uint32_t _totalFree = 0;

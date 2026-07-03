@@ -33,10 +33,105 @@
 #include "PhysicsCore/Components/PhysManagerComponent.hpp"
 #include "PhysicsCore/Components/PhysBodyComponent.hpp"
 #include "PhysicsCore/JoltGlm.hpp"
+#include "GraphicsCore/Components/ModelManagerComponent.hpp"
+#include "GraphicsCore/Components/TextureManagerComponent.hpp"
+#include "GraphicsCore/Resources/Managers/ModelManager.hpp"
+#include "GraphicsCore/Resources/Managers/TextureManager.hpp"
+#include "GraphicsCore/Resources/Components/ModelComponent.hpp"
+#include "GraphicsCore/Resources/Factories/ModelFactory.hpp"
 
 #ifdef TRACY_ENABLE
 #include <tracy/Tracy.hpp>
 #endif
+
+namespace
+{
+void drawArenaBar(const RangeAllocator& arena, const char* label, size_t elementSize)
+{
+	if (arena.capacity() == 0)
+	{
+		ImGui::Text("%s: empty arena", label);
+		return;
+	}
+
+	const float barHeight = 18.0f;
+	float barWidth = ImGui::GetContentRegionAvail().x;
+	ImVec2 origin = ImGui::GetCursorScreenPos();
+	ImDrawList* drawList = ImGui::GetWindowDrawList();
+
+	drawList->AddRectFilled(origin, ImVec2(origin.x + barWidth, origin.y + barHeight), IM_COL32(190, 90, 70, 255));
+	for (const RangeAllocator::Range& range : arena.freeRanges())
+	{
+		float x0 = origin.x + barWidth * (static_cast<float>(range.offset) / arena.capacity());
+		float x1 = origin.x + barWidth * (static_cast<float>(range.offset + range.size) / arena.capacity());
+		drawList->AddRectFilled(ImVec2(x0, origin.y), ImVec2(x1, origin.y + barHeight), IM_COL32(90, 190, 110, 255));
+	}
+	drawList->AddRect(origin, ImVec2(origin.x + barWidth, origin.y + barHeight), IM_COL32(255, 255, 255, 70));
+	ImGui::Dummy(ImVec2(barWidth, barHeight));
+
+	uint32_t usedElements = arena.capacity() - arena.totalFree();
+	double usedMb = usedElements * static_cast<double>(elementSize) / (1024.0 * 1024.0);
+	double capacityMb = arena.capacity() * static_cast<double>(elementSize) / (1024.0 * 1024.0);
+	ImGui::Text("%s: %.2f / %.2f MB used, %zu free block(s)", label, usedMb, capacityMb, arena.freeRanges().size());
+}
+
+void drawMemoryWindow(GeneralManager& gm)
+{
+	ModelManager* modelManager = gm.getContextComponent<ModelManagerContext, ModelManagerComponent>()->modelManager;
+	TextureManager* textureManager =
+	    gm.getContextComponent<TextureManagerContext, TextureManagerComponent>()->textureManager;
+
+	ImGui::Begin("Memory");
+
+	ImGui::SeparatorText("Model instances");
+	// Snapshot first: unloading destroys entities and would invalidate iteration of the active set.
+	std::vector<Orhescyon::Entity> modelRoots;
+	for (Orhescyon::Entity entity : gm.getActiveEntities())
+	{
+		if (gm.hasComponent<ModelComponent>(entity)) modelRoots.push_back(entity);
+	}
+	for (Orhescyon::Entity root : modelRoots)
+	{
+		ImGui::PushID(static_cast<int>(root));
+		int modelIndex = gm.getComponent<ModelComponent>(root)->modelIndex;
+		auto* nameComp = gm.getComponent<NameComponent>(root);
+		ImGui::Text("%u  %s (model %d, refs %d)", static_cast<unsigned>(root), nameComp ? nameComp->name : "?",
+		            modelIndex, modelManager->models[modelIndex].refCount);
+		ImGui::SameLine();
+		if (ImGui::Button("Unload"))
+		{
+			ModelFactory::unloadModel(root, gm, *modelManager, *textureManager);
+		}
+		ImGui::PopID();
+	}
+
+	ImGui::SeparatorText("Geometry arenas");
+	VertexIndexBuffer& geometryBuffer = modelManager->vertexIndexBuffers[0];
+	drawArenaBar(geometryBuffer.vertexAllocator, "Vertices", sizeof(Vertex));
+	drawArenaBar(geometryBuffer.indexAllocator, "Indices", sizeof(uint32_t));
+	ImGui::Text("Pending geometry frees: %zu", modelManager->pendingGeometryFreeCount());
+
+	ImGui::SeparatorText("Slot pools");
+	ImGui::Text("Textures : %zu total, %zu free, %zu pending free", textureManager->textures.size(),
+	            textureManager->freeTextureSlotCount(), textureManager->pendingTextureFreeCount());
+	ImGui::Text("Materials: %zu total, %zu free, %zu pending free", textureManager->materials.size(),
+	            textureManager->freeMaterialSlotCount(), textureManager->pendingMaterialFreeCount());
+	ImGui::Text("Meshes   : %zu total, %zu free", modelManager->meshes.size(), modelManager->freeMeshSlotCount());
+	ImGui::Text("Models   : %zu total, %zu free", modelManager->models.size(), modelManager->freeModelSlotCount());
+
+	ImGui::SeparatorText("Loaded models");
+	for (size_t i = 0; i < modelManager->models.size(); ++i)
+	{
+		const Model& model = modelManager->models[i];
+		if (model.refCount <= 0) continue;
+		ImGui::Text("[%zu] refs %d | meshes %zu | vtx %u | idx %u | tex %zu | mat %zu", i, model.refCount,
+		            model.meshes.size(), model.allocation.vertexCount, model.allocation.indexCount,
+		            model.textures.size(), model.materials.size());
+	}
+
+	ImGui::End();
+}
+} // namespace
 
 void ImGuiSystem::onRegistered(GeneralManager& gm)
 {
@@ -520,6 +615,8 @@ void ImGuiSystem::update(GeneralManager& gm)
 	ImGui::EndChild();
 
 	ImGui::End();
+
+	drawMemoryWindow(gm);
 
 	// ImGui::ShowDemoWindow();
 }

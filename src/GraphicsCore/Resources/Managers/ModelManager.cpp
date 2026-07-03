@@ -177,3 +177,18 @@ void ModelManager::freeModelSlot(int slot)
 {
 	_freeModelSlots.push_back(slot);
 }
+
+size_t ModelManager::freeMeshSlotCount() const
+{
+	return _freeMeshSlots.size();
+}
+
+size_t ModelManager::freeModelSlotCount() const
+{
+	return _freeModelSlots.size();
+}
+
+size_t ModelManager::pendingGeometryFreeCount() const
+{
+	return _pendingGeometryFrees.size();
+}
