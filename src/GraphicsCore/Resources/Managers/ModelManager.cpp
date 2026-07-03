@@ -1,4 +1,5 @@
 #include "GraphicsCore/Resources/Managers/ModelManager.hpp"
+#include <algorithm>
 #include <stdexcept>
 #include "GraphicsCore/VulkanUtils.hpp"
 
@@ -39,10 +40,12 @@ ModelManager::ModelManager(VulkanDevice& vulkanDevice, VmaAllocator allocator)
 	VertexIndexBuffer& buffer = vertexIndexBuffers.back();
 
 	createDeviceLocalBuffer(allocator, VERTEX_BUFFER_BYTES,
-	                        vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eTransferDst,
+	                        vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eTransferDst |
+	                            vk::BufferUsageFlagBits::eTransferSrc,
 	                        buffer.vertexBuffer, buffer.vertexBufferAllocation);
 	createDeviceLocalBuffer(allocator, INDEX_BUFFER_BYTES,
-	                        vk::BufferUsageFlagBits::eIndexBuffer | vk::BufferUsageFlagBits::eTransferDst,
+	                        vk::BufferUsageFlagBits::eIndexBuffer | vk::BufferUsageFlagBits::eTransferDst |
+	                            vk::BufferUsageFlagBits::eTransferSrc,
 	                        buffer.indexBuffer, buffer.indexBufferAllocation);
 
 	buffer.vertexAllocator.reset(static_cast<uint32_t>(VERTEX_BUFFER_BYTES / sizeof(Vertex)));
@@ -140,6 +143,122 @@ void ModelManager::collectGeometryFrees(uint64_t frameNumber)
 		else
 			++it;
 	}
+}
+
+void ModelManager::defragment(VertexIndexBuffer& buffer)
+{
+	int bufferIndex = -1;
+	for (size_t i = 0; i < vertexIndexBuffers.size(); ++i)
+	{
+		if (&vertexIndexBuffers[i] == &buffer)
+		{
+			bufferIndex = static_cast<int>(i);
+			break;
+		}
+	}
+	if (bufferIndex < 0) return;
+
+	vulkanDevice.device.waitIdle();
+
+	// Superseded by the arena rebuild below; kept entries would later free ranges
+	// that by then belong to live models.
+	for (auto it = _pendingGeometryFrees.begin(); it != _pendingGeometryFrees.end();)
+	{
+		if (it->allocation.bufferIndex == bufferIndex)
+			it = _pendingGeometryFrees.erase(it);
+		else
+			++it;
+	}
+
+	std::vector<int> liveModels;
+	for (size_t i = 0; i < models.size(); ++i)
+	{
+		if (models[i].refCount > 0 && models[i].allocation.bufferIndex == bufferIndex)
+			liveModels.push_back(static_cast<int>(i));
+	}
+
+	auto compact = [&](RangeAllocator& arena, vk::Buffer gpuBuffer, vk::DeviceSize elementSize,
+	                   uint32_t GeometryAllocation::*base, uint32_t GeometryAllocation::*count,
+	                   uint32_t PrimitivesInfo::*offset)
+	{
+		std::sort(liveModels.begin(), liveModels.end(),
+		          [&](int a, int b) { return models[a].allocation.*base < models[b].allocation.*base; });
+
+		struct Relocation
+		{
+			int model;
+			uint32_t oldBase;
+			uint32_t newBase;
+			uint32_t count;
+		};
+		std::vector<Relocation> relocations;
+
+		arena.reset(arena.capacity());
+		for (int modelIndex : liveModels)
+		{
+			uint32_t elementCount = models[modelIndex].allocation.*count;
+			if (elementCount == 0) continue;
+			uint32_t oldBase = models[modelIndex].allocation.*base;
+			uint32_t newBase = *arena.allocate(elementCount);
+			relocations.push_back({modelIndex, oldBase, newBase, elementCount});
+		}
+
+		uint32_t usedElements = arena.capacity() - arena.totalFree();
+		bool anyMoved = false;
+		for (const Relocation& relocation : relocations)
+		{
+			if (relocation.oldBase != relocation.newBase)
+			{
+				anyMoved = true;
+				break;
+			}
+		}
+
+		if (anyMoved && usedElements > 0)
+		{
+			// Same-buffer copies with overlapping regions are UB in Vulkan, and left-packing
+			// overlaps routinely — round-trip through a scratch buffer instead.
+			vk::Buffer scratch;
+			VmaAllocation scratchAllocation = nullptr;
+			createDeviceLocalBuffer(allocator, usedElements * elementSize,
+			                        vk::BufferUsageFlagBits::eTransferSrc | vk::BufferUsageFlagBits::eTransferDst,
+			                        scratch, scratchAllocation);
+
+			auto gather = VulkanUtils::beginSingleTimeCommands(vulkanDevice);
+			for (const Relocation& relocation : relocations)
+			{
+				vk::BufferCopy copyRegion{relocation.oldBase * elementSize, relocation.newBase * elementSize,
+				                          relocation.count * elementSize};
+				gather.copyBuffer(gpuBuffer, scratch, copyRegion);
+			}
+			VulkanUtils::endSingleTimeCommands(gather, vulkanDevice);
+
+			auto scatter = VulkanUtils::beginSingleTimeCommands(vulkanDevice);
+			vk::BufferCopy backRegion{0, 0, usedElements * elementSize};
+			scatter.copyBuffer(scratch, gpuBuffer, backRegion);
+			VulkanUtils::endSingleTimeCommands(scatter, vulkanDevice);
+
+			vmaDestroyBuffer(allocator, scratch, scratchAllocation);
+		}
+
+		for (const Relocation& relocation : relocations)
+		{
+			models[relocation.model].allocation.*base = relocation.newBase;
+			if (relocation.newBase == relocation.oldBase) continue;
+			for (int meshSlot : models[relocation.model].meshes)
+			{
+				for (PrimitivesInfo& primitive : meshes[meshSlot].primitives)
+				{
+					primitive.*offset = primitive.*offset - relocation.oldBase + relocation.newBase;
+				}
+			}
+		}
+	};
+
+	compact(buffer.vertexAllocator, buffer.vertexBuffer, sizeof(Vertex), &GeometryAllocation::vertexBase,
+	        &GeometryAllocation::vertexCount, &PrimitivesInfo::vertexOffset);
+	compact(buffer.indexAllocator, buffer.indexBuffer, sizeof(uint32_t), &GeometryAllocation::indexBase,
+	        &GeometryAllocation::indexCount, &PrimitivesInfo::indexOffset);
 }
 
 int ModelManager::allocateMeshSlot()

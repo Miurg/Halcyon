@@ -110,6 +110,10 @@ void drawMemoryWindow(GeneralManager& gm)
 	drawArenaBar(geometryBuffer.vertexAllocator, "Vertices", sizeof(Vertex));
 	drawArenaBar(geometryBuffer.indexAllocator, "Indices", sizeof(uint32_t));
 	ImGui::Text("Pending geometry frees: %zu", modelManager->pendingGeometryFreeCount());
+	if (ImGui::Button("Defragment"))
+	{
+		modelManager->defragment(geometryBuffer);
+	}
 
 	ImGui::SeparatorText("Slot pools");
 	ImGui::Text("Textures : %zu total, %zu free, %zu pending free", textureManager->textures.size(),

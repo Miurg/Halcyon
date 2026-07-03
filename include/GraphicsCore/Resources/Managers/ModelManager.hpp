@@ -48,6 +48,7 @@ public:
 	void uploadIndices(int bufferIndex, uint32_t indexBase, const uint32_t* data, uint32_t count);
 	void freeGeometry(const GeometryAllocation& allocation, uint64_t frameNumber);
 	void collectGeometryFrees(uint64_t frameNumber);
+	void defragment(VertexIndexBuffer& buffer);
 
 	int allocateMeshSlot();
 	int allocateModelSlot();
