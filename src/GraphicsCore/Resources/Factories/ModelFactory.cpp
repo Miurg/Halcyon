@@ -11,6 +11,7 @@
 #include "GraphicsCore/Systems/TransformSystem.hpp"
 #include "GraphicsCore/Systems/RenderSystem.hpp"
 #include "GraphicsCore/Components/NameComponent.hpp"
+#include "GraphicsCore/Resources/Components/ModelComponent.hpp"
 #include <string>
 #include "GraphicsCore/Components/PointLightComponent.hpp"
 #include "GraphicsCore/Systems/LightUpdateSystem.hpp"
@@ -27,8 +28,8 @@ glm::mat4 convertGLTFMatrix(const std::vector<double>& matrix)
 
 	return glm::make_mat4(m);
 }
-Orhescyon::Entity createEntityHierarchy(int parentEntity, tinygltf::Model& model, GeneralManager& gm, int offset,
-                                           BufferManager& bManager, int nodeIndex)
+Orhescyon::Entity createEntityHierarchy(int parentEntity, tinygltf::Model& model, GeneralManager& gm,
+                                           const std::vector<int>& meshSlots, BufferManager& bManager, int nodeIndex)
 {
 	tinygltf::Node& node = model.nodes[nodeIndex];
 
@@ -71,7 +72,7 @@ Orhescyon::Entity createEntityHierarchy(int parentEntity, tinygltf::Model& model
 	gm.addComponent<RelationshipComponent>(entity);
 	if (node.mesh != -1)
 	{
-		gm.addComponent<MeshInfoComponent>(entity, offset + node.mesh);
+		gm.addComponent<MeshInfoComponent>(entity, meshSlots[node.mesh]);
 		gm.subscribeEntity<RenderSystem>(entity);
 		gm.subscribeEntity<BufferUpdateSystem>(entity);
 	}
@@ -141,7 +142,7 @@ Orhescyon::Entity createEntityHierarchy(int parentEntity, tinygltf::Model& model
 
 	for (int childIndex : node.children)
 	{
-		createEntityHierarchy(entity, model, gm, offset, bManager, childIndex);
+		createEntityHierarchy(entity, model, gm, meshSlots, bManager, childIndex);
 	}
 	return entity;
 }
@@ -200,11 +201,8 @@ Orhescyon::Entity ModelFactory::loadModel(const char path[MAX_PATH_LEN], int ver
 		throw std::runtime_error("Failed to load glTF model");
 	}
 
-	int offset = GltfLoader::loadModelFromFile(path, vertexIndexBInt, bManager, dSetComponent, dManager, model, tManager,
-	                                           mManager);
-
-	mManager.createVertexBuffer(mManager.vertexIndexBuffers[vertexIndexBInt]);
-	mManager.createIndexBuffer(mManager.vertexIndexBuffers[vertexIndexBInt]);
+	int modelIndex = GltfLoader::loadModelFromFile(path, vertexIndexBInt, bManager, dSetComponent, dManager, model,
+	                                               tManager, mManager);
 
 	// Create root entity for the model
 	Orhescyon::Entity modelRootEntity = gm.createEntity();
@@ -215,6 +213,7 @@ Orhescyon::Entity ModelFactory::loadModel(const char path[MAX_PATH_LEN], int ver
 	gm.addComponent<GlobalTransformComponent>(modelRootEntity);
 	gm.addComponent<LocalTransformComponent>(modelRootEntity);
 	gm.addComponent<RelationshipComponent>(modelRootEntity);
+	gm.addComponent<ModelComponent>(modelRootEntity, modelIndex);
 	gm.subscribeEntity<TransformSystem>(modelRootEntity);
 
 	const int sceneIndex = model.defaultScene > -1 ? model.defaultScene : 0;
@@ -222,8 +221,8 @@ Orhescyon::Entity ModelFactory::loadModel(const char path[MAX_PATH_LEN], int ver
 
 	for (int rootNodeIndex : scene.nodes)
 	{
-		createEntityHierarchy(modelRootEntity, model, gm, offset, bManager, rootNodeIndex);
+		createEntityHierarchy(modelRootEntity, model, gm, mManager.models[modelIndex].meshes, bManager, rootNodeIndex);
 	}
-	std::cout << "Loaded model: " << path << " with offset: " << offset << std::endl;
+	std::cout << "Loaded model: " << path << std::endl;
 	return modelRootEntity;
 }

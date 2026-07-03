@@ -1,5 +1,6 @@
 #pragma once
 #include "GraphicsCore/Resources/Managers/VertexIndexBuffer.hpp"
+#include "GraphicsCore/Resources/Managers/Vertex.hpp"
 #include "GraphicsCore/Resources/Managers/Texture.hpp"
 #include "GraphicsCore/Resources/Components/MeshInfoComponent.hpp"
 #include <memory>
@@ -40,9 +41,9 @@ public:
 	static MaterialMaps materialsParser(tinygltf::Model& model, TextureManager& tManager,
 	                                    BindlessTextureDSetComponent& dSetComponent, DescriptorManager& dManager,
 	                                    BufferManager& bManager, const char* filePath);
-	static std::vector<PrimitivesInfo> primitiveParser(tinygltf::Mesh& mesh, VertexIndexBuffer& vertexIndexB,
-	                                                   tinygltf::Model& model, int32_t globalVertexOffset,
-	                                                   const MaterialMaps& materialMaps);
+	static std::vector<PrimitivesInfo> primitiveParser(tinygltf::Mesh& mesh, std::vector<Vertex>& outVertices,
+	                                                   std::vector<uint32_t>& outIndices, tinygltf::Model& model,
+	                                                   int32_t globalVertexOffset, const MaterialMaps& materialMaps);
 	static std::vector<MeshInfo> modelParser(tinygltf::Model model);
 	static std::shared_ptr<TextureData> createDefaultWhiteTexture();
 };

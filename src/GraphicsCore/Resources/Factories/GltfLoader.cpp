@@ -1,30 +1,68 @@
 #include "GltfLoader.hpp"
 #include "ImageConverter.hpp"
+#include <stdexcept>
+#include <utility>
 
 int GltfLoader::loadModelFromFile(const char path[MAX_PATH_LEN], int vertexIndexBInt, BufferManager& bManager,
                                   BindlessTextureDSetComponent& dSetComponent, DescriptorManager& dManager,
                                   tinygltf::Model& model, TextureManager& tManager, ModelManager& mManager)
 {
-	VertexIndexBuffer& vertexIndexBuffer = mManager.vertexIndexBuffers[vertexIndexBInt];
-	int32_t globalVertexOffset = static_cast<int32_t>(vertexIndexBuffer.vertices.size()); // To adjust indices
-
 	MaterialMaps materialMaps = materialsParser(model, tManager, dSetComponent, dManager, bManager, path);
+
+	std::vector<Vertex> localVertices;
+	std::vector<uint32_t> localIndices;
 
 	std::vector<MeshInfo> loadedMeshes;
 	loadedMeshes.resize(model.meshes.size());
 	for (int i = 0; i < model.meshes.size(); ++i)
 	{
-		std::vector<PrimitivesInfo> loadedPrimitives;
-		auto newPrims = primitiveParser(model.meshes[i], vertexIndexBuffer, model, globalVertexOffset, materialMaps);
+		auto newPrims = primitiveParser(model.meshes[i], localVertices, localIndices, model, 0, materialMaps);
 		loadedMeshes[i].primitives = newPrims;
 		loadedMeshes[i].vertexIndexBufferID = vertexIndexBInt;
 		model.meshes[i].name.copy(loadedMeshes[i].path, sizeof(loadedMeshes[i].path) - 1); // Copy name
 	}
 
-	int offsetForInSystemMesh = static_cast<int>(mManager.meshes.size());
-	mManager.meshes.insert(mManager.meshes.end(), loadedMeshes.begin(), loadedMeshes.end());
+	GeometryAllocation allocation{};
+	allocation.bufferIndex = vertexIndexBInt;
+	if (!localVertices.empty())
+	{
+		auto allocated = mManager.allocateGeometry(vertexIndexBInt, static_cast<uint32_t>(localVertices.size()),
+		                                           static_cast<uint32_t>(localIndices.size()));
+		if (!allocated)
+		{
+			throw std::runtime_error("Out of geometry buffer space while loading model");
+		}
+		allocation = *allocated;
 
-	return offsetForInSystemMesh;
+		for (auto& loadedMesh : loadedMeshes)
+		{
+			for (auto& primitive : loadedMesh.primitives)
+			{
+				primitive.vertexOffset += allocation.vertexBase;
+				primitive.indexOffset += allocation.indexBase;
+			}
+		}
+
+		mManager.uploadVertices(vertexIndexBInt, allocation.vertexBase, localVertices.data(),
+		                        static_cast<uint32_t>(localVertices.size()));
+		mManager.uploadIndices(vertexIndexBInt, allocation.indexBase, localIndices.data(),
+		                       static_cast<uint32_t>(localIndices.size()));
+	}
+
+	std::vector<int> meshSlots;
+	meshSlots.reserve(loadedMeshes.size());
+	for (auto& loadedMesh : loadedMeshes)
+	{
+		int slot = mManager.allocateMeshSlot();
+		mManager.meshes[slot] = std::move(loadedMesh);
+		meshSlots.push_back(slot);
+	}
+
+	int modelIndex = mManager.allocateModelSlot();
+	mManager.models[modelIndex].allocation = allocation;
+	mManager.models[modelIndex].meshes = std::move(meshSlots);
+
+	return modelIndex;
 }
 
 MaterialMaps GltfLoader::materialsParser(tinygltf::Model& model, TextureManager& tManager,
@@ -355,14 +393,14 @@ MaterialMaps GltfLoader::materialsParser(tinygltf::Model& model, TextureManager&
 	return maps;
 }
 
-std::vector<PrimitivesInfo> GltfLoader::primitiveParser(tinygltf::Mesh& mesh, VertexIndexBuffer& vertexIndexB,
-                                                        tinygltf::Model& model, int32_t globalVertexOffset,
-                                                        const MaterialMaps& materialMaps)
+std::vector<PrimitivesInfo> GltfLoader::primitiveParser(tinygltf::Mesh& mesh, std::vector<Vertex>& outVertices,
+                                                        std::vector<uint32_t>& outIndices, tinygltf::Model& model,
+                                                        int32_t globalVertexOffset, const MaterialMaps& materialMaps)
 {
 	std::vector<PrimitivesInfo> loadedPrimitives;
 	for (const auto& primitive : mesh.primitives)
 	{
-		uint32_t firstIndex = static_cast<uint32_t>(vertexIndexB.indices.size());
+		uint32_t firstIndex = static_cast<uint32_t>(outIndices.size());
 		// Read positions
 		const tinygltf::Accessor& posAccessor = model.accessors[primitive.attributes.at("POSITION")];
 		const tinygltf::BufferView& posBufferView = model.bufferViews[posAccessor.bufferView];
@@ -401,7 +439,7 @@ std::vector<PrimitivesInfo> GltfLoader::primitiveParser(tinygltf::Mesh& mesh, Ve
 			tangBuffer = &model.buffers[tangBufferView->buffer];
 		}
 
-		uint32_t currentLocalOffset = static_cast<uint32_t>(vertexIndexB.vertices.size()) - globalVertexOffset;
+		uint32_t currentLocalOffset = static_cast<uint32_t>(outVertices.size()) - globalVertexOffset;
 
 		const unsigned char* posDataStart = &posBuffer.data[posBufferView.byteOffset + posAccessor.byteOffset];
 		int posByteStride =
@@ -435,9 +473,9 @@ std::vector<PrimitivesInfo> GltfLoader::primitiveParser(tinygltf::Mesh& mesh, Ve
 		}
 
 		// Read vertices
-		size_t oldVertexSize = vertexIndexB.vertices.size();
-		vertexIndexB.vertices.resize(oldVertexSize + posAccessor.count);
-		Vertex* outputVertices = vertexIndexB.vertices.data() + oldVertexSize;
+		size_t oldVertexSize = outVertices.size();
+		outVertices.resize(oldVertexSize + posAccessor.count);
+		Vertex* outputVertices = outVertices.data() + oldVertexSize;
 
 		glm::vec3 maxBound = {0.0f, 0.0f, 0.0f};
 		glm::vec3 minBound = {0.0f, 0.0f, 0.0f};
@@ -495,9 +533,9 @@ std::vector<PrimitivesInfo> GltfLoader::primitiveParser(tinygltf::Mesh& mesh, Ve
 		const tinygltf::Buffer& indexBuffer = model.buffers[indexBufferView.buffer];
 		const unsigned char* indexData = &indexBuffer.data[indexBufferView.byteOffset + indexAccessor.byteOffset];
 
-		size_t oldIndexSize = vertexIndexB.indices.size();
-		vertexIndexB.indices.resize(oldIndexSize + indexAccessor.count);
-		uint32_t* outputIndices = vertexIndexB.indices.data() + oldIndexSize;
+		size_t oldIndexSize = outIndices.size();
+		outIndices.resize(oldIndexSize + indexAccessor.count);
+		uint32_t* outputIndices = outIndices.data() + oldIndexSize;
 
 		// Support only unsigned types
 		auto pushIndex = [&](uint32_t gltfIndex, size_t i) { outputIndices[i] = currentLocalOffset + gltfIndex; };
@@ -519,7 +557,7 @@ std::vector<PrimitivesInfo> GltfLoader::primitiveParser(tinygltf::Mesh& mesh, Ve
 		}
 		uint32_t materialIndex = primitive.material;
 
-		uint32_t indexCount = static_cast<uint32_t>(vertexIndexB.indices.size()) - firstIndex;
+		uint32_t indexCount = static_cast<uint32_t>(outIndices.size()) - firstIndex;
 
 		PrimitivesInfo result;
 		result.indexCount = indexCount;

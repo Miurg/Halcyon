@@ -17,6 +17,8 @@
 #include "GraphicsCore/RenderGraph/RenderGraph.hpp"
 #include "GraphicsCore/Components/TextureManagerComponent.hpp"
 #include "GraphicsCore/Resources/Managers/TextureManager.hpp"
+#include "GraphicsCore/Components/ModelManagerComponent.hpp"
+#include "GraphicsCore/Resources/Managers/ModelManager.hpp"
 
 #ifdef TRACY_ENABLE
 #include <tracy/Tracy.hpp>
@@ -79,10 +81,14 @@ void FrameBeginSystem::update(GeneralManager& gm)
 		}
 	}
 
-	// Must run after the fence wait: only then is it safe to reclaim retired textures.
+	// Must run after the fence wait: only then is it safe to reclaim retired resources.
 	TextureManager& textureManager =
 	    *gm.getContextComponent<TextureManagerContext, TextureManagerComponent>()->textureManager;
 	textureManager.collectTextureFrees(currentFrameComp->frameNumber);
+
+	ModelManager& modelManager =
+	    *gm.getContextComponent<ModelManagerContext, ModelManagerComponent>()->modelManager;
+	modelManager.collectGeometryFrees(currentFrameComp->frameNumber);
 
 	// Handle window resize
 	if (window.framebufferResized)
