@@ -70,12 +70,14 @@ static TempImages createTempImages(const BakeContext& ctx)
 	return tmp;
 }
 
-static void writeFinalProbeCount(const BakeContext& ctx, int total)
+static void writeGridInfo(const BakeContext& ctx, int total)
 {
-	const uint32_t finalCount = static_cast<uint32_t>(1 + total);
-	auto* countPtr =
-	    static_cast<uint32_t*>(ctx.bufferManager->buffers[ctx.globalDSet->shProbeCountBuffer.id].bufferMapped[0]);
-	*countPtr = finalCount;
+	auto* gridInfo =
+	    static_cast<SHGridInfo*>(ctx.bufferManager->buffers[ctx.globalDSet->shGridInfoBuffer.id].bufferMapped[0]);
+	gridInfo->origin = ctx.grid->origin;
+	gridInfo->spacing = ctx.grid->spacing;
+	gridInfo->count = ctx.grid->count;
+	gridInfo->probeCount = static_cast<uint32_t>(1 + total);
 }
 
 static void restoreSkyboxSampler(const BakeContext& ctx, vk::ImageView skyboxView, vk::Sampler skyboxSampler)
@@ -127,7 +129,7 @@ void LightProbeGIBaking::bakeAll(GeneralManager& gm)
 				++probeSlot;
 			}
 
-	writeFinalProbeCount(ctx, totalProbes);
+	writeGridInfo(ctx, totalProbes);
 	restoreSkyboxSampler(ctx, skyboxView, skyboxSampler);
 
 	// All per-probe submissions must finish before we free temp cubemap/depth.

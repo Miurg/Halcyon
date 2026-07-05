@@ -146,17 +146,18 @@ void PlaceholdersInit::initPlaceholders(GeneralManager& gm)
 	dManager->updateStorageBufferDescriptors(*bManager, globalDSetComponent->shProbeBuffer,
 	                                         globalDSetComponent->globalDSets, Bindings::Global::SHProbes);
 
-	// SH Probe count - slot 0 (skybox) always present, so initial count = 1.
-	globalDSetComponent->shProbeCountBuffer = bManager->createBuffer(
-	    (vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal), sizeof(uint32_t), 1,
+	// SH grid info - slot 0 (skybox) always present, so initial probeCount = 1.
+	globalDSetComponent->shGridInfoBuffer = bManager->createBuffer(
+	    (vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal), sizeof(SHGridInfo), 1,
 	    vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst);
-	dManager->updateStorageBufferDescriptors(*bManager, globalDSetComponent->shProbeCountBuffer,
-	                                         globalDSetComponent->globalDSets, Bindings::Global::SHProbeCount);
+	dManager->updateStorageBufferDescriptors(*bManager, globalDSetComponent->shGridInfoBuffer,
+	                                         globalDSetComponent->globalDSets, Bindings::Global::SHGridInfo);
 	{
-		uint32_t initialCount = 1u;
+		SHGridInfo initialGridInfo{};
+		initialGridInfo.probeCount = 1u;
 		auto cmd = VulkanUtils::beginSingleTimeCommands(*vulkanDevice);
-		cmd.updateBuffer(bManager->buffers[globalDSetComponent->shProbeCountBuffer.id].buffer[0], 0,
-		                 vk::ArrayProxy<const uint32_t>(1, &initialCount));
+		cmd.updateBuffer(bManager->buffers[globalDSetComponent->shGridInfoBuffer.id].buffer[0], 0,
+		                 vk::ArrayProxy<const SHGridInfo>(1, &initialGridInfo));
 		VulkanUtils::endSingleTimeCommands(cmd, *vulkanDevice);
 	}
 #pragma endregion

@@ -61,8 +61,13 @@ struct SHProbeEntry
 [[vk::binding(4, 0)]]
 StructuredBuffer<SHProbeEntry> shProbes;
 
+struct SHGridInfo
+{
+    float3 origin; float spacing;
+    int3 count;    uint probeCount;
+};
 [[vk::binding(5, 0)]]
-StructuredBuffer<uint> shProbeCount;
+StructuredBuffer<SHGridInfo> shGridInfo;
 
 // === SET 1 ===
 struct ModelData

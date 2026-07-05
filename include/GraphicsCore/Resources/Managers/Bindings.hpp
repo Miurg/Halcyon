@@ -12,7 +12,7 @@ constexpr uint32_t Sun = 1;
 constexpr uint32_t PointLights = 2;
 constexpr uint32_t PointLightCount = 3;
 constexpr uint32_t SHProbes = 4;
-constexpr uint32_t SHProbeCount = 5;
+constexpr uint32_t SHGridInfo = 5;
 constexpr uint32_t GtaoTexture = 6;
 } // namespace Global
 

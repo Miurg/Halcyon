@@ -61,8 +61,13 @@ struct SHProbeEntry
 [[vk::binding(4, 0)]]
 StructuredBuffer<SHProbeEntry> shProbes;
 
+struct SHGridInfo
+{
+    float3 origin; float spacing;
+    int3 count;    uint probeCount;
+};
 [[vk::binding(5, 0)]]
-StructuredBuffer<uint> shProbeCount;
+StructuredBuffer<SHGridInfo> shGridInfo;
 
 [[vk::binding(6, 0)]]
 Sampler2D gtaoTexture;
@@ -507,39 +512,47 @@ float3 getProbeCoeff(uint idx, uint band)
     }
 }
 
-// Returns diffuse irradiance blended from all nearby SH probes.
-// Falls back to slot 0 (skybox) when no scene probe covers worldPos.
 float3 sampleSHProbes(float3 worldPos, float3 N)
 {
-    uint  count      = shProbeCount[0];
-    float totalW     = 0.0f;
-    float3 blended[9];
-    for (int k = 0; k < 9; ++k) blended[k] = float3(0.0, 0.0, 0.0);
+    SHGridInfo grid = shGridInfo[0];
 
-    for (uint i = 1; i < count; ++i)
+    float3 sh[9];
+
+    if (grid.probeCount <= 1)
     {
-        float dist = length(worldPos - shProbes[i].position);
-        if (dist >= shProbes[i].influenceRadius) continue;
-
-        // Normalized distance [0,1], then smoothstep for C1 falloff
-        float t = dist / shProbes[i].influenceRadius;
-        float w = smoothstep(1.0, 0.0, t);
-
-        for (int k = 0; k < 9; ++k)
-            blended[k] += getProbeCoeff(i, k) * w;
-        totalW += w;
-    }
-
-    if (totalW < 1e-4f)
-    {
-        // Outside all probe radii — fall back to skybox slot 0
-        float3 sh[9];
         for (int k = 0; k < 9; ++k) sh[k] = getProbeCoeff(0, k);
         return computeIrradiance(N, sh);
     }
 
-    float3 sh[9];
-    for (int k = 0; k < 9; ++k) sh[k] = blended[k] / totalW;
+    float3 local   = (worldPos - grid.origin) / grid.spacing;
+    float3 clamped = clamp(local, float3(0.0, 0.0, 0.0), float3(grid.count - int3(1, 1, 1)));
+    float  skyW    = saturate(length(local - clamped));
+
+    int3   base = min(int3(clamped), max(grid.count - int3(2, 2, 2), int3(0, 0, 0)));
+    float3 f    = clamped - float3(base);
+
+    for (int k = 0; k < 9; ++k) sh[k] = float3(0.0, 0.0, 0.0);
+
+    [unroll]
+    for (int c = 0; c < 8; ++c)
+    {
+        int3   corner = int3(c & 1, (c >> 1) & 1, (c >> 2) & 1);
+        int3   idx    = min(base + corner, grid.count - int3(1, 1, 1));
+        float3 axisW  = lerp(float3(1.0, 1.0, 1.0) - f, f, float3(corner));
+        float  w      = axisW.x * axisW.y * axisW.z;
+
+        // Slot layout matches the bake loop in bakeAll: x fastest, slot 0 = skybox
+        uint slot = 1u + uint(idx.x + grid.count.x * (idx.y + grid.count.y * idx.z));
+        for (int k = 0; k < 9; ++k)
+            sh[k] += getProbeCoeff(slot, k) * w;
+    }
+
+    if (skyW > 0.0)
+    {
+        for (int k = 0; k < 9; ++k)
+            sh[k] = lerp(sh[k], getProbeCoeff(0, k), skyW);
+    }
+
     return computeIrradiance(N, sh);
 }
 
