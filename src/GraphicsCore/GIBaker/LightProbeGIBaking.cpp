@@ -113,7 +113,7 @@ void LightProbeGIBaking::bakeAll(GeneralManager& gm)
 	TempImages tempImages = createTempImages(ctx);
 
 	// Render the shadow map once for the full grid.
-	//bakeShadowMap(ctx);
+	bakeShadowMap(ctx);
 
 	const float influenceRadius = ctx.grid->spacing * 1.2f;
 	int probeSlot = 1;

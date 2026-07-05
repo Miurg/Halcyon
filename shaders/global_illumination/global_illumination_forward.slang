@@ -239,7 +239,16 @@ FragOutput fragMain(VSOutput input, bool isFrontFace: SV_IsFrontFace)
 	float2 dy = ddy(input.fragTexCoord);
 
 	// === MATERIAL SAMPLING ===
-	float4 albedo = textureArray[NonUniformResourceIndex(mat.textureIndex)].SampleGrad(input.fragTexCoord, dx, dy) * float4(input.fragColor.xyz, 1.0);
+	float4 albedo = textureArray[NonUniformResourceIndex(mat.textureIndex)].SampleGrad(input.fragTexCoord, dx, dy)
+	              * mat.baseColorFactor * float4(input.fragColor.xyz, 1.0);
+
+	if (ALPHA_TEST_ENABLED == 1)
+	{
+		if (mat.alphaMode == 1 && albedo.a < mat.alphaCutoff) discard;
+	}
+
+	float3 emissive = textureArray[NonUniformResourceIndex(mat.emissiveIndex)].SampleGrad(input.fragTexCoord, dx, dy).rgb
+	                * mat.emissiveFactor * mat.emissiveStrength;
 
     float3 N = normalize(input.fragNormal);
     if (!isFrontFace) N = -N;
@@ -250,10 +259,14 @@ FragOutput fragMain(VSOutput input, bool isFrontFace: SV_IsFrontFace)
     float3 finalNormal = normalize(mapNormal.x * T + mapNormal.y * B + mapNormal.z * N);
     float3 L = normalize(directionalLight[0].direction.xyz);
 
+    float NdotL = max(dot(finalNormal, L), 0.0);
     float shadow = ComputeShadow(input.shadowCoord, directionalLight[0].shadowMapSize.zw, finalNormal, L);
     float3 directionalLightRadiance = directionalLight[0].color.rgb * directionalLight[0].color.a;
+    float3 constantAmbient = directionalLight[0].ambient.rgb * directionalLight[0].ambient.a;
+
+    float3 radiance = albedo.rgb / PI * NdotL * shadow * directionalLightRadiance + constantAmbient + emissive;
 
     FragOutput output;
-    output.color = float4(albedo.rgb + shadow * directionalLightRadiance, 1.0);
+    output.color = float4(radiance, 1.0);
 	return output;
 }
