@@ -102,6 +102,7 @@ void GraphicsPipelinesInit::initPipelines(GeneralManager& gm)
 	        .depthFormat = depthFormat,
 	        .rasterizationSamples = vk::SampleCountFlagBits::e1,
 	        .setLayoutNames = mainLayouts,
+	        .pushConstants = {{vk::ShaderStageFlagBits::eVertex, 0, 16u}}, // float3 probePos + uint faceIdx
 	    },
 	    "global_illumination_forward");
 
@@ -121,6 +122,7 @@ void GraphicsPipelinesInit::initPipelines(GeneralManager& gm)
 	        .depthFormat = depthFormat,
 	        .rasterizationSamples = vk::SampleCountFlagBits::e1,
 	        .setLayoutNames = mainLayouts,
+	        .pushConstants = {{vk::ShaderStageFlagBits::eVertex, 0, 16u}}, // float3 probePos + uint faceIdx
 	    },
 	    "global_illumination_forward_alpha");
 
@@ -137,6 +139,7 @@ void GraphicsPipelinesInit::initPipelines(GeneralManager& gm)
 	        .depthFormat = depthFormat,
 	        .rasterizationSamples = vk::SampleCountFlagBits::e1,
 	        .setLayoutNames = mainLayouts,
+	        .pushConstants = {{vk::ShaderStageFlagBits::eVertex, 0, 16u}}, // float3 probePos + uint faceIdx
 	    },
 	    "skybox_capture");
 
@@ -199,9 +202,31 @@ void GraphicsPipelinesInit::initPipelines(GeneralManager& gm)
 	        .colorFormats = {swapChain->hdrFormat},
 	        .depthFormat = depthFormat,
 	        .setLayoutNames = {"globalSet"},
-	        .pushConstants = {{vk::ShaderStageFlagBits::eVertex, 0, 4u}}, // float scale
+	        .pushConstants = {{vk::ShaderStageFlagBits::eVertex, 0, 20u}}, // float3 probePos + float scale + uint faceIdx
 	    },
 	    "gi_light_source_bake");
+
+	// === GI bake culling (one region per probe-face) ===
+	pManager->build(PipelineDescription{
+	    .isCompute = true,
+	    .shaderPath = "gi_bake_reset.spv",
+	    .setLayoutNames = {"modelSet", "modelSet"}, // set 0 = main (templates), set 1 = bake outputs
+	    .pushConstants = {{vk::ShaderStageFlagBits::eCompute, 0, sizeof(uint32_t) * 2}},
+	});
+
+	pManager->build(PipelineDescription{
+	    .isCompute = true,
+	    .shaderPath = "gi_bake_cull.spv",
+	    .setLayoutNames = {"globalSet", "modelSet"},
+	    .pushConstants = {{vk::ShaderStageFlagBits::eCompute, 0, sizeof(uint32_t) * 3}},
+	});
+
+	pManager->build(PipelineDescription{
+	    .isCompute = true,
+	    .shaderPath = "gi_bake_compaction.spv",
+	    .setLayoutNames = {"modelSet"},
+	    .pushConstants = {{vk::ShaderStageFlagBits::eCompute, 0, sizeof(uint32_t) * 6}},
+	});
 #pragma endregion
 
 #ifdef _DEBUG

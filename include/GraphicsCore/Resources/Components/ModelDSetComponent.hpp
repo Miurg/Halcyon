@@ -13,4 +13,12 @@ struct HALCYON_API ModelDSetComponent
 	BufferHandle drawCountBuffer;
 	BufferHandle compactedDrawBuffer;
 	BufferHandle totalIndicies;
+
+	// GI bake: cull outputs split into one region per (probe, face); created on first bake
+	DSetHandle bakeModelDSet;
+	BufferHandle bakeIndirectDrawBuffer;
+	BufferHandle bakeVisibleIndicesBuffer;
+	BufferHandle bakeCompactedDrawBuffer;
+	BufferHandle bakeDrawCountBuffer;
+	bool bakeBuffersReady = false;
 };

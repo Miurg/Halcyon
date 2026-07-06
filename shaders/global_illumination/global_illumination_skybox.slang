@@ -28,6 +28,22 @@ StructuredBuffer<DirectionalLightData> directionalLight;
 [[vk::binding(3, 2)]]
 SamplerCube skyboxMap;
 
+struct BakePush
+{
+	float3 probePos;
+	uint faceIdx;
+};
+[[vk::push_constant]]
+BakePush bakePush;
+
+// Must match the face tables in global_illumination_forward.slang
+static const float3 kFaceForward[6] = {
+	float3(1, 0, 0), float3(-1, 0, 0), float3(0, 1, 0), float3(0, -1, 0), float3(0, 0, 1), float3(0, 0, -1),
+};
+static const float3 kFaceUp[6] = {
+	float3(0, 1, 0), float3(0, 1, 0), float3(0, 0, -1), float3(0, 0, 1), float3(0, 1, 0), float3(0, 1, 0),
+};
+
 struct VSOutput
 {
 	float4 pos : SV_Position;
@@ -41,11 +57,15 @@ VSOutput vertMain(uint vertexID: SV_VertexID)
 	float2 uv = float2((vertexID << 1) & 2, vertexID & 2);
 	float4 pos = float4(uv * 2.0 - 1.0, 0.0, 1.0);
 
+	float3 f = kFaceForward[bakePush.faceIdx];
+	float3 s = normalize(cross(f, kFaceUp[bakePush.faceIdx]));
+	float3 u = cross(s, f);
+	float2 ndc = uv * 2.0 - 1.0;
+
 	VSOutput output;
 	output.pos = pos;
-	// We map clip space to world space to get ray direction for sampling the skybox
-	float4 target = mul(camera[0].invViewProj, pos);
-	output.localPos = target.xyz / target.w - camera[0].cameraPositionAndPadding.xyz;
+	// 90-degree face frustum: ray direction straight from the face basis, no invViewProj needed
+	output.localPos = ndc.x * s - ndc.y * u + f;
 
 	return output;
 }

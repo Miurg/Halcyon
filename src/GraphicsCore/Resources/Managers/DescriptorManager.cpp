@@ -93,17 +93,20 @@ DescriptorManager::DescriptorManager(VulkanDevice& vulkanDevice)
 		                                   1, S::eFragment | S::eCompute),
 		    vk::DescriptorSetLayoutBinding(Bindings::Textures::CubemapStorage, vk::DescriptorType::eStorageImage, 1,
 		                                   S::eCompute),
+		    vk::DescriptorSetLayoutBinding(Bindings::Textures::GICaptureCubemap,
+		                                   vk::DescriptorType::eCombinedImageSampler, 1, S::eCompute),
 		    vk::DescriptorSetLayoutBinding(Bindings::Textures::PrefilteredMap, vk::DescriptorType::eCombinedImageSampler,
 		                                   1, S::eFragment),
 		    vk::DescriptorSetLayoutBinding(Bindings::Textures::BrdfLut, vk::DescriptorType::eCombinedImageSampler, 1,
 		                                   S::eFragment),
 		};
-		std::array<vk::DescriptorBindingFlags, 7> textureBindingFlags = {
+		std::array<vk::DescriptorBindingFlags, 8> textureBindingFlags = {
 		    vk::DescriptorBindingFlagBits::ePartiallyBound | vk::DescriptorBindingFlagBits::eUpdateAfterBind,
 		    vk::DescriptorBindingFlags{}, // shadowMap
 		    vk::DescriptorBindingFlags{}, // materials
 		    vk::DescriptorBindingFlags{}, // cubemapSampler
 		    vk::DescriptorBindingFlags{}, // cubemapStorage
+		    vk::DescriptorBindingFlags{}, // giCaptureCubemap
 		    vk::DescriptorBindingFlags{}, // prefilteredMap
 		    vk::DescriptorBindingFlags{}, // brdfLut
 		};
@@ -275,6 +278,13 @@ void DescriptorManager::updateCubemapSamplerDescriptor(BindlessTextureDSetCompon
                                                        vk::ImageView cubemapImageView, vk::Sampler cubemapSampler)
 {
 	update(dSetComponent.bindlessTextureSet, Bindings::Textures::CubemapSampler, 0,
+	       vk::DescriptorType::eCombinedImageSampler, cubemapImageView, cubemapSampler);
+}
+
+void DescriptorManager::updateGICaptureCubemapDescriptor(BindlessTextureDSetComponent& dSetComponent,
+                                                         vk::ImageView cubemapImageView, vk::Sampler cubemapSampler)
+{
+	update(dSetComponent.bindlessTextureSet, Bindings::Textures::GICaptureCubemap, 0,
 	       vk::DescriptorType::eCombinedImageSampler, cubemapImageView, cubemapSampler);
 }
 

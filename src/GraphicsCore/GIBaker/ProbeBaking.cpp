@@ -1,59 +1,16 @@
 #include "LightProbeGIBaking.hpp"
 
-// Inline image barrier for a single array layer (baseArrayLayer support)
-static void transitionLayer(vk::raii::CommandBuffer& cmd, vk::Image image, uint32_t baseLayer,
-                            vk::ImageLayout oldLayout, vk::ImageLayout newLayout, vk::AccessFlags2 srcAccess,
-                            vk::AccessFlags2 dstAccess, vk::PipelineStageFlags2 srcStage,
-                            vk::PipelineStageFlags2 dstStage, vk::ImageAspectFlags aspect)
+struct BakeFacePush
 {
-	vk::ImageMemoryBarrier2 barrier;
-	barrier.srcStageMask = srcStage;
-	barrier.srcAccessMask = srcAccess;
-	barrier.dstStageMask = dstStage;
-	barrier.dstAccessMask = dstAccess;
-	barrier.oldLayout = oldLayout;
-	barrier.newLayout = newLayout;
-	barrier.srcQueueFamilyIndex = vk::QueueFamilyIgnored;
-	barrier.dstQueueFamilyIndex = vk::QueueFamilyIgnored;
-	barrier.image = image;
-	barrier.subresourceRange = {aspect, 0, 1, baseLayer, 1};
+	glm::vec3 probePos;
+	uint32_t faceIdx;
+};
 
-	vk::DependencyInfo depInfo;
-	depInfo.imageMemoryBarrierCount = 1;
-	depInfo.pImageMemoryBarriers = &barrier;
-	cmd.pipelineBarrier2(depInfo);
-}
-
-static CameraStructure buildFaceCamera(const glm::vec3& probePos, const glm::vec3& forward, const glm::vec3& up)
-{
-	const glm::mat4 view = glm::lookAtRH(probePos, probePos + forward, up);
-	// Reversed-Z perspective
-	glm::mat4 proj = glm::perspectiveRH_ZO(glm::radians(90.0f), 1.0f, 1000.0f, 0.01f);
-	// Y-flipped for Vulkan
-	proj[1][1] *= -1.0f;
-
-	CameraStructure cam{};
-	cam.cameraSpaceMatrix = proj * view;
-	cam.viewMatrix = view;
-	cam.projMatrix = proj;
-	cam.invViewProj = glm::inverse(cam.cameraSpaceMatrix);
-	cam.cameraPositionAndPadding = glm::vec4(probePos, 0.0f);
-
-	// Same formula as CameraMatrixSystem
-	const glm::mat4 transposeSpaceMatrix = glm::transpose(cam.cameraSpaceMatrix);
-	cam.frustumPlanes[0] = glm::normalize(transposeSpaceMatrix[3] + transposeSpaceMatrix[0]);
-	cam.frustumPlanes[1] = glm::normalize(transposeSpaceMatrix[3] - transposeSpaceMatrix[0]);
-	cam.frustumPlanes[2] = glm::normalize(transposeSpaceMatrix[3] + transposeSpaceMatrix[1]);
-	cam.frustumPlanes[3] = glm::normalize(transposeSpaceMatrix[3] - transposeSpaceMatrix[1]);
-	cam.frustumPlanes[4] = glm::normalize(transposeSpaceMatrix[2]);
-	cam.frustumPlanes[5] = glm::normalize(transposeSpaceMatrix[3] - transposeSpaceMatrix[2]);
-
-	return cam;
-}
-
-static void drawGeometry(vk::raii::CommandBuffer& cmd, const BakeContext& ctx)
+static void drawGeometry(vk::raii::CommandBuffer& cmd, const BakeContext& ctx, glm::vec3 probePos, uint32_t region,
+                         int faceIdx)
 {
 	const uint32_t commandStride = sizeof(VkDrawIndexedIndirectCommand);
+	const BakeFacePush facePush{probePos, static_cast<uint32_t>(faceIdx)};
 
 	// Bind vertex + index buffers (shared across both pipelines)
 	cmd.bindVertexBuffers(
@@ -70,17 +27,19 @@ static void drawGeometry(vk::raii::CommandBuffer& cmd, const BakeContext& ctx)
 	    ctx.descriptorManagerComponent->descriptorManager->getSet(ctx.globalDSet->globalDSets, 0), nullptr);
 	cmd.bindDescriptorSets(
 	    vk::PipelineBindPoint::eGraphics, *ctx.pipelineManager->pipelines["global_illumination_forward"].layout, 1,
-	    ctx.descriptorManagerComponent->descriptorManager->getSet(ctx.modelDSet->modelBufferDSet, 0), nullptr);
+	    ctx.descriptorManagerComponent->descriptorManager->getSet(ctx.modelDSet->bakeModelDSet), nullptr);
 	cmd.bindDescriptorSets(
 	    vk::PipelineBindPoint::eGraphics, *ctx.pipelineManager->pipelines["global_illumination_forward"].layout, 2,
 	    ctx.descriptorManagerComponent->descriptorManager->getSet(ctx.bindlessDSet->bindlessTextureSet), nullptr);
+	cmd.pushConstants<BakeFacePush>(*ctx.pipelineManager->pipelines["global_illumination_forward"].layout,
+	                                vk::ShaderStageFlagBits::eVertex, 0, facePush);
 
 	const uint32_t segmentCounts[6] = {ctx.drawInfo->opaqueSingleCount, ctx.drawInfo->opaqueDoubleCount,
 	                                   ctx.drawInfo->maskSingleCount,   ctx.drawInfo->maskDoubleCount,
 	                                   ctx.drawInfo->blendSingleCount,  ctx.drawInfo->blendDoubleCount};
 
-	uint32_t cmdOffset = 0;
-	uint32_t countOffset = 0;
+	uint32_t cmdOffset = region * ctx.drawInfo->totalDrawCount * commandStride;
+	uint32_t countOffset = region * 6u * static_cast<uint32_t>(sizeof(uint32_t));
 
 	auto drawSegment = [&](uint32_t seg)
 	{
@@ -88,10 +47,10 @@ static void drawGeometry(vk::raii::CommandBuffer& cmd, const BakeContext& ctx)
 		if (count > 0)
 		{
 			cmd.setCullMode((seg & 1) ? vk::CullModeFlagBits::eNone : vk::CullModeFlagBits::eBack);
-			cmd.drawIndexedIndirectCount(ctx.bufferManager->buffers[ctx.modelDSet->compactedDrawBuffer.id].buffer[0],
-			                             cmdOffset,
-			                             ctx.bufferManager->buffers[ctx.modelDSet->drawCountBuffer.id].buffer[0],
-			                             countOffset, count, commandStride);
+			cmd.drawIndexedIndirectCount(
+			    ctx.bufferManager->buffers[ctx.modelDSet->bakeCompactedDrawBuffer.id].buffer[0], cmdOffset,
+			    ctx.bufferManager->buffers[ctx.modelDSet->bakeDrawCountBuffer.id].buffer[0], countOffset, count,
+			    commandStride);
 			cmdOffset += count * commandStride;
 		}
 		countOffset += sizeof(uint32_t);
@@ -103,6 +62,8 @@ static void drawGeometry(vk::raii::CommandBuffer& cmd, const BakeContext& ctx)
 	if (ctx.hasSkybox)
 	{
 		cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *ctx.pipelineManager->pipelines["skybox_capture"].pipeline);
+		cmd.pushConstants<BakeFacePush>(*ctx.pipelineManager->pipelines["skybox_capture"].layout,
+		                                vk::ShaderStageFlagBits::eVertex, 0, facePush);
 		cmd.setCullMode(vk::CullModeFlagBits::eNone);
 		cmd.draw(3, 1, 0, 0);
 	}
@@ -115,10 +76,12 @@ static void drawGeometry(vk::raii::CommandBuffer& cmd, const BakeContext& ctx)
 	    ctx.descriptorManagerComponent->descriptorManager->getSet(ctx.globalDSet->globalDSets, 0), nullptr);
 	cmd.bindDescriptorSets(
 	    vk::PipelineBindPoint::eGraphics, *ctx.pipelineManager->pipelines["global_illumination_forward_alpha"].layout, 1,
-	    ctx.descriptorManagerComponent->descriptorManager->getSet(ctx.modelDSet->modelBufferDSet, 0), nullptr);
+	    ctx.descriptorManagerComponent->descriptorManager->getSet(ctx.modelDSet->bakeModelDSet), nullptr);
 	cmd.bindDescriptorSets(
 	    vk::PipelineBindPoint::eGraphics, *ctx.pipelineManager->pipelines["global_illumination_forward_alpha"].layout, 2,
 	    ctx.descriptorManagerComponent->descriptorManager->getSet(ctx.bindlessDSet->bindlessTextureSet), nullptr);
+	cmd.pushConstants<BakeFacePush>(*ctx.pipelineManager->pipelines["global_illumination_forward_alpha"].layout,
+	                                vk::ShaderStageFlagBits::eVertex, 0, facePush);
 
 	drawSegment(2);
 	drawSegment(3);
@@ -126,14 +89,19 @@ static void drawGeometry(vk::raii::CommandBuffer& cmd, const BakeContext& ctx)
 	drawSegment(5);
 }
 
-static void drawLightSources(vk::raii::CommandBuffer& cmd, const BakeContext& ctx)
+static void drawLightSources(vk::raii::CommandBuffer& cmd, const BakeContext& ctx, glm::vec3 probePos, int faceIdx)
 {
 	const uint32_t lightCount = *static_cast<const uint32_t*>(
 	    ctx.bufferManager->buffers[ctx.globalDSet->pointLightCountBuffer.id].bufferMapped[0]);
 	if (lightCount == 0) return;
 
-	struct LightSourcePush { float scale; };
-	constexpr LightSourcePush push{0.15f};
+	struct LightSourcePush
+	{
+		glm::vec3 probePos;
+		float scale;
+		uint32_t faceIdx;
+	};
+	const LightSourcePush push{probePos, 0.15f, static_cast<uint32_t>(faceIdx)};
 
 	auto& pip = ctx.pipelineManager->pipelines["gi_light_source_bake"];
 	cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pip.pipeline);
@@ -145,55 +113,18 @@ static void drawLightSources(vk::raii::CommandBuffer& cmd, const BakeContext& ct
 	cmd.draw(384u, lightCount, 0u, 0u);
 }
 
-static void renderFace(const BakeContext& ctx, const TempImages& tmp, int faceIdx, glm::vec3 probePos,
-                       const FaceDesc& face)
+static void recordFace(vk::raii::CommandBuffer& cmd, const BakeContext& ctx, const TempImages& tmp, int faceIdx,
+                       glm::vec3 probePos, uint32_t region)
 {
-	// Update camera buffer for this face
-	CameraStructure cam = buildFaceCamera(probePos, face.forward, face.up);
-	std::memcpy(ctx.bufferManager->buffers[ctx.globalDSet->cameraBuffers.id].bufferMapped[0], &cam,
-	            sizeof(CameraStructure));
-
-	// Per-face 2D view into the capture cubemap layer
-	vk::raii::ImageView faceView =
-	    VulkanUtils::createImageView(tmp.captureImage, kCaptureFormat, vk::ImageAspectFlagBits::eColor, *ctx.device,
-	                                 vk::ImageViewType::e2D, 1, 0, 1, static_cast<uint32_t>(faceIdx));
-
-	auto cmd = VulkanUtils::beginSingleTimeCommands(*ctx.device);
-
-	// Frustum cull for this face
-	drawResetInstancePass(cmd, 0, *ctx.descriptorManagerComponent, *ctx.modelDSet, *ctx.drawInfo, *ctx.pipelineManager);
-	drawCullPass(cmd, 0, *ctx.descriptorManagerComponent, *ctx.globalDSet, *ctx.modelDSet, *ctx.modelManager,
-	             *ctx.bufferManager, *ctx.drawInfo, *ctx.pipelineManager);
-
-	// Barrier: compute write -> draw indirect + vertex read
-	{
-		vk::MemoryBarrier2 barrier;
-		barrier.srcStageMask = vk::PipelineStageFlagBits2::eComputeShader;
-		barrier.srcAccessMask = vk::AccessFlagBits2::eShaderWrite;
-		barrier.dstStageMask = vk::PipelineStageFlagBits2::eDrawIndirect | vk::PipelineStageFlagBits2::eVertexShader;
-		barrier.dstAccessMask = vk::AccessFlagBits2::eIndirectCommandRead | vk::AccessFlagBits2::eShaderRead;
-		vk::DependencyInfo depInfo;
-		depInfo.memoryBarrierCount = 1;
-		depInfo.pMemoryBarriers = &barrier;
-		cmd.pipelineBarrier2(depInfo);
-	}
-
-	// Transition this cubemap face: UNDEFINED -> COLOR_ATTACHMENT_OPTIMAL
-	transitionLayer(cmd, tmp.captureImage, static_cast<uint32_t>(faceIdx), vk::ImageLayout::eUndefined,
-	                vk::ImageLayout::eColorAttachmentOptimal, vk::AccessFlagBits2::eNone,
-	                vk::AccessFlagBits2::eColorAttachmentWrite, vk::PipelineStageFlagBits2::eTopOfPipe,
-	                vk::PipelineStageFlagBits2::eColorAttachmentOutput, vk::ImageAspectFlagBits::eColor);
-
-	// Attachment setup
 	vk::RenderingAttachmentInfo colorAtt;
-	colorAtt.imageView = *faceView;
+	colorAtt.imageView = *tmp.faceViews[faceIdx];
 	colorAtt.imageLayout = vk::ImageLayout::eColorAttachmentOptimal;
 	colorAtt.loadOp = vk::AttachmentLoadOp::eClear;
 	colorAtt.storeOp = vk::AttachmentStoreOp::eStore;
 	colorAtt.clearValue = vk::ClearColorValue(0.0f, 0.0f, 0.0f, 0.0f);
 
 	vk::RenderingAttachmentInfo depthAtt;
-	depthAtt.imageView = *tmp.depthView;
+	depthAtt.imageView = *tmp.depthViews[faceIdx];
 	depthAtt.imageLayout = vk::ImageLayout::eDepthAttachmentOptimal;
 	depthAtt.loadOp = vk::AttachmentLoadOp::eClear;
 	depthAtt.storeOp = vk::AttachmentStoreOp::eDontCare;
@@ -213,18 +144,10 @@ static void renderFace(const BakeContext& ctx, const TempImages& tmp, int faceId
 	    0, vk::Viewport(0.0f, 0.0f, static_cast<float>(kCaptureSize), static_cast<float>(kCaptureSize), 0.0f, 1.0f));
 	cmd.setScissor(0, vk::Rect2D({0, 0}, {kCaptureSize, kCaptureSize}));
 
-	drawGeometry(cmd, ctx);
-	drawLightSources(cmd, ctx);
+	drawGeometry(cmd, ctx, probePos, region, faceIdx);
+	drawLightSources(cmd, ctx, probePos, faceIdx);
 
 	cmd.endRendering();
-
-	// Transition face: COLOR_ATTACHMENT_OPTIMAL -> SHADER_READ_ONLY_OPTIMAL for SH projection
-	transitionLayer(cmd, tmp.captureImage, static_cast<uint32_t>(faceIdx), vk::ImageLayout::eColorAttachmentOptimal,
-	                vk::ImageLayout::eShaderReadOnlyOptimal, vk::AccessFlagBits2::eColorAttachmentWrite,
-	                vk::AccessFlagBits2::eShaderRead, vk::PipelineStageFlagBits2::eColorAttachmentOutput,
-	                vk::PipelineStageFlagBits2::eComputeShader, vk::ImageAspectFlagBits::eColor);
-
-	VulkanUtils::endSingleTimeCommands(cmd, *ctx.device);
 }
 
 static void writeProbeMetadata(const BakeContext& ctx, int slot, glm::vec3 pos, float radius)
@@ -236,33 +159,70 @@ static void writeProbeMetadata(const BakeContext& ctx, int slot, glm::vec3 pos, 
 	probes[slot].influenceRadius = radius;
 }
 
-void LightProbeGIBaking::bakeProbe(const BakeContext& ctx, const TempImages& tmp, int slot, glm::vec3 pos, float radius,
-                                   vk::ImageView skyboxView, vk::Sampler skyboxSampler)
+void LightProbeGIBaking::recordProbe(vk::raii::CommandBuffer& cmd, const BakeContext& ctx, const TempImages& tmp,
+                                     uint32_t regionBase, int slot, glm::vec3 pos, float radius)
 {
-	// Restore the real skybox sampler before capturing faces.
-	ctx.descriptorManagerComponent->descriptorManager->updateCubemapSamplerDescriptor(*ctx.bindlessDSet, skyboxView,
-	                                                                                  skyboxSampler);
+	// All capture layers to COLOR (the previous probe's SH projection may still sample them),
+	// depth WAW between probes.
+	{
+		std::array<vk::ImageMemoryBarrier2, 2> barriers;
 
-	// Face forward/up vectors - must match faceDirection() in sh_projection.slang
-	static constexpr std::array<FaceDesc, 6> faces = {{
-	    {{1, 0, 0}, {0, 1, 0}},  // face 0 +X
-	    {{-1, 0, 0}, {0, 1, 0}}, // face 1 -X
-	    {{0, 1, 0}, {0, 0, -1}}, // face 2 +Y
-	    {{0, -1, 0}, {0, 0, 1}}, // face 3 -Y
-	    {{0, 0, 1}, {0, 1, 0}},  // face 4 +Z
-	    {{0, 0, -1}, {0, 1, 0}}, // face 5 -Z
-	}};
+		barriers[0].srcStageMask = vk::PipelineStageFlagBits2::eComputeShader;
+		barriers[0].srcAccessMask = vk::AccessFlagBits2::eNone;
+		barriers[0].dstStageMask = vk::PipelineStageFlagBits2::eColorAttachmentOutput;
+		barriers[0].dstAccessMask = vk::AccessFlagBits2::eColorAttachmentWrite;
+		barriers[0].oldLayout = vk::ImageLayout::eUndefined;
+		barriers[0].newLayout = vk::ImageLayout::eColorAttachmentOptimal;
+		barriers[0].srcQueueFamilyIndex = vk::QueueFamilyIgnored;
+		barriers[0].dstQueueFamilyIndex = vk::QueueFamilyIgnored;
+		barriers[0].image = tmp.captureImage;
+		barriers[0].subresourceRange = {vk::ImageAspectFlagBits::eColor, 0, 1, 0, 6};
 
-	for (int faceIdx = 0; faceIdx < 6; ++faceIdx) renderFace(ctx, tmp, faceIdx, pos, faces[faceIdx]);
+		barriers[1].srcStageMask = vk::PipelineStageFlagBits2::eLateFragmentTests;
+		barriers[1].srcAccessMask = vk::AccessFlagBits2::eDepthStencilAttachmentWrite;
+		barriers[1].dstStageMask =
+		    vk::PipelineStageFlagBits2::eEarlyFragmentTests | vk::PipelineStageFlagBits2::eLateFragmentTests;
+		barriers[1].dstAccessMask =
+		    vk::AccessFlagBits2::eDepthStencilAttachmentWrite | vk::AccessFlagBits2::eDepthStencilAttachmentRead;
+		barriers[1].oldLayout = vk::ImageLayout::eDepthAttachmentOptimal;
+		barriers[1].newLayout = vk::ImageLayout::eDepthAttachmentOptimal;
+		barriers[1].srcQueueFamilyIndex = vk::QueueFamilyIgnored;
+		barriers[1].dstQueueFamilyIndex = vk::QueueFamilyIgnored;
+		barriers[1].image = vk::Image(tmp.depthRaw);
+		barriers[1].subresourceRange = {vk::ImageAspectFlagBits::eDepth, 0, 1, 0, 6};
+
+		vk::DependencyInfo depInfo;
+		depInfo.imageMemoryBarrierCount = static_cast<uint32_t>(barriers.size());
+		depInfo.pImageMemoryBarriers = barriers.data();
+		cmd.pipelineBarrier2(depInfo);
+	}
+
+	for (int faceIdx = 0; faceIdx < 6; ++faceIdx)
+		recordFace(cmd, ctx, tmp, faceIdx, pos, regionBase + static_cast<uint32_t>(faceIdx));
+
+	// All capture layers -> SHADER_READ for SH projection
+	{
+		vk::ImageMemoryBarrier2 barrier;
+		barrier.srcStageMask = vk::PipelineStageFlagBits2::eColorAttachmentOutput;
+		barrier.srcAccessMask = vk::AccessFlagBits2::eColorAttachmentWrite;
+		barrier.dstStageMask = vk::PipelineStageFlagBits2::eComputeShader;
+		barrier.dstAccessMask = vk::AccessFlagBits2::eShaderRead;
+		barrier.oldLayout = vk::ImageLayout::eColorAttachmentOptimal;
+		barrier.newLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
+		barrier.srcQueueFamilyIndex = vk::QueueFamilyIgnored;
+		barrier.dstQueueFamilyIndex = vk::QueueFamilyIgnored;
+		barrier.image = tmp.captureImage;
+		barrier.subresourceRange = {vk::ImageAspectFlagBits::eColor, 0, 1, 0, 6};
+
+		vk::DependencyInfo depInfo;
+		depInfo.imageMemoryBarrierCount = 1;
+		depInfo.pImageMemoryBarriers = &barrier;
+		cmd.pipelineBarrier2(depInfo);
+	}
 
 	writeProbeMetadata(ctx, slot, pos, radius);
 
-	// Redirect CubemapSampler descriptor to our capture cubemap, then project SH
-	ctx.descriptorManagerComponent->descriptorManager->updateCubemapSamplerDescriptor(
-	    *ctx.bindlessDSet, ctx.textureManager->textures[tmp.captureHandle.id].textureImageView,
-	    ctx.textureManager->textures[tmp.captureHandle.id].textureSampler);
-
-	ctx.bufferManager->bakeSHForProbe(tmp.captureHandle, ctx.globalDSet->shProbeBuffer, slot,
-	                                  *ctx.descriptorManagerComponent->descriptorManager, *ctx.bindlessDSet,
-	                                  ctx.globalDSet->globalDSets, *ctx.pipelineManager, *ctx.textureManager);
+	ctx.bufferManager->recordSHProjection(cmd, static_cast<int>(kCaptureSize), slot,
+	                                      *ctx.descriptorManagerComponent->descriptorManager, *ctx.bindlessDSet,
+	                                      ctx.globalDSet->globalDSets, *ctx.pipelineManager);
 }

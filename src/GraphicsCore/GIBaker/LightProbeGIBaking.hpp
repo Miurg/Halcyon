@@ -28,10 +28,12 @@
 #include <vk_mem_alloc.h>
 #include <glm/gtc/matrix_transform.hpp>
 #include <vulkan/vulkan_raii.hpp>
+#include <algorithm>
 #include <cassert>
 #include <cstring>
 #include <stdexcept>
 #include <array>
+#include <vector>
 #include <iostream>
 
 
@@ -41,6 +43,7 @@ using Orhescyon::GeneralManager;
 
 static constexpr uint32_t kCaptureSize = 128;
 static constexpr vk::Format kCaptureFormat = vk::Format::eR16G16B16A16Sfloat;
+static constexpr int kProbesPerSubmit = 32; // keeps each submit's GPU work under the Windows TDR budget
 
 // Implementation-only structs
 
@@ -72,9 +75,10 @@ struct TempImages
 {
 	TextureHandle captureHandle;
 	vk::Image captureImage{}; // non-owning
+	std::vector<vk::raii::ImageView> faceViews;
 	VkImage depthRaw{};
 	VmaAllocation depthAlloc{};
-	vk::raii::ImageView depthView{nullptr};
+	std::vector<vk::raii::ImageView> depthViews; // one layer per face — faces render with no inter-dependencies
 };
 
 // Bakes a uniform grid of SH light probes.
@@ -86,6 +90,6 @@ public:
 
 private:
 	static void bakeShadowMap(const BakeContext& ctx);
-	static void bakeProbe(const BakeContext& ctx, const TempImages& tmp, int slot, glm::vec3 pos, float radius,
-	                      vk::ImageView skyboxView, vk::Sampler skyboxSampler);
+	static void recordProbe(vk::raii::CommandBuffer& cmd, const BakeContext& ctx, const TempImages& tmp,
+	                        uint32_t regionBase, int slot, glm::vec3 pos, float radius);
 };

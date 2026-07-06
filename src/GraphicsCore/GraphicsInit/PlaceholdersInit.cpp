@@ -107,7 +107,8 @@ void PlaceholdersInit::initPlaceholders(GeneralManager& gm)
 	// Camera buffer
 	globalDSetComponent->cameraBuffers =
 	    bManager->createBuffer((vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal),
-	                           sizeof(CameraStructure), MAX_FRAMES_IN_FLIGHT, vk::BufferUsageFlagBits::eStorageBuffer);
+	                           sizeof(CameraStructure), MAX_FRAMES_IN_FLIGHT,
+	                           vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst);
 	dManager->updateStorageBufferDescriptors(*bManager, globalDSetComponent->cameraBuffers,
 	                                         globalDSetComponent->globalDSets, Bindings::Global::Camera);
 
@@ -227,6 +228,7 @@ void PlaceholdersInit::initPlaceholders(GeneralManager& gm)
 #pragma region Model & Frustum Culling Buffers (Set 1)
 	ModelDSetComponent* objectDSetComponent = gm.getContextComponent<MainDSetsContext, ModelDSetComponent>();
 	objectDSetComponent->modelBufferDSet = dManager->allocate("modelSet", MAX_FRAMES_IN_FLIGHT);
+	objectDSetComponent->bakeModelDSet = dManager->allocate("modelSet", 1);
 
 	objectDSetComponent->primitiveBuffer =
 	    bManager->createBuffer((vk::MemoryPropertyFlagBits::eHostVisible), 10240 * sizeof(PrimitiveSctructure),

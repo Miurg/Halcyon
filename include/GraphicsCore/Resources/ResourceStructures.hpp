@@ -94,13 +94,15 @@ struct HALCYON_API SHProbeEntry
     // Total: 10 × 16 = 160 bytes
 };
 
-// Tightly packed 32 bytes — must match SHGridInfo in standard_forward.slang.
+// Tightly packed 48 bytes — must match SHGridInfo in standard_forward.slang.
 struct HALCYON_API SHGridInfo
 {
     glm::vec3 origin;
     float spacing;
     glm::ivec3 count;
     uint32_t probeCount; // grid probes + skybox slot 0; 1 = nothing baked
+    float captureRange;
+    float _pad[3];
 };
 
 struct HALCYON_API PointLightStructure

@@ -65,6 +65,7 @@ struct SHGridInfo
 {
     float3 origin; float spacing;
     int3 count;    uint probeCount;
+    float captureRange; float3 _pad;
 };
 [[vk::binding(5, 0)]]
 StructuredBuffer<SHGridInfo> shGridInfo;

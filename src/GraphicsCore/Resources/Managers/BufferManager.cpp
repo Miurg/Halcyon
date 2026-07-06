@@ -36,10 +36,18 @@ void BufferManager::bakeSHForProbe(TextureHandle envCubemap, BufferHandle probeB
                                    DescriptorManager& dManager, BindlessTextureDSetComponent& dSetComponent,
                                    DSetHandle globalDSet, PipelineManager& pManager, TextureManager& tManager)
 {
-	int cubemapResolution = static_cast<int>(tManager.textures[envCubemap.id].width);
+	Texture& envTex = tManager.textures[envCubemap.id];
+	dManager.updateGICaptureCubemapDescriptor(dSetComponent, envTex.textureImageView, envTex.textureSampler);
 
 	auto cmd = VulkanUtils::beginSingleTimeCommands(vulkanDevice);
+	recordSHProjection(cmd, static_cast<int>(envTex.width), probeSlot, dManager, dSetComponent, globalDSet, pManager);
+	VulkanUtils::endSingleTimeCommands(cmd, vulkanDevice);
+}
 
+void BufferManager::recordSHProjection(vk::raii::CommandBuffer& cmd, int cubemapResolution, int probeSlot,
+                                       DescriptorManager& dManager, BindlessTextureDSetComponent& dSetComponent,
+                                       DSetHandle globalDSet, PipelineManager& pManager)
+{
 	cmd.bindPipeline(vk::PipelineBindPoint::eCompute, *pManager.pipelines["sh_projection"].pipeline);
 
 	// sh_projection: set 0 = globalSet (SHProbeEntry[] output), set 1 = textureSet (cubemap input)
@@ -67,8 +75,6 @@ void BufferManager::bakeSHForProbe(TextureHandle envCubemap, BufferHandle probeB
 	depInfo.memoryBarrierCount = 1;
 	depInfo.pMemoryBarriers    = &barrier;
 	cmd.pipelineBarrier2(depInfo);
-
-	VulkanUtils::endSingleTimeCommands(cmd, vulkanDevice);
 }
 
 void BufferManager::initGlobalBuffer(vk::MemoryPropertyFlags propertyBits, Buffer& bufferIn, vk::DeviceSize sizeBuffer,

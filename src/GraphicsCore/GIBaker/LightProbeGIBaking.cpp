@@ -35,6 +35,12 @@ static TempImages createTempImages(const BakeContext& ctx)
 	ctx.textureManager->createCubemapImageView(captureTex, kCaptureFormat, vk::ImageAspectFlagBits::eColor);
 	ctx.textureManager->createCubemapSampler(captureTex);
 
+	tmp.faceViews.reserve(6);
+	for (uint32_t face = 0; face < 6; ++face)
+		tmp.faceViews.push_back(VulkanUtils::createImageView(tmp.captureImage, kCaptureFormat,
+		                                                     vk::ImageAspectFlagBits::eColor, *ctx.device,
+		                                                     vk::ImageViewType::e2D, 1, 0, 1, face));
+
 	// Depth image (VMA-owned)
 	const vk::Format depthFormat = ctx.textureManager->findBestFormat();
 
@@ -43,7 +49,7 @@ static TempImages createTempImages(const BakeContext& ctx)
 	depthCI.format = static_cast<VkFormat>(depthFormat);
 	depthCI.extent = {kCaptureSize, kCaptureSize, 1};
 	depthCI.mipLevels = 1;
-	depthCI.arrayLayers = 1;
+	depthCI.arrayLayers = 6;
 	depthCI.samples = VK_SAMPLE_COUNT_1_BIT;
 	depthCI.tiling = VK_IMAGE_TILING_OPTIMAL;
 	depthCI.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
@@ -56,15 +62,18 @@ static TempImages createTempImages(const BakeContext& ctx)
 		throw std::runtime_error("[LightProbeGISystem] Failed to create temp depth image.");
 
 	vk::Image depthImageWrap(tmp.depthRaw);
-	tmp.depthView =
-	    VulkanUtils::createImageView(depthImageWrap, depthFormat, vk::ImageAspectFlagBits::eDepth, *ctx.device);
+	tmp.depthViews.reserve(6);
+	for (uint32_t face = 0; face < 6; ++face)
+		tmp.depthViews.push_back(VulkanUtils::createImageView(depthImageWrap, depthFormat,
+		                                                      vk::ImageAspectFlagBits::eDepth, *ctx.device,
+		                                                      vk::ImageViewType::e2D, 1, 0, 1, face));
 
 	auto cmd = VulkanUtils::beginSingleTimeCommands(*ctx.device);
 	VulkanUtils::transitionImageLayout(
 	    cmd, depthImageWrap, vk::ImageLayout::eUndefined, vk::ImageLayout::eDepthAttachmentOptimal,
 	    vk::AccessFlagBits2::eNone, vk::AccessFlagBits2::eDepthStencilAttachmentWrite,
 	    vk::PipelineStageFlagBits2::eTopOfPipe, vk::PipelineStageFlagBits2::eEarlyFragmentTests,
-	    vk::ImageAspectFlagBits::eDepth, 1, 1);
+	    vk::ImageAspectFlagBits::eDepth, 6, 1);
 	VulkanUtils::endSingleTimeCommands(cmd, *ctx.device);
 
 	return tmp;
@@ -78,19 +87,155 @@ static void writeGridInfo(const BakeContext& ctx, int total)
 	gridInfo->spacing = ctx.grid->spacing;
 	gridInfo->count = ctx.grid->count;
 	gridInfo->probeCount = static_cast<uint32_t>(1 + total);
-}
-
-static void restoreSkyboxSampler(const BakeContext& ctx, vk::ImageView skyboxView, vk::Sampler skyboxSampler)
-{
-	ctx.descriptorManagerComponent->descriptorManager->updateCubemapSamplerDescriptor(*ctx.bindlessDSet, skyboxView,
-	                                                                                  skyboxSampler);
+	gridInfo->captureRange = ctx.grid->captureRange;
 }
 
 static void destroyTempImages(const BakeContext& ctx, TempImages& tmp)
 {
-	tmp.depthView = nullptr;
+	tmp.faceViews.clear();
+	tmp.depthViews.clear();
 	vmaDestroyImage(ctx.allocator, tmp.depthRaw, tmp.depthAlloc);
 	ctx.textureManager->destroyTexture(tmp.captureHandle);
+}
+
+// Region capacities match the main model buffers (10240 draw commands / objects).
+static constexpr uint32_t kBakeRegionCount = static_cast<uint32_t>(kProbesPerSubmit) * 6u;
+static constexpr uint32_t kBakeMaxDrawCommands = 10240;
+
+static void ensureBakeBuffers(const BakeContext& ctx)
+{
+	if (ctx.modelDSet->bakeBuffersReady) return;
+
+	BufferManager& bManager = *ctx.bufferManager;
+	const auto memoryProps = vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal;
+
+	ctx.modelDSet->bakeIndirectDrawBuffer =
+	    bManager.createBuffer(memoryProps, sizeof(IndirectDrawStructure) * kBakeMaxDrawCommands * kBakeRegionCount, 1,
+	                          vk::BufferUsageFlagBits::eStorageBuffer);
+	ctx.modelDSet->bakeVisibleIndicesBuffer =
+	    bManager.createBuffer(memoryProps, sizeof(uint32_t) * kBakeMaxDrawCommands * kBakeRegionCount, 1,
+	                          vk::BufferUsageFlagBits::eStorageBuffer);
+	ctx.modelDSet->bakeCompactedDrawBuffer =
+	    bManager.createBuffer(memoryProps, sizeof(IndirectDrawStructure) * kBakeMaxDrawCommands * kBakeRegionCount, 1,
+	                          vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eIndirectBuffer);
+	ctx.modelDSet->bakeDrawCountBuffer =
+	    bManager.createBuffer(memoryProps, sizeof(uint32_t) * 6 * kBakeRegionCount, 1,
+	                          vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eIndirectBuffer);
+
+	DescriptorManager& dManager = *ctx.descriptorManagerComponent->descriptorManager;
+	dManager.updateStorageBufferDescriptors(bManager, ctx.modelDSet->primitiveBuffer, ctx.modelDSet->bakeModelDSet, 0);
+	dManager.updateStorageBufferDescriptors(bManager, ctx.modelDSet->transformBuffer, ctx.modelDSet->bakeModelDSet, 1);
+	dManager.updateStorageBufferDescriptors(bManager, ctx.modelDSet->bakeIndirectDrawBuffer,
+	                                        ctx.modelDSet->bakeModelDSet, 2);
+	dManager.updateStorageBufferDescriptors(bManager, ctx.modelDSet->bakeVisibleIndicesBuffer,
+	                                        ctx.modelDSet->bakeModelDSet, 3);
+	dManager.updateStorageBufferDescriptors(bManager, ctx.modelDSet->bakeCompactedDrawBuffer,
+	                                        ctx.modelDSet->bakeModelDSet, 4);
+	dManager.updateStorageBufferDescriptors(bManager, ctx.modelDSet->bakeDrawCountBuffer, ctx.modelDSet->bakeModelDSet,
+	                                        5);
+
+	ctx.modelDSet->bakeBuffersReady = true;
+}
+
+static void computeToComputeBarrier(vk::raii::CommandBuffer& cmd)
+{
+	vk::MemoryBarrier2 barrier;
+	barrier.srcStageMask = vk::PipelineStageFlagBits2::eComputeShader;
+	barrier.srcAccessMask = vk::AccessFlagBits2::eShaderWrite;
+	barrier.dstStageMask = vk::PipelineStageFlagBits2::eComputeShader;
+	barrier.dstAccessMask = vk::AccessFlagBits2::eShaderRead | vk::AccessFlagBits2::eShaderWrite;
+	vk::DependencyInfo depInfo;
+	depInfo.memoryBarrierCount = 1;
+	depInfo.pMemoryBarriers = &barrier;
+	cmd.pipelineBarrier2(depInfo);
+}
+
+// Culls the whole chunk in one go: one thread per (object, probe-face region).
+static void recordChunkCull(vk::raii::CommandBuffer& cmd, const BakeContext& ctx, uint32_t firstProbeLinear,
+                            uint32_t probesInChunk)
+{
+	DescriptorManager& dManager = *ctx.descriptorManagerComponent->descriptorManager;
+	const uint32_t regions = probesInChunk * 6u;
+	const uint32_t drawCount = ctx.drawInfo->totalDrawCount;
+	const uint32_t objectCount = ctx.drawInfo->totalObjectCount;
+	if (drawCount == 0 || objectCount == 0) return;
+
+	{
+		auto& pip = ctx.pipelineManager->pipelines["gi_bake_reset"];
+		cmd.bindPipeline(vk::PipelineBindPoint::eCompute, *pip.pipeline);
+		cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute, *pip.layout, 0,
+		                       dManager.getSet(ctx.modelDSet->modelBufferDSet, 0), nullptr);
+		cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute, *pip.layout, 1,
+		                       dManager.getSet(ctx.modelDSet->bakeModelDSet), nullptr);
+		struct ResetPush
+		{
+			uint32_t drawCommandCount;
+			uint32_t visibleCapacity;
+		};
+		const ResetPush push{drawCount, objectCount};
+		cmd.pushConstants<ResetPush>(*pip.layout, vk::ShaderStageFlagBits::eCompute, 0, push);
+		cmd.dispatch((drawCount + 63) / 64, regions, 1);
+	}
+
+	computeToComputeBarrier(cmd);
+
+	{
+		auto& pip = ctx.pipelineManager->pipelines["gi_bake_cull"];
+		cmd.bindPipeline(vk::PipelineBindPoint::eCompute, *pip.pipeline);
+		cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute, *pip.layout, 0,
+		                       dManager.getSet(ctx.globalDSet->globalDSets, 0), nullptr);
+		cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute, *pip.layout, 1,
+		                       dManager.getSet(ctx.modelDSet->bakeModelDSet), nullptr);
+		struct CullPush
+		{
+			uint32_t objectCount;
+			uint32_t drawCommandCount;
+			uint32_t firstProbeLinear;
+		};
+		const CullPush push{objectCount, drawCount, firstProbeLinear};
+		cmd.pushConstants<CullPush>(*pip.layout, vk::ShaderStageFlagBits::eCompute, 0, push);
+		cmd.dispatch((objectCount + 63) / 64, regions, 1);
+	}
+
+	computeToComputeBarrier(cmd);
+
+	{
+		auto& pip = ctx.pipelineManager->pipelines["gi_bake_compaction"];
+		cmd.bindPipeline(vk::PipelineBindPoint::eCompute, *pip.pipeline);
+		cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute, *pip.layout, 0,
+		                       dManager.getSet(ctx.modelDSet->bakeModelDSet), nullptr);
+		struct CompactionPush
+		{
+			uint32_t drawCommandCount;
+			uint32_t segStart1;
+			uint32_t segStart2;
+			uint32_t segStart3;
+			uint32_t segStart4;
+			uint32_t segStart5;
+		};
+		CompactionPush push;
+		push.drawCommandCount = drawCount;
+		push.segStart1 = ctx.drawInfo->opaqueSingleCount;
+		push.segStart2 = push.segStart1 + ctx.drawInfo->opaqueDoubleCount;
+		push.segStart3 = push.segStart2 + ctx.drawInfo->maskSingleCount;
+		push.segStart4 = push.segStart3 + ctx.drawInfo->maskDoubleCount;
+		push.segStart5 = push.segStart4 + ctx.drawInfo->blendSingleCount;
+		cmd.pushConstants<CompactionPush>(*pip.layout, vk::ShaderStageFlagBits::eCompute, 0, push);
+		cmd.dispatch((drawCount + 63) / 64, regions, 1);
+	}
+
+	// Cull outputs -> indirect draws + vertex reads for every render in the chunk
+	{
+		vk::MemoryBarrier2 barrier;
+		barrier.srcStageMask = vk::PipelineStageFlagBits2::eComputeShader;
+		barrier.srcAccessMask = vk::AccessFlagBits2::eShaderWrite;
+		barrier.dstStageMask = vk::PipelineStageFlagBits2::eDrawIndirect | vk::PipelineStageFlagBits2::eVertexShader;
+		barrier.dstAccessMask = vk::AccessFlagBits2::eIndirectCommandRead | vk::AccessFlagBits2::eShaderRead;
+		vk::DependencyInfo depInfo;
+		depInfo.memoryBarrierCount = 1;
+		depInfo.pMemoryBarriers = &barrier;
+		cmd.pipelineBarrier2(depInfo);
+	}
 }
 
 // Entry point
@@ -106,33 +251,51 @@ void LightProbeGIBaking::bakeAll(GeneralManager& gm)
 	const int totalProbes = ctx.grid->count.x * ctx.grid->count.y * ctx.grid->count.z;
 	assert(totalProbes <= static_cast<int>(MAX_SH_PROBES) - 1 && "Probe grid exceeds MAX_SH_PROBES - 1");
 
-	// Save skybox cubemap view/sampler for restoration after baking
-	Texture& skyboxTex = ctx.textureManager->textures[ctx.skybox->cubemapTexture.id];
-	vk::ImageView skyboxView = skyboxTex.textureImageView;
-	vk::Sampler skyboxSampler = skyboxTex.textureSampler;
-
 	ctx.device->device.waitIdle();
 	TempImages tempImages = createTempImages(ctx);
 
 	// Render the shadow map once for the full grid.
 	bakeShadowMap(ctx);
 
-	const float influenceRadius = ctx.grid->spacing * 1.2f;
-	int probeSlot = 1;
+	ensureBakeBuffers(ctx);
 
-	for (int iz = 0; iz < ctx.grid->count.z; ++iz)
-		for (int iy = 0; iy < ctx.grid->count.y; ++iy)
-			for (int ix = 0; ix < ctx.grid->count.x; ++ix)
-			{
-				const glm::vec3 probePos = ctx.grid->origin + ctx.grid->spacing * glm::vec3(ix, iy, iz);
-				bakeProbe(ctx, tempImages, probeSlot, probePos, influenceRadius, skyboxView, skyboxSampler);
-				++probeSlot;
-			}
-
+	// gi_bake_cull derives probe positions from shGridInfo, so it must be written before recording.
 	writeGridInfo(ctx, totalProbes);
-	restoreSkyboxSampler(ctx, skyboxView, skyboxSampler);
 
-	// All per-probe submissions must finish before we free temp cubemap/depth.
+	// Point sh_projection at the capture cubemap once for the whole bake.
+	Texture& captureTex = ctx.textureManager->textures[tempImages.captureHandle.id];
+	ctx.descriptorManagerComponent->descriptorManager->updateGICaptureCubemapDescriptor(
+	    *ctx.bindlessDSet, captureTex.textureImageView, captureTex.textureSampler);
+
+	const float influenceRadius = ctx.grid->spacing * 1.2f;
+	const glm::ivec3 gridCount = ctx.grid->count;
+
+	for (int chunkStart = 0; chunkStart < totalProbes; chunkStart += kProbesPerSubmit)
+	{
+		const int probesInChunk = std::min(kProbesPerSubmit, totalProbes - chunkStart);
+
+		auto cmd = VulkanUtils::beginSingleTimeCommands(*ctx.device);
+		recordChunkCull(cmd, ctx, static_cast<uint32_t>(chunkStart), static_cast<uint32_t>(probesInChunk));
+
+		for (int i = 0; i < probesInChunk; ++i)
+		{
+			// Linear order matches the slot layout: x fastest, slot 0 = skybox
+			const int linear = chunkStart + i;
+			const int ix = linear % gridCount.x;
+			const int iy = (linear / gridCount.x) % gridCount.y;
+			const int iz = linear / (gridCount.x * gridCount.y);
+			const glm::vec3 probePos = ctx.grid->origin + ctx.grid->spacing * glm::vec3(ix, iy, iz);
+			recordProbe(cmd, ctx, tempImages, static_cast<uint32_t>(i) * 6u, 1 + linear, probePos, influenceRadius);
+		}
+		VulkanUtils::endSingleTimeCommands(cmd, *ctx.device);
+	}
+
+	// Re-point the capture binding at the skybox before the capture cubemap is destroyed.
+	Texture& skyboxTex = ctx.textureManager->textures[ctx.skybox->cubemapTexture.id];
+	ctx.descriptorManagerComponent->descriptorManager->updateGICaptureCubemapDescriptor(
+	    *ctx.bindlessDSet, skyboxTex.textureImageView, skyboxTex.textureSampler);
+
+	// All submissions must finish before we free temp cubemap/depth.
 	ctx.device->device.waitIdle();
 	destroyTempImages(ctx, tempImages);
 

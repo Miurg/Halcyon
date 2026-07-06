@@ -22,8 +22,45 @@ struct PointLightData
 [[vk::binding(0, 0)]] StructuredBuffer<CameraData>     camera;
 [[vk::binding(2, 0)]] StructuredBuffer<PointLightData> pointLights;
 
-struct PushConstants { float scale; };
+struct SHGridInfo
+{
+    float3 origin; float spacing;
+    int3 count;    uint probeCount;
+    float captureRange; float3 _pad;
+};
+[[vk::binding(5, 0)]] StructuredBuffer<SHGridInfo> shGridInfo;
+
+struct PushConstants
+{
+    float3 probePos;
+    float  scale;
+    uint   faceIdx;
+};
 [[vk::push_constant]] ConstantBuffer<PushConstants> pc;
+
+// Must match the face tables in global_illumination_forward.slang
+static const float3 kFaceForward[6] = {
+    float3(1, 0, 0), float3(-1, 0, 0), float3(0, 1, 0), float3(0, -1, 0), float3(0, 0, 1), float3(0, 0, -1),
+};
+static const float3 kFaceUp[6] = {
+    float3(0, 1, 0), float3(0, 1, 0), float3(0, 0, -1), float3(0, 0, 1), float3(0, 1, 0), float3(0, 1, 0),
+};
+static const float kBakeFar = 0.01f; // reversed-Z, matches global_illumination_forward.slang
+
+float4 bakeFaceClip(float3 worldPos)
+{
+    float3 f = kFaceForward[pc.faceIdx];
+    float3 s = normalize(cross(f, kFaceUp[pc.faceIdx]));
+    float3 u = cross(s, f);
+    float3 rel = worldPos - pc.probePos;
+    float3 view = float3(dot(s, rel), dot(u, rel), -dot(f, rel));
+
+    // b = -(zFar*zNear)/(zFar-zNear), glm sign convention: positive with swapped reversed-Z near/far
+    const float range = shGridInfo[0].captureRange;
+    const float a = kBakeFar / (range - kBakeFar);
+    const float b = (kBakeFar * range) / (range - kBakeFar);
+    return float4(view.x, -view.y, a * view.z + b, -view.z);
+}
 
 // UV sphere: N_LAT rings x N_LON segments, 6 verts per quad (same as gi_probe_debug)
 static const int   N_LAT = 8;
@@ -65,7 +102,7 @@ VSOut vertMain(uint vid : SV_VertexID, uint iid : SV_InstanceID)
     float3 worldPos    = pointLights[iid].position + localNormal * pc.scale;
 
     VSOut o;
-    o.pos      = mul(camera[0].cameraSpaceMatrix, float4(worldPos, 1.0f));
+    o.pos      = bakeFaceClip(worldPos);
     o.color    = pointLights[iid].color;
     o.intensity = pointLights[iid].intensity;
     return o;

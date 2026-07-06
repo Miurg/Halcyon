@@ -33,6 +33,7 @@ constexpr uint32_t ShadowMap = 1;
 constexpr uint32_t Materials = 2;
 constexpr uint32_t CubemapSampler = 3;
 constexpr uint32_t CubemapStorage = 4;
+constexpr uint32_t GICaptureCubemap = 5;
 constexpr uint32_t PrefilteredMap = 6;
 constexpr uint32_t BrdfLut = 7;
 } // namespace Textures

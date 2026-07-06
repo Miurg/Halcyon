@@ -8,7 +8,7 @@ constexpr int MAX_FRAMES_IN_FLIGHT = 3;
 constexpr int MAX_OBJECTS = 3;
 constexpr int MAX_PATH_LEN = 260;
 constexpr int MAX_BINDLESS_TEXTURES = 2048;
-constexpr uint32_t MAX_SH_PROBES = 4096; // 127 scene probes + slot 0 (skybox fallback)
+constexpr uint32_t MAX_SH_PROBES = 40960; // 127 scene probes + slot 0 (skybox fallback)
 
 struct HALCYON_API UniformBufferObject
 {

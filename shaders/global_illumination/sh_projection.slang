@@ -1,4 +1,5 @@
 static const float F_PI = 3.14159265358979f;
+static const uint THREAD_COUNT = 256;
 
 struct SHProbeEntry
 {
@@ -18,7 +19,7 @@ struct SHProbeEntry
 [[vk::binding(4, 0)]] RWStructuredBuffer<SHProbeEntry> probeArray;
 
 // Set 1 = textureSet
-[[vk::binding(3, 1)]] SamplerCube cubemap;
+[[vk::binding(5, 1)]] SamplerCube cubemap;
 
 [[vk::push_constant]]
 cbuffer PushConstants
@@ -67,95 +68,83 @@ float[9] computeShBasis(float3 dir)
     return outBasis;
 }
 
-// Local-only struct for accumulation during projection
-struct SHCoefficients
-{
-    float3 coefficient[9];
+// Ramamoorthi cosine-lobe convolution: A0=pi, A1=2pi/3, A2=pi/4
+static const float cosineLobe[9] = {
+    F_PI,
+    2.0f * F_PI / 3.0f, 2.0f * F_PI / 3.0f, 2.0f * F_PI / 3.0f,
+    F_PI * 0.25f, F_PI * 0.25f, F_PI * 0.25f, F_PI * 0.25f, F_PI * 0.25f,
 };
 
-SHCoefficients convolveWithCosineLobe(SHCoefficients SHIn)
+void writeCoeff(int band, float3 value)
 {
-    SHCoefficients sh = SHIn;
-    // Ramamoorthi cosine-lobe convolution: A0=pi, A1=2pi/3, A2=pi/4
-    // L0
-    const float f0 = F_PI;
-    sh.coefficient[0].x *= f0;
-    sh.coefficient[0].y *= f0;
-    sh.coefficient[0].z *= f0;
-
-    // L1
-    const float f1 = 2.0f * F_PI / 3.0f;
-    for (int i = 1; i <= 3; ++i)
+    switch (band)
     {
-        sh.coefficient[i].x *= f1;
-        sh.coefficient[i].y *= f1;
-        sh.coefficient[i].z *= f1;
+    case 0: probeArray[probeSlot].sh0 = value; break;
+    case 1: probeArray[probeSlot].sh1 = value; break;
+    case 2: probeArray[probeSlot].sh2 = value; break;
+    case 3: probeArray[probeSlot].sh3 = value; break;
+    case 4: probeArray[probeSlot].sh4 = value; break;
+    case 5: probeArray[probeSlot].sh5 = value; break;
+    case 6: probeArray[probeSlot].sh6 = value; break;
+    case 7: probeArray[probeSlot].sh7 = value; break;
+    case 8: probeArray[probeSlot].sh8 = value; break;
     }
-
-    // L2
-    const float f2 = F_PI * 0.25f;
-    for (int i = 4; i <= 8; ++i)
-    {
-        sh.coefficient[i].x *= f2;
-        sh.coefficient[i].y *= f2;
-        sh.coefficient[i].z *= f2;
-    }
-    return sh;
 }
 
+groupshared float3 gsCoeff[THREAD_COUNT];
+groupshared float gsWeight[THREAD_COUNT];
+
 [shader("compute")]
-[numthreads(1, 1, 1)]
-void computeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
+[numthreads(THREAD_COUNT, 1, 1)]
+void computeMain(uint3 groupThreadID : SV_GroupThreadID)
 {
-    SHCoefficients result;
-    for (int i = 0; i < 9; i++)
-        result.coefficient[i] = float3(0.0f, 0.0f, 0.0f);
+    uint tid = groupThreadID.x;
 
-    float totalWeight = 0.0f;
+    float3 coeff[9];
+    for (int i = 0; i < 9; ++i) coeff[i] = float3(0.0f, 0.0f, 0.0f);
+    float weight = 0.0f;
 
-    for (int face = 0; face < 6; face++)
+    uint faceTexels = uint(cubemapResolution * cubemapResolution);
+    for (uint t = tid; t < 6u * faceTexels; t += THREAD_COUNT)
     {
-        for (int y = 0; y < cubemapResolution; y++)
+        int face = int(t / faceTexels);
+        uint local = t % faceTexels;
+        int x = int(local % uint(cubemapResolution));
+        int y = int(local / uint(cubemapResolution));
+
+        float u = (2.0f * (x + 0.5f) / cubemapResolution) - 1.0f;
+        float v = (2.0f * (y + 0.5f) / cubemapResolution) - 1.0f;
+        float3 direction = faceDirection(face, u, v);
+        float3 color = cubemap.SampleLevel(direction, 0).rgb;
+
+        // Approximation of the differential solid angle (pixel weight)
+        float w = 1.0f / pow(1.0f + u * u + v * v, 1.5f);
+
+        float basis[9] = computeShBasis(direction);
+        for (int i = 0; i < 9; ++i)
+            coeff[i] += color * basis[i] * w;
+        weight += w;
+    }
+
+    gsWeight[tid] = weight;
+    GroupMemoryBarrierWithGroupSync();
+    for (uint s = THREAD_COUNT / 2; s > 0; s >>= 1)
+    {
+        if (tid < s) gsWeight[tid] += gsWeight[tid + s];
+        GroupMemoryBarrierWithGroupSync();
+    }
+    float normFactor = (4.0f * F_PI) / gsWeight[0];
+
+    for (int band = 0; band < 9; ++band)
+    {
+        GroupMemoryBarrierWithGroupSync();
+        gsCoeff[tid] = coeff[band];
+        GroupMemoryBarrierWithGroupSync();
+        for (uint s = THREAD_COUNT / 2; s > 0; s >>= 1)
         {
-            for (int x = 0; x < cubemapResolution; x++)
-            {
-                float u = (2.0f * (x + 0.5f) / cubemapResolution) - 1.0f;
-                float v = (2.0f * (y + 0.5f) / cubemapResolution) - 1.0f;
-                float3 direction = faceDirection(face, u, v);
-                float3 color = cubemap.SampleLevel(direction, 0).rgb;
-
-                // Approximation of the differential solid angle (pixel weight)
-                float weight = 1.0f / pow(1.0f + u * u + v * v, 1.5f);
-
-                float basis[9] = computeShBasis(direction);
-
-                for (int i = 0; i < 9; ++i)
-                {
-                    result.coefficient[i].x += color.x * basis[i] * weight;
-                    result.coefficient[i].y += color.y * basis[i] * weight;
-                    result.coefficient[i].z += color.z * basis[i] * weight;
-                }
-                totalWeight += weight;
-            }
+            if (tid < s) gsCoeff[tid] += gsCoeff[tid + s];
+            GroupMemoryBarrierWithGroupSync();
         }
+        if (tid == 0) writeCoeff(band, gsCoeff[0] * normFactor * cosineLobe[band]);
     }
-    float normFactor = (4.0f * F_PI) / totalWeight;
-
-    for (int i = 0; i < 9; ++i)
-    {
-        result.coefficient[i].x *= normFactor;
-        result.coefficient[i].y *= normFactor;
-        result.coefficient[i].z *= normFactor;
-    }
-    result = convolveWithCosineLobe(result);
-
-    probeArray[probeSlot].sh0 = result.coefficient[0];
-    probeArray[probeSlot].sh1 = result.coefficient[1];
-    probeArray[probeSlot].sh2 = result.coefficient[2];
-    probeArray[probeSlot].sh3 = result.coefficient[3];
-    probeArray[probeSlot].sh4 = result.coefficient[4];
-    probeArray[probeSlot].sh5 = result.coefficient[5];
-    probeArray[probeSlot].sh6 = result.coefficient[6];
-    probeArray[probeSlot].sh7 = result.coefficient[7];
-    probeArray[probeSlot].sh8 = result.coefficient[8];
 }
