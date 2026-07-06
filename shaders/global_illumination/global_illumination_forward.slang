@@ -287,6 +287,14 @@ FragOutput fragMain(VSOutput input, bool isFrontFace: SV_IsFrontFace)
 		if (mat.alphaMode == 1 && albedo.a < mat.alphaCutoff) discard;
 	}
 
+	// Backface marker (alpha 0): sh_projection turns the marked fraction into probe validity
+	if (!isFrontFace && mat.doubleSided != 1)
+	{
+		FragOutput output;
+		output.color = float4(0.0, 0.0, 0.0, 0.0);
+		return output;
+	}
+
 	float3 emissive = textureArray[NonUniformResourceIndex(mat.emissiveIndex)].SampleGrad(input.fragTexCoord, dx, dy).rgb
 	                * mat.emissiveFactor * mat.emissiveStrength;
 

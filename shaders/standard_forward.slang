@@ -131,6 +131,8 @@ Sampler2D brdfLutMap;
 static const float PI = 3.14159265359f;
 static const float MIN_ROUGHNESS = 0.04f;
 static const float MAX_REFLECTION_LOD = 4.0f;
+static const float PROBE_BACKFACE_THRESHOLD = 0.25f; // _p0 above this = probe inside geometry
+static const float PROBE_NORMAL_BIAS = 0.25f;        // sample offset along N, in probe-spacing units
 
 [[vk::constant_id(0)]]
 const int ALPHA_TEST_ENABLED = 0;
@@ -525,7 +527,8 @@ float3 sampleSHProbes(float3 worldPos, float3 N)
         return computeIrradiance(N, sh);
     }
 
-    float3 local   = (worldPos - grid.origin) / grid.spacing;
+    float3 biasedPos = worldPos + N * (grid.spacing * PROBE_NORMAL_BIAS);
+    float3 local   = (biasedPos - grid.origin) / grid.spacing;
     float3 clamped = clamp(local, float3(0.0, 0.0, 0.0), float3(grid.count - int3(1, 1, 1)));
     float  skyW    = saturate(length(local - clamped));
 
@@ -534,19 +537,32 @@ float3 sampleSHProbes(float3 worldPos, float3 N)
 
     for (int k = 0; k < 9; ++k) sh[k] = float3(0.0, 0.0, 0.0);
 
+    float totalW = 0.0;
+
     [unroll]
     for (int c = 0; c < 8; ++c)
     {
         int3   corner = int3(c & 1, (c >> 1) & 1, (c >> 2) & 1);
         int3   idx    = min(base + corner, grid.count - int3(1, 1, 1));
         float3 axisW  = lerp(float3(1.0, 1.0, 1.0) - f, f, float3(corner));
-        float  w      = axisW.x * axisW.y * axisW.z;
 
         // Slot layout matches the bake loop in bakeAll: x fastest, slot 0 = skybox
         uint slot = 1u + uint(idx.x + grid.count.x * (idx.y + grid.count.y * idx.z));
+        if (shProbes[slot]._p0 > PROBE_BACKFACE_THRESHOLD) continue;
+
+        float w = axisW.x * axisW.y * axisW.z;
         for (int k = 0; k < 9; ++k)
             sh[k] += getProbeCoeff(slot, k) * w;
+        totalW += w;
     }
+
+    if (totalW < 1e-4f)
+    {
+        for (int k = 0; k < 9; ++k) sh[k] = getProbeCoeff(0, k);
+        return computeIrradiance(N, sh);
+    }
+
+    for (int k = 0; k < 9; ++k) sh[k] /= totalW;
 
     if (skyW > 0.0)
     {

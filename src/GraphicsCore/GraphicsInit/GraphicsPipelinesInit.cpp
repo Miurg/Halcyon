@@ -97,7 +97,8 @@ void GraphicsPipelinesInit::initPipelines(GeneralManager& gm)
 	        .depthTest = true,
 	        .depthWrite = true,
 	        .depthOp = vk::CompareOp::eGreater,
-	        .colorAttachments = {PipelineFactory::blendedAttachment()},
+	        // No blending: the backface validity marker writes alpha 0 and must land as-is
+	        .colorAttachments = {PipelineFactory::opaqueAttachment()},
 	        .colorFormats = {swapChain->hdrFormat},
 	        .depthFormat = depthFormat,
 	        .rasterizationSamples = vk::SampleCountFlagBits::e1,

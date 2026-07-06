@@ -46,7 +46,8 @@ static void drawGeometry(vk::raii::CommandBuffer& cmd, const BakeContext& ctx, g
 		uint32_t count = segmentCounts[seg];
 		if (count > 0)
 		{
-			cmd.setCullMode((seg & 1) ? vk::CullModeFlagBits::eNone : vk::CullModeFlagBits::eBack);
+			// Backfaces must rasterize during the bake — sh_projection derives probe validity from them
+			cmd.setCullMode(vk::CullModeFlagBits::eNone);
 			cmd.drawIndexedIndirectCount(
 			    ctx.bufferManager->buffers[ctx.modelDSet->bakeCompactedDrawBuffer.id].buffer[0], cmdOffset,
 			    ctx.bufferManager->buffers[ctx.modelDSet->bakeDrawCountBuffer.id].buffer[0], countOffset, count,

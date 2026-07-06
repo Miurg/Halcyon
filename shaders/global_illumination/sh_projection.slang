@@ -103,6 +103,7 @@ void computeMain(uint3 groupThreadID : SV_GroupThreadID)
     float3 coeff[9];
     for (int i = 0; i < 9; ++i) coeff[i] = float3(0.0f, 0.0f, 0.0f);
     float weight = 0.0f;
+    float backfaceWeight = 0.0f;
 
     uint faceTexels = uint(cubemapResolution * cubemapResolution);
     for (uint t = tid; t < 6u * faceTexels; t += THREAD_COUNT)
@@ -115,15 +116,16 @@ void computeMain(uint3 groupThreadID : SV_GroupThreadID)
         float u = (2.0f * (x + 0.5f) / cubemapResolution) - 1.0f;
         float v = (2.0f * (y + 0.5f) / cubemapResolution) - 1.0f;
         float3 direction = faceDirection(face, u, v);
-        float3 color = cubemap.SampleLevel(direction, 0).rgb;
+        float4 texel = cubemap.SampleLevel(direction, 0);
 
         // Approximation of the differential solid angle (pixel weight)
         float w = 1.0f / pow(1.0f + u * u + v * v, 1.5f);
 
         float basis[9] = computeShBasis(direction);
         for (int i = 0; i < 9; ++i)
-            coeff[i] += color * basis[i] * w;
+            coeff[i] += texel.rgb * basis[i] * w;
         weight += w;
+        if (texel.a < 0.5f) backfaceWeight += w;
     }
 
     gsWeight[tid] = weight;
@@ -133,7 +135,18 @@ void computeMain(uint3 groupThreadID : SV_GroupThreadID)
         if (tid < s) gsWeight[tid] += gsWeight[tid + s];
         GroupMemoryBarrierWithGroupSync();
     }
-    float normFactor = (4.0f * F_PI) / gsWeight[0];
+    float totalWeight = gsWeight[0];
+    float normFactor = (4.0f * F_PI) / totalWeight;
+
+    GroupMemoryBarrierWithGroupSync();
+    gsWeight[tid] = backfaceWeight;
+    GroupMemoryBarrierWithGroupSync();
+    for (uint s = THREAD_COUNT / 2; s > 0; s >>= 1)
+    {
+        if (tid < s) gsWeight[tid] += gsWeight[tid + s];
+        GroupMemoryBarrierWithGroupSync();
+    }
+    if (tid == 0) probeArray[probeSlot]._p0 = gsWeight[0] / totalWeight;
 
     for (int band = 0; band < 9; ++band)
     {
