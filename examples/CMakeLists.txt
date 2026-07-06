@@ -50,11 +50,5 @@ endif()
 
 halcyon_copy_shaders(HalcyonSample)
 
-# Copy runtime assets next to the executable.
-add_custom_command(TARGET HalcyonSample POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-        "${CMAKE_CURRENT_SOURCE_DIR}/assets/models"
-        "$<TARGET_FILE_DIR:HalcyonSample>/assets/models"
-    COMMENT "Copying sample assets..."
-    VERBATIM
-)
+# Stage runtime assets next to the executable (dependency-tracked; no stale copies).
+halcyon_stage_dir(HalcyonSample "${CMAKE_CURRENT_SOURCE_DIR}/assets/models" "assets/models")

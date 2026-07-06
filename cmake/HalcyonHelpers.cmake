@@ -22,3 +22,24 @@ function(halcyon_copy_shaders TARGET)
     endif()
     add_dependencies(${TARGET} ${TARGET}_copy_shaders)
 endfunction()
+
+# halcyon_stage_dir(<target> <source_dir> <dest_subdir>)
+# Copies source_dir to "<target output dir>/dest_subdir", re-running only when a file
+# under source_dir changes. Dependency-tracked (unlike POST_BUILD), so edits are picked
+# up without a full rebuild, and large asset trees are not re-copied on every build.
+function(halcyon_stage_dir TARGET SRC DEST_SUBDIR)
+    file(GLOB_RECURSE _files CONFIGURE_DEPENDS "${SRC}/*")
+    string(MAKE_C_IDENTIFIER "${DEST_SUBDIR}" _id)
+    set(_stamp "${CMAKE_CURRENT_BINARY_DIR}/${TARGET}_${_id}.stamp")
+
+    add_custom_command(
+        OUTPUT "${_stamp}"
+        COMMAND ${CMAKE_COMMAND} -E copy_directory "${SRC}" "$<TARGET_FILE_DIR:${TARGET}>/${DEST_SUBDIR}"
+        COMMAND ${CMAKE_COMMAND} -E touch "${_stamp}"
+        DEPENDS ${_files}
+        COMMENT "Staging ${DEST_SUBDIR} for ${TARGET}"
+        VERBATIM)
+
+    add_custom_target(${TARGET}_stage_${_id} DEPENDS "${_stamp}")
+    add_dependencies(${TARGET} ${TARGET}_stage_${_id})
+endfunction()
