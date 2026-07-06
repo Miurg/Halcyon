@@ -189,7 +189,7 @@ endfunction()
 set(HALCYON_SHADER_TARGETS "")
 
 # Auto gather shader files and create targets
-file(GLOB_RECURSE SLANG_SHADER_FILES "${CMAKE_CURRENT_LIST_DIR}/shaders/*.slang")
+file(GLOB_RECURSE SLANG_SHADER_FILES CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/shaders/*.slang")
 foreach(SHADER_FILE ${SLANG_SHADER_FILES})
     get_filename_component(SHADER_NAME "${SHADER_FILE}" NAME_WE)
     string(TOLOWER "${SHADER_NAME}" SHADER_NAME_LOWER)
