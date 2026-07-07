@@ -55,6 +55,10 @@ DescriptorManager::DescriptorManager(VulkanDevice& vulkanDevice)
 		                                   kAllStages),
 		    vk::DescriptorSetLayoutBinding(Bindings::Global::GtaoTexture, vk::DescriptorType::eCombinedImageSampler, 1,
 		                                   S::eFragment),
+		    vk::DescriptorSetLayoutBinding(Bindings::Global::ReflectionProbes, vk::DescriptorType::eStorageBuffer, 1,
+		                                   kAllStages),
+		    vk::DescriptorSetLayoutBinding(Bindings::Global::ReflectionProbeCount, vk::DescriptorType::eStorageBuffer, 1,
+		                                   kAllStages),
 		};
 		registerLayout("globalSet", globalBindings);
 	}
@@ -99,8 +103,10 @@ DescriptorManager::DescriptorManager(VulkanDevice& vulkanDevice)
 		                                   1, S::eFragment),
 		    vk::DescriptorSetLayoutBinding(Bindings::Textures::BrdfLut, vk::DescriptorType::eCombinedImageSampler, 1,
 		                                   S::eFragment),
+		    vk::DescriptorSetLayoutBinding(Bindings::Textures::ReflectionCubemaps,
+		                                   vk::DescriptorType::eCombinedImageSampler, MAX_REFLECTION_PROBES, S::eFragment),
 		};
-		std::array<vk::DescriptorBindingFlags, 8> textureBindingFlags = {
+		std::array<vk::DescriptorBindingFlags, 9> textureBindingFlags = {
 		    vk::DescriptorBindingFlagBits::ePartiallyBound | vk::DescriptorBindingFlagBits::eUpdateAfterBind,
 		    vk::DescriptorBindingFlags{}, // shadowMap
 		    vk::DescriptorBindingFlags{}, // materials
@@ -109,6 +115,7 @@ DescriptorManager::DescriptorManager(VulkanDevice& vulkanDevice)
 		    vk::DescriptorBindingFlags{}, // giCaptureCubemap
 		    vk::DescriptorBindingFlags{}, // prefilteredMap
 		    vk::DescriptorBindingFlags{}, // brdfLut
+		    vk::DescriptorBindingFlagBits::ePartiallyBound | vk::DescriptorBindingFlagBits::eUpdateAfterBind, // reflectionCubemaps
 		};
 		vk::DescriptorSetLayoutBindingFlagsCreateInfo bindingFlagsInfo;
 		bindingFlagsInfo.bindingCount = static_cast<uint32_t>(textureBindingFlags.size());
@@ -286,6 +293,15 @@ void DescriptorManager::updateGICaptureCubemapDescriptor(BindlessTextureDSetComp
 {
 	update(dSetComponent.bindlessTextureSet, Bindings::Textures::GICaptureCubemap, 0,
 	       vk::DescriptorType::eCombinedImageSampler, cubemapImageView, cubemapSampler);
+}
+
+void DescriptorManager::updateReflectionCubemap(BindlessTextureDSetComponent& dSetComponent,
+                                                vk::ImageView cubemapImageView, vk::Sampler cubemapSampler,
+                                                uint32_t probeIndex)
+{
+	update(dSetComponent.bindlessTextureSet, Bindings::Textures::ReflectionCubemaps, 0,
+	       vk::DescriptorType::eCombinedImageSampler, cubemapImageView, cubemapSampler,
+	       vk::ImageLayout::eShaderReadOnlyOptimal, probeIndex);
 }
 
 void DescriptorManager::updateStorageBufferDescriptors(BufferManager& bManager, BufferHandle bNumber, DSetHandle dSet,

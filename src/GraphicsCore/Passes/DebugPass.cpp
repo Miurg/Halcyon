@@ -16,6 +16,7 @@
 #include "GraphicsCore/Components/GlobalTransformComponent.hpp"
 #include "GraphicsCore/Resources/Components/GlobalDSetComponent.hpp"
 #include "GraphicsCore/Resources/Components/MeshInfoComponent.hpp"
+#include "GraphicsCore/Components/ReflectionProbeComponent.hpp"
 #include "GraphicsCore/Resources/Managers/ModelManager.hpp"
 #include "GraphicsCore/Resources/Managers/TextureManager.hpp"
 #include "GraphicsCore/Managers/PipelineManager.hpp"
@@ -124,6 +125,26 @@ void DebugPass::addToGraph(Orhescyon::GeneralManager& gm, RenderGraph& rg, uint3
 	};
 	std::vector<AABBPush> pushData;
 	draw(graphicsSettings.selectedEntity, pushData);
+
+	// Reflection probe debug: only for the selected probe, so it toggles with selection.
+	// Read from the component (not the GPU buffer) so it also shows before the first bake.
+	if (gm.isActive(graphicsSettings.selectedEntity))
+	if (auto* refl = gm.getComponent<ReflectionProbeComponent>(graphicsSettings.selectedEntity))
+	{
+		AABBPush box;
+		box.model = glm::mat4(1.0f);
+		box.aabbMin = refl->origin - refl->halfExtent;
+		box.aabbMax = refl->origin + refl->halfExtent;
+		pushData.push_back(box);
+
+		// Small cube marking the capture center.
+		const glm::vec3 markerHalf(0.15f);
+		AABBPush center;
+		center.model = glm::mat4(1.0f);
+		center.aabbMin = refl->origin - markerHalf;
+		center.aabbMax = refl->origin + markerHalf;
+		pushData.push_back(center);
+	}
 
 	vk::ClearValue clearDepth0 = vk::ClearDepthStencilValue(0.0f, 0);
 	rg.addPass(

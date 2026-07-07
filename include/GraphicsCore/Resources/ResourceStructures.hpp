@@ -74,9 +74,7 @@ struct HALCYON_API MaterialStructure
 	float padding2 = 0.0f;
 };
 
-// Unified SH light probe entry (160 bytes, 16-byte aligned).
 // Slot 0 = skybox fallback (influenceRadius = FLT_MAX, position ignored).
-// SH coefficients are float3 + float pad to match std430 vec4 stride.
 struct HALCYON_API SHProbeEntry
 {
     alignas(16) glm::vec3 position;
@@ -103,6 +101,17 @@ struct HALCYON_API SHGridInfo
     uint32_t probeCount; // grid probes + skybox slot 0; 1 = nothing baked
     float captureRange;
     float _pad[3];
+};
+
+// Must match ReflectionProbeData in standard_forward.slang (std430, 48 bytes).
+struct HALCYON_API ReflectionProbeData
+{
+    alignas(16) glm::vec3 boxMin;
+    uint32_t cubemapIndex;
+    alignas(16) glm::vec3 boxMax;
+    float _pad0;
+    alignas(16) glm::vec3 captureOrigin; // point the cubemap was captured from (parallax reprojection center)
+    float _pad1;
 };
 
 struct HALCYON_API PointLightStructure

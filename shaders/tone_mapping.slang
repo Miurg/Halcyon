@@ -92,7 +92,7 @@ float4 fragMain(VSOutput input) : SV_Target
     {
         hdr.rgb *= exposureBuffer[0];
     }
-    float3 mapped = ACESFilm(hdr.rgb);
+    float3 mapped = AgX(hdr.rgb);
 
 	return float4(mapped, 1.0);
 }

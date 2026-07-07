@@ -161,6 +161,22 @@ void PlaceholdersInit::initPlaceholders(GeneralManager& gm)
 		                 vk::ArrayProxy<const SHGridInfo>(1, &initialGridInfo));
 		VulkanUtils::endSingleTimeCommands(cmd, *vulkanDevice);
 	}
+
+	// Reflection probes — box metadata + cubemap indices, refilled per frame by ReflectionProbeUpdateSystem.
+	globalDSetComponent->reflectionProbeBuffer = bManager->createBuffer(
+	    (vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal),
+	    sizeof(ReflectionProbeData) * MAX_REFLECTION_PROBES, MAX_FRAMES_IN_FLIGHT,
+	    vk::BufferUsageFlagBits::eStorageBuffer);
+	dManager->updateStorageBufferDescriptors(*bManager, globalDSetComponent->reflectionProbeBuffer,
+	                                         globalDSetComponent->globalDSets, Bindings::Global::ReflectionProbes);
+
+	globalDSetComponent->reflectionProbeCountBuffer = bManager->createBuffer(
+	    (vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal), sizeof(uint32_t),
+	    MAX_FRAMES_IN_FLIGHT, vk::BufferUsageFlagBits::eStorageBuffer);
+	dManager->updateStorageBufferDescriptors(*bManager, globalDSetComponent->reflectionProbeCountBuffer,
+	                                         globalDSetComponent->globalDSets, Bindings::Global::ReflectionProbeCount);
+	for (uint32_t frame = 0; frame < MAX_FRAMES_IN_FLIGHT; ++frame)
+		*static_cast<uint32_t*>(bManager->buffers[globalDSetComponent->reflectionProbeCountBuffer.id].bufferMapped[frame]) = 0u;
 #pragma endregion
 
 #pragma region Material & Texture System (Set 2)

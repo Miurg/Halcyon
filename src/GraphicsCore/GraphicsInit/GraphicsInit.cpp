@@ -48,6 +48,7 @@
 #endif
 #include "GraphicsCore/Systems/CameraMatrixSystem.hpp"
 #include "GraphicsCore/Systems/LightUpdateSystem.hpp"
+#include "GraphicsCore/Systems/ReflectionProbeUpdateSystem.hpp"
 #include "GraphicsCore/Systems/BufferUpdateSystem.hpp"
 #include "GraphicsCore/Systems/RenderSystem.hpp"
 #include "GraphicsCore/Systems/FrameEndSystem.hpp"
@@ -96,6 +97,7 @@ void GraphicsInit::coreInit(GeneralManager& gm)
 #endif
 	gm.registerSystem<CameraMatrixSystem>();
 	gm.registerSystem<LightUpdateSystem>();
+	gm.registerSystem<ReflectionProbeUpdateSystem>();
 	gm.registerSystem<BufferUpdateSystem>();
 	gm.registerSystem<RenderSystem>();
 	gm.registerSystem<FrameEndSystem>();

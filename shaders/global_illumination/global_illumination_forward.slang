@@ -123,6 +123,8 @@ StructuredBuffer<MaterialData> materialBuffer;
 static const float PI = 3.14159265359f;
 static const float MIN_ROUGHNESS = 0.04f;
 static const float MAX_REFLECTION_LOD = 4.0f;
+static const float PROBE_NORMAL_BIAS = 0.5f;
+static const float PROBE_BACKFACE_THRESHOLD = 0.25f;
 
 [[vk::constant_id(0)]]
 const int ALPHA_TEST_ENABLED = 0;
@@ -265,6 +267,101 @@ float3 SampleNormalMap(uint mapIndex, float2 uv, float2 dx, float2 dy)
     return normalize(raw * 2.0 - 1.0);
 }
 
+float3 computeIrradiance(float3 n, float3 sh[9])
+{
+    const float f0 = 0.28209479f;
+    const float f1 = 0.48860251f;
+    const float f2 = 1.09254843f;
+    const float f3 = 0.31539156f;
+    const float f4 = 0.54627421f;
+
+    float3 color = sh[0] * f0;
+    color += sh[1] * (-f1 * n.y);
+    color += sh[2] * (f1 * n.z);
+    color += sh[3] * (-f1 * n.x);
+    color += sh[4] * (f2 * n.x * n.y);
+    color += sh[5] * (-f2 * n.y * n.z);
+    color += sh[6] * (f3 * (3.0f * n.z * n.z - 1.0f));
+    color += sh[7] * (-f2 * n.x * n.z);
+    color += sh[8] * (f4 * (n.x * n.x - n.y * n.y));
+
+    return max(color, float3(0.0));
+}
+
+float3 getProbeCoeff(uint idx, uint band)
+{
+    switch (band)
+    {
+    case 0: return shProbes[idx].sh0;
+    case 1: return shProbes[idx].sh1;
+    case 2: return shProbes[idx].sh2;
+    case 3: return shProbes[idx].sh3;
+    case 4: return shProbes[idx].sh4;
+    case 5: return shProbes[idx].sh5;
+    case 6: return shProbes[idx].sh6;
+    case 7: return shProbes[idx].sh7;
+    default: return shProbes[idx].sh8;
+    }
+}
+
+float3 sampleSHProbes(float3 worldPos, float3 N)
+{
+    SHGridInfo grid = shGridInfo[0];
+
+    float3 sh[9];
+
+    if (grid.probeCount <= 1)
+    {
+        for (int k = 0; k < 9; ++k) sh[k] = getProbeCoeff(0, k);
+        return computeIrradiance(N, sh);
+    }
+
+    float3 biasedPos = worldPos + N * (grid.spacing * PROBE_NORMAL_BIAS);
+    float3 local = (biasedPos - grid.origin) / grid.spacing;
+    float3 clamped = clamp(local, float3(0.0, 0.0, 0.0), float3(grid.count - int3(1, 1, 1)));
+    float skyW = saturate(length(local - clamped));
+
+    int3 base = min(int3(clamped), max(grid.count - int3(2, 2, 2), int3(0, 0, 0)));
+    float3 f = clamped - float3(base);
+
+    for (int k = 0; k < 9; ++k) sh[k] = float3(0.0, 0.0, 0.0);
+
+    float totalW = 0.0;
+
+    [unroll]
+    for (int c = 0; c < 8; ++c)
+    {
+        int3 corner = int3(c & 1, (c >> 1) & 1, (c >> 2) & 1);
+        int3 idx = min(base + corner, grid.count - int3(1, 1, 1));
+        float3 axisW = lerp(float3(1.0, 1.0, 1.0) - f, f, float3(corner));
+
+        // Slot layout matches the bake loop in bakeAll: x fastest, slot 0 = skybox
+        uint slot = 1u + uint(idx.x + grid.count.x * (idx.y + grid.count.y * idx.z));
+        if (shProbes[slot]._p0 > PROBE_BACKFACE_THRESHOLD) continue;
+
+        float w = axisW.x * axisW.y * axisW.z;
+        for (int k = 0; k < 9; ++k)
+            sh[k] += getProbeCoeff(slot, k) * w;
+        totalW += w;
+    }
+
+    if (totalW < 1e-4f)
+    {
+        for (int k = 0; k < 9; ++k) sh[k] = getProbeCoeff(0, k);
+        return computeIrradiance(N, sh);
+    }
+
+    for (int k = 0; k < 9; ++k) sh[k] /= totalW;
+
+    if (skyW > 0.0)
+    {
+        for (int k = 0; k < 9; ++k)
+            sh[k] = lerp(sh[k], getProbeCoeff(0, k), skyW);
+    }
+
+    return computeIrradiance(N, sh);
+}
+
 struct FragOutput
 {
 	float4 color    : SV_Target0;
@@ -312,7 +409,9 @@ FragOutput fragMain(VSOutput input, bool isFrontFace: SV_IsFrontFace)
     float3 directionalLightRadiance = directionalLight[0].color.rgb * directionalLight[0].color.a;
     float3 constantAmbient = directionalLight[0].ambient.rgb * directionalLight[0].ambient.a;
 
-    float3 radiance = albedo.rgb / PI * NdotL * shadow * directionalLightRadiance + constantAmbient + emissive;
+    float3 radiance = albedo.rgb / PI * NdotL * shadow
+                + albedo.rgb / PI * sampleSHProbes(input.fragWorldPos, finalNormal)
+                + constantAmbient + emissive;
 
     FragOutput output;
     output.color = float4(radiance, 1.0);

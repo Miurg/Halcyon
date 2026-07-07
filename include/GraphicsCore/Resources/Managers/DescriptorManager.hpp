@@ -50,6 +50,9 @@ public:
 	void updateGICaptureCubemapDescriptor(BindlessTextureDSetComponent& dSetComponent,
 	                                      vk::ImageView cubemapImageView,
 	                                      vk::Sampler   cubemapSampler);
+	// Updates one slot of the reflection cubemap array (Bindings::Textures::ReflectionCubemaps).
+	void updateReflectionCubemap(BindlessTextureDSetComponent& dSetComponent, vk::ImageView cubemapImageView,
+	                             vk::Sampler cubemapSampler, uint32_t probeIndex);
 	void updateStorageBufferDescriptors(BufferManager& bManager, BufferHandle bNumber, DSetHandle dSet,
 	                                    uint32_t binding);
 

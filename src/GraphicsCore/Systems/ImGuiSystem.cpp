@@ -27,6 +27,7 @@
 #include "GraphicsCore/Components/PipelineManagerComponent.hpp"
 #include "GraphicsCore/Components/GraphicsSettingsComponent.hpp"
 #include "GraphicsCore/Components/LightProbeGridComponent.hpp"
+#include "GraphicsCore/Components/ReflectionProbeComponent.hpp"
 #include <Jolt/Jolt.h>
 #include <Jolt/Physics/PhysicsSystem.h>
 #include "PhysicsCore/PhysContexts.hpp"
@@ -609,6 +610,18 @@ void ImGuiSystem::update(GeneralManager& gm)
 				ImGui::Checkbox("Visualize Probes", &globalIllumination->debugVisualize);
 				if (globalIllumination->debugVisualize)
 					ImGui::SliderFloat("Probe Scale", &globalIllumination->debugScale, 0.05f, 2.0f);
+			}
+		}
+
+		if (auto* reflectionProbe = gm.getComponent<ReflectionProbeComponent>(selectedEntity))
+		{
+			if (ImGui::CollapsingHeader("Reflection Probe Component", ImGuiTreeNodeFlags_DefaultOpen))
+			{
+				ImGui::DragFloat3("Probe Origin", &reflectionProbe->origin.x, 0.1f);
+				ImGui::DragFloat3("Influence Half-Extent", &reflectionProbe->halfExtent.x, 0.1f, 0.1f, 1000.0f);
+				ImGui::DragFloat("Capture Range##refl", &reflectionProbe->captureRange, 1.0f, 1.0f, 1000.0f);
+				if (ImGui::Button("Bake Reflection Probe", ImVec2(200, 20)))
+					reflectionProbe->needBake = true;
 			}
 		}
 

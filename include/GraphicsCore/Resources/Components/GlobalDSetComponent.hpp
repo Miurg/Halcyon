@@ -12,4 +12,6 @@ struct HALCYON_API GlobalDSetComponent
 	BufferHandle pointLightCountBuffer;
 	BufferHandle shProbeBuffer;      // SHProbeEntry[MAX_SH_PROBES] — slot 0 = skybox fallback
 	BufferHandle shGridInfoBuffer;   // SHGridInfo — probeCount includes skybox slot 0
+	BufferHandle reflectionProbeBuffer;      // ReflectionProbeData[MAX_REFLECTION_PROBES]
+	BufferHandle reflectionProbeCountBuffer; // single uint32_t
 };

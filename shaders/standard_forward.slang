@@ -73,6 +73,17 @@ StructuredBuffer<SHGridInfo> shGridInfo;
 [[vk::binding(6, 0)]]
 Sampler2D gtaoTexture;
 
+struct ReflectionProbeData
+{
+    float3 boxMin; uint cubemapIndex;
+    float3 boxMax; float _pad0;
+    float3 captureOrigin; float _pad1;
+};
+[[vk::binding(7, 0)]]
+StructuredBuffer<ReflectionProbeData> reflectionProbes;
+[[vk::binding(8, 0)]]
+StructuredBuffer<uint> reflectionProbeCount;
+
 // === SET 1 ===
 struct ModelData
 {
@@ -126,13 +137,16 @@ StructuredBuffer<MaterialData> materialBuffer;
 SamplerCube prefilteredMap;
 [[vk::binding(7, 2)]]
 Sampler2D brdfLutMap;
+[[vk::binding(8, 2)]]
+SamplerCube reflectionProbeMaps[32];
 
 // === CONST ===
 static const float PI = 3.14159265359f;
 static const float MIN_ROUGHNESS = 0.04f;
 static const float MAX_REFLECTION_LOD = 4.0f;
-static const float PROBE_BACKFACE_THRESHOLD = 0.25f; // _p0 above this = probe inside geometry
+static const float PROBE_BACKFACE_THRESHOLD = 0.5f; // _p0 above this = probe inside geometry
 static const float PROBE_NORMAL_BIAS = 0.25f;        // sample offset along N, in probe-spacing units
+static const float REFLECTION_BLEND_MARGIN = 1.0f;   // world-space width of the probe-to-probe/sky transition
 
 [[vk::constant_id(0)]]
 const int ALPHA_TEST_ENABLED = 0;
@@ -573,6 +587,43 @@ float3 sampleSHProbes(float3 worldPos, float3 N)
     return computeIrradiance(N, sh);
 }
 
+// Box-projected local reflection blended across every covering probe: each probe's weight
+// falls off toward its AABB face, contributions are normalized when over-covered, and the
+// unfilled remainder is left for the skybox (Lagarde, "Image-based Lighting approaches", 2012).
+// Returns coverage in [0,1]; `color` is the weighted probe reflection.
+float sampleReflectionProbes(float3 worldPos, float3 R, float roughness, out float3 color)
+{
+    color = float3(0.0, 0.0, 0.0);
+    float totalW = 0.0;
+    uint count = min(reflectionProbeCount[0], 32u);
+
+    for (uint i = 0; i < count; ++i)
+    {
+        ReflectionProbeData p = reflectionProbes[i];
+        float3 center = (p.boxMin + p.boxMax) * 0.5;
+        float3 halfExtent   = (p.boxMax - p.boxMin) * 0.5;
+
+        // Distance from the nearest face along each axis; negative = outside the box.
+        float3 toFace = halfExtent - abs(worldPos - center);
+        float  inside = min(min(toFace.x, toFace.y), toFace.z);
+        float  w      = saturate(inside / REFLECTION_BLEND_MARGIN);
+        if (w <= 0.0) continue;
+
+        float3 invR  = 1.0 / R;
+        float3 tPlan = max((p.boxMax - worldPos) * invR, (p.boxMin - worldPos) * invR);
+        float  t     = min(min(tPlan.x, tPlan.y), tPlan.z);
+        float3 dir   = (worldPos + R * t) - p.captureOrigin;
+
+        color += reflectionProbeMaps[NonUniformResourceIndex(p.cubemapIndex)]
+                     .SampleLevel(dir, roughness * MAX_REFLECTION_LOD).rgb * w;
+        totalW += w;
+    }
+
+    // Normalize where probes overlap (blend), keep partial coverage where they don't (sky fills in).
+    if (totalW > 1.0) { color /= totalW; totalW = 1.0; }
+    return totalW;
+}
+
 // Computes indirect / ambient lighting: split-sum IBL diffuse from SH probes,
 // split-sum IBL specular from prefiltered cubemap + BRDF LUT, plus a constant
 // ambient term from the directional light. Falls back to constant-only when
@@ -591,7 +642,10 @@ float3 ComputeAmbient(Surface s, MaterialData mat, float3 worldPos, float4 dirLi
         if (mat.alphaMode != 1 && mat.doubleSided != 1)
         {
             float3 R            = reflect(-s.V, s.N);
-            float3 prefiltColor = prefilteredMap.SampleLevel(R, s.roughness * MAX_REFLECTION_LOD).rgb;
+            float3 probeColor;
+            float  coverage     = sampleReflectionProbes(worldPos, R, s.roughness, probeColor);
+            float3 skyColor     = prefilteredMap.SampleLevel(R, s.roughness * MAX_REFLECTION_LOD).rgb;
+            float3 prefiltColor = probeColor + skyColor * (1.0 - coverage);
             float2 brdfLut      = brdfLutMap.SampleLevel(float2(s.NdotV, s.roughness), 0).rg;
             iblSpecular         = prefiltColor * (F_ibl * brdfLut.x + brdfLut.y);
         }
@@ -603,7 +657,7 @@ float3 ComputeAmbient(Surface s, MaterialData mat, float3 worldPos, float4 dirLi
         // Fallback without skybox: ambient * Oren-Nayar lambertian only.
         return (1.0 - F_ibl) * (1.0 - s.metallic)
              * DiffuseOrenNayarIBL(s.albedo, s.NdotV, s.roughness)
-             * startAmbient * ao;
+             * ao + startAmbient;
     }
 }
 

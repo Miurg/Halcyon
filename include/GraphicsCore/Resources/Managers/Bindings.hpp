@@ -14,6 +14,8 @@ constexpr uint32_t PointLightCount = 3;
 constexpr uint32_t SHProbes = 4;
 constexpr uint32_t SHGridInfo = 5;
 constexpr uint32_t GtaoTexture = 6;
+constexpr uint32_t ReflectionProbes = 7;
+constexpr uint32_t ReflectionProbeCount = 8;
 } // namespace Global
 
 namespace Model
@@ -36,6 +38,7 @@ constexpr uint32_t CubemapStorage = 4;
 constexpr uint32_t GICaptureCubemap = 5;
 constexpr uint32_t PrefilteredMap = 6;
 constexpr uint32_t BrdfLut = 7;
+constexpr uint32_t ReflectionCubemaps = 8;
 } // namespace Textures
 
 } // namespace Bindings
