@@ -16,8 +16,6 @@
 #include "GraphicsCore/Components/FrameManagerComponent.hpp"
 #include "GraphicsCore/Components/RenderGraphComponent.hpp"
 #include "GraphicsCore/RenderGraph/RenderGraph.hpp"
-#include "GraphicsCore/Components/LightProbeGridComponent.hpp"
-#include "../GIBaker/LightProbeGIBaking.hpp"
 
 #ifdef TRACY_ENABLE
 #include <tracy/Tracy.hpp>
@@ -84,17 +82,6 @@ void FrameEndSystem::update(GeneralManager& gm)
 	catch (vk::SystemError& e)
 	{
 		throw std::runtime_error("failed to present swap chain image!");
-	}
-
-	LightProbeGridComponent* probesGrid = gm.getContextComponent<LightProbeGridContext, LightProbeGridComponent>();
-	// Rebake grid if need.
-	if (probesGrid != nullptr && probesGrid->needBake)
-	{
-		if (probesGrid->count.x + probesGrid->count.y + probesGrid->count.z > 0)
-		{
-			LightProbeGIBaking::bakeAll(gm);
-			probesGrid->needBake = false;
-		}
 	}
 
 	// Check the result of the presentation

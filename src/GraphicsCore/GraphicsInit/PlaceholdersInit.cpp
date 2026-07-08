@@ -69,8 +69,8 @@ void PlaceholdersInit::initPlaceholders(GeneralManager& gm)
 	glm::vec3 directLightPos = glm::vec3(10.0f, 20.0f, 10.0f);
 	glm::quat directLightRot = glm::quatLookAt(glm::vec3(0.577f, -0.816f, 0.005f), glm::vec3(0.0f, 1.0f, 0.0f));
 	glm::vec4 directLightColor = glm::vec4(0.984f, 1.0f, 0.808f, 50.0f); // Slightly warm white light with high intensity
-	glm::vec4 directLightAmbient = directLightColor; // Ambient component is 0.1% of the main light color
-	directLightAmbient.w *= 0.001f;
+	glm::vec4 directLightAmbient = directLightColor;
+	directLightAmbient.w *= 0.0f;
 	gm.addComponent<GlobalTransformComponent>(directLightEntity, directLightPos, directLightRot);
 	gm.addComponent<DirectLightComponent>(directLightEntity, 4000, 4000, directLightColor, directLightAmbient);
 	gm.registerContext<SunContext>(directLightEntity);
