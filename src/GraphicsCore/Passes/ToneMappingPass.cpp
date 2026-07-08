@@ -22,6 +22,17 @@ enum Binding : uint32_t
 {
 	OffscreenInput = 0,
 };
+
+// Must match ColorGrading in tone_mapping.slang
+struct ColorGradingPush
+{
+	int space;
+	float exposure;
+	float contrast;
+	float saturation;
+	float temperature;
+	float tint;
+};
 }
 
 void ToneMappingPass::onInit(Orhescyon::GeneralManager& gm)
@@ -55,6 +66,7 @@ void ToneMappingPass::onInit(Orhescyon::GeneralManager& gm)
 	    .colorAttachments = {PipelineFactory::opaqueAttachment()},
 	    .colorFormats = {swapChain.swapChainImageFormat},
 	    .setLayoutNames = {"screenSpaceSet", "exposureSet"},
+	    .pushConstants = {{vk::ShaderStageFlagBits::eFragment, 0, sizeof(ColorGradingPush)}},
 	});
 }
 
@@ -71,6 +83,7 @@ void ToneMappingPass::onSettingsChanged(Orhescyon::GeneralManager& gm)
 	    .colorAttachments = {PipelineFactory::opaqueAttachment()},
 	    .colorFormats = {swapChain.swapChainImageFormat},
 	    .setLayoutNames = {"screenSpaceSet", "exposureSet"},
+	    .pushConstants = {{vk::ShaderStageFlagBits::eFragment, 0, sizeof(ColorGradingPush)}},
 	}, "tone_mapping");
 }
 
@@ -79,6 +92,16 @@ void ToneMappingPass::addToGraph(Orhescyon::GeneralManager& gm, RenderGraph& rg,
 	auto& swapChain = *gm.getContextComponent<MainSwapChainContext, SwapChainComponent>()->swapChainInstance;
 	auto& dManager = *gm.getContextComponent<DescriptorManagerContext, DescriptorManagerComponent>();
 	auto& pManager = *gm.getContextComponent<PipelineManagerContext, PipelineManagerComponent>()->pipelineManager;
+	auto& settings = *gm.getContextComponent<GraphicsSettingsContext, GraphicsSettingsComponent>();
+
+	ColorGradingPush grading{
+	    .space = settings.gradingSpace,
+	    .exposure = settings.colorExposure,
+	    .contrast = settings.contrast,
+	    .saturation = settings.saturation,
+	    .temperature = settings.temperature,
+	    .tint = settings.tint,
+	};
 
 	vk::ClearValue clearBlack = vk::ClearColorValue(0.0f, 0.0f, 0.0f, 0.0f);
 	rg.addPass(
@@ -86,7 +109,7 @@ void ToneMappingPass::addToGraph(Orhescyon::GeneralManager& gm, RenderGraph& rg,
 	    {.colorAttachments = {{"PostProcessColor", vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore,
 	                           clearBlack}}},
 	    {{"MainColor", RGResourceUsage::ShaderRead}}, {{"PostProcessColor", RGResourceUsage::ColorAttachmentWrite}},
-	    [&, frame,dset = _dSetMainColor](vk::raii::CommandBuffer& cmd)
+	    [&, frame, grading, dset = _dSetMainColor](vk::raii::CommandBuffer& cmd)
 	    {
 		    cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pManager.pipelines["tone_mapping"].pipeline);
 
@@ -98,6 +121,9 @@ void ToneMappingPass::addToGraph(Orhescyon::GeneralManager& gm, RenderGraph& rg,
 		                           dManager.descriptorManager->getSet(dset), nullptr);
 		    cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pManager.pipelines["tone_mapping"].layout, 1,
 		                           dManager.descriptorManager->getSet(_dSetExposure, frame), nullptr);
+
+		    cmd.pushConstants<ColorGradingPush>(*pManager.pipelines["tone_mapping"].layout,
+		                                        vk::ShaderStageFlagBits::eFragment, 0, grading);
 
 		    cmd.setCullMode(vk::CullModeFlagBits::eNone);
 		    cmd.draw(3, 1, 0, 0);

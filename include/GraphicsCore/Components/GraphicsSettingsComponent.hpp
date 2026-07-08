@@ -18,6 +18,13 @@ struct HALCYON_API GraphicsSettingsComponent
 	float bloomThreshold = 1.0f;
 	float bloomKnee = 0.3f;
 	float bloomIntensity = 0.08f;
+	// Color grading (tone mapping)
+	int gradingSpace = 2; // 0 = Display (post-AgX), 1 = Linear (HDR), 2 = Log (pre-AgX)
+	float colorExposure = 0.0f; // EV compensation
+	float contrast = 1.0f;
+	float saturation = 1.0f;
+	float temperature = 0.0f;
+	float tint = 0.0f;
 	//bool enableToneMapping = true;
 	//bool enableGammaCorrection = true;
 	vk::SampleCountFlagBits msaaSamples = vk::SampleCountFlagBits::e4;

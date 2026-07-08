@@ -484,6 +484,24 @@ void ImGuiSystem::update(GeneralManager& gm)
 					ImGui::DragFloat("Bloom Intensity", &settings->bloomIntensity, 0.001f, 0.0f, 1.0f);
 				}
 
+				ImGui::SeparatorText("Color Grading");
+				const char* gradingSpaces[] = { "Display (post-tonemap)", "Linear (HDR)", "Log" };
+				ImGui::Combo("Grading Space", &settings->gradingSpace, gradingSpaces, IM_ARRAYSIZE(gradingSpaces));
+				ImGui::SliderFloat("Exposure", &settings->colorExposure, -4.0f, 4.0f);
+				ImGui::SliderFloat("Contrast", &settings->contrast, 0.0f, 2.0f);
+				ImGui::SliderFloat("Saturation", &settings->saturation, 0.0f, 2.0f);
+				ImGui::SliderFloat("Temperature", &settings->temperature, -1.0f, 1.0f);
+				ImGui::SliderFloat("Tint", &settings->tint, -1.0f, 1.0f);
+				if (ImGui::Button("Reset Color Grading"))
+				{
+					settings->gradingSpace = 2;
+					settings->colorExposure = 0.0f;
+					settings->contrast = 1.0f;
+					settings->saturation = 1.0f;
+					settings->temperature = 0.0f;
+					settings->tint = 0.0f;
+				}
+
 				auto* vulkanDeviceComponent = gm.getContextComponent<MainVulkanDeviceContext, VulkanDeviceComponent>();
 				if (vulkanDeviceComponent && vulkanDeviceComponent->vulkanDeviceInstance)
 				{
