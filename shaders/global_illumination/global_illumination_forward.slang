@@ -337,9 +337,19 @@ float3 sampleSHProbes(float3 worldPos, float3 N)
 
         // Slot layout matches the bake loop in bakeAll: x fastest, slot 0 = skybox
         uint slot = 1u + uint(idx.x + grid.count.x * (idx.y + grid.count.y * idx.z));
-        if (shProbes[slot]._p0 > PROBE_BACKFACE_THRESHOLD) continue;
 
-        float w = axisW.x * axisW.y * axisW.z;
+        // Smooth backface validity
+        float validity = saturate(1.0 - shProbes[slot]._p0 / PROBE_BACKFACE_THRESHOLD);
+        if (validity <= 0.0) continue;
+
+        // Wrap weight kills probes behind the shaded surface, blocking through-wall leaks
+        // (Majercik et al. 2019, "Dynamic Diffuse Global Illumination with Ray-Traced Irradiance Fields")
+        float3 probePos = grid.origin + grid.spacing * float3(idx);
+        float3 dirToProbe = normalize(probePos - worldPos);
+        float wrap = (dot(dirToProbe, N) + 1.0) * 0.5;
+        float dirW = wrap * wrap + 0.05;
+
+        float w = axisW.x * axisW.y * axisW.z * validity * dirW;
         for (int k = 0; k < 9; ++k)
             sh[k] += getProbeCoeff(slot, k) * w;
         totalW += w;
