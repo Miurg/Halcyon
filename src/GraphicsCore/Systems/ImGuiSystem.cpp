@@ -602,6 +602,10 @@ void ImGuiSystem::update(GeneralManager& gm)
 				ImGui::DragFloat("Spacing", &globalIllumination->spacing, 0.05f, 0.01f, 10.0f);
 				ImGui::DragFloat("Capture Range", &globalIllumination->captureRange, 1.0f, 1.0f, 1000.0f);
 
+				ImGui::SeparatorText("GI Ambient");
+				ImGui::ColorEdit3("GI Ambient Color", glm::value_ptr(globalIllumination->giAmbientColor));
+				ImGui::DragFloat("GI Ambient Intensity", &globalIllumination->giAmbientIntensity, 0.001f, 0.0f, 10.0f);
+
 				if (ImGui::Button("Bake Global Illumination", ImVec2(200, 20)))
 				{
 					globalIllumination->needBake = true;

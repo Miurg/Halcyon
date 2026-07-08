@@ -92,7 +92,8 @@ struct HALCYON_API SHProbeEntry
     // Total: 10 × 16 = 160 bytes
 };
 
-// Tightly packed 48 bytes — must match SHGridInfo in standard_forward.slang.
+// std430 layout — must match SHGridInfo in the GI shaders (64 bytes). giAmbient is a float3, which
+// std430 aligns to the 16-byte boundary after captureRange, hence alignas(16).
 struct HALCYON_API SHGridInfo
 {
     glm::vec3 origin;
@@ -100,7 +101,7 @@ struct HALCYON_API SHGridInfo
     glm::ivec3 count;
     uint32_t probeCount; // grid probes + skybox slot 0; 1 = nothing baked
     float captureRange;
-    float _pad[3];
+    alignas(16) glm::vec3 giAmbient; // GI-only constant ambient (color × intensity), baked in instead of the sun's ambient
 };
 
 // Must match ReflectionProbeData in standard_forward.slang (std430, 48 bytes).
