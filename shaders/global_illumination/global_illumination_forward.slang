@@ -419,7 +419,7 @@ FragOutput fragMain(VSOutput input, bool isFrontFace: SV_IsFrontFace)
     float3 directionalLightRadiance = directionalLight[0].color.rgb * directionalLight[0].color.a;
     float3 constantAmbient = shGridInfo[0].giAmbient;
 
-    float3 radiance = albedo.rgb / PI * NdotL * shadow
+    float3 radiance = albedo.rgb / PI * NdotL * shadow * directionalLightRadiance
                 + albedo.rgb / PI * sampleSHProbes(input.fragWorldPos, finalNormal)
                 + constantAmbient + emissive;
 
