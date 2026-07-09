@@ -72,6 +72,8 @@ void PlaceholdersInit::initPlaceholders(GeneralManager& gm)
 	glm::vec4 directLightAmbient = directLightColor;
 	directLightAmbient.w *= 0.0f;
 	gm.addComponent<GlobalTransformComponent>(directLightEntity, directLightPos, directLightRot);
+	gm.addComponent<LocalTransformComponent>(directLightEntity, directLightPos, directLightRot);
+	gm.addComponent<RelationshipComponent>(directLightEntity);
 	gm.addComponent<DirectLightComponent>(directLightEntity, 4000, 4000, directLightColor, directLightAmbient);
 	gm.registerContext<SunContext>(directLightEntity);
 	CameraComponent* directLightCamera = gm.getContextComponent<SunContext, CameraComponent>();
@@ -325,4 +327,5 @@ void PlaceholdersInit::initPlaceholders(GeneralManager& gm)
 void PlaceholdersInit::initAfterCorePlaceholders(GeneralManager& gm) 
 {
 	gm.subscribeEntity<TransformSystem>(gm.getContext<MainCameraContext>());
+	gm.subscribeEntity<TransformSystem>(gm.getContext<SunContext>());
 }
