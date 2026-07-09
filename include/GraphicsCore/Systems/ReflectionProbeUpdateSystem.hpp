@@ -6,8 +6,8 @@
 #include "GraphicsCore/VulkanConst.hpp"
 #include <Orhescyon/GeneralManager.hpp>
 #include <Orhescyon/Systems/SystemCore.hpp>
-#include "GraphicsCore/Systems/FrameBeginSystem.hpp"
-#include "GraphicsCore/Systems/BufferUpdateSystem.hpp"
+#include "GraphicsCore/Systems/FrameEndSystem.hpp"
+#include "GraphicsCore/Systems/LightProbeGIBakeSystem.hpp"
 #include <array>
 
 using Orhescyon::GeneralManager;
@@ -34,11 +34,11 @@ public:
 	void onEntityUnsubscribed(Orhescyon::Entity entity, GeneralManager& gm) override;
 	std::vector<std::type_index> getAfterSystems() override
 	{
-		return {typeid(FrameBeginSystem)};
+		return {typeid(LightProbeGIBakeSystem)};
 	}
 	std::vector<std::type_index> getBeforeSystems() override
 	{
-		return {typeid(BufferUpdateSystem)};
+		return {typeid(FrameEndSystem)};
 	}
 	std::vector<std::type_index> getReadComponents() override
 	{

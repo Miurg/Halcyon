@@ -265,8 +265,9 @@ void LightProbeGIBaking::bakeAll(GeneralManager& gm)
 
 	// Point sh_projection at the capture cubemap once for the whole bake.
 	Texture& captureTex = ctx.textureManager->textures[tempImages.captureHandle.id];
-	ctx.descriptorManagerComponent->descriptorManager->updateGICaptureCubemapDescriptor(
-	    *ctx.bindlessDSet, captureTex.textureImageView, captureTex.textureSampler);
+	ctx.descriptorManagerComponent->descriptorManager->update(
+	    ctx.bindlessDSet->bindlessTextureSet, Bindings::Textures::GICaptureCubemap, 0,
+	    vk::DescriptorType::eCombinedImageSampler, captureTex.textureImageView, captureTex.textureSampler);
 
 	const float influenceRadius = ctx.grid->spacing * 1.2f;
 	const glm::ivec3 gridCount = ctx.grid->count;
@@ -293,8 +294,9 @@ void LightProbeGIBaking::bakeAll(GeneralManager& gm)
 
 	// Re-point the capture binding at the skybox before the capture cubemap is destroyed.
 	Texture& skyboxTex = ctx.textureManager->textures[ctx.skybox->cubemapTexture.id];
-	ctx.descriptorManagerComponent->descriptorManager->updateGICaptureCubemapDescriptor(
-	    *ctx.bindlessDSet, skyboxTex.textureImageView, skyboxTex.textureSampler);
+	ctx.descriptorManagerComponent->descriptorManager->update(
+	    ctx.bindlessDSet->bindlessTextureSet, Bindings::Textures::GICaptureCubemap, 0,
+	    vk::DescriptorType::eCombinedImageSampler, skyboxTex.textureImageView, skyboxTex.textureSampler);
 
 	// All submissions must finish before we free temp cubemap/depth.
 	ctx.device->device.waitIdle();

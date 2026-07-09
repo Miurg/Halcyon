@@ -236,7 +236,9 @@ TextureHandle TextureManager::generateTextureData(const char texturePath[MAX_PAT
 
 	TextureHandle handle{slot};
 	texturePaths[std::string(texturePath)] = handle;
-	dManager.updateBindlessTextureSet(texture.textureImageView, texture.textureSampler, dSetComponent, handle.id);
+	dManager.update(dSetComponent.bindlessTextureSet, Bindings::Textures::Array, 0,
+	                vk::DescriptorType::eCombinedImageSampler, texture.textureImageView, texture.textureSampler,
+	                vk::ImageLayout::eShaderReadOnlyOptimal, static_cast<uint32_t>(handle.id));
 	return handle;
 }
 
@@ -254,7 +256,9 @@ TextureHandle TextureManager::generateTextureDataFromKtx(const char texturePath[
 
 	TextureHandle handle{slot};
 	texturePaths[std::string(texturePath)] = handle;
-	dManager.updateBindlessTextureSet(texture.textureImageView, texture.textureSampler, dSetComponent, handle.id);
+	dManager.update(dSetComponent.bindlessTextureSet, Bindings::Textures::Array, 0,
+	                vk::DescriptorType::eCombinedImageSampler, texture.textureImageView, texture.textureSampler,
+	                vk::ImageLayout::eShaderReadOnlyOptimal, static_cast<uint32_t>(handle.id));
 	return handle;
 }
 
@@ -536,8 +540,11 @@ TextureHandle TextureManager::generateCubemapFromHdr(TextureHandle hdrTexture, D
 	viewInfo.subresourceRange.layerCount = 6;
 	vk::raii::ImageView storageImageView(vulkanDevice.device, viewInfo);
 
-	dManager.updateCubemapDescriptors(dSetComponent, cubemapTexture.textureImageView, cubemapTexture.textureSampler,
-	                                  *storageImageView);
+	dManager.update(dSetComponent.bindlessTextureSet, Bindings::Textures::CubemapSampler, 0,
+	                vk::DescriptorType::eCombinedImageSampler, cubemapTexture.textureImageView,
+	                cubemapTexture.textureSampler);
+	dManager.update(dSetComponent.bindlessTextureSet, Bindings::Textures::CubemapStorage, 0,
+	                vk::DescriptorType::eStorageImage, *storageImageView, nullptr, vk::ImageLayout::eGeneral);
 
 	// Convert Equirectangular to Cubemap
 	auto cmd = VulkanUtils::beginSingleTimeCommands(vulkanDevice);
@@ -610,8 +617,11 @@ TextureHandle TextureManager::generatePrefilteredEnvMap(TextureHandle envCubemap
 		vk::raii::ImageView mipStorageView(vulkanDevice.device, viewInfo);
 
 		// Update cubemap descriptors: environment stays as sampler, output is this mip
-		dManager.updateCubemapDescriptors(dSetComponent, textures[envCubemap.id].textureImageView,
-		                                  textures[envCubemap.id].textureSampler, *mipStorageView);
+		dManager.update(dSetComponent.bindlessTextureSet, Bindings::Textures::CubemapSampler, 0,
+		                vk::DescriptorType::eCombinedImageSampler, textures[envCubemap.id].textureImageView,
+		                textures[envCubemap.id].textureSampler);
+		dManager.update(dSetComponent.bindlessTextureSet, Bindings::Textures::CubemapStorage, 0,
+		                vk::DescriptorType::eStorageImage, *mipStorageView, nullptr, vk::ImageLayout::eGeneral);
 
 		auto cmd = VulkanUtils::beginSingleTimeCommands(vulkanDevice);
 

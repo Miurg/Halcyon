@@ -3,8 +3,8 @@
 #include "HalcyonExport.hpp"
 #include <Orhescyon/GeneralManager.hpp>
 #include <Orhescyon/Systems/SystemCore.hpp>
-#include "GraphicsCore/Systems/FrameBeginSystem.hpp"
-#include "GraphicsCore/Systems/ReflectionProbeUpdateSystem.hpp"
+#include "GraphicsCore/Systems/RenderSystem.hpp"
+#include "GraphicsCore/Systems/FrameEndSystem.hpp"
 
 using Orhescyon::GeneralManager;
 
@@ -16,10 +16,10 @@ public:
 	void onShutdown(GeneralManager& gm) override;
 	std::vector<std::type_index> getAfterSystems() override
 	{
-		return {typeid(FrameBeginSystem)};
+		return {typeid(RenderSystem)};
 	}
 	std::vector<std::type_index> getBeforeSystems() override
 	{
-		return {typeid(ReflectionProbeUpdateSystem)};
+		return {typeid(FrameEndSystem)};
 	}
 };

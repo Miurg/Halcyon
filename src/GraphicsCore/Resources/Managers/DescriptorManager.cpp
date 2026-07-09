@@ -246,62 +246,11 @@ void DescriptorManager::update(DSetHandle dSet, uint32_t binding, uint32_t copyI
 	vulkanDevice.device.updateDescriptorSets(write, {});
 }
 
-void DescriptorManager::updateBindlessTextureSet(vk::ImageView textureImageView, vk::Sampler textureSampler,
-                                                 BindlessTextureDSetComponent& dSetComponent, int textureNumber)
-{
-	update(dSetComponent.bindlessTextureSet, Bindings::Textures::Array, 0, vk::DescriptorType::eCombinedImageSampler,
-	       textureImageView, textureSampler, vk::ImageLayout::eShaderReadOnlyOptimal,
-	       static_cast<uint32_t>(textureNumber));
-}
-
-void DescriptorManager::updateCubemapDescriptors(BindlessTextureDSetComponent& dSetComponent,
-                                                 vk::ImageView cubemapImageView, vk::Sampler cubemapSampler,
-                                                 vk::ImageView storageImageView)
-{
-	update(dSetComponent.bindlessTextureSet, Bindings::Textures::CubemapSampler, 0,
-	       vk::DescriptorType::eCombinedImageSampler, cubemapImageView, cubemapSampler);
-	update(dSetComponent.bindlessTextureSet, Bindings::Textures::CubemapStorage, 0, vk::DescriptorType::eStorageImage,
-	       storageImageView, nullptr, vk::ImageLayout::eGeneral);
-}
-
-void DescriptorManager::updateIBLDescriptors(BindlessTextureDSetComponent& dSetComponent, vk::ImageView prefilteredView,
-                                             vk::Sampler prefilteredSampler, vk::ImageView brdfLutView,
-                                             vk::Sampler brdfLutSampler)
-{
-	update(dSetComponent.bindlessTextureSet, Bindings::Textures::PrefilteredMap, 0,
-	       vk::DescriptorType::eCombinedImageSampler, prefilteredView, prefilteredSampler);
-	update(dSetComponent.bindlessTextureSet, Bindings::Textures::BrdfLut, 0, vk::DescriptorType::eCombinedImageSampler,
-	       brdfLutView, brdfLutSampler);
-}
-
 void DescriptorManager::updateSingleTextureDSet(DSetHandle dIndex, int binding, vk::ImageView imageView,
                                                 vk::Sampler sampler)
 {
 	for (uint32_t i = 0; i < getSetCount(dIndex); ++i)
 		update(dIndex, static_cast<uint32_t>(binding), i, vk::DescriptorType::eCombinedImageSampler, imageView, sampler);
-}
-
-void DescriptorManager::updateCubemapSamplerDescriptor(BindlessTextureDSetComponent& dSetComponent,
-                                                       vk::ImageView cubemapImageView, vk::Sampler cubemapSampler)
-{
-	update(dSetComponent.bindlessTextureSet, Bindings::Textures::CubemapSampler, 0,
-	       vk::DescriptorType::eCombinedImageSampler, cubemapImageView, cubemapSampler);
-}
-
-void DescriptorManager::updateGICaptureCubemapDescriptor(BindlessTextureDSetComponent& dSetComponent,
-                                                         vk::ImageView cubemapImageView, vk::Sampler cubemapSampler)
-{
-	update(dSetComponent.bindlessTextureSet, Bindings::Textures::GICaptureCubemap, 0,
-	       vk::DescriptorType::eCombinedImageSampler, cubemapImageView, cubemapSampler);
-}
-
-void DescriptorManager::updateReflectionCubemap(BindlessTextureDSetComponent& dSetComponent,
-                                                vk::ImageView cubemapImageView, vk::Sampler cubemapSampler,
-                                                uint32_t probeIndex)
-{
-	update(dSetComponent.bindlessTextureSet, Bindings::Textures::ReflectionCubemaps, 0,
-	       vk::DescriptorType::eCombinedImageSampler, cubemapImageView, cubemapSampler,
-	       vk::ImageLayout::eShaderReadOnlyOptimal, probeIndex);
 }
 
 void DescriptorManager::updateStorageBufferDescriptors(BufferManager& bManager, BufferHandle bNumber, DSetHandle dSet,

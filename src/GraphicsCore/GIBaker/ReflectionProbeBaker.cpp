@@ -17,6 +17,7 @@
 #include "GraphicsCore/Resources/Managers/BufferManager.hpp"
 #include "GraphicsCore/Resources/Managers/TextureManager.hpp"
 #include "GraphicsCore/Resources/Managers/DescriptorManager.hpp"
+#include "GraphicsCore/Resources/Managers/Bindings.hpp"
 #include "GraphicsCore/Resources/Managers/ModelManager.hpp"
 #include "GraphicsCore/Managers/PipelineManager.hpp"
 #include "GraphicsCore/Passes/PassCommands.hpp"
@@ -334,9 +335,11 @@ void ReflectionProbeBaker::bake(GeneralManager& gm, ReflectionProbeComponent& pr
 	TextureHandle prefiltered = ctx.textureManager->generatePrefilteredEnvMap(
 	    cap.cubemap, *ctx.descriptorManagerComponent->descriptorManager, *ctx.bindlessDSet, *ctx.pipelineManager);
 
-	ctx.descriptorManagerComponent->descriptorManager->updateReflectionCubemap(
-	    *ctx.bindlessDSet, ctx.textureManager->textures[prefiltered.id].textureImageView,
-	    ctx.textureManager->textures[prefiltered.id].textureSampler, static_cast<uint32_t>(cubemapSlot));
+	ctx.descriptorManagerComponent->descriptorManager->update(
+	    ctx.bindlessDSet->bindlessTextureSet, Bindings::Textures::ReflectionCubemaps, 0,
+	    vk::DescriptorType::eCombinedImageSampler, ctx.textureManager->textures[prefiltered.id].textureImageView,
+	    ctx.textureManager->textures[prefiltered.id].textureSampler, vk::ImageLayout::eShaderReadOnlyOptimal,
+	    static_cast<uint32_t>(cubemapSlot));
 
 	probe.prefilteredMap = prefiltered;
 	probe.cubemapIndex = cubemapSlot;
@@ -347,8 +350,9 @@ void ReflectionProbeBaker::bake(GeneralManager& gm, ReflectionProbeComponent& pr
 	// Restore the skybox cubemap sampler (generatePrefilteredEnvMap left it pointing at the capture)
 	// and the main camera buffer / grid capture range.
 	Texture& skyTex = ctx.textureManager->textures[ctx.skybox->cubemapTexture.id];
-	ctx.descriptorManagerComponent->descriptorManager->updateCubemapSamplerDescriptor(
-	    *ctx.bindlessDSet, skyTex.textureImageView, skyTex.textureSampler);
+	ctx.descriptorManagerComponent->descriptorManager->update(
+	    ctx.bindlessDSet->bindlessTextureSet, Bindings::Textures::CubemapSampler, 0,
+	    vk::DescriptorType::eCombinedImageSampler, skyTex.textureImageView, skyTex.textureSampler);
 	std::memcpy(camBuf.bufferMapped[0], &savedCam, sizeof(CameraStructure));
 	gridInfo->captureRange = savedRange;
 }

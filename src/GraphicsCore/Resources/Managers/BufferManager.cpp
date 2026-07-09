@@ -1,5 +1,6 @@
 #include "GraphicsCore/Resources/Managers/BufferManager.hpp"
 #include "GraphicsCore/Resources/Managers/DescriptorManager.hpp"
+#include "GraphicsCore/Resources/Managers/Bindings.hpp"
 #include "GraphicsCore/Resources/Managers/TextureManager.hpp"
 #include "GraphicsCore/Managers/PipelineManager.hpp"
 #include "GraphicsCore/VulkanUtils.hpp"
@@ -37,7 +38,8 @@ void BufferManager::bakeSHForProbe(TextureHandle envCubemap, BufferHandle probeB
                                    DSetHandle globalDSet, PipelineManager& pManager, TextureManager& tManager)
 {
 	Texture& envTex = tManager.textures[envCubemap.id];
-	dManager.updateGICaptureCubemapDescriptor(dSetComponent, envTex.textureImageView, envTex.textureSampler);
+	dManager.update(dSetComponent.bindlessTextureSet, Bindings::Textures::GICaptureCubemap, 0,
+	                vk::DescriptorType::eCombinedImageSampler, envTex.textureImageView, envTex.textureSampler);
 
 	auto cmd = VulkanUtils::beginSingleTimeCommands(vulkanDevice);
 	recordSHProjection(cmd, static_cast<int>(envTex.width), probeSlot, dManager, dSetComponent, globalDSet, pManager);

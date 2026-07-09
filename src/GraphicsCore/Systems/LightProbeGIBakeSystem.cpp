@@ -30,6 +30,8 @@ void LightProbeGIBakeSystem::update(GeneralManager& gm)
 	if (probeGrid->count.x + probeGrid->count.y + probeGrid->count.z <= 0) return;
 
 	LightProbeGIBaking::bakeAll(gm);
+	LightProbeGIBaking::bakeAll(gm);
+	LightProbeGIBaking::bakeAll(gm);
 	probeGrid->needBake = false;
 
 	for (auto entity : gm.getActiveEntities())

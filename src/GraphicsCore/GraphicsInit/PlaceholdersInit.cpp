@@ -226,11 +226,19 @@ void PlaceholdersInit::initPlaceholders(GeneralManager& gm)
 		VulkanUtils::endSingleTimeCommands(cmd, *vulkanDevice);
 	}
 
-	dManager->updateCubemapDescriptors(*bTextureDSetComponent, whiteCubemap.textureImageView,
-	                                   whiteCubemap.textureSampler, whiteCubemap.textureImageView);
+	dManager->update(bTextureDSetComponent->bindlessTextureSet, Bindings::Textures::CubemapSampler, 0,
+	                 vk::DescriptorType::eCombinedImageSampler, whiteCubemap.textureImageView,
+	                 whiteCubemap.textureSampler);
+	dManager->update(bTextureDSetComponent->bindlessTextureSet, Bindings::Textures::CubemapStorage, 0,
+	                 vk::DescriptorType::eStorageImage, whiteCubemap.textureImageView, nullptr,
+	                 vk::ImageLayout::eGeneral);
 
-	dManager->updateIBLDescriptors(*bTextureDSetComponent, whiteCubemap.textureImageView, whiteCubemap.textureSampler,
-	                               whiteCubemap.textureImageView, whiteCubemap.textureSampler);
+	dManager->update(bTextureDSetComponent->bindlessTextureSet, Bindings::Textures::PrefilteredMap, 0,
+	                 vk::DescriptorType::eCombinedImageSampler, whiteCubemap.textureImageView,
+	                 whiteCubemap.textureSampler);
+	dManager->update(bTextureDSetComponent->bindlessTextureSet, Bindings::Textures::BrdfLut, 0,
+	                 vk::DescriptorType::eCombinedImageSampler, whiteCubemap.textureImageView,
+	                 whiteCubemap.textureSampler);
 
 	// BRDF LUT - generated once, reused across all skybox changes
 	TextureHandle brdfLutHandle = tManager->generateBrdfLut(*dManager, *bTextureDSetComponent, pManager);

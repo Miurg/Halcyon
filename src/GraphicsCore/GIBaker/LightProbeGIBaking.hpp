@@ -20,6 +20,7 @@
 #include "GraphicsCore/Resources/Managers/BufferManager.hpp"
 #include "GraphicsCore/Resources/Managers/TextureManager.hpp"
 #include "GraphicsCore/Resources/Managers/DescriptorManager.hpp"
+#include "GraphicsCore/Resources/Managers/Bindings.hpp"
 #include "GraphicsCore/Managers/PipelineManager.hpp"
 #include "GraphicsCore/Passes/PassCommands.hpp"
 #include "GraphicsCore/VulkanUtils.hpp"

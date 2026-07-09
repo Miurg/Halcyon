@@ -2,6 +2,7 @@
 
 #include "GraphicsCore/Resources/Managers/TextureManager.hpp"
 #include "GraphicsCore/Resources/Managers/DescriptorManager.hpp"
+#include "GraphicsCore/Resources/Managers/Bindings.hpp"
 #include "GraphicsCore/Resources/Managers/BufferManager.hpp"
 #include "GraphicsCore/Resources/Factories/TextureUploader.hpp"
 #include "GraphicsCore/Components/TextureManagerComponent.hpp"
@@ -44,8 +45,9 @@ void SkyboxFactory::loadSkybox(const std::string& hdrPath, GeneralManager& gm)
 	tManager.texturePaths[hdrPath] = TextureHandle{hdrIndex};
 	TextureHandle hdrHandle = tManager.texturePaths[hdrPath];
 
-	dManager.updateBindlessTextureSet(hdrTexture.textureImageView, hdrTexture.textureSampler,
-	                                   bTextureDSetComponent, hdrIndex);
+	dManager.update(bTextureDSetComponent.bindlessTextureSet, Bindings::Textures::Array, 0,
+	                vk::DescriptorType::eCombinedImageSampler, hdrTexture.textureImageView, hdrTexture.textureSampler,
+	                vk::ImageLayout::eShaderReadOnlyOptimal, static_cast<uint32_t>(hdrIndex));
 
 	TextureHandle cubemapHandle =
 	    tManager.generateCubemapFromHdr(hdrHandle, dManager, bTextureDSetComponent, pManager);
@@ -57,11 +59,12 @@ void SkyboxFactory::loadSkybox(const std::string& hdrPath, GeneralManager& gm)
 
 	TextureHandle prefilteredHandle = tManager.generatePrefilteredEnvMap(cubemapHandle, dManager,
 	                                                                      bTextureDSetComponent, pManager);
-	dManager.updateIBLDescriptors(bTextureDSetComponent,
-	                               tManager.textures[prefilteredHandle.id].textureImageView,
-	                               tManager.textures[prefilteredHandle.id].textureSampler,
-	                               tManager.textures[skybox.brdfLut.id].textureImageView,
-	                               tManager.textures[skybox.brdfLut.id].textureSampler);
+	dManager.update(bTextureDSetComponent.bindlessTextureSet, Bindings::Textures::PrefilteredMap, 0,
+	                vk::DescriptorType::eCombinedImageSampler, tManager.textures[prefilteredHandle.id].textureImageView,
+	                tManager.textures[prefilteredHandle.id].textureSampler);
+	dManager.update(bTextureDSetComponent.bindlessTextureSet, Bindings::Textures::BrdfLut, 0,
+	                vk::DescriptorType::eCombinedImageSampler, tManager.textures[skybox.brdfLut.id].textureImageView,
+	                tManager.textures[skybox.brdfLut.id].textureSampler);
 
 	skybox.cubemapTexture = cubemapHandle;
 	skybox.prefilteredMap = prefilteredHandle;
