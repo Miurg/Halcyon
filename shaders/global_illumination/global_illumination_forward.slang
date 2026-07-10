@@ -66,6 +66,7 @@ struct SHGridInfo
     float3 origin; float spacing;
     int3 count;    uint probeCount;
     float captureRange; float3 giAmbient;
+    float giBounceMultiplier;
 };
 [[vk::binding(5, 0)]]
 StructuredBuffer<SHGridInfo> shGridInfo;
@@ -417,11 +418,10 @@ FragOutput fragMain(VSOutput input, bool isFrontFace: SV_IsFrontFace)
     float NdotL = max(dot(finalNormal, L), 0.0);
     float shadow = ComputeShadow(input.shadowCoord, directionalLight[0].shadowMapSize.zw, finalNormal, L);
     float3 directionalLightRadiance = directionalLight[0].color.rgb * directionalLight[0].color.a;
-    float3 constantAmbient = shGridInfo[0].giAmbient;
 
     float3 radiance = albedo.rgb / PI * NdotL * shadow * directionalLightRadiance
-                + albedo.rgb / PI * sampleSHProbes(input.fragWorldPos, finalNormal)
-                + constantAmbient + emissive;
+                + albedo.rgb / PI * sampleSHProbes(input.fragWorldPos, finalNormal) * shGridInfo[0].giBounceMultiplier
+                + shGridInfo[0].giAmbient + emissive;
 
     FragOutput output;
     output.color = float4(radiance, 1.0);

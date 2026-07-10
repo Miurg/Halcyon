@@ -102,6 +102,7 @@ struct HALCYON_API SHGridInfo
     uint32_t probeCount; // grid probes + skybox slot 0; 1 = nothing baked
     float captureRange;
     alignas(16) glm::vec3 giAmbient; // GI-only constant ambient (color × intensity), baked in instead of the sun's ambient
+    float giBounceMultiplier;        // scales GI sampled by the bake itself (multi-bounce feedback)
 };
 
 // Must match ReflectionProbeData in standard_forward.slang (std430, 48 bytes).

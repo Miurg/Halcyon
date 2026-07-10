@@ -89,6 +89,7 @@ static void writeGridInfo(const BakeContext& ctx, int total)
 	gridInfo->probeCount = static_cast<uint32_t>(1 + total);
 	gridInfo->captureRange = ctx.grid->captureRange;
 	gridInfo->giAmbient = ctx.grid->giAmbientColor * ctx.grid->giAmbientIntensity;
+	gridInfo->giBounceMultiplier = ctx.grid->giBounceMultiplier;
 }
 
 static void destroyTempImages(const BakeContext& ctx, TempImages& tmp)

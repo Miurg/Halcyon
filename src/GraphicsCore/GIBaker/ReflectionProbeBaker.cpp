@@ -255,12 +255,14 @@ void ReflectionProbeBaker::bake(GeneralManager& gm, ReflectionProbeComponent& pr
 
 	ctx.device->device.waitIdle();
 
-	// Face draw distance lives in shGridInfo.captureRange (the bake shaders read it); the runtime
-	// never reads that field and the GI bake rewrites the whole struct, so poking it here is safe.
 	auto* gridInfo =
 	    static_cast<SHGridInfo*>(ctx.bufferManager->buffers[ctx.globalDSet->shGridInfoBuffer.id].bufferMapped[0]);
 	const float savedRange = gridInfo->captureRange;
+	const glm::vec3 savedAmbient = gridInfo->giAmbient;
+	const float savedBounce = gridInfo->giBounceMultiplier;
 	gridInfo->captureRange = probe.captureRange;
+	gridInfo->giAmbient = probe.giAmbientColor * probe.giAmbientIntensity;
+	gridInfo->giBounceMultiplier = probe.giBounceMultiplier;
 
 	// All-accepting frustum in the main camera buffer so the cull passes the whole scene; save/restore it.
 	auto& camBuf = ctx.bufferManager->buffers[ctx.globalDSet->cameraBuffers.id];
@@ -355,4 +357,6 @@ void ReflectionProbeBaker::bake(GeneralManager& gm, ReflectionProbeComponent& pr
 	    vk::DescriptorType::eCombinedImageSampler, skyTex.textureImageView, skyTex.textureSampler);
 	std::memcpy(camBuf.bufferMapped[0], &savedCam, sizeof(CameraStructure));
 	gridInfo->captureRange = savedRange;
+	gridInfo->giAmbient = savedAmbient;
+	gridInfo->giBounceMultiplier = savedBounce;
 }

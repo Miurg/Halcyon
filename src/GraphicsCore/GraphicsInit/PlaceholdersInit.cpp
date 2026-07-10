@@ -158,6 +158,7 @@ void PlaceholdersInit::initPlaceholders(GeneralManager& gm)
 	{
 		SHGridInfo initialGridInfo{};
 		initialGridInfo.probeCount = 1u;
+		initialGridInfo.giBounceMultiplier = 1.0f;
 		auto cmd = VulkanUtils::beginSingleTimeCommands(*vulkanDevice);
 		cmd.updateBuffer(bManager->buffers[globalDSetComponent->shGridInfoBuffer.id].buffer[0], 0,
 		                 vk::ArrayProxy<const SHGridInfo>(1, &initialGridInfo));

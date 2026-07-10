@@ -623,6 +623,7 @@ void ImGuiSystem::update(GeneralManager& gm)
 				ImGui::SeparatorText("GI Ambient");
 				ImGui::ColorEdit3("GI Ambient Color", glm::value_ptr(globalIllumination->giAmbientColor));
 				ImGui::DragFloat("GI Ambient Intensity", &globalIllumination->giAmbientIntensity, 0.001f, 0.0f, 10.0f);
+				ImGui::DragFloat("GI Bounce Multiplier", &globalIllumination->giBounceMultiplier, 0.01f, 0.0f, 10.0f);
 
 				if (ImGui::Button("Bake Global Illumination", ImVec2(200, 20)))
 				{
@@ -642,6 +643,12 @@ void ImGuiSystem::update(GeneralManager& gm)
 				ImGui::DragFloat3("Probe Origin", &reflectionProbe->origin.x, 0.1f);
 				ImGui::DragFloat3("Influence Half-Extent", &reflectionProbe->halfExtent.x, 0.1f, 0.1f, 1000.0f);
 				ImGui::DragFloat("Capture Range##refl", &reflectionProbe->captureRange, 1.0f, 1.0f, 1000.0f);
+
+				ImGui::SeparatorText("Capture GI");
+				ImGui::ColorEdit3("GI Ambient Color##refl", glm::value_ptr(reflectionProbe->giAmbientColor));
+				ImGui::DragFloat("GI Ambient Intensity##refl", &reflectionProbe->giAmbientIntensity, 0.001f, 0.0f, 10.0f);
+				ImGui::DragFloat("GI Bounce Multiplier##refl", &reflectionProbe->giBounceMultiplier, 0.01f, 0.0f, 10.0f);
+
 				if (ImGui::Button("Bake Reflection Probe", ImVec2(200, 20)))
 					reflectionProbe->needBake = true;
 			}
