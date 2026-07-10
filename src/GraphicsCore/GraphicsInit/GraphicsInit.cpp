@@ -283,8 +283,6 @@ void GraphicsInit::initImGui(GeneralManager& gm)
 	    gm.getContextComponent<MainVulkanDeviceContext, VulkanDeviceComponent>()->vulkanDeviceInstance;
 	Window* window = gm.getContextComponent<MainWindowContext, WindowComponent>()->windowInstance;
 	SwapChain* swapChain = gm.getContextComponent<MainSwapChainContext, SwapChainComponent>()->swapChainInstance;
-	DescriptorManager* dManager =
-	    gm.getContextComponent<DescriptorManagerContext, DescriptorManagerComponent>()->descriptorManager;
 
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
@@ -303,7 +301,8 @@ void GraphicsInit::initImGui(GeneralManager& gm)
 	initInfo.QueueFamily = vulkanDevice->graphicsIndex;
 	initInfo.Queue = *vulkanDevice->graphicsQueue;
 	initInfo.PipelineCache = nullptr;
-	initInfo.DescriptorPool = *dManager->imguiPool;
+	// Backend creates and owns its own pool: font atlas + headroom for ImGui_ImplVulkan_AddTexture calls.
+	initInfo.DescriptorPoolSize = IMGUI_IMPL_VULKAN_MINIMUM_IMAGE_SAMPLER_POOL_SIZE + 16;
 	initInfo.RenderPass = nullptr; // For dynamic rendering
 	initInfo.Subpass = 0;
 	initInfo.MinImageCount = 2; // Usually 2 or 3

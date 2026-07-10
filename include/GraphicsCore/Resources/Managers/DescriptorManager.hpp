@@ -16,7 +16,6 @@ class HALCYON_API DescriptorManager
 {
 public:
 	DescriptorManager(VulkanDevice& vulkanDevice);
-	~DescriptorManager();
 
 	// Register a named layout.
 	void registerLayout(const std::string& name, std::span<const vk::DescriptorSetLayoutBinding> bindings,
@@ -49,8 +48,6 @@ public:
 	{
 		return static_cast<uint32_t>(descriptorSets[handle.id].size());
 	}
-
-	vk::raii::DescriptorPool imguiPool = nullptr;
 
 private:
 	VulkanDevice& vulkanDevice;
