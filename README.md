@@ -2,9 +2,9 @@
 
 **Halcyon** is a custom rendering engine built from scratch in **C++** and **Vulkan**.
 
-![Image](https://github.com/user-attachments/assets/7f56ab3a-94a8-49e3-b51d-1e54397cefea)
+<img width="1919" height="977" alt="image_2026-07-10_06-17-30" src="https://github.com/user-attachments/assets/bd38d79f-0078-4f65-891e-5cc278ef9f09" />
 
-![Image](https://github.com/user-attachments/assets/d2c4ad00-2d68-4bc0-abc0-60c7defaabb7)
+![Image](https://github.com/user-attachments/assets/7f56ab3a-94a8-49e3-b51d-1e54397cefea)
 
 ## 🛠 Tech Stack
 
