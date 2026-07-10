@@ -29,6 +29,7 @@ void LightProbeGIBakeSystem::update(GeneralManager& gm)
 	if (probeGrid == nullptr || !probeGrid->needBake) return;
 	if (probeGrid->count.x + probeGrid->count.y + probeGrid->count.z <= 0) return;
 
+	LightProbeGIBaking::resetProbes(gm);
 	LightProbeGIBaking::bakeAll(gm);
 	LightProbeGIBaking::bakeAll(gm);
 	LightProbeGIBaking::bakeAll(gm);

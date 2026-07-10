@@ -88,6 +88,7 @@ class LightProbeGIBaking
 {
 public:
     static void bakeAll(GeneralManager& gm);
+    static void resetProbes(GeneralManager& gm);
 
 private:
 	static void bakeShadowMap(const BakeContext& ctx);

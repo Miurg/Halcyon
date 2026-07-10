@@ -240,6 +240,17 @@ static void recordChunkCull(vk::raii::CommandBuffer& cmd, const BakeContext& ctx
 	}
 }
 
+void LightProbeGIBaking::resetProbes(GeneralManager& gm)
+{
+	BakeContext ctx = gatherContext(gm);
+	ctx.device->device.waitIdle();
+
+	auto* probes =
+	    static_cast<SHProbeEntry*>(ctx.bufferManager->buffers[ctx.globalDSet->shProbeBuffer.id].bufferMapped[0]);
+	// Slot 0 is the skybox fallback (owned by SkyboxFactory), not a bake result — keep it
+	std::memset(probes + 1, 0, sizeof(SHProbeEntry) * (MAX_SH_PROBES - 1));
+}
+
 // Entry point
 void LightProbeGIBaking::bakeAll(GeneralManager& gm)
 {
