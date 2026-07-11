@@ -488,7 +488,7 @@ float ComputeShadow(float4 shadowCoord, float2 texelSize, float3 surfaceNormal, 
 
 // === IBL / Ambient ===
 
-float3 computeIrradiance(float3 n, float3 sh[9])
+float3 computeIrradiance(float3 n, float3 sh[4])
 {
     const float f0 = 0.28209479f;
     const float f1 = 0.48860251f;

@@ -263,7 +263,7 @@ float3 SampleNormalMap(uint mapIndex, float2 uv, float2 dx, float2 dy)
     return normalize(raw * 2.0 - 1.0);
 }
 
-float3 computeIrradiance(float3 n, float3 sh[9])
+float3 computeIrradiance(float3 n, float3 sh[4])
 {
     const float f0 = 0.28209479f;
     const float f1 = 0.48860251f;

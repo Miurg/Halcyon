@@ -42,7 +42,7 @@ using Orhescyon::GeneralManager;
 
 // Constants
 
-static constexpr uint32_t kCaptureSize = 128;
+static constexpr uint32_t kCaptureSize = 32;
 static constexpr vk::Format kCaptureFormat = vk::Format::eR16G16B16A16Sfloat;
 static constexpr int kProbesPerSubmit = 32; // keeps each submit's GPU work under the Windows TDR budget
 
