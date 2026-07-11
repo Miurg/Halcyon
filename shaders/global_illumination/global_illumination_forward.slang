@@ -52,11 +52,6 @@ struct SHProbeEntry
     float3 sh1; float _p1;
     float3 sh2; float _p2;
     float3 sh3; float _p3;
-    float3 sh4; float _p4;
-    float3 sh5; float _p5;
-    float3 sh6; float _p6;
-    float3 sh7; float _p7;
-    float3 sh8; float _p8;
 };
 [[vk::binding(4, 0)]]
 StructuredBuffer<SHProbeEntry> shProbes;
@@ -272,19 +267,31 @@ float3 computeIrradiance(float3 n, float3 sh[9])
 {
     const float f0 = 0.28209479f;
     const float f1 = 0.48860251f;
-    const float f2 = 1.09254843f;
     const float f3 = 0.31539156f;
-    const float f4 = 0.54627421f;
 
     float3 color = sh[0] * f0;
     color += sh[1] * (-f1 * n.y);
     color += sh[2] * (f1 * n.z);
     color += sh[3] * (-f1 * n.x);
-    color += sh[4] * (f2 * n.x * n.y);
-    color += sh[5] * (-f2 * n.y * n.z);
-    color += sh[6] * (f3 * (3.0f * n.z * n.z - 1.0f));
-    color += sh[7] * (-f2 * n.x * n.z);
-    color += sh[8] * (f4 * (n.x * n.x - n.y * n.y));
+
+    float3 vx = -sh[3];
+    float3 vy = -sh[1];
+    float3 vz = sh[2];
+
+    const float3 lum = float3(0.2126f, 0.7152f, 0.0722f);
+    float3 axis = float3(dot(vx, lum), dot(vy, lum), dot(vz, lum));
+    float axisLen = length(axis);
+    if (axisLen > 1e-6f)
+    {
+        axis /= axisLen;
+        float3 proj = abs(float3(dot(float3(vx.r, vy.r, vz.r), axis),
+                                 dot(float3(vx.g, vy.g, vz.g), axis),
+                                 dot(float3(vx.b, vy.b, vz.b), axis)));
+        float3 ratio = 1.5f * proj / max(sh[0], float3(1e-4f));
+        float3 zonal = 0.25f * sh[0] * (0.08f * ratio + 0.6f * ratio * ratio);
+        float fZ = dot(axis, n);
+        color += zonal * (f3 * (3.0f * fZ * fZ - 1.0f));
+    }
 
     return max(color, float3(0.0));
 }
@@ -296,12 +303,7 @@ float3 getProbeCoeff(uint idx, uint band)
     case 0: return shProbes[idx].sh0;
     case 1: return shProbes[idx].sh1;
     case 2: return shProbes[idx].sh2;
-    case 3: return shProbes[idx].sh3;
-    case 4: return shProbes[idx].sh4;
-    case 5: return shProbes[idx].sh5;
-    case 6: return shProbes[idx].sh6;
-    case 7: return shProbes[idx].sh7;
-    default: return shProbes[idx].sh8;
+    default: return shProbes[idx].sh3;
     }
 }
 
@@ -309,11 +311,11 @@ float3 sampleSHProbes(float3 worldPos, float3 N)
 {
     SHGridInfo grid = shGridInfo[0];
 
-    float3 sh[9];
+    float3 sh[4];
 
     if (grid.probeCount <= 1)
     {
-        for (int k = 0; k < 9; ++k) sh[k] = getProbeCoeff(0, k);
+        for (int k = 0; k < 4; ++k) sh[k] = getProbeCoeff(0, k);
         return computeIrradiance(N, sh);
     }
 
@@ -325,7 +327,7 @@ float3 sampleSHProbes(float3 worldPos, float3 N)
     int3 base = min(int3(clamped), max(grid.count - int3(2, 2, 2), int3(0, 0, 0)));
     float3 f = clamped - float3(base);
 
-    for (int k = 0; k < 9; ++k) sh[k] = float3(0.0, 0.0, 0.0);
+    for (int k = 0; k < 4; ++k) sh[k] = float3(0.0, 0.0, 0.0);
 
     float totalW = 0.0;
 
@@ -351,22 +353,22 @@ float3 sampleSHProbes(float3 worldPos, float3 N)
         float dirW = wrap * wrap + 0.05;
 
         float w = axisW.x * axisW.y * axisW.z * validity * dirW;
-        for (int k = 0; k < 9; ++k)
+        for (int k = 0; k < 4; ++k)
             sh[k] += getProbeCoeff(slot, k) * w;
         totalW += w;
     }
 
     if (totalW < 1e-4f)
     {
-        for (int k = 0; k < 9; ++k) sh[k] = getProbeCoeff(0, k);
+        for (int k = 0; k < 4; ++k) sh[k] = getProbeCoeff(0, k);
         return computeIrradiance(N, sh);
     }
 
-    for (int k = 0; k < 9; ++k) sh[k] /= totalW;
+    for (int k = 0; k < 4; ++k) sh[k] /= totalW;
 
     if (skyW > 0.0)
     {
-        for (int k = 0; k < 9; ++k)
+        for (int k = 0; k < 4; ++k)
             sh[k] = lerp(sh[k], getProbeCoeff(0, k), skyW);
     }
 
