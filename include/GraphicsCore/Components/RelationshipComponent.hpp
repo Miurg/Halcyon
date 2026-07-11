@@ -3,7 +3,7 @@
 #include "HalcyonExport.hpp"
 #include <Orhescyon/GeneralManager.hpp>
 
-const Orhescyon::Entity NULL_ENTITY = 0;
+inline constexpr Orhescyon::Entity NULL_ENTITY = Orhescyon::Entity::invalid();
 // Intrusive linked-list scene hierarchy. addChild() prepends to sibling list.
 struct HALCYON_API RelationshipComponent
 {

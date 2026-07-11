@@ -3,8 +3,6 @@
 #include <Orhescyon/Systems/SystemCore.hpp>
 
 #include "../Components/ControlComponent.hpp"
-#include <GraphicsCore/Systems/FrameBeginSystem.hpp>
-#include <GraphicsCore/Systems/DeltaTimeSystem.hpp>
 
 #include <PlatformCore/Components/KeyboardStateComponent.hpp>
 #include <PlatformCore/Components/CursorPositionComponent.hpp>
@@ -35,21 +33,4 @@ public:
 	{
 		std::cout << "ControlSystem shutdown!" << std::endl;
 	};
-	std::vector<std::type_index> getAfterSystems() override
-	{
-		return {typeid(DeltaTimeSystem)};
-	}
-	std::vector<std::type_index> getBeforeSystems() override
-	{
-		return {typeid(FrameBeginSystem)};
-	}
-	std::vector<std::type_index> getReadComponents() override
-	{
-		return {typeid(DeltaTimeComponent), typeid(KeyboardStateComponent), typeid(CameraComponent),
-		        typeid(ControlComponent)};
-	}
-	std::vector<std::type_index> getWriteComponents() override
-	{
-		return {typeid(GlobalTransformComponent), typeid(CursorPositionComponent)};
-	}
 };

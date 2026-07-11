@@ -3,8 +3,6 @@
 #include "HalcyonExport.hpp"
 #include <Orhescyon/GeneralManager.hpp>
 #include <Orhescyon/Systems/SystemCore.hpp>
-#include "GraphicsCore/Systems/FrameEndSystem.hpp"
-#include "GraphicsCore/Systems/DeltaTimeSystem.hpp"
 #include "GraphicsCore/Components/CurrentFrameComponent.hpp"
 #include "GraphicsCore/Components/FrameImageComponent.hpp"
 
@@ -15,16 +13,4 @@ public:
 	void update(GeneralManager& gm) override;
 	void onRegistered(GeneralManager& gm) override;
 	void onShutdown(GeneralManager& gm) override;
-	std::vector<std::type_index> getAfterSystems() override
-	{
-		return {typeid(DeltaTimeSystem)};
-	}
-	std::vector<std::type_index> getBeforeSystems() override
-	{
-		return {typeid(FrameEndSystem)};
-	}
-	std::vector<std::type_index> getWriteComponents() override
-	{
-		return {typeid(CurrentFrameComponent), typeid(FrameImageComponent)};
-	}
 };

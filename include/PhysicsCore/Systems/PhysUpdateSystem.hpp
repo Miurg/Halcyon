@@ -6,8 +6,6 @@
 #include <Orhescyon/Systems/SystemCore.hpp>
 
 #include "PhysicsCore/Components/PhysBodyComponent.hpp"
-#include "GraphicsCore/Systems/FrameBeginSystem.hpp"
-#include "GraphicsCore/Systems/DeltaTimeSystem.hpp"
 
 using Orhescyon::GeneralManager;
 class HALCYON_API PhysUpdateSystem : public Orhescyon::SystemCore<PhysUpdateSystem>

@@ -13,9 +13,4 @@ public:
 	void update(GeneralManager& gm) override;
 	void onRegistered(GeneralManager& gm) override;
 	void onShutdown(GeneralManager& gm) override;
-
-	std::vector<std::type_index> getReadComponents() override
-	{
-		return {typeid(FrameImageComponent)};
-	}
 };

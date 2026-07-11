@@ -10,8 +10,6 @@
 #include "GraphicsCore/Components/DrawInfoComponent.hpp"
 #include "GraphicsCore/Resources/Components/TextureInfoComponent.hpp"
 #include "GraphicsCore/Resources/Components/MeshInfoComponent.hpp"
-#include "GraphicsCore/Systems/BufferUpdateSystem.hpp"
-#include "GraphicsCore/Systems/FrameEndSystem.hpp"
 #include "GraphicsCore/Passes/IPass.hpp"
 
 class RenderGraph;
@@ -23,19 +21,6 @@ public:
 	void update(GeneralManager& gm) override;
 	void onRegistered(GeneralManager& gm) override;
 	void onShutdown(GeneralManager& gm) override;
-	std::vector<std::type_index> getAfterSystems() override
-	{
-		return {typeid(BufferUpdateSystem)};
-	}
-	std::vector<std::type_index> getBeforeSystems() override
-	{
-		return {typeid(FrameEndSystem)};
-	}
-	std::vector<std::type_index> getReadComponents() override
-	{
-		return {typeid(GlobalTransformComponent), typeid(MeshInfoComponent), typeid(DrawInfoComponent),
-		        typeid(CurrentFrameComponent)};
-	}
 
 private:
 	void importFrameResources(GeneralManager& gm, RenderGraph& rg, uint32_t imageIndex);

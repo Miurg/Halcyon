@@ -10,6 +10,7 @@
 #include "GraphicsCore/Components/RelationshipComponent.hpp"
 #include "GraphicsCore/Systems/TransformSystem.hpp"
 #include "GraphicsCore/Systems/RenderSystem.hpp"
+#include "GraphicsCore/Systems/BufferUpdateSystem.hpp"
 #include "GraphicsCore/Components/NameComponent.hpp"
 #include "GraphicsCore/Resources/Components/ModelComponent.hpp"
 #include "GraphicsCore/Components/CurrentFrameComponent.hpp"
@@ -30,7 +31,7 @@ glm::mat4 convertGLTFMatrix(const std::vector<double>& matrix)
 
 	return glm::make_mat4(m);
 }
-Orhescyon::Entity createEntityHierarchy(int parentEntity, tinygltf::Model& model, GeneralManager& gm,
+Orhescyon::Entity createEntityHierarchy(Orhescyon::Entity parentEntity, tinygltf::Model& model, GeneralManager& gm,
                                            const std::vector<int>& meshSlots, BufferManager& bManager, int nodeIndex)
 {
 	tinygltf::Node& node = model.nodes[nodeIndex];
@@ -81,7 +82,7 @@ Orhescyon::Entity createEntityHierarchy(int parentEntity, tinygltf::Model& model
 	gm.subscribeEntity<TransformSystem>(entity);
 
 	// Establish parent-child relationship
-	if (parentEntity != -1)
+	if (parentEntity != Orhescyon::Entity::invalid())
 	{
 		RelationshipComponent& relationship = *gm.getComponent<RelationshipComponent>(parentEntity);
 		relationship.addChild(parentEntity, entity, gm);

@@ -30,7 +30,7 @@ struct HALCYON_API GraphicsSettingsComponent
 	vk::SampleCountFlagBits msaaSamples = vk::SampleCountFlagBits::e4;
 	vk::SampleCountFlagBits appliedMsaaSamples =
 	    vk::SampleCountFlagBits::e1; // TODO: get rid of this and just recreate pipelines when msaa changes
-	Orhescyon::Entity selectedEntity = static_cast<Orhescyon::Entity>(-1);
+	Orhescyon::Entity selectedEntity = Orhescyon::Entity::invalid();
 	bool aabbAlwaysOnTop = true;
 	GraphicsSettingsComponent() = default;
 };

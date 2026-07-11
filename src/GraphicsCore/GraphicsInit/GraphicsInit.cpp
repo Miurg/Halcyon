@@ -88,21 +88,57 @@ void GraphicsInit::Run(GeneralManager& gm)
 void GraphicsInit::coreInit(GeneralManager& gm)
 {
 	gm.registerSystem<DeltaTimeSystem>();
-	gm.registerSystem<TransformSystem>();
+	gm.registerSystem<TransformSystem>()
+	    .after<DeltaTimeSystem>()
+	    .before<FrameBeginSystem>()
+	    .reads<RelationshipComponent>()
+	    .writes<LocalTransformComponent, GlobalTransformComponent>();
 
-	gm.registerSystem<FrameBeginSystem>();
-	gm.registerSystem<GPUParticlesSystem>();
-	gm.registerSystem<PhysSyncSystem>();
+	gm.registerSystem<FrameBeginSystem>()
+	    .after<DeltaTimeSystem>()
+	    .before<FrameEndSystem>()
+	    .writes<CurrentFrameComponent, FrameImageComponent>();
+	gm.registerSystem<GPUParticlesSystem>()
+	    .after<FrameBeginSystem>()
+	    .before<FrameEndSystem>()
+	    .reads<ParticleEmitorComponent, GlobalTransformComponent>();
+	gm.registerSystem<PhysSyncSystem>()
+	    .after<FrameBeginSystem>()
+	    .before<BufferUpdateSystem>()
+	    .reads<PhysTransformSnapshotComponent>()
+	    .writes<GlobalTransformComponent>();
 #ifdef HALCYON_DEV_TOOLS
-	gm.registerSystem<ImGuiSystem>();
+	gm.registerSystem<ImGuiSystem>()
+	    .after<FrameBeginSystem>()
+	    .before<BufferUpdateSystem>()
+	    .reads<NameComponent, RelationshipComponent, CameraComponent, GraphicsSettingsComponent, DeltaTimeComponent,
+	           PhysBodyComponent>()
+	    .writes<GlobalTransformComponent, LocalTransformComponent, DirectLightComponent, PointLightComponent,
+	            GtaoSettingsComponent, LightProbeGridComponent>();
 #endif
-	gm.registerSystem<CameraMatrixSystem>();
-	gm.registerSystem<LightUpdateSystem>();
-	gm.registerSystem<LightProbeGIBakeSystem>();
-	gm.registerSystem<ReflectionProbeUpdateSystem>();
-	gm.registerSystem<BufferUpdateSystem>();
-	gm.registerSystem<RenderSystem>();
-	gm.registerSystem<FrameEndSystem>();
+	gm.registerSystem<CameraMatrixSystem>()
+	    .after<FrameBeginSystem>()
+	    .before<BufferUpdateSystem>()
+	    .reads<CameraComponent, GlobalTransformComponent, DirectLightComponent, CurrentFrameComponent>();
+	gm.registerSystem<LightUpdateSystem>()
+	    .after<FrameBeginSystem>()
+	    .before<BufferUpdateSystem>()
+	    .reads<GlobalTransformComponent, PointLightComponent, CurrentFrameComponent>();
+	gm.registerSystem<LightProbeGIBakeSystem>().after<RenderSystem>().before<FrameEndSystem>();
+	gm.registerSystem<ReflectionProbeUpdateSystem>()
+	    .after<LightProbeGIBakeSystem>()
+	    .before<FrameEndSystem>()
+	    .reads<ReflectionProbeComponent, CurrentFrameComponent>();
+	gm.registerSystem<BufferUpdateSystem>()
+	    .after<FrameBeginSystem>()
+	    .before<FrameEndSystem>()
+	    .reads<GlobalTransformComponent, MeshInfoComponent, CurrentFrameComponent>()
+	    .writes<DrawInfoComponent>();
+	gm.registerSystem<RenderSystem>()
+	    .after<BufferUpdateSystem>()
+	    .before<FrameEndSystem>()
+	    .reads<GlobalTransformComponent, MeshInfoComponent, DrawInfoComponent, CurrentFrameComponent>();
+	gm.registerSystem<FrameEndSystem>().reads<FrameImageComponent>();
 }
 #pragma endregion
 
@@ -133,11 +169,7 @@ void GraphicsInit::initVulkanCore(GeneralManager& gm)
 #ifdef TRACY_ENABLE
 	TracyContextComponent* tracyCtxComp = gm.getContextComponent<TracyContextContext, TracyContextComponent>();
 	TracyVkCtx tracyCtx = tracyCtxComp->context;
-	dq->push_function(
-	    [tracyCtx]()
-	    {
-		    TracyVkDestroy(tracyCtx);
-	    });
+	dq->push_function([tracyCtx]() { TracyVkDestroy(tracyCtx); });
 #endif
 
 	// VMA Allocator

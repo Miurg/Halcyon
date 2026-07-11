@@ -7,6 +7,7 @@
 #include "GraphicsCore/Resources/Components/GlobalDSetComponent.hpp"
 #include "GraphicsCore/GIBaker/ReflectionProbeBaker.hpp"
 #include <iostream>
+#include <vector>
 
 void ReflectionProbeUpdateSystem::onRegistered(GeneralManager& gm)
 {
@@ -18,21 +19,11 @@ void ReflectionProbeUpdateSystem::onShutdown(GeneralManager& gm)
 	std::cout << "ReflectionProbeUpdateSystem shutdown!" << std::endl;
 }
 
-void ReflectionProbeUpdateSystem::onEntitySubscribed(Orhescyon::Entity entity, GeneralManager& gm)
-{
-	ReflectionProbeComponent* probe = gm.getComponent<ReflectionProbeComponent>(entity);
-	if (probe) _agents.push_back({entity, probe});
-}
-
 void ReflectionProbeUpdateSystem::onEntityUnsubscribed(Orhescyon::Entity entity, GeneralManager& gm)
 {
-	for (const Agent& a : _agents)
-		if (a.entity == entity && a.probe->cubemapIndex >= 0)
-			_slotUsed[a.probe->cubemapIndex] = false;
-
-	auto it =
-	    std::remove_if(_agents.begin(), _agents.end(), [entity](const Agent& a) { return a.entity == entity; });
-	_agents.erase(it, _agents.end());
+	// Fires before the entity is torn down, so the component is still readable here.
+	ReflectionProbeComponent* probe = gm.getComponent<ReflectionProbeComponent>(entity);
+	if (probe && probe->cubemapIndex >= 0) _slotUsed[probe->cubemapIndex] = false;
 }
 
 // Reuses the probe's existing slot on rebake, otherwise claims the first free one; -1 when full.
@@ -57,30 +48,37 @@ void ReflectionProbeUpdateSystem::update(GeneralManager& gm)
 	GlobalDSetComponent* globalDSetComponent = gm.getContextComponent<MainDSetsContext, GlobalDSetComponent>();
 
 	// Bake any dirty probes first
-	for (const Agent& a : _agents)
+	std::vector<ReflectionProbeComponent*> dirtyProbes;
+	forEachSubscribedEntity(gm,
+	                        [&](Orhescyon::Entity, ReflectionProbeComponent& probe)
+	                        {
+		                        if (probe.needBake) dirtyProbes.push_back(&probe);
+	                        });
+	for (ReflectionProbeComponent* probe : dirtyProbes)
 	{
-		if (!a.probe->needBake) continue;
-		int slot = acquireSlot(a.probe);
+		int slot = acquireSlot(probe);
 		if (slot < 0) continue; // reflection array full
-		ReflectionProbeBaker::bake(gm, *a.probe, slot);
-		a.probe->needBake = false;
+		ReflectionProbeBaker::bake(gm, *probe, slot);
+		probe->needBake = false;
 	}
 
 	auto* probeData = static_cast<ReflectionProbeData*>(
 	    bufferManager.buffers[globalDSetComponent->reflectionProbeBuffer.id].bufferMapped[currentFrame]);
 
 	uint32_t written = 0;
-	for (const Agent& a : _agents)
-	{
-		// Only baked probes carry a valid cubemap slot; skip the rest so the shader never samples an unbound one.
-		if (a.probe->cubemapIndex < 0 || written >= MAX_REFLECTION_PROBES) continue;
+	forEachSubscribedEntity(
+	    gm,
+	    [&](Orhescyon::Entity, ReflectionProbeComponent& probe)
+	    {
+		    // Only baked probes carry a valid cubemap slot; skip the rest so the shader never samples an unbound one.
+		    if (probe.cubemapIndex < 0 || written >= MAX_REFLECTION_PROBES) return;
 
-		probeData[written].boxMin = a.probe->origin - a.probe->halfExtent;
-		probeData[written].boxMax = a.probe->origin + a.probe->halfExtent;
-		probeData[written].captureOrigin = a.probe->origin;
-		probeData[written].cubemapIndex = static_cast<uint32_t>(a.probe->cubemapIndex);
-		++written;
-	}
+		    probeData[written].boxMin = probe.origin - probe.halfExtent;
+		    probeData[written].boxMax = probe.origin + probe.halfExtent;
+		    probeData[written].captureOrigin = probe.origin;
+		    probeData[written].cubemapIndex = static_cast<uint32_t>(probe.cubemapIndex);
+		    ++written;
+	    });
 
 	*static_cast<uint32_t*>(
 	    bufferManager.buffers[globalDSetComponent->reflectionProbeCountBuffer.id].bufferMapped[currentFrame]) = written;

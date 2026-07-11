@@ -4,6 +4,7 @@
 #include "PhysicsCore/Managers/PhysManager.hpp"
 #include "PhysicsCore/PhysContexts.hpp"
 #include "PhysicsCore/PhysShapes.hpp"
+#include "GraphicsCore/Components/LocalTransformComponent.hpp"
 
 static void internalForgeBody(Orhescyon::GeneralManager& gm, Orhescyon::Entity e, Body b, Shape shape)
 {

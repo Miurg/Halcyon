@@ -33,7 +33,6 @@
 #include <vulkan/vulkan_enums.hpp>
 #include <vulkan/vulkan_handles.hpp>
 #include <vulkan/vulkan_structs.hpp>
-#include <Orhescyon/Entitys/ActiveEntitySet.hpp>
 #include <Orhescyon/GeneralManager.hpp>
 #include "GraphicsCore/RenderGraph/RGResource.hpp"
 

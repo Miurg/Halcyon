@@ -10,6 +10,8 @@
 #include "PlatformCore/Components/ScrollDeltaComponent.hpp"
 #include "PlatformCore/Components/WindowSizeComponent.hpp"
 #include "GraphicsCore/Components/NameComponent.hpp"
+#include "GraphicsCore/Systems/DeltaTimeSystem.hpp"
+#include "GraphicsCore/Systems/FrameBeginSystem.hpp"
 
 #include "DeletionQueueComponent.hpp"
 #include "DeletionQueueContext.hpp"
@@ -33,7 +35,11 @@ void PlatformInit::Run(Orhescyon::GeneralManager& gm)
 #pragma region coreInit
 void PlatformInit::coreInit(Orhescyon::GeneralManager& gm)
 {
-	gm.registerSystem<InputSolverSystem>();
+	gm.registerSystem<InputSolverSystem>()
+	    .after<DeltaTimeSystem>()
+	    .before<FrameBeginSystem>()
+	    .writes<KeyboardStateComponent, MouseStateComponent, CursorPositionComponent, ScrollDeltaComponent,
+	            WindowSizeComponent>();
 }
 #pragma endregion
 

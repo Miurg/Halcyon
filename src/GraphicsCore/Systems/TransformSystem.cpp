@@ -19,25 +19,6 @@ void TransformSystem::onShutdown(GeneralManager& gm)
 	std::cout << "TransformSystem shutdown!" << std::endl;
 }
 
-void TransformSystem::onEntitySubscribed(Orhescyon::Entity entity, GeneralManager& gm)
-{
-	GlobalTransformComponent* global = gm.getComponent<GlobalTransformComponent>(entity);
-	LocalTransformComponent* local = gm.getComponent<LocalTransformComponent>(entity);
-	RelationshipComponent* relationship = gm.getComponent<RelationshipComponent>(entity);
-
-	if (global && local && relationship)
-	{
-		_agents.push_back({entity, global, local, relationship});
-	}
-}
-
-void TransformSystem::onEntityUnsubscribed(Orhescyon::Entity entity, GeneralManager& gm)
-{
-	auto it =
-	    std::remove_if(_agents.begin(), _agents.end(), [entity](const Agent& agent) { return agent.entity == entity; });
-	_agents.erase(it, _agents.end());
-}
-
 void TransformSystem::applyPendingToLocal(LocalTransformComponent* local)
 {
 	local->_localPosition += local->_pendingPositionDelta;
@@ -71,42 +52,45 @@ void TransformSystem::update(GeneralManager& gm)
 
 	// === Root entities ===
 
-	for (auto& agent : _agents)
-	{
-		if (agent.relationship->parent != NULL_ENTITY) continue;
+	forEachSubscribedEntity(
+	    gm,
+	    [&](Orhescyon::Entity entity, GlobalTransformComponent& global, LocalTransformComponent& local,
+	        RelationshipComponent& relationship)
+	    {
+		    if (relationship.parent != NULL_ENTITY) return;
 
-		bool dirty = false;
+		    bool dirty = false;
 
-		// Phase 1: apply global pending → sync down into local
-		if (agent.global->_wasExternallyModified)
-		{
-			applyPendingToGlobal(agent.global);
-			// Root: local == global in world space
-			agent.local->_localPosition = agent.global->_globalPosition;
-			agent.local->_localRotation = agent.global->_globalRotation;
-			agent.local->_localScale = agent.global->_globalScale;
-			agent.local->_updateDirectionVectors();
-			agent.global->_clearPending();
-			agent.local->_isModelDirty = true; // ensure phase 2 runs
-			dirty = true;
-		}
+		    // Phase 1: apply global pending → sync down into local
+		    if (global._wasExternallyModified)
+		    {
+			    applyPendingToGlobal(&global);
+			    // Root: local == global in world space
+			    local._localPosition = global._globalPosition;
+			    local._localRotation = global._globalRotation;
+			    local._localScale = global._globalScale;
+			    local._updateDirectionVectors();
+			    global._clearPending();
+			    local._isModelDirty = true; // ensure phase 2 runs
+			    dirty = true;
+		    }
 
-		// Phase 2: apply local pending → push up into global
-		if (agent.local->_isModelDirty)
-		{
-			applyPendingToLocal(agent.local);
-			agent.global->_globalPosition = agent.local->_localPosition;
-			agent.global->_globalRotation = agent.local->_localRotation;
-			agent.global->_globalScale = agent.local->_localScale;
-			agent.global->_updateDirectionVectors();
-			agent.global->_isModelDirty = true;
-			agent.global->_isViewDirty = true;
-			agent.local->_clearPending();
-			dirty = true;
-		}
+		    // Phase 2: apply local pending → push up into global
+		    if (local._isModelDirty)
+		    {
+			    applyPendingToLocal(&local);
+			    global._globalPosition = local._localPosition;
+			    global._globalRotation = local._localRotation;
+			    global._globalScale = local._localScale;
+			    global._updateDirectionVectors();
+			    global._isModelDirty = true;
+			    global._isViewDirty = true;
+			    local._clearPending();
+			    dirty = true;
+		    }
 
-		if (agent.relationship->firstChild != NULL_ENTITY) nodeStack.push_back({agent.relationship->firstChild, dirty});
-	}
+		    if (relationship.firstChild != NULL_ENTITY) nodeStack.push_back({relationship.firstChild, dirty});
+	    });
 
 	// === Child entities (depth-first) ===
 

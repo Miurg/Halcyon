@@ -16,6 +16,7 @@
 #include "PhysicsCore/Components/PhysManagerComponent.hpp"
 #include "PhysicsCore/Components/PhysBodyComponent.hpp"
 #include "PhysicsCore/Components/PhysTickRateComponent.hpp"
+#include "PhysicsCore/Components/PhysTransformSnapshotComponent.hpp"
 #include "PhysicsCore/PhysContexts.hpp"
 #include "PhysicsCore/Systems/PhysUpdateSystem.hpp"
 #include "PhysicsCore/Systems/PhysSnapshotSystem.hpp"
@@ -46,7 +47,10 @@ void PhysicsInit::coreInit(Orhescyon::GeneralManager& gm)
 	gm.registerSystemManager("physics");
 
 	gm.registerSystem<PhysUpdateSystem>();
-	gm.registerSystem<PhysSnapshotSystem>();
+	gm.registerSystem<PhysSnapshotSystem>()
+	    .after<PhysUpdateSystem>()
+	    .reads<PhysBodyComponent>()
+	    .writes<PhysTransformSnapshotComponent>();
 }
 #pragma endregion
 

@@ -30,30 +30,11 @@ void BufferUpdateSystem::onShutdown(GeneralManager& gm)
 	std::cout << "BufferUpdateSystem shutdown!" << std::endl;
 }
 
-void BufferUpdateSystem::onEntitySubscribed(Orhescyon::Entity entity, GeneralManager& gm)
-{
-	GlobalTransformComponent* transform = gm.getComponent<GlobalTransformComponent>(entity);
-	MeshInfoComponent* meshInfo = gm.getComponent<MeshInfoComponent>(entity);
-
-	if (transform && meshInfo)
-	{
-		_agents.push_back({entity, transform, meshInfo});
-	}
-}
-
-void BufferUpdateSystem::onEntityUnsubscribed(Orhescyon::Entity entity, GeneralManager& gm)
-{
-	auto it =
-	    std::remove_if(_agents.begin(), _agents.end(), [entity](const Agent& agent) { return agent.entity == entity; });
-	_agents.erase(it, _agents.end());
-}
-
 void BufferUpdateSystem::update(GeneralManager& gm)
 {
 #ifdef TRACY_ENABLE
 	ZoneScopedN("BufferUpdateSystem");
 #endif
-
 
 	CurrentFrameComponent* currentFrameComp = gm.getContextComponent<CurrentFrameContext, CurrentFrameComponent>();
 	uint32_t currentFrame = currentFrameComp->currentFrame;
@@ -66,13 +47,17 @@ void BufferUpdateSystem::update(GeneralManager& gm)
 	ModelDSetComponent* objectDSetComponent = gm.getContextComponent<MainDSetsContext, ModelDSetComponent>();
 	DrawInfoComponent* drawInfo = gm.getContextComponent<CurrentFrameContext, DrawInfoComponent>();
 
+	struct Agent
+	{
+		GlobalTransformComponent* transform;
+		MeshInfoComponent* meshInfo;
+	};
+
 	std::vector<std::vector<Agent>> batch;
 	batch.resize(modelManager.meshes.size());
 
-	for (auto& agent : _agents)
-	{
-		batch[agent.meshInfo->mesh].push_back(agent);
-	}
+	forEachSubscribedEntity(gm, [&](Orhescyon::Entity, GlobalTransformComponent& transform, MeshInfoComponent& meshInfo)
+	                        { batch[meshInfo.mesh].push_back({&transform, &meshInfo}); });
 
 	for (size_t i = 0; i < batch.size(); ++i)
 	{
@@ -155,7 +140,7 @@ void BufferUpdateSystem::update(GeneralManager& gm)
 				globalPrimitiveIndex++;
 			}
 		}
-	}; 
+	};
 
 	uint32_t prevTotal = 0;
 

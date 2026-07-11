@@ -6,6 +6,8 @@
 #include <Game/Systems/ControlSystem.hpp>
 #include <Game/Components/ControlComponent.hpp>
 
+#include <GraphicsCore/Systems/DeltaTimeSystem.hpp>
+#include <GraphicsCore/Systems/FrameBeginSystem.hpp>
 #include <GraphicsCore/GraphicsContexts.hpp>
 #include <GraphicsCore/Components/BufferManagerComponent.hpp>
 #include <GraphicsCore/Components/TextureManagerComponent.hpp>
@@ -20,7 +22,11 @@
 void GameInit::Run(GeneralManager& gm)
 {
 	// Fly-camera controls, attached to the engine's built-in main camera.
-	gm.registerSystem<ControlSystem>();
+	gm.registerSystem<ControlSystem>()
+	    .after<DeltaTimeSystem>()
+	    .before<FrameBeginSystem>()
+	    .reads<DeltaTimeComponent, KeyboardStateComponent, CameraComponent, ControlComponent>()
+	    .writes<GlobalTransformComponent, CursorPositionComponent>();
 	gm.addComponent<ControlComponent>(gm.getContext<MainCameraContext>());
 
 	// Managers the model loader needs.

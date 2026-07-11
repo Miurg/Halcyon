@@ -21,25 +21,7 @@ void PhysSyncSystem::onShutdown(GeneralManager& gm)
 	std::cout << "PhysSyncSystem shutdown!" << std::endl;
 }
 
-void PhysSyncSystem::onEntitySubscribed(Orhescyon::Entity entity, GeneralManager& gm)
-{
-	GlobalTransformComponent* transform = gm.getComponent<GlobalTransformComponent>(entity);
-	PhysTransformSnapshotComponent* physSnap = gm.getComponent<PhysTransformSnapshotComponent>(entity);
-
-	if (transform && physSnap)
-	{
-		_agents.push_back({entity, transform, physSnap});
-	}
-}
-
-void PhysSyncSystem::onEntityUnsubscribed(Orhescyon::Entity entity, GeneralManager& gm)
-{
-	auto it =
-	    std::remove_if(_agents.begin(), _agents.end(), [entity](const Agent& agent) { return agent.entity == entity; });
-	_agents.erase(it, _agents.end());
-}
-
-void PhysSyncSystem::update(GeneralManager& gm) 
+void PhysSyncSystem::update(GeneralManager& gm)
 {
 #ifdef TRACY_ENABLE
 	ZoneScopedN("PhysSyncSystem");
@@ -49,14 +31,14 @@ void PhysSyncSystem::update(GeneralManager& gm)
 
 	SnapshotIndices indicies = physManager.physSnapshot.load(std::memory_order_acquire);
 
-	for (auto& agent : _agents)
-	{
-		PhysTransformSnapshotComponent* physSnap = agent.physSnap;
-		JPH::RVec3 physPosition = physSnap->positionSnap[indicies.previous];
-		JPH::Quat physRotation = physSnap->rotationSnap[indicies.previous];
+	forEachSubscribedEntity(
+	    gm,
+	    [&](Orhescyon::Entity, GlobalTransformComponent& global, PhysTransformSnapshotComponent& physSnap)
+	    {
+		    JPH::RVec3 physPosition = physSnap.positionSnap[indicies.previous];
+		    JPH::Quat physRotation = physSnap.rotationSnap[indicies.previous];
 
-		GlobalTransformComponent& global = *agent.transform; 
-		global.setGlobalPosition(toGlm(physPosition));
-		global.setGlobalRotation(toGlm(physRotation));
-	}
+		    global.setGlobalPosition(toGlm(physPosition));
+		    global.setGlobalRotation(toGlm(physRotation));
+	    });
 }

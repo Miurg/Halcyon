@@ -87,16 +87,17 @@ void drawMemoryWindow(GeneralManager& gm)
 	ImGui::SeparatorText("Model instances");
 	// Snapshot first: unloading destroys entities and would invalidate iteration of the active set.
 	std::vector<Orhescyon::Entity> modelRoots;
-	for (Orhescyon::Entity entity : gm.getActiveEntities())
-	{
-		if (gm.hasComponent<ModelComponent>(entity)) modelRoots.push_back(entity);
-	}
+	gm.forEachActiveEntity(
+	    [&](Orhescyon::Entity entity)
+	    {
+		    if (gm.hasComponent<ModelComponent>(entity)) modelRoots.push_back(entity);
+	    });
 	for (Orhescyon::Entity root : modelRoots)
 	{
-		ImGui::PushID(static_cast<int>(root));
+		ImGui::PushID(static_cast<int>(root.slot));
 		int modelIndex = gm.getComponent<ModelComponent>(root)->modelIndex;
 		auto* nameComp = gm.getComponent<NameComponent>(root);
-		ImGui::Text("%u  %s (model %d, refs %d)", static_cast<unsigned>(root), nameComp ? nameComp->name : "?",
+		ImGui::Text("%u  %s (model %d, refs %d)", root.slot, nameComp ? nameComp->name : "?",
 		            modelIndex, modelManager->models[modelIndex].refCount);
 		ImGui::SameLine();
 		if (ImGui::Button("Unload"))
@@ -150,7 +151,7 @@ void ImGuiSystem::onShutdown(GeneralManager& gm)
 
 void ImGuiSystem::drawEntityNode(Orhescyon::Entity entity, GeneralManager& gm)
 {
-	std::string entityName = "Entity " + std::to_string(entity);
+	std::string entityName = "Entity " + std::to_string(entity.slot);
 	auto* nameComp = gm.getComponent<NameComponent>(entity);
 	if (nameComp)
 	{
@@ -171,7 +172,7 @@ void ImGuiSystem::drawEntityNode(Orhescyon::Entity entity, GeneralManager& gm)
 		flags |= ImGuiTreeNodeFlags_Selected;
 	}
 
-	bool nodeOpen = ImGui::TreeNodeEx((void*)(intptr_t)entity, flags, "%s", entityName.c_str());
+	bool nodeOpen = ImGui::TreeNodeEx((void*)(intptr_t)entity.slot, flags, "%s", entityName.c_str());
 	if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen())
 	{
 		selectedEntity = entity;
@@ -308,25 +309,25 @@ void ImGuiSystem::update(GeneralManager& gm)
 	ImGui::Text("Active Entities");
 	ImGui::Separator();
 
-	const auto& activeEntities = gm.getActiveEntities();
-	for (Orhescyon::Entity entity : activeEntities)
-	{
-		auto* relComp = gm.getComponent<RelationshipComponent>(entity);
-		// Top-level entities are those with no parent or no relationship component
-		if (relComp == nullptr || relComp->parent == NULL_ENTITY)
-		{
-			drawEntityNode(entity, gm);
-		}
-	}
+	gm.forEachActiveEntity(
+	    [&](Orhescyon::Entity entity)
+	    {
+		    auto* relComp = gm.getComponent<RelationshipComponent>(entity);
+		    // Top-level entities are those with no parent or no relationship component
+		    if (relComp == nullptr || relComp->parent == NULL_ENTITY)
+		    {
+			    drawEntityNode(entity, gm);
+		    }
+	    });
 	ImGui::EndChild();
 
 	ImGui::SameLine();
 
 	// Right Pane: Component Details
 	ImGui::BeginChild("ComponentDetails", ImVec2(0, 0), true);
-	if (selectedEntity != static_cast<Orhescyon::Entity>(-1) && gm.isActive(selectedEntity))
+	if (selectedEntity != Orhescyon::Entity::invalid() && gm.isActive(selectedEntity))
 	{
-		ImGui::Text("Inspecting Entity %u", selectedEntity);
+		ImGui::Text("Inspecting Entity %u", selectedEntity.slot);
 		auto* nameComp = gm.getComponent<NameComponent>(selectedEntity);
 		if (nameComp)
 		{
