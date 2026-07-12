@@ -2,7 +2,6 @@
 
 #include "ThirdPartyConfig.hpp"
 
-#define NOMINMAX
 #define WIN32_LEAN_AND_MEAN
 #define GLFW_INCLUDE_NONE
 #include "vk_mem_alloc.h"
