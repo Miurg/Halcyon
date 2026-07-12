@@ -12,7 +12,7 @@ static void internalForgeBody(Orhescyon::GeneralManager& gm, Orhescyon::Entity e
 
 	if (!gm.hasComponent<GlobalTransformComponent>(e))
 	{
-		gm.addComponent<GlobalTransformComponent>(e);
+		gm.addComponent<LocalTransformComponent>(e);
 	}
 
 	if (!gm.hasComponent<LocalTransformComponent>(e))
