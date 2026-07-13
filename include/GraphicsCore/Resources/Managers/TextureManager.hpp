@@ -25,6 +25,7 @@ class PipelineHandler;
 class HALCYON_API TextureManager
 {
 public:
+	// TODO: mass refactor
 	TextureManager(VulkanDevice& vulkanDevice, VmaAllocator allocator);
 	~TextureManager();
 	TextureHandle generateTextureData(const char texturePath[MAX_PATH_LEN], int texWidth, int texHeight,
@@ -63,6 +64,8 @@ public:
 	                                        PipelineManager& pManager);
 	TextureHandle generateBrdfLut(DescriptorManager& dManager, BindlessTextureDSetComponent& dSetComponent,
 	                              PipelineManager& pManager);
+	Texture& getTexture(TextureHandle handle);
+
 	std::vector<Texture> textures;
 	std::unordered_map<std::string, TextureHandle> texturePaths;
 
@@ -74,6 +77,8 @@ public:
 	size_t pendingTextureFreeCount() const;
 	size_t freeMaterialSlotCount() const;
 	size_t pendingMaterialFreeCount() const;
+	MaterialStructure& getMaterial(int slot);
+
 	std::vector<MaterialStructure> materials;
 
 private:

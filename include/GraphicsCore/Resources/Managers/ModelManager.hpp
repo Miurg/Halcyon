@@ -58,6 +58,10 @@ public:
 	size_t freeModelSlotCount() const;
 	size_t pendingGeometryFreeCount() const;
 
+	VertexIndexBuffer& getVertexIndexBuffer(int index);
+	MeshInfo& getMesh(int slot);
+	Model& getModel(int slot);
+
 	std::vector<VertexIndexBuffer> vertexIndexBuffers;
 	std::unordered_map<std::string, int> modelPaths;
 	std::vector<MeshInfo> meshes;

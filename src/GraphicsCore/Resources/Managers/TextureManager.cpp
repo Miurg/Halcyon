@@ -724,3 +724,13 @@ TextureHandle TextureManager::generateBrdfLut(DescriptorManager& dManager, Bindl
 
 	return TextureHandle{slot};
 }
+
+Texture& TextureManager::getTexture(TextureHandle handle)
+{
+	return textures[handle.id];
+}
+
+MaterialStructure& TextureManager::getMaterial(int slot)
+{
+	return materials[slot];
+}

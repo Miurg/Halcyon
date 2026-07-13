@@ -42,6 +42,13 @@ public:
 		memcpy(static_cast<T*>(mapped) + elementIndex, &value, sizeof(T));
 	}
 
+	vk::Buffer getBuffer(BufferHandle handle, uint32_t index = 0) const;
+	template <typename T>
+	T* getMapped(BufferHandle handle, uint32_t index = 0) const
+	{
+		return static_cast<T*>(buffers[handle.id].bufferMapped[index]);
+	}
+
 	std::vector<Buffer> buffers;
 
 private:

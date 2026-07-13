@@ -311,3 +311,18 @@ size_t ModelManager::pendingGeometryFreeCount() const
 {
 	return _pendingGeometryFrees.size();
 }
+
+VertexIndexBuffer& ModelManager::getVertexIndexBuffer(int index)
+{
+	return vertexIndexBuffers[index];
+}
+
+MeshInfo& ModelManager::getMesh(int slot)
+{
+	return meshes[slot];
+}
+
+Model& ModelManager::getModel(int slot)
+{
+	return models[slot];
+}

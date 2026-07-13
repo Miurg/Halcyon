@@ -120,3 +120,7 @@ void BufferManager::initGlobalBuffer(vk::MemoryPropertyFlags propertyBits, Buffe
 	}
 }
 
+vk::Buffer BufferManager::getBuffer(BufferHandle handle, uint32_t index) const
+{
+	return buffers[handle.id].buffer[index];
+}
