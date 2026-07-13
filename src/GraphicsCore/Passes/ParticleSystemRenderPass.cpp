@@ -65,7 +65,7 @@ void ParticleSystemRenderPass::drawParticlRender(vk::raii::CommandBuffer& cmd, u
 	cmd.pushConstants<uint32_t>(*pManager.pipelines["system_render"].layout, vk::ShaderStageFlagBits::eVertex, 0,
 	                            totalFrames);
 
-	cmd.drawIndirect(bManager.buffers[indirectBuffer.id].buffer[frame], 0, 1, sizeof(drawIndirect));
+	cmd.drawIndirect(bManager.getBuffer(indirectBuffer, frame), 0, 1, sizeof(drawIndirect));
 }
 
 void ParticleSystemRenderPass::onInit(Orhescyon::GeneralManager& gm)
@@ -84,11 +84,11 @@ void ParticleSystemRenderPass::onInit(Orhescyon::GeneralManager& gm)
 	for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
 	{
 		dManager.update(_dSetParticles, 0, i, vk::DescriptorType::eStorageBuffer,
-		                bManager.buffers[particlesBuffer.particlesBuffer.id].buffer[0]);
+		                bManager.getBuffer(particlesBuffer.particlesBuffer));
 		dManager.update(_dSetParticles, 5, i, vk::DescriptorType::eStorageBuffer,
-		                bManager.buffers[particlesBuffer.aliveIndicesBufferA.id].buffer[0]);
+		                bManager.getBuffer(particlesBuffer.aliveIndicesBufferA));
 		dManager.update(_dSetParticles, 6, i, vk::DescriptorType::eStorageBuffer,
-		                bManager.buffers[particlesBuffer.aliveIndicesBufferB.id].buffer[0]);
+		                bManager.getBuffer(particlesBuffer.aliveIndicesBufferB));
 	}
 
 	pManager.build(PipelineDescription{

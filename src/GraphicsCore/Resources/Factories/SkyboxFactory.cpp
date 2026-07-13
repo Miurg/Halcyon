@@ -40,7 +40,7 @@ void SkyboxFactory::loadSkybox(const std::string& hdrPath, GeneralManager& gm)
 
 	// Upload HDR texture
 	int hdrIndex = tManager.allocateTextureSlot();
-	Texture& hdrTexture = tManager.textures[hdrIndex];
+	Texture& hdrTexture = tManager.getTexture(TextureHandle{hdrIndex});
 	TextureUploader::uploadHdrTextureFromFile(hdrPath.c_str(), hdrTexture, tManager, allocator, vulkanDevice);
 	tManager.texturePaths[hdrPath] = TextureHandle{hdrIndex};
 	TextureHandle hdrHandle = tManager.texturePaths[hdrPath];
@@ -60,11 +60,11 @@ void SkyboxFactory::loadSkybox(const std::string& hdrPath, GeneralManager& gm)
 	TextureHandle prefilteredHandle = tManager.generatePrefilteredEnvMap(cubemapHandle, dManager,
 	                                                                      bTextureDSetComponent, pManager);
 	dManager.update(bTextureDSetComponent.bindlessTextureSet, Bindings::Textures::PrefilteredMap, 0,
-	                vk::DescriptorType::eCombinedImageSampler, tManager.textures[prefilteredHandle.id].textureImageView,
-	                tManager.textures[prefilteredHandle.id].textureSampler);
+	                vk::DescriptorType::eCombinedImageSampler, tManager.getTexture(prefilteredHandle).textureImageView,
+	                tManager.getTexture(prefilteredHandle).textureSampler);
 	dManager.update(bTextureDSetComponent.bindlessTextureSet, Bindings::Textures::BrdfLut, 0,
-	                vk::DescriptorType::eCombinedImageSampler, tManager.textures[skybox.brdfLut.id].textureImageView,
-	                tManager.textures[skybox.brdfLut.id].textureSampler);
+	                vk::DescriptorType::eCombinedImageSampler, tManager.getTexture(skybox.brdfLut).textureImageView,
+	                tManager.getTexture(skybox.brdfLut).textureSampler);
 
 	skybox.cubemapTexture = cubemapHandle;
 	skybox.prefilteredMap = prefilteredHandle;

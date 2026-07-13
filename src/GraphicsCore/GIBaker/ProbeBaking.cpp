@@ -14,9 +14,9 @@ static void drawGeometry(vk::raii::CommandBuffer& cmd, const BakeContext& ctx, g
 
 	// Bind vertex + index buffers (shared across both pipelines)
 	cmd.bindVertexBuffers(
-	    0, ctx.modelManager->vertexIndexBuffers[ctx.modelManager->meshes[0].vertexIndexBufferID].vertexBuffer, {0});
+	    0, ctx.modelManager->getVertexIndexBuffer(0).vertexBuffer, {0});
 	cmd.bindIndexBuffer(
-	    ctx.modelManager->vertexIndexBuffers[ctx.modelManager->meshes[0].vertexIndexBufferID].indexBuffer, 0,
+	    ctx.modelManager->getVertexIndexBuffer(0).indexBuffer, 0,
 	    vk::IndexType::eUint32);
 
 	// === Opaque ===
@@ -49,8 +49,8 @@ static void drawGeometry(vk::raii::CommandBuffer& cmd, const BakeContext& ctx, g
 			// Backfaces must rasterize during the bake — sh_projection derives probe validity from them
 			cmd.setCullMode(vk::CullModeFlagBits::eNone);
 			cmd.drawIndexedIndirectCount(
-			    ctx.bufferManager->buffers[ctx.modelDSet->bakeCompactedDrawBuffer.id].buffer[0], cmdOffset,
-			    ctx.bufferManager->buffers[ctx.modelDSet->bakeDrawCountBuffer.id].buffer[0], countOffset, count,
+			    ctx.bufferManager->getBuffer(ctx.modelDSet->bakeCompactedDrawBuffer), cmdOffset,
+			    ctx.bufferManager->getBuffer(ctx.modelDSet->bakeDrawCountBuffer), countOffset, count,
 			    commandStride);
 			cmdOffset += count * commandStride;
 		}
@@ -92,8 +92,7 @@ static void drawGeometry(vk::raii::CommandBuffer& cmd, const BakeContext& ctx, g
 
 static void drawLightSources(vk::raii::CommandBuffer& cmd, const BakeContext& ctx, glm::vec3 probePos, int faceIdx)
 {
-	const uint32_t lightCount = *static_cast<const uint32_t*>(
-	    ctx.bufferManager->buffers[ctx.globalDSet->pointLightCountBuffer.id].bufferMapped[0]);
+	const uint32_t lightCount = *ctx.bufferManager->getMapped<uint32_t>(ctx.globalDSet->pointLightCountBuffer);
 	if (lightCount == 0) return;
 
 	struct LightSourcePush
@@ -153,8 +152,7 @@ static void recordFace(vk::raii::CommandBuffer& cmd, const BakeContext& ctx, con
 
 static void writeProbeMetadata(const BakeContext& ctx, int slot, glm::vec3 pos, float radius)
 {
-	auto* probes =
-	    static_cast<SHProbeEntry*>(ctx.bufferManager->buffers[ctx.globalDSet->shProbeBuffer.id].bufferMapped[0]);
+	auto* probes = ctx.bufferManager->getMapped<SHProbeEntry>(ctx.globalDSet->shProbeBuffer);
 
 	probes[slot].position = pos;
 	probes[slot].influenceRadius = radius;

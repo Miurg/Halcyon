@@ -55,7 +55,7 @@ int GltfLoader::loadModelFromFile(const char path[MAX_PATH_LEN], int vertexIndex
 	for (auto& loadedMesh : loadedMeshes)
 	{
 		int slot = mManager.allocateMeshSlot();
-		mManager.meshes[slot] = std::move(loadedMesh);
+		mManager.getMesh(slot) = std::move(loadedMesh);
 		meshSlots.push_back(slot);
 	}
 
@@ -65,11 +65,11 @@ int GltfLoader::loadModelFromFile(const char path[MAX_PATH_LEN], int vertexIndex
 		ownedMaterials.push_back(static_cast<int>(materialSlot));
 
 	int modelIndex = mManager.allocateModelSlot();
-	mManager.models[modelIndex].allocation = allocation;
-	mManager.models[modelIndex].meshes = std::move(meshSlots);
-	mManager.models[modelIndex].textures = std::move(materialMaps.ownedTextures);
-	mManager.models[modelIndex].materials = std::move(ownedMaterials);
-	mManager.models[modelIndex].refCount = 1;
+	mManager.getModel(modelIndex).allocation = allocation;
+	mManager.getModel(modelIndex).meshes = std::move(meshSlots);
+	mManager.getModel(modelIndex).textures = std::move(materialMaps.ownedTextures);
+	mManager.getModel(modelIndex).materials = std::move(ownedMaterials);
+	mManager.getModel(modelIndex).refCount = 1;
 	mManager.modelPaths[path] = modelIndex;
 
 	return modelIndex;
@@ -413,7 +413,7 @@ MaterialMaps GltfLoader::materialsParser(tinygltf::Model& model, TextureManager&
 	};
 	for (const auto& [gltfIndex, materialSlot] : maps.materials)
 	{
-		const MaterialStructure& material = tManager.materials[materialSlot];
+		const MaterialStructure& material = tManager.getMaterial(materialSlot);
 		noteOwned(material.textureIndex);
 		noteOwned(material.normalMapIndex);
 		noteOwned(material.metallicRoughnessIndex);

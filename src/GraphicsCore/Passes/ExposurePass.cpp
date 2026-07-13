@@ -53,7 +53,7 @@ struct ExposurePush
 void ExposurePass::drawExposurePass(vk::raii::CommandBuffer& cmd, uint32_t frame, DescriptorManager& dManager,
                                     BufferManager& bManager, PipelineManager& pManager, SwapChain& swapChain, float deltaTime, AutoExposureSettingsComponent& aeSettings)
 {
-	cmd.fillBuffer(bManager.buffers[_histogramBuffer.id].buffer[frame], 0, sizeof(uint32_t) * 256, 0);
+	cmd.fillBuffer(bManager.getBuffer(_histogramBuffer, frame), 0, sizeof(uint32_t) * 256, 0);
 
 	vk::MemoryBarrier2 drawBarrier;
 	drawBarrier.srcStageMask = vk::PipelineStageFlagBits2::eTransfer;
@@ -142,7 +142,7 @@ void ExposurePass::onInit(Orhescyon::GeneralManager& gm)
 	float initialExposure = 1.0f;
 	auto cmd = VulkanUtils::beginSingleTimeCommands(vulkanDevice);
 
-	cmd.updateBuffer(bManager.buffers[_exposureBuffer.id].buffer[0], 0,
+	cmd.updateBuffer(bManager.getBuffer(_exposureBuffer), 0,
 	                 vk::ArrayProxy<const float>(1, &initialExposure));
 
 	VulkanUtils::endSingleTimeCommands(cmd, vulkanDevice);
@@ -150,9 +150,9 @@ void ExposurePass::onInit(Orhescyon::GeneralManager& gm)
 	for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
 	{
 		dManager.update(_dSetExposure, 0, i, vk::DescriptorType::eStorageBuffer,
-		                bManager.buffers[_histogramBuffer.id].buffer[i]);
+		                bManager.getBuffer(_histogramBuffer, i));
 		dManager.update(_dSetExposure, 1, i, vk::DescriptorType::eStorageBuffer,
-		                bManager.buffers[_exposureBuffer.id].buffer[0]);
+		                bManager.getBuffer(_exposureBuffer));
 	}
 
 	pManager.build(PipelineDescription{

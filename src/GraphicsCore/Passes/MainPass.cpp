@@ -147,8 +147,8 @@ void MainPass::draw(vk::raii::CommandBuffer& cmd, SwapChain& swapChain, uint32_t
 	                       dManager.descriptorManager->getSet(bindlessTextureDSetComponent.bindlessTextureSet), nullptr);
 
 	const uint32_t commandStride = sizeof(VkDrawIndexedIndirectCommand);
-	cmd.bindVertexBuffers(0, mManager.vertexIndexBuffers[mManager.meshes[0].vertexIndexBufferID].vertexBuffer, {0});
-	cmd.bindIndexBuffer(mManager.vertexIndexBuffers[mManager.meshes[0].vertexIndexBufferID].indexBuffer, 0,
+	cmd.bindVertexBuffers(0, mManager.getVertexIndexBuffer(0).vertexBuffer, {0});
+	cmd.bindIndexBuffer(mManager.getVertexIndexBuffer(0).indexBuffer, 0,
 	                    vk::IndexType::eUint32);
 
 	const uint32_t segmentCounts[6] = {drawInfo.opaqueSingleCount, drawInfo.opaqueDoubleCount,
@@ -164,9 +164,9 @@ void MainPass::draw(vk::raii::CommandBuffer& cmd, SwapChain& swapChain, uint32_t
 		if (count > 0)
 		{
 			cmd.setCullMode(backfaceCulling ? vk::CullModeFlagBits::eBack : vk::CullModeFlagBits::eNone);
-			cmd.drawIndexedIndirectCount(bManager.buffers[objectDSetComponent.compactedDrawBuffer.id].buffer[frame],
+			cmd.drawIndexedIndirectCount(bManager.getBuffer(objectDSetComponent.compactedDrawBuffer, frame),
 			                             currentCommandOffset,
-			                             bManager.buffers[objectDSetComponent.drawCountBuffer.id].buffer[frame],
+			                             bManager.getBuffer(objectDSetComponent.drawCountBuffer, frame),
 			                             currentCountBufferOffset, count, commandStride);
 			currentCommandOffset += count * commandStride;
 		}

@@ -87,7 +87,7 @@ void GTAOPass::onInit(Orhescyon::GeneralManager& gm)
 
 	// Noise texture (static, 64x64, lives for the entire app — sampled per pixel by gtao.slang)
 	int noiseSlot = tManager.allocateTextureSlot();
-	Texture& noiseTexture = tManager.textures[noiseSlot];
+	Texture& noiseTexture = tManager.getTexture(TextureHandle{noiseSlot});
 	tManager.createImage(64, 64, vk::Format::eR8G8B8A8Unorm, vk::ImageTiling::eOptimal,
 	                     vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eTransferDst |
 	                         vk::ImageUsageFlagBits::eSampled,
@@ -112,11 +112,11 @@ void GTAOPass::onInit(Orhescyon::GeneralManager& gm)
 	TextureUploader::uploadTextureFromBuffer(Halcyon::Graphics::Data::GTAO_NOISE_PIXELS,
 	                                         static_cast<int>(Halcyon::Graphics::Data::GTAO_NOISE_WIDTH),
 	                                         static_cast<int>(Halcyon::Graphics::Data::GTAO_NOISE_HEIGHT),
-	                                         tManager.textures[_noiseTexture.id], allocator, vulkanDevice);
+	                                         tManager.getTexture(_noiseTexture), allocator, vulkanDevice);
 
 	dManager.updateSingleTextureDSet(_gtaoDset, GtaoBinding::NoiseInput,
-	                                 tManager.textures[_noiseTexture.id].textureImageView,
-	                                 tManager.textures[_noiseTexture.id].textureSampler);
+	                                 tManager.getTexture(_noiseTexture).textureImageView,
+	                                 tManager.getTexture(_noiseTexture).textureSampler);
 }
 
 void GTAOPass::drawGtao(vk::raii::CommandBuffer& cmd, SwapChain& swapChain, DescriptorManagerComponent& dManager,
@@ -215,8 +215,8 @@ void GTAOPass::addToGraph(Orhescyon::GeneralManager& gm, RenderGraph& rg, uint32
 	auto& gtaoSettings = *gm.getContextComponent<GtaoSettingsContext, GtaoSettingsComponent>();
 
 	// Static noise — imported only when GTAO is active, layout never changes
-	rg.importImage("NoiseImage", tManager.textures[_noiseTexture.id].textureImage,
-	               tManager.textures[_noiseTexture.id].textureImageView, vk::ImageAspectFlagBits::eColor,
+	rg.importImage("NoiseImage", tManager.getTexture(_noiseTexture).textureImage,
+	               tManager.getTexture(_noiseTexture).textureImageView, vk::ImageAspectFlagBits::eColor,
 	               vk::ImageLayout::eShaderReadOnlyOptimal);
 
 	vk::ClearValue clearWhite = vk::ClearColorValue(1.0f, 1.0f, 1.0f, 1.0f);

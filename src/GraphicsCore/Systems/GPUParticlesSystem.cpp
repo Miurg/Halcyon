@@ -34,10 +34,8 @@ void GPUParticlesSystem::update(GeneralManager& gm)
 	BufferManager& bManager = *gm.getContextComponent<BufferManagerContext, BufferManagerComponent>()->bufferManager;
 	float deltaTime = gm.getContextComponent<DeltaTimeContext, DeltaTimeComponent>()->deltaTime;
 
-	auto* dispatchSpawnBufferPtr =
-	    static_cast<DispatchIndirect*>(bManager.buffers[dispatchSpawnBuffer.dispatchBuffer.id].bufferMapped[0]);
-	auto* emitersDataBufferPtr =
-	    static_cast<EmiterData*>(bManager.buffers[dispatchSpawnBuffer.emitersData.id].bufferMapped[0]);
+	auto* dispatchSpawnBufferPtr = bManager.getMapped<DispatchIndirect>(dispatchSpawnBuffer.dispatchBuffer);
+	auto* emitersDataBufferPtr = bManager.getMapped<EmiterData>(dispatchSpawnBuffer.emitersData);
 
 	int spawnCountAll = 0;
 	uint32_t emitterIndex = 0;

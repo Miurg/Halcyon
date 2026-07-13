@@ -4,9 +4,8 @@
 void LightProbeGIBaking::bakeShadowMap(const BakeContext& ctx)
 {
 	// 1. Read current sun direction from the GPU side sun buffer
-	const auto& sunBuffer = ctx.bufferManager->buffers[ctx.globalDSet->sunCameraBuffers.id];
 	const DirectLightStructure* existingDirectLight =
-	    static_cast<const DirectLightStructure*>(sunBuffer.bufferMapped[0]);
+	    ctx.bufferManager->getMapped<DirectLightStructure>(ctx.globalDSet->sunCameraBuffers);
 	const glm::vec3 lightDirection = glm::normalize(-glm::vec3(existingDirectLight->direction));
 
 	// 2. Compute probe grid bounding sphere
@@ -54,13 +53,14 @@ void LightProbeGIBaking::bakeShadowMap(const BakeContext& ctx)
 	for (int i = 0; i < 6; ++i) directLightToReplace.frustumPlanes[i] = lightFrustumPlanes[i];
 	// Cover the full shadow map in NDC (no camera-frustum tightening)
 	directLightToReplace.cameraFrustumLightSpaceBounds = glm::vec4(-1.0f, 1.0f, -1.0f, 1.0f);
-	std::memcpy(sunBuffer.bufferMapped[0], &directLightToReplace, sizeof(DirectLightStructure));
+	std::memcpy(ctx.bufferManager->getMapped<DirectLightStructure>(ctx.globalDSet->sunCameraBuffers),
+	            &directLightToReplace, sizeof(DirectLightStructure));
 
 	// 6. Upload an all-accepting camera frustum.
 	CameraStructure infiniteCam{};
 	for (int i = 0; i < 6; ++i) infiniteCam.frustumPlanes[i] = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
-	const auto& camBuf = ctx.bufferManager->buffers[ctx.globalDSet->cameraBuffers.id];
-	std::memcpy(camBuf.bufferMapped[0], &infiniteCam, sizeof(CameraStructure));
+	std::memcpy(ctx.bufferManager->getMapped<CameraStructure>(ctx.globalDSet->cameraBuffers), &infiniteCam,
+	            sizeof(CameraStructure));
 
 	// 7. GPU work: reset -> shadow cull -> shadow render.
 	auto cmd = VulkanUtils::beginSingleTimeCommands(*ctx.device);
@@ -70,7 +70,7 @@ void LightProbeGIBaking::bakeShadowMap(const BakeContext& ctx)
 	                   *ctx.bufferManager, *ctx.drawInfo, *ctx.pipelineManager);
 
 	// Transition shadow map: UNDEFINED -> DEPTH_ATTACHMENT_OPTIMAL
-	vk::Image shadowImage = ctx.textureManager->textures[ctx.lightComponent->textureShadowImage.id].textureImage;
+	vk::Image shadowImage = ctx.textureManager->getTexture(ctx.lightComponent->textureShadowImage).textureImage;
 	VulkanUtils::transitionImageLayout(
 	    cmd, shadowImage, vk::ImageLayout::eUndefined, vk::ImageLayout::eDepthAttachmentOptimal,
 	    vk::AccessFlagBits2::eNone, vk::AccessFlagBits2::eDepthStencilAttachmentWrite,
@@ -78,7 +78,7 @@ void LightProbeGIBaking::bakeShadowMap(const BakeContext& ctx)
 	    vk::ImageAspectFlagBits::eDepth, 1, 1);
 
 	vk::RenderingAttachmentInfo depthAtt;
-	depthAtt.imageView = ctx.textureManager->textures[ctx.lightComponent->textureShadowImage.id].textureImageView;
+	depthAtt.imageView = ctx.textureManager->getTexture(ctx.lightComponent->textureShadowImage).textureImageView;
 	depthAtt.imageLayout = vk::ImageLayout::eDepthAttachmentOptimal;
 	depthAtt.loadOp = vk::AttachmentLoadOp::eClear;
 	depthAtt.storeOp = vk::AttachmentStoreOp::eStore;

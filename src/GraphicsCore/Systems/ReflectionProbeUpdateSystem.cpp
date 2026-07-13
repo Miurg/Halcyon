@@ -62,8 +62,8 @@ void ReflectionProbeUpdateSystem::update(GeneralManager& gm)
 		probe->needBake = false;
 	}
 
-	auto* probeData = static_cast<ReflectionProbeData*>(
-	    bufferManager.buffers[globalDSetComponent->reflectionProbeBuffer.id].bufferMapped[currentFrame]);
+	auto* probeData =
+	    bufferManager.getMapped<ReflectionProbeData>(globalDSetComponent->reflectionProbeBuffer, currentFrame);
 
 	uint32_t written = 0;
 	forEachSubscribedEntity(
@@ -80,6 +80,5 @@ void ReflectionProbeUpdateSystem::update(GeneralManager& gm)
 		    ++written;
 	    });
 
-	*static_cast<uint32_t*>(
-	    bufferManager.buffers[globalDSetComponent->reflectionProbeCountBuffer.id].bufferMapped[currentFrame]) = written;
+	*bufferManager.getMapped<uint32_t>(globalDSetComponent->reflectionProbeCountBuffer, currentFrame) = written;
 }

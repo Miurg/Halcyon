@@ -81,7 +81,7 @@ void CameraMatrixSystem::update(GeneralManager& gm)
 	cameraUbo.cameraPositionAndPadding = glm::vec4(mainCameraTransform->getGlobalPosition(), 0.0f);
 	for (int i = 0; i < 6; ++i) cameraUbo.frustumPlanes[i] = frustumPlanes[i];
 
-	memcpy(bufferManager.buffers[globalDSetComponent->cameraBuffers.id].bufferMapped[currentFrame], &cameraUbo,
+	memcpy(bufferManager.getMapped<CameraStructure>(globalDSetComponent->cameraBuffers, currentFrame), &cameraUbo,
 	       sizeof(cameraUbo));
 
 	// === Sun (Shadows) ===
@@ -202,6 +202,6 @@ void CameraMatrixSystem::update(GeneralManager& gm)
 	sunUbo.cameraFrustumLightSpaceBounds =
 	    glm::vec4(lsMin.x - epsilon, lsMax.x + epsilon, lsMin.y - epsilon, lsMax.y + epsilon);
 	
-	memcpy(bufferManager.buffers[globalDSetComponent->sunCameraBuffers.id].bufferMapped[currentFrame], &sunUbo,
-	       sizeof(sunUbo));  
+	memcpy(bufferManager.getMapped<DirectLightStructure>(globalDSetComponent->sunCameraBuffers, currentFrame), &sunUbo,
+	       sizeof(sunUbo));
 }

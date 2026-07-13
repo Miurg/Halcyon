@@ -50,8 +50,8 @@ void LightUpdateSystem::update(GeneralManager& gm)
 	GlobalDSetComponent* globalDSetComponent = gm.getContextComponent<MainDSetsContext, GlobalDSetComponent>();
 
 
-	auto* spotLightPtr = static_cast<PointLightStructure*>(
-	    bufferManager.buffers[globalDSetComponent->pointLightBuffers.id].bufferMapped[currentFrame]);
+	auto* spotLightPtr =
+	    bufferManager.getMapped<PointLightStructure>(globalDSetComponent->pointLightBuffers, currentFrame);
 	uint32_t lightCount = 0;
 	forEachSubscribedEntity(
 	    gm,
@@ -69,7 +69,7 @@ void LightUpdateSystem::update(GeneralManager& gm)
 		    spotLightPtr[i].position = transform.getGlobalPosition();
 	    });
 
-	auto* pointLightCountPtr = static_cast<uint32_t*>(
-	    bufferManager.buffers[globalDSetComponent->pointLightCountBuffer.id].bufferMapped[currentFrame]);
+	auto* pointLightCountPtr =
+	    bufferManager.getMapped<uint32_t>(globalDSetComponent->pointLightCountBuffer, currentFrame);
 	pointLightCountPtr[0] = lightCount;
 }

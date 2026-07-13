@@ -105,7 +105,7 @@ void DebugPass::addToGraph(Orhescyon::GeneralManager& gm, RenderGraph& rg, uint3
 			{
 				AABBPush pd;
 				pd.model = globalTransform->getGlobalModelMatrix();
-				for (const auto& primitive : mManager.meshes[meshComponent->mesh].primitives)
+				for (const auto& primitive : mManager.getMesh(meshComponent->mesh).primitives)
 				{
 					pd.aabbMin = primitive.AABBMin;
 					pd.aabbMax = primitive.AABBMax;

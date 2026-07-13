@@ -30,7 +30,7 @@ static TempImages createTempImages(const BakeContext& ctx)
 	                                                           vk::ImageUsageFlagBits::eColorAttachment |
 	                                                               vk::ImageUsageFlagBits::eSampled);
 
-	Texture& captureTex = ctx.textureManager->textures[tmp.captureHandle.id];
+	Texture& captureTex = ctx.textureManager->getTexture(tmp.captureHandle);
 	tmp.captureImage = captureTex.textureImage;
 	ctx.textureManager->createCubemapImageView(captureTex, kCaptureFormat, vk::ImageAspectFlagBits::eColor);
 	ctx.textureManager->createCubemapSampler(captureTex);
@@ -81,8 +81,7 @@ static TempImages createTempImages(const BakeContext& ctx)
 
 static void writeGridInfo(const BakeContext& ctx, int total)
 {
-	auto* gridInfo =
-	    static_cast<SHGridInfo*>(ctx.bufferManager->buffers[ctx.globalDSet->shGridInfoBuffer.id].bufferMapped[0]);
+	auto* gridInfo = ctx.bufferManager->getMapped<SHGridInfo>(ctx.globalDSet->shGridInfoBuffer);
 	gridInfo->origin = ctx.grid->origin;
 	gridInfo->spacing = ctx.grid->spacing;
 	gridInfo->count = ctx.grid->count;
@@ -245,8 +244,7 @@ void LightProbeGIBaking::resetProbes(GeneralManager& gm)
 	BakeContext ctx = gatherContext(gm);
 	ctx.device->device.waitIdle();
 
-	auto* probes =
-	    static_cast<SHProbeEntry*>(ctx.bufferManager->buffers[ctx.globalDSet->shProbeBuffer.id].bufferMapped[0]);
+	auto* probes = ctx.bufferManager->getMapped<SHProbeEntry>(ctx.globalDSet->shProbeBuffer);
 	// Slot 0 is the skybox fallback (owned by SkyboxFactory), not a bake result — keep it
 	std::memset(probes + 1, 0, sizeof(SHProbeEntry) * (MAX_SH_PROBES - 1));
 }
@@ -276,7 +274,7 @@ void LightProbeGIBaking::bakeAll(GeneralManager& gm)
 	writeGridInfo(ctx, totalProbes);
 
 	// Point sh_projection at the capture cubemap once for the whole bake.
-	Texture& captureTex = ctx.textureManager->textures[tempImages.captureHandle.id];
+	Texture& captureTex = ctx.textureManager->getTexture(tempImages.captureHandle);
 	ctx.descriptorManagerComponent->descriptorManager->update(
 	    ctx.bindlessDSet->bindlessTextureSet, Bindings::Textures::GICaptureCubemap, 0,
 	    vk::DescriptorType::eCombinedImageSampler, captureTex.textureImageView, captureTex.textureSampler);
@@ -305,7 +303,7 @@ void LightProbeGIBaking::bakeAll(GeneralManager& gm)
 	}
 
 	// Re-point the capture binding at the skybox before the capture cubemap is destroyed.
-	Texture& skyboxTex = ctx.textureManager->textures[ctx.skybox->cubemapTexture.id];
+	Texture& skyboxTex = ctx.textureManager->getTexture(ctx.skybox->cubemapTexture);
 	ctx.descriptorManagerComponent->descriptorManager->update(
 	    ctx.bindlessDSet->bindlessTextureSet, Bindings::Textures::GICaptureCubemap, 0,
 	    vk::DescriptorType::eCombinedImageSampler, skyboxTex.textureImageView, skyboxTex.textureSampler);

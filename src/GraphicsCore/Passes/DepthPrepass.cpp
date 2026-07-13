@@ -119,8 +119,8 @@ void DepthPrepass::draw(vk::raii::CommandBuffer& cmd, uint32_t frame, SwapChain&
 	cmd.setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), swapChain.swapChainExtent));
 
 	const uint32_t commandStride = sizeof(VkDrawIndexedIndirectCommand);
-	cmd.bindVertexBuffers(0, mManager.vertexIndexBuffers[mManager.meshes[0].vertexIndexBufferID].vertexBuffer, {0});
-	cmd.bindIndexBuffer(mManager.vertexIndexBuffers[mManager.meshes[0].vertexIndexBufferID].indexBuffer, 0,
+	cmd.bindVertexBuffers(0, mManager.getVertexIndexBuffer(0).vertexBuffer, {0});
+	cmd.bindIndexBuffer(mManager.getVertexIndexBuffer(0).indexBuffer, 0,
 	                    vk::IndexType::eUint32);
 	// Segments 0,1 = opaque, 2,3 = mask
 	const uint32_t segmentCounts[4] = {drawInfo.opaqueSingleCount, drawInfo.opaqueDoubleCount, drawInfo.maskSingleCount,
@@ -135,9 +135,9 @@ void DepthPrepass::draw(vk::raii::CommandBuffer& cmd, uint32_t frame, SwapChain&
 		if (count > 0)
 		{
 			cmd.setCullMode((seg & 1) ? vk::CullModeFlagBits::eNone : vk::CullModeFlagBits::eBack);
-			cmd.drawIndexedIndirectCount(bManager.buffers[objectDSetComponent.compactedDrawBuffer.id].buffer[frame],
+			cmd.drawIndexedIndirectCount(bManager.getBuffer(objectDSetComponent.compactedDrawBuffer, frame),
 			                             currentCommandOffset,
-			                             bManager.buffers[objectDSetComponent.drawCountBuffer.id].buffer[frame],
+			                             bManager.getBuffer(objectDSetComponent.drawCountBuffer, frame),
 			                             currentCountBufferOffset, count, commandStride);
 			currentCommandOffset += count * commandStride;
 		}

@@ -79,7 +79,7 @@ void drawCullPass(vk::raii::CommandBuffer& cmd, uint32_t frame, DescriptorManage
 	cullDepInfo.pMemoryBarriers = &cullBarrier;
 	cmd.pipelineBarrier2(cullDepInfo);
 
-	cmd.fillBuffer(bManager.buffers[objectDSetComponent.drawCountBuffer.id].buffer[frame], 0, sizeof(uint32_t) * 6, 0);
+	cmd.fillBuffer(bManager.getBuffer(objectDSetComponent.drawCountBuffer, frame), 0, sizeof(uint32_t) * 6, 0);
 
 	vk::MemoryBarrier2 fillBarrier;
 	fillBarrier.srcStageMask = vk::PipelineStageFlagBits2::eTransfer;
@@ -170,7 +170,7 @@ void drawShadowCullPass(vk::raii::CommandBuffer& cmd, uint32_t frame, Descriptor
 	cullDepInfo.pMemoryBarriers = &cullBarrier;
 	cmd.pipelineBarrier2(cullDepInfo);
 
-	cmd.fillBuffer(bManager.buffers[objectDSetComponent.drawCountBuffer.id].buffer[frame], 0, sizeof(uint32_t) * 6, 0);
+	cmd.fillBuffer(bManager.getBuffer(objectDSetComponent.drawCountBuffer, frame), 0, sizeof(uint32_t) * 6, 0);
 
 	vk::MemoryBarrier2 fillBarrier;
 	fillBarrier.srcStageMask = vk::PipelineStageFlagBits2::eTransfer;
@@ -243,8 +243,8 @@ void drawShadowPass(vk::raii::CommandBuffer& cmd, uint32_t frame, DirectLightCom
 	cmd.setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), vk::Extent2D(lightTexture.sizeX, lightTexture.sizeY)));
 
 	const uint32_t commandStride = sizeof(VkDrawIndexedIndirectCommand);
-	cmd.bindVertexBuffers(0, mManager.vertexIndexBuffers[mManager.meshes[0].vertexIndexBufferID].vertexBuffer, {0});
-	cmd.bindIndexBuffer(mManager.vertexIndexBuffers[mManager.meshes[0].vertexIndexBufferID].indexBuffer, 0,
+	cmd.bindVertexBuffers(0, mManager.getVertexIndexBuffer(0).vertexBuffer, {0});
+	cmd.bindIndexBuffer(mManager.getVertexIndexBuffer(0).indexBuffer, 0,
 	                    vk::IndexType::eUint32);
 
 	// BLEND (segs 4,5) is excluded from shadow casting.
@@ -263,9 +263,9 @@ void drawShadowPass(vk::raii::CommandBuffer& cmd, uint32_t frame, DirectLightCom
 		if (count > 0)
 		{
 			cmd.setCullMode((segment & 1) ? vk::CullModeFlagBits::eNone : vk::CullModeFlagBits::eBack);
-			cmd.drawIndexedIndirectCount(bManager.buffers[objectDSetComponent.compactedDrawBuffer.id].buffer[frame],
+			cmd.drawIndexedIndirectCount(bManager.getBuffer(objectDSetComponent.compactedDrawBuffer, frame),
 			                             currentCommandOffset,
-			                             bManager.buffers[objectDSetComponent.drawCountBuffer.id].buffer[frame],
+			                             bManager.getBuffer(objectDSetComponent.drawCountBuffer, frame),
 			                             currentCountBufferOffset, count, commandStride);
 			currentCommandOffset += count * commandStride;
 		}

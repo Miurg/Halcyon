@@ -87,8 +87,8 @@ void RenderSystem::importFrameResources(GeneralManager& gm, RenderGraph& rg, uin
 	auto& textureManager = *gm.getContextComponent<TextureManagerContext, TextureManagerComponent>()->textureManager;
 	auto& shadowMap = *gm.getContextComponent<SunContext, DirectLightComponent>();
 
-	rg.importImage("shadowMap", textureManager.textures[shadowMap.textureShadowImage.id].textureImage,
-	               textureManager.textures[shadowMap.textureShadowImage.id].textureImageView,
+	rg.importImage("shadowMap", textureManager.getTexture(shadowMap.textureShadowImage).textureImage,
+	               textureManager.getTexture(shadowMap.textureShadowImage).textureImageView,
 	               vk::ImageAspectFlagBits::eDepth);
 	rg.importImage("swapChainImage", swapChain.swapChainImages[imageIndex], swapChain.swapChainImageViews[imageIndex],
 	               vk::ImageAspectFlagBits::eColor);

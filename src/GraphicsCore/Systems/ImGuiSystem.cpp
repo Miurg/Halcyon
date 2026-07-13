@@ -98,7 +98,7 @@ void drawMemoryWindow(GeneralManager& gm)
 		int modelIndex = gm.getComponent<ModelComponent>(root)->modelIndex;
 		auto* nameComp = gm.getComponent<NameComponent>(root);
 		ImGui::Text("%u  %s (model %d, refs %d)", root.slot, nameComp ? nameComp->name : "?",
-		            modelIndex, modelManager->models[modelIndex].refCount);
+		            modelIndex, modelManager->getModel(modelIndex).refCount);
 		ImGui::SameLine();
 		if (ImGui::Button("Unload"))
 		{
@@ -108,7 +108,7 @@ void drawMemoryWindow(GeneralManager& gm)
 	}
 
 	ImGui::SeparatorText("Geometry arenas");
-	VertexIndexBuffer& geometryBuffer = modelManager->vertexIndexBuffers[0];
+	VertexIndexBuffer& geometryBuffer = modelManager->getVertexIndexBuffer(0);
 	drawArenaBar(geometryBuffer.vertexAllocator, "Vertices", sizeof(Vertex));
 	drawArenaBar(geometryBuffer.indexAllocator, "Indices", sizeof(uint32_t));
 	ImGui::Text("Pending geometry frees: %zu", modelManager->pendingGeometryFreeCount());
@@ -128,7 +128,7 @@ void drawMemoryWindow(GeneralManager& gm)
 	ImGui::SeparatorText("Loaded models");
 	for (size_t i = 0; i < modelManager->models.size(); ++i)
 	{
-		const Model& model = modelManager->models[i];
+		const Model& model = modelManager->getModel(static_cast<int>(i));
 		if (model.refCount <= 0) continue;
 		ImGui::Text("[%zu] refs %d | meshes %zu | vtx %u | idx %u | tex %zu | mat %zu", i, model.refCount,
 		            model.meshes.size(), model.allocation.vertexCount, model.allocation.indexCount,

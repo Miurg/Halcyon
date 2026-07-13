@@ -142,7 +142,7 @@ void PlaceholdersInit::initPlaceholders(GeneralManager& gm)
 		skyboxSlot.position = glm::vec3(0.0f);
 		skyboxSlot.influenceRadius = std::numeric_limits<float>::max();
 		auto cmd = VulkanUtils::beginSingleTimeCommands(*vulkanDevice);
-		cmd.updateBuffer(bManager->buffers[globalDSetComponent->shProbeBuffer.id].buffer[0], 0,
+		cmd.updateBuffer(bManager->getBuffer(globalDSetComponent->shProbeBuffer), 0,
 		                 vk::ArrayProxy<const SHProbeEntry>(1, &skyboxSlot));
 		VulkanUtils::endSingleTimeCommands(cmd, *vulkanDevice);
 	}
@@ -160,7 +160,7 @@ void PlaceholdersInit::initPlaceholders(GeneralManager& gm)
 		initialGridInfo.probeCount = 1u;
 		initialGridInfo.giBounceMultiplier = 1.0f;
 		auto cmd = VulkanUtils::beginSingleTimeCommands(*vulkanDevice);
-		cmd.updateBuffer(bManager->buffers[globalDSetComponent->shGridInfoBuffer.id].buffer[0], 0,
+		cmd.updateBuffer(bManager->getBuffer(globalDSetComponent->shGridInfoBuffer), 0,
 		                 vk::ArrayProxy<const SHGridInfo>(1, &initialGridInfo));
 		VulkanUtils::endSingleTimeCommands(cmd, *vulkanDevice);
 	}
@@ -179,7 +179,7 @@ void PlaceholdersInit::initPlaceholders(GeneralManager& gm)
 	dManager->updateStorageBufferDescriptors(*bManager, globalDSetComponent->reflectionProbeCountBuffer,
 	                                         globalDSetComponent->globalDSets, Bindings::Global::ReflectionProbeCount);
 	for (uint32_t frame = 0; frame < MAX_FRAMES_IN_FLIGHT; ++frame)
-		*static_cast<uint32_t*>(bManager->buffers[globalDSetComponent->reflectionProbeCountBuffer.id].bufferMapped[frame]) = 0u;
+		*bManager->getMapped<uint32_t>(globalDSetComponent->reflectionProbeCountBuffer, frame) = 0u;
 #pragma endregion
 
 #pragma region Material & Texture System (Set 2)
@@ -194,8 +194,8 @@ void PlaceholdersInit::initPlaceholders(GeneralManager& gm)
 
 	// Shadow Map Texture Set (binding 1)
 	dManager->updateSingleTextureDSet(bTextureDSetComponent->bindlessTextureSet, 1,
-	                                  tManager->textures[directLight->textureShadowImage.id].textureImageView,
-	                                  tManager->textures[directLight->textureShadowImage.id].textureSampler);
+	                                  tManager->getTexture(directLight->textureShadowImage).textureImageView,
+	                                  tManager->getTexture(directLight->textureShadowImage).textureSampler);
 
 	// Default White Texture
 	auto texturePtr = GltfLoader::createDefaultWhiteTexture();
@@ -215,7 +215,7 @@ void PlaceholdersInit::initPlaceholders(GeneralManager& gm)
 	TextureHandle whiteCubemapHandle = tManager->createCubemapImage(
 	    1, 1, vk::Format::eR32G32B32A32Sfloat,
 	    vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eStorage);
-	Texture& whiteCubemap = tManager->textures[whiteCubemapHandle.id];
+	Texture& whiteCubemap = tManager->getTexture(whiteCubemapHandle);
 	tManager->createCubemapImageView(whiteCubemap, vk::Format::eR32G32B32A32Sfloat, vk::ImageAspectFlagBits::eColor);
 	tManager->createCubemapSampler(whiteCubemap);
 

@@ -63,16 +63,15 @@ void BufferUpdateSystem::update(GeneralManager& gm)
 	{
 		if (!batch[i].empty())
 		{
-			modelManager.meshes[i].entitiesSubscribed = batch[i].size();
+			modelManager.getMesh(static_cast<int>(i)).entitiesSubscribed = batch[i].size();
 		}
 	}
 
-	auto* primitivePtr = static_cast<PrimitiveSctructure*>(
-	    bufferManager.buffers[objectDSetComponent->primitiveBuffer.id].bufferMapped[currentFrame]);
-	auto* transfromMeshPtr = static_cast<TransformStructure*>(
-	    bufferManager.buffers[objectDSetComponent->transformBuffer.id].bufferMapped[currentFrame]);
-	auto* indirectBufferPtr = static_cast<IndirectDrawStructure*>(
-	    bufferManager.buffers[objectDSetComponent->indirectDrawBuffer.id].bufferMapped[currentFrame]);
+	auto* primitivePtr = bufferManager.getMapped<PrimitiveSctructure>(objectDSetComponent->primitiveBuffer, currentFrame);
+	auto* transfromMeshPtr =
+	    bufferManager.getMapped<TransformStructure>(objectDSetComponent->transformBuffer, currentFrame);
+	auto* indirectBufferPtr =
+	    bufferManager.getMapped<IndirectDrawStructure>(objectDSetComponent->indirectDrawBuffer, currentFrame);
 
 	// same for both passes
 	int globalTransformIndex = 0;
@@ -102,36 +101,36 @@ void BufferUpdateSystem::update(GeneralManager& gm)
 
 			MeshInfoComponent& meshBaseInfo = *agentsInBatch[0].meshInfo;
 			int meshIdx = meshBaseInfo.mesh;
-			int primitiveCount = modelManager.meshes[meshIdx].primitives.size();
+			int primitiveCount = modelManager.getMesh(meshIdx).primitives.size();
 
 			for (int i = 0; i < primitiveCount; i++)
 			{
-				uint32_t matIdx = modelManager.meshes[meshIdx].primitives[i].materialIndex;
-				int category = textureManager.materials[matIdx].alphaMode; // 0=opaque, 1=mask, 2=blend
-				bool isDoubleSided = (textureManager.materials[matIdx].doubleSided == 1);
+				uint32_t matIdx = modelManager.getMesh(meshIdx).primitives[i].materialIndex;
+				int category = textureManager.getMaterial(matIdx).alphaMode; // 0=opaque, 1=mask, 2=blend
+				bool isDoubleSided = (textureManager.getMaterial(matIdx).doubleSided == 1);
 
 				if (categoryPass != category || isDoubleSidedPass != isDoubleSided) continue;
 
 				// Write indirect draw command
-				currentDraw.indexCount = modelManager.meshes[meshIdx].primitives[i].indexCount;
-				currentDraw.firstIndex = modelManager.meshes[meshIdx].primitives[i].indexOffset;
-				currentDraw.vertexOffset = modelManager.meshes[meshIdx].primitives[i].vertexOffset;
+				currentDraw.indexCount = modelManager.getMesh(meshIdx).primitives[i].indexCount;
+				currentDraw.firstIndex = modelManager.getMesh(meshIdx).primitives[i].indexOffset;
+				currentDraw.vertexOffset = modelManager.getMesh(meshIdx).primitives[i].vertexOffset;
 				currentDraw.instanceCount = 0;
 				currentDraw.firstInstance = globalCullIndex;
 				indirectBufferPtr[globalPrimitiveIndex] = currentDraw;
 
 				// Write per entity primitive data
 				int currentEntityTransformIndex = baseTransformPerBatch[b];
-				globalCullIndex += modelManager.meshes[meshIdx].entitiesSubscribed;
+				globalCullIndex += modelManager.getMesh(meshIdx).entitiesSubscribed;
 				for (const auto& agent : agentsInBatch)
 				{
 					int agentMeshIndex = agent.meshInfo->mesh;
 
 					primitivePtr[localPrimitiveIndex].materialIndex =
-					    modelManager.meshes[agentMeshIndex].primitives[i].materialIndex;
+					    modelManager.getMesh(agentMeshIndex).primitives[i].materialIndex;
 					primitivePtr[localPrimitiveIndex].transformIndex = currentEntityTransformIndex;
-					primitivePtr[localPrimitiveIndex].AABBMax = modelManager.meshes[agentMeshIndex].primitives[i].AABBMax;
-					primitivePtr[localPrimitiveIndex].AABBMin = modelManager.meshes[agentMeshIndex].primitives[i].AABBMin;
+					primitivePtr[localPrimitiveIndex].AABBMax = modelManager.getMesh(agentMeshIndex).primitives[i].AABBMax;
+					primitivePtr[localPrimitiveIndex].AABBMin = modelManager.getMesh(agentMeshIndex).primitives[i].AABBMin;
 					primitivePtr[localPrimitiveIndex].drawCommandIndex = globalPrimitiveIndex;
 
 					localPrimitiveIndex++;

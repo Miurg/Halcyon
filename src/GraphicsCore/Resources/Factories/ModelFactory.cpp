@@ -208,7 +208,7 @@ Orhescyon::Entity ModelFactory::loadModel(const char path[MAX_PATH_LEN], int ver
 	if (mManager.isModelLoaded(path))
 	{
 		modelIndex = mManager.modelPaths[path];
-		mManager.models[modelIndex].refCount++;
+		mManager.getModel(modelIndex).refCount++;
 	}
 	else
 	{
@@ -233,7 +233,7 @@ Orhescyon::Entity ModelFactory::loadModel(const char path[MAX_PATH_LEN], int ver
 
 	for (int rootNodeIndex : scene.nodes)
 	{
-		createEntityHierarchy(modelRootEntity, model, gm, mManager.models[modelIndex].meshes, bManager, rootNodeIndex);
+		createEntityHierarchy(modelRootEntity, model, gm, mManager.getModel(modelIndex).meshes, bManager, rootNodeIndex);
 	}
 	std::cout << "Loaded model: " << path << std::endl;
 	return modelRootEntity;
@@ -274,7 +274,7 @@ bool ModelFactory::unloadModel(Orhescyon::Entity modelRootEntity, GeneralManager
 	collectSubtree(modelRootEntity, gm, toDestroy);
 	for (Orhescyon::Entity entity : toDestroy) gm.destroyEntity(entity);
 
-	Model& model = mManager.models[modelIndex];
+	Model& model = mManager.getModel(modelIndex);
 	model.refCount--;
 	if (model.refCount > 0) return true;
 

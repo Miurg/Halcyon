@@ -90,7 +90,7 @@ RefCapture createCapture(const RefBakeContext& ctx)
 	cap.cubemap = ctx.textureManager->createCubemapImage(
 	    kCaptureSize, kCaptureSize, kCaptureFormat,
 	    vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eSampled);
-	Texture& tex = ctx.textureManager->textures[cap.cubemap.id];
+	Texture& tex = ctx.textureManager->getTexture(cap.cubemap);
 	cap.image = tex.textureImage;
 	ctx.textureManager->createCubemapImageView(tex, kCaptureFormat, vk::ImageAspectFlagBits::eColor);
 	ctx.textureManager->createCubemapSampler(tex);
@@ -148,10 +148,8 @@ void drawScene(vk::raii::CommandBuffer& cmd, const RefBakeContext& ctx, glm::vec
 	const BakeFacePush push{origin, static_cast<uint32_t>(faceIdx)};
 	DescriptorManager& dm = *ctx.descriptorManagerComponent->descriptorManager;
 
-	cmd.bindVertexBuffers(
-	    0, ctx.modelManager->vertexIndexBuffers[ctx.modelManager->meshes[0].vertexIndexBufferID].vertexBuffer, {0});
-	cmd.bindIndexBuffer(ctx.modelManager->vertexIndexBuffers[ctx.modelManager->meshes[0].vertexIndexBufferID].indexBuffer,
-	                    0, vk::IndexType::eUint32);
+	cmd.bindVertexBuffers(0, ctx.modelManager->getVertexIndexBuffer(0).vertexBuffer, {0});
+	cmd.bindIndexBuffer(ctx.modelManager->getVertexIndexBuffer(0).indexBuffer, 0, vk::IndexType::eUint32);
 
 	auto bindMain = [&](const char* pipe)
 	{
@@ -177,9 +175,9 @@ void drawScene(vk::raii::CommandBuffer& cmd, const RefBakeContext& ctx, glm::vec
 		if (count > 0)
 		{
 			cmd.setCullMode((seg & 1) ? vk::CullModeFlagBits::eNone : vk::CullModeFlagBits::eBack);
-			cmd.drawIndexedIndirectCount(ctx.bufferManager->buffers[ctx.modelDSet->compactedDrawBuffer.id].buffer[0],
+			cmd.drawIndexedIndirectCount(ctx.bufferManager->getBuffer(ctx.modelDSet->compactedDrawBuffer),
 			                             cmdOffset,
-			                             ctx.bufferManager->buffers[ctx.modelDSet->drawCountBuffer.id].buffer[0],
+			                             ctx.bufferManager->getBuffer(ctx.modelDSet->drawCountBuffer),
 			                             countOffset, count, stride);
 			cmdOffset += count * stride;
 		}
@@ -205,8 +203,7 @@ void drawScene(vk::raii::CommandBuffer& cmd, const RefBakeContext& ctx, glm::vec
 	drawSegment(4);
 	drawSegment(5);
 
-	const uint32_t lightCount = *static_cast<const uint32_t*>(
-	    ctx.bufferManager->buffers[ctx.globalDSet->pointLightCountBuffer.id].bufferMapped[0]);
+	const uint32_t lightCount = *ctx.bufferManager->getMapped<uint32_t>(ctx.globalDSet->pointLightCountBuffer);
 	if (lightCount > 0)
 	{
 		struct LightSourcePush
@@ -255,8 +252,7 @@ void ReflectionProbeBaker::bake(GeneralManager& gm, ReflectionProbeComponent& pr
 
 	ctx.device->device.waitIdle();
 
-	auto* gridInfo =
-	    static_cast<SHGridInfo*>(ctx.bufferManager->buffers[ctx.globalDSet->shGridInfoBuffer.id].bufferMapped[0]);
+	auto* gridInfo = ctx.bufferManager->getMapped<SHGridInfo>(ctx.globalDSet->shGridInfoBuffer);
 	const float savedRange = gridInfo->captureRange;
 	const glm::vec3 savedAmbient = gridInfo->giAmbient;
 	const float savedBounce = gridInfo->giBounceMultiplier;
@@ -265,12 +261,13 @@ void ReflectionProbeBaker::bake(GeneralManager& gm, ReflectionProbeComponent& pr
 	gridInfo->giBounceMultiplier = probe.giBounceMultiplier;
 
 	// All-accepting frustum in the main camera buffer so the cull passes the whole scene; save/restore it.
-	auto& camBuf = ctx.bufferManager->buffers[ctx.globalDSet->cameraBuffers.id];
 	CameraStructure savedCam;
-	std::memcpy(&savedCam, camBuf.bufferMapped[0], sizeof(CameraStructure));
+	std::memcpy(&savedCam, ctx.bufferManager->getMapped<CameraStructure>(ctx.globalDSet->cameraBuffers),
+	            sizeof(CameraStructure));
 	CameraStructure infiniteCam{};
 	for (int i = 0; i < 6; ++i) infiniteCam.frustumPlanes[i] = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
-	std::memcpy(camBuf.bufferMapped[0], &infiniteCam, sizeof(CameraStructure));
+	std::memcpy(ctx.bufferManager->getMapped<CameraStructure>(ctx.globalDSet->cameraBuffers), &infiniteCam,
+	            sizeof(CameraStructure));
 
 	RefCapture cap = createCapture(ctx);
 
@@ -339,8 +336,8 @@ void ReflectionProbeBaker::bake(GeneralManager& gm, ReflectionProbeComponent& pr
 
 	ctx.descriptorManagerComponent->descriptorManager->update(
 	    ctx.bindlessDSet->bindlessTextureSet, Bindings::Textures::ReflectionCubemaps, 0,
-	    vk::DescriptorType::eCombinedImageSampler, ctx.textureManager->textures[prefiltered.id].textureImageView,
-	    ctx.textureManager->textures[prefiltered.id].textureSampler, vk::ImageLayout::eShaderReadOnlyOptimal,
+	    vk::DescriptorType::eCombinedImageSampler, ctx.textureManager->getTexture(prefiltered).textureImageView,
+	    ctx.textureManager->getTexture(prefiltered).textureSampler, vk::ImageLayout::eShaderReadOnlyOptimal,
 	    static_cast<uint32_t>(cubemapSlot));
 
 	probe.prefilteredMap = prefiltered;
@@ -351,11 +348,12 @@ void ReflectionProbeBaker::bake(GeneralManager& gm, ReflectionProbeComponent& pr
 
 	// Restore the skybox cubemap sampler (generatePrefilteredEnvMap left it pointing at the capture)
 	// and the main camera buffer / grid capture range.
-	Texture& skyTex = ctx.textureManager->textures[ctx.skybox->cubemapTexture.id];
+	Texture& skyTex = ctx.textureManager->getTexture(ctx.skybox->cubemapTexture);
 	ctx.descriptorManagerComponent->descriptorManager->update(
 	    ctx.bindlessDSet->bindlessTextureSet, Bindings::Textures::CubemapSampler, 0,
 	    vk::DescriptorType::eCombinedImageSampler, skyTex.textureImageView, skyTex.textureSampler);
-	std::memcpy(camBuf.bufferMapped[0], &savedCam, sizeof(CameraStructure));
+	std::memcpy(ctx.bufferManager->getMapped<CameraStructure>(ctx.globalDSet->cameraBuffers), &savedCam,
+	            sizeof(CameraStructure));
 	gridInfo->captureRange = savedRange;
 	gridInfo->giAmbient = savedAmbient;
 	gridInfo->giBounceMultiplier = savedBounce;
