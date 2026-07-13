@@ -66,6 +66,14 @@ void PhysicsInit::initPhysics(Orhescyon::GeneralManager& gm)
 		JPH::Factory::sInstance = new JPH::Factory();
 	}
 
+	dq->push_function(
+	    []()
+	    {
+		    JPH::UnregisterTypes();
+		    delete JPH::Factory::sInstance;
+		    JPH::Factory::sInstance = nullptr;
+	    });
+
 	JPH::RegisterTypes();
 	Orhescyon::Entity physManagerEntity = gm.createEntity();
 	PhysManager* physManager = new PhysManager(gm);
@@ -78,12 +86,5 @@ void PhysicsInit::initPhysics(Orhescyon::GeneralManager& gm)
 
 	dq->push_function([physManager]() { delete physManager; });
 
-	dq->push_function(
-	    []()
-	    {
-		    JPH::UnregisterTypes();
-		    delete JPH::Factory::sInstance;
-		    JPH::Factory::sInstance = nullptr;
-	    });
 }
 #pragma endregion

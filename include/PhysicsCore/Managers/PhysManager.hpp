@@ -23,16 +23,14 @@ class HALCYON_API PhysManager
 {
 public:
 	PhysManager(GeneralManager& gm);
-	~PhysManager();
 
 	MyBroadPhaseLayerInterface sBroadPhaseLayerInterface;
 	MyObjectVsBroadPhaseLayerFilter sObjectVsBroadPhaseLayerFilter;
 	MyObjectLayerPairFilter sObjectLayerPairFilter;
 
-	JPH::PhysicsSystem* physicsSystem = new JPH::PhysicsSystem();
-	JPH::TempAllocatorImpl* tempAllocator = new JPH::TempAllocatorImpl(10 * 1024 * 1024);
-	JPH::JobSystemThreadPool* jobSystem = new JPH::JobSystemThreadPool(JPH::cMaxPhysicsJobs, JPH::cMaxPhysicsBarriers,
-	                                                                   std::thread::hardware_concurrency() - 1);
+	JPH::PhysicsSystem* physicsSystem = nullptr;
+	JPH::TempAllocatorImpl* tempAllocator = nullptr;
+	JPH::JobSystemThreadPool* jobSystem = nullptr;
 	
 	std::atomic<SnapshotIndices> physSnapshot{{0, 1, 2}};
 
