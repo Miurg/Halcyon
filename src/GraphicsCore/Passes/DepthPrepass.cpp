@@ -169,41 +169,38 @@ void DepthPrepass::addToGraph(Orhescyon::GeneralManager& gm, RenderGraph& rg, ui
 	vk::ClearValue clearDepth0 = vk::ClearDepthStencilValue(0.0f, 0);
 	vk::ClearValue clearBlack = vk::ClearColorValue(0.0f, 0.0f, 0.0f, 0.0f);
 
+	std::vector<RGResourceAccess> mainWrites;
+	std::vector<RGAttachmentConfig> colorAttachments;
+	std::optional<RGAttachmentConfig> depthAttachment;
+
+	vk::ResolveModeFlagBits colorResolve = vk::ResolveModeFlagBits::eAverage;
+	vk::ResolveModeFlagBits depthResolve = vk::ResolveModeFlagBits::eSampleZero;
+
 	if (graphicsSettings.msaaSamples & vk::SampleCountFlagBits::e1)
 	{
-		rg.addPass(
-		    "DepthPrepass",
-		    {.colorAttachments = {{"ViewNormals", vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore,
-		                           clearBlack}},
-		     .depthAttachment =
-		         RGAttachmentConfig{"Depth", vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore, clearDepth0}},
-		    {},
-		    {{"ViewNormals", RGResourceUsage::ColorAttachmentWrite}, {"Depth", RGResourceUsage::DepthAttachmentWrite}},
-		    [&, frame](vk::raii::CommandBuffer& cmd)
-		    {
-			    draw(cmd, frame, swapChain, dManager, globalDSetComponent, bManager, objectDSetComponent,
-			         bindlessTextureDSetComponent, mManager, drawInfo, pManager);
-		    });
+		colorAttachments = {{"ViewNormals", vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore, clearBlack}};
+		depthAttachment =
+		    RGAttachmentConfig{"Depth", vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore, clearDepth0};
+		mainWrites = {{"ViewNormals", RGResourceUsage::ColorAttachmentWrite},
+		              {"Depth", RGResourceUsage::DepthAttachmentWrite}};
 	}
 	else
 	{
-		vk::ResolveModeFlagBits colorResolve = vk::ResolveModeFlagBits::eAverage;
-		vk::ResolveModeFlagBits depthResolve = vk::ResolveModeFlagBits::eSampleZero;
-		rg.addPass(
-		    "DepthPrepass",
-		    {.colorAttachments = {{"ViewNormalsMSAA", vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore,
-		                           clearBlack, "ViewNormals", colorResolve}},
-		     .depthAttachment = RGAttachmentConfig{"DepthMSAA", vk::AttachmentLoadOp::eClear,
-		                                           vk::AttachmentStoreOp::eStore, clearDepth0, "Depth", depthResolve}},
-		    {},
-		    {{"ViewNormalsMSAA", RGResourceUsage::ColorAttachmentWrite},
-		     {"DepthMSAA", RGResourceUsage::DepthAttachmentWrite},
-		     {"ViewNormals", RGResourceUsage::ColorAttachmentWrite},
-		     {"Depth", RGResourceUsage::DepthAttachmentWrite}},
-		    [&, frame](vk::raii::CommandBuffer& cmd)
-		    {
-			    draw(cmd, frame, swapChain, dManager, globalDSetComponent, bManager, objectDSetComponent,
-			         bindlessTextureDSetComponent, mManager, drawInfo, pManager);
-		    });
+		colorAttachments = {{"ViewNormalsMSAA", vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore, clearBlack,
+		                     "ViewNormals", colorResolve}};
+		depthAttachment = RGAttachmentConfig{
+		    "DepthMSAA", vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore, clearDepth0, "Depth", depthResolve};
+		mainWrites = {{"ViewNormalsMSAA", RGResourceUsage::ColorAttachmentWrite},
+		              {"DepthMSAA", RGResourceUsage::DepthAttachmentWrite},
+		              {"ViewNormals", RGResourceUsage::ColorAttachmentWrite},
+		              {"Depth", RGResourceUsage::DepthAttachmentWrite}};
 	}
+
+	rg.addPass("DepthPrepass", {.colorAttachments = colorAttachments, .depthAttachment = depthAttachment}, {},
+	           mainWrites,
+	           [&, frame](vk::raii::CommandBuffer& cmd)
+	           {
+		           draw(cmd, frame, swapChain, dManager, globalDSetComponent, bManager, objectDSetComponent,
+		                bindlessTextureDSetComponent, mManager, drawInfo, pManager);
+	           });
 }

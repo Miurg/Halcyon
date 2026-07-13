@@ -216,56 +216,43 @@ void MainPass::addToGraph(Orhescyon::GeneralManager& gm, RenderGraph& rg, uint32
 	std::vector<RGResourceAccess> reads = {{"shadowMap", RGResourceUsage::ShaderRead}};
 	if (graphicsSettings.enableGtao) reads.push_back({"GTAOTexture", RGResourceUsage::ShaderRead});
 
-	if (graphicsSettings.msaaSamples & vk::SampleCountFlagBits::e1) // What a mess
+	std::vector<RGResourceAccess> mainWrites;
+	std::vector<RGAttachmentConfig> colorAttachments;
+	std::optional<RGAttachmentConfig> depthAttachment;
+	vk::ResolveModeFlagBits colorResolve = vk::ResolveModeFlagBits::eAverage;
+
+	if (graphicsSettings.msaaSamples & vk::SampleCountFlagBits::e1)
 	{
-		std::vector<RGResourceAccess> mainWrites = {{"MainColor", RGResourceUsage::ColorAttachmentWrite},
-		                                            {"Depth", RGResourceUsage::DepthAttachmentWrite}};
-		rg.addPass(
-		    "Main",
-		    {.colorAttachments = {{"MainColor", vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore, clearSky}},
-		     .depthAttachment =
-		         RGAttachmentConfig{"Depth", vk::AttachmentLoadOp::eLoad, vk::AttachmentStoreOp::eStore, clearDepth0}},
-		    reads, std::move(mainWrites),
-		    [&, frame, hasSkybox](vk::raii::CommandBuffer& cmd)
-		    {
-			    draw(cmd, swapChain, frame, bindlessTextureDSetComponent, dManager, globalDSetComponent, bManager,
-			         objectDSetComponent, mManager, drawInfo, pManager, hasSkybox);
-		    },
-		    [&dManager, &globalDSetComponent, &graphicsSettings](const RenderGraph& graph, const RGPass& pass)
-		    {
-			    if (!graphicsSettings.enableGtao) return;
-			    auto h = pass.getPhysicalRead("GTAOTexture");
-			    dManager.descriptorManager->updateSingleTextureDSet(globalDSetComponent.globalDSets,
-			                                                        Bindings::Global::GtaoTexture, graph.getImageView(h),
-			                                                        graph.getSampler(h));
-		    });
+		mainWrites = {{"MainColor", RGResourceUsage::ColorAttachmentWrite},
+		              {"Depth", RGResourceUsage::DepthAttachmentWrite}};
+		colorAttachments = {{"MainColor", vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore, clearSky}};
+		depthAttachment =
+		    RGAttachmentConfig{"Depth", vk::AttachmentLoadOp::eLoad, vk::AttachmentStoreOp::eStore, clearDepth0};
 	}
 	else
 	{
-		std::vector<RGResourceAccess> mainWrites = {{"MainColorMSAA", RGResourceUsage::ColorAttachmentWrite},
-		                                            {"DepthMSAA", RGResourceUsage::DepthAttachmentWrite},
-		                                            {"MainColor", RGResourceUsage::ColorAttachmentWrite}};
-
-		vk::ResolveModeFlagBits colorResolve = vk::ResolveModeFlagBits::eAverage;
-		rg.addPass(
-		    "Main",
-		    {.colorAttachments = {{"MainColorMSAA", vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore, clearSky,
-		                           "MainColor", colorResolve}},
-		     .depthAttachment = RGAttachmentConfig{"DepthMSAA", vk::AttachmentLoadOp::eLoad,
-		                                           vk::AttachmentStoreOp::eStore, clearDepth0}},
-		    reads, std::move(mainWrites),
-		    [&, frame, hasSkybox](vk::raii::CommandBuffer& cmd)
-		    {
-			    draw(cmd, swapChain, frame, bindlessTextureDSetComponent, dManager, globalDSetComponent, bManager,
-			         objectDSetComponent, mManager, drawInfo, pManager, hasSkybox);
-		    },
-		    [&dManager, &globalDSetComponent, &graphicsSettings](const RenderGraph& graph, const RGPass& pass)
-		    {
-			    if (!graphicsSettings.enableGtao) return;
-			    auto h = pass.getPhysicalRead("GTAOTexture");
-			    dManager.descriptorManager->updateSingleTextureDSet(globalDSetComponent.globalDSets,
-			                                                        Bindings::Global::GtaoTexture, graph.getImageView(h),
-			                                                        graph.getSampler(h));
-		    });
+		mainWrites = {{"MainColorMSAA", RGResourceUsage::ColorAttachmentWrite},
+		              {"DepthMSAA", RGResourceUsage::DepthAttachmentWrite},
+		              {"MainColor", RGResourceUsage::ColorAttachmentWrite}};
+		colorAttachments = {{"MainColorMSAA", vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore, clearSky,
+		                     "MainColor", colorResolve}};
+		depthAttachment =
+		    RGAttachmentConfig{"DepthMSAA", vk::AttachmentLoadOp::eLoad, vk::AttachmentStoreOp::eStore, clearDepth0};
 	}
+
+	rg.addPass(
+	    "Main", {.colorAttachments = colorAttachments, .depthAttachment = depthAttachment}, reads, std::move(mainWrites),
+	    [&, frame, hasSkybox](vk::raii::CommandBuffer& cmd)
+	    {
+		    draw(cmd, swapChain, frame, bindlessTextureDSetComponent, dManager, globalDSetComponent, bManager,
+		         objectDSetComponent, mManager, drawInfo, pManager, hasSkybox);
+	    },
+	    [&dManager, &globalDSetComponent, &graphicsSettings](const RenderGraph& graph, const RGPass& pass)
+	    {
+		    if (!graphicsSettings.enableGtao) return;
+		    auto h = pass.getPhysicalRead("GTAOTexture");
+		    dManager.descriptorManager->updateSingleTextureDSet(globalDSetComponent.globalDSets,
+		                                                        Bindings::Global::GtaoTexture, graph.getImageView(h),
+		                                                        graph.getSampler(h));
+	    });
 }
