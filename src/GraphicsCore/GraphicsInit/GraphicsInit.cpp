@@ -44,7 +44,7 @@
 #include "GraphicsCore/Systems/FrameBeginSystem.hpp"
 #include "GraphicsCore/Systems/PhysSyncSystem.hpp"
 #ifdef HALCYON_DEV_TOOLS
-#include "GraphicsCore/Systems/ImGuiSystem.hpp"
+#include "GraphicsCore/Systems/DevSystems/ImGuiSystem.hpp"
 #endif
 #include "GraphicsCore/Systems/CameraMatrixSystem.hpp"
 #include "GraphicsCore/Systems/LightUpdateSystem.hpp"

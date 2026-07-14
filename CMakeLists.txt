@@ -254,7 +254,7 @@ if(HALCYON_DEV_TOOLS)
 else()
     install(DIRECTORY include/
         DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-        PATTERN "ImGuiSystem.hpp" EXCLUDE
+        PATTERN "DevSystems" EXCLUDE
     )
 endif()
 
