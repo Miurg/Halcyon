@@ -1,4 +1,5 @@
 #include "GraphicsCore/GIBaker/ReflectionProbeBaker.hpp"
+#include "GraphicsCore/Resources/Factories/EnvMapFactory.hpp"
 
 #include "GraphicsCore/GraphicsContexts.hpp"
 #include "GraphicsCore/Components/VulkanDeviceComponent.hpp"
@@ -331,8 +332,9 @@ void ReflectionProbeBaker::bake(GeneralManager& gm, ReflectionProbeComponent& pr
 
 	// Prefilter the capture into a persistent GGX cubemap and bind it into the reflection array slot.
 	if (probe.prefilteredMap.id >= 0) ctx.textureManager->destroyTexture(probe.prefilteredMap);
-	TextureHandle prefiltered = ctx.textureManager->generatePrefilteredEnvMap(
-	    cap.cubemap, *ctx.descriptorManagerComponent->descriptorManager, *ctx.bindlessDSet, *ctx.pipelineManager);
+	TextureHandle prefiltered = EnvMapFactory::prefilteredEnvMap(
+	    *ctx.textureManager, *ctx.device, cap.cubemap, *ctx.descriptorManagerComponent->descriptorManager,
+	    *ctx.bindlessDSet, *ctx.pipelineManager);
 
 	ctx.descriptorManagerComponent->descriptorManager->update(
 	    ctx.bindlessDSet->bindlessTextureSet, Bindings::Textures::ReflectionCubemaps, 0,

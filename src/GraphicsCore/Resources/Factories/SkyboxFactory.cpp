@@ -5,6 +5,7 @@
 #include "GraphicsCore/Resources/Managers/Bindings.hpp"
 #include "GraphicsCore/Resources/Managers/BufferManager.hpp"
 #include "GraphicsCore/Resources/Factories/TextureUploader.hpp"
+#include "GraphicsCore/Resources/Factories/EnvMapFactory.hpp"
 #include "GraphicsCore/Components/TextureManagerComponent.hpp"
 #include "GraphicsCore/Components/DescriptorManagerComponent.hpp"
 #include "GraphicsCore/Components/VMAllocatorComponent.hpp"
@@ -50,15 +51,15 @@ void SkyboxFactory::loadSkybox(const std::string& hdrPath, GeneralManager& gm)
 	                vk::ImageLayout::eShaderReadOnlyOptimal, static_cast<uint32_t>(hdrIndex));
 
 	TextureHandle cubemapHandle =
-	    tManager.generateCubemapFromHdr(hdrHandle, dManager, bTextureDSetComponent, pManager);
+	    EnvMapFactory::cubemapFromHdr(tManager, vulkanDevice, hdrHandle, dManager, bTextureDSetComponent, pManager);
 
 	// Bake skybox SH into probe slot 0 (the global fallback probe)
 	bManager.bakeSHForProbe(cubemapHandle, globalDSetComp.shProbeBuffer, 0,
 	                         dManager, bTextureDSetComponent,
 	                         globalDSetComp.globalDSets, pManager, tManager);
 
-	TextureHandle prefilteredHandle = tManager.generatePrefilteredEnvMap(cubemapHandle, dManager,
-	                                                                      bTextureDSetComponent, pManager);
+	TextureHandle prefilteredHandle =
+	    EnvMapFactory::prefilteredEnvMap(tManager, vulkanDevice, cubemapHandle, dManager, bTextureDSetComponent, pManager);
 	dManager.update(bTextureDSetComponent.bindlessTextureSet, Bindings::Textures::PrefilteredMap, 0,
 	                vk::DescriptorType::eCombinedImageSampler, tManager.getTexture(prefilteredHandle).textureImageView,
 	                tManager.getTexture(prefilteredHandle).textureSampler);

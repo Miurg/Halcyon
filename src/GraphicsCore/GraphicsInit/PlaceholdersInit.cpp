@@ -28,6 +28,7 @@
 #include "GraphicsCore/Resources/Managers/Bindings.hpp"
 #include "GraphicsCore/Components/PipelineManagerComponent.hpp"
 #include "../Resources/Factories/GltfLoader.hpp"
+#include "GraphicsCore/Resources/Factories/EnvMapFactory.hpp"
 #include "GraphicsCore/Components/LightProbeGridComponent.hpp"
 #include "GraphicsCore/Components/DeltaTimeComponent.hpp"
 #include "GraphicsCore/Systems/TransformSystem.hpp"
@@ -244,7 +245,8 @@ void PlaceholdersInit::initPlaceholders(GeneralManager& gm)
 	                 whiteCubemap.textureSampler);
 
 	// BRDF LUT - generated once, reused across all skybox changes
-	TextureHandle brdfLutHandle = tManager->generateBrdfLut(*dManager, *bTextureDSetComponent, pManager);
+	TextureHandle brdfLutHandle =
+	    EnvMapFactory::brdfLut(*tManager, *vulkanDevice, *dManager, *bTextureDSetComponent, pManager);
 
 	skybox->cubemapTexture = whiteCubemapHandle;
 	skybox->prefilteredMap = whiteCubemapHandle;

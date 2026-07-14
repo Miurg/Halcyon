@@ -13,7 +13,6 @@
 #include "GraphicsCore/VulkanDevice.hpp"
 #include "GraphicsCore/Resources/Managers/ResourceHandles.hpp"
 #include "GraphicsCore/Resources/ResourceStructures.hpp"
-#include "GraphicsCore/Managers/PipelineManager.hpp"
 
 class BufferManager;
 class DescriptorManager;
@@ -56,14 +55,6 @@ public:
 	int allocateTextureSlot();
 	void freeTexture(TextureHandle handle, uint64_t frameNumber);
 	void collectTextureFrees(uint64_t frameNumber);
-	TextureHandle generateCubemapFromHdr(TextureHandle hdrTexture,
-	                                     DescriptorManager& dManager, BindlessTextureDSetComponent& dSetComponent,
-	                                     PipelineManager& pManager);
-	TextureHandle generatePrefilteredEnvMap(TextureHandle envCubemap,
-	                                        DescriptorManager& dManager, BindlessTextureDSetComponent& dSetComponent,
-	                                        PipelineManager& pManager);
-	TextureHandle generateBrdfLut(DescriptorManager& dManager, BindlessTextureDSetComponent& dSetComponent,
-	                              PipelineManager& pManager);
 	Texture& getTexture(TextureHandle handle);
 
 	std::vector<Texture> textures;
