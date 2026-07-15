@@ -1,7 +1,42 @@
 #include "GraphicsCore/VulkanUtils.hpp"
+#include "GraphicsCore/VulkanConvert.hpp"
 #include "PlatformCore/Platform.hpp"
 #include <fstream>
 #include <filesystem>
+#include <algorithm>
+
+vk::Sampler VulkanUtils::createSampler(VulkanDevice& vulkanDevice, const SamplerDesc& desc, uint32_t mipLevels)
+{
+	vk::SamplerCreateInfo samplerInfo;
+	samplerInfo.magFilter = VulkanConvert::toVkFilter(desc.magFilter);
+	samplerInfo.minFilter = VulkanConvert::toVkFilter(desc.minFilter);
+	samplerInfo.mipmapMode = VulkanConvert::toVkMipmapMode(desc.mipmapMode);
+
+	vk::SamplerAddressMode addressMode = VulkanConvert::toVkAddressMode(desc.addressMode);
+	samplerInfo.addressModeU = addressMode;
+	samplerInfo.addressModeV = addressMode;
+	samplerInfo.addressModeW = addressMode;
+	samplerInfo.borderColor = VulkanConvert::toVkBorderColor(desc.borderColor);
+
+	if (desc.anisotropy)
+	{
+		samplerInfo.anisotropyEnable = vk::True;
+		samplerInfo.maxAnisotropy = vulkanDevice.physicalDevice.getProperties().limits.maxSamplerAnisotropy;
+	}
+	else
+	{
+		samplerInfo.anisotropyEnable = vk::False;
+		samplerInfo.maxAnisotropy = 1.0f;
+	}
+
+	samplerInfo.compareEnable = desc.compareOp == SamplerCompareOp::None ? vk::False : vk::True;
+	samplerInfo.compareOp = VulkanConvert::toVkCompareOp(desc.compareOp);
+
+	samplerInfo.minLod = 0.0f;
+	samplerInfo.maxLod = static_cast<float>(std::max(1u, mipLevels));
+
+	return (*vulkanDevice.device).createSampler(samplerInfo);
+}
 
 std::string VulkanUtils::nameFromPath(const std::string& path)
 {

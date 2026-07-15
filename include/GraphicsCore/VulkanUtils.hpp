@@ -4,6 +4,7 @@
 #include <vulkan/vulkan_raii.hpp>
 #include <vk_mem_alloc.h>
 #include "GraphicsCore/VulkanDevice.hpp"
+#include "GraphicsCore/SamplerDesc.hpp"
 #include <vector>
 
 struct HALCYON_API StagingBuffer
@@ -45,6 +46,7 @@ public:
 	                                           uint32_t layerCount = 1, uint32_t baseArrayLayer = 0);
 	static void copyBufferToImage(vk::Buffer buffer, vk::Image image, uint32_t width, uint32_t height,
 	                              VulkanDevice& vulkanDevice, uint32_t layerCount = 1);
+	static vk::Sampler createSampler(VulkanDevice& vulkanDevice, const SamplerDesc& desc, uint32_t mipLevels);
 	static void transitionImageLayout(vk::raii::CommandBuffer& commandBuffer, vk::Image image, vk::ImageLayout oldLayout,
 	                                  vk::ImageLayout newLayout, vk::AccessFlags2 srcAccessMask,
 	                                  vk::AccessFlags2 dstAccessMask, vk::PipelineStageFlags2 srcStageMask,

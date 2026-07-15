@@ -18,7 +18,7 @@ TextureHandle EnvMapFactory::cubemapFromHdr(TextureManager& tManager, VulkanDevi
 	    vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eStorage);
 	Texture& cubemapTexture = tManager.getTexture(cubemapHandle);
 	tManager.createCubemapImageView(cubemapTexture, vk::Format::eR32G32B32A32Sfloat, vk::ImageAspectFlagBits::eColor);
-	tManager.createCubemapSampler(cubemapTexture);
+	tManager.createSampler(cubemapTexture, samplerPresets::cubemap());
 
 	vk::ImageViewCreateInfo viewInfo;
 	viewInfo.image = cubemapTexture.textureImage;
@@ -78,7 +78,7 @@ TextureHandle EnvMapFactory::prefilteredEnvMap(TextureManager& tManager, VulkanD
 	Texture& prefilteredTexture = tManager.getTexture(prefilteredHandle);
 	tManager.createCubemapImageView(prefilteredTexture, vk::Format::eR32G32B32A32Sfloat,
 	                                vk::ImageAspectFlagBits::eColor);
-	tManager.createCubemapSampler(prefilteredTexture);
+	tManager.createSampler(prefilteredTexture, samplerPresets::cubemap());
 
 	auto initCmd = VulkanUtils::beginSingleTimeCommands(vulkanDevice);
 

@@ -218,7 +218,7 @@ void PlaceholdersInit::initPlaceholders(GeneralManager& gm)
 	    vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eStorage);
 	Texture& whiteCubemap = tManager->getTexture(whiteCubemapHandle);
 	tManager->createCubemapImageView(whiteCubemap, vk::Format::eR32G32B32A32Sfloat, vk::ImageAspectFlagBits::eColor);
-	tManager->createCubemapSampler(whiteCubemap);
+	tManager->createSampler(whiteCubemap, samplerPresets::cubemap());
 
 	// Transition cubemap to shader-read layout so it's valid for sampling
 	{

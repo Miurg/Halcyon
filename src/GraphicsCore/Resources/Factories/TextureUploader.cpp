@@ -148,7 +148,7 @@ void TextureUploader::uploadHdrTextureFromFile(const char* texturePath, Texture&
 	uploadHdrTextureFromBuffer(hdrPixels, hdrWidth, hdrHeight, texture, allocator, vulkanDevice);
 
 	tManager.createImageView(texture, vk::Format::eR32G32B32A32Sfloat, vk::ImageAspectFlagBits::eColor);
-	tManager.createTextureSampler(texture);
+	tManager.createSampler(texture, samplerPresets::texture());
 
 	if (freePixels)
 	{

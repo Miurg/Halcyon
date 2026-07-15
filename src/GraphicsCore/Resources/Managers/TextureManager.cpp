@@ -124,7 +124,7 @@ TextureHandle TextureManager::createDepthImage(uint32_t resolutionWidth, uint32_
 	                            vk::ImageUsageFlagBits::eDepthStencilAttachment | vk::ImageUsageFlagBits::eSampled,
 	                            VMA_MEMORY_USAGE_AUTO, texture);
 	TextureManager::createImageView(texture, depthFormat, vk::ImageAspectFlagBits::eDepth);
-	TextureManager::createTextureSampler(texture);
+	createSampler(texture, samplerPresets::texture());
 	return TextureHandle{slot};
 }
 
@@ -138,30 +138,13 @@ TextureHandle TextureManager::createOffscreenImage(uint32_t resolutionWidth, uin
 	                            vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eSampled,
 	                            VMA_MEMORY_USAGE_AUTO, texture);
 	TextureManager::createImageView(texture, offscreenFormat, vk::ImageAspectFlagBits::eColor);
-	TextureManager::createShadowSampler(texture);
+
+	SamplerDesc desc;
+	desc.addressMode = SamplerAddressMode::ClampToBorder;
+	desc.borderColor = SamplerBorderColor::FloatOpaqueBlack;
+	desc.compareOp = SamplerCompareOp::Greater;
+	createSampler(texture, desc);
 	return TextureHandle{slot};
-}
-
-void TextureManager::createOffscreenSampler(Texture& texture)
-{
-	vk::SamplerCreateInfo samplerInfo{};
-	samplerInfo.magFilter = vk::Filter::eLinear;
-	samplerInfo.minFilter = vk::Filter::eLinear;
-	samplerInfo.addressModeU = vk::SamplerAddressMode::eClampToEdge;
-	samplerInfo.addressModeV = vk::SamplerAddressMode::eClampToEdge;
-	samplerInfo.addressModeW = vk::SamplerAddressMode::eClampToEdge;
-	samplerInfo.anisotropyEnable = vk::False;
-	samplerInfo.maxAnisotropy = 1.0f;
-	samplerInfo.borderColor = vk::BorderColor::eFloatOpaqueWhite;
-	samplerInfo.unnormalizedCoordinates = vk::False;
-	samplerInfo.compareEnable = vk::False;
-	samplerInfo.compareOp = vk::CompareOp::eAlways;
-	samplerInfo.mipmapMode = vk::SamplerMipmapMode::eLinear;
-	samplerInfo.mipLodBias = 0.0f;
-	samplerInfo.minLod = 0.0f;
-	samplerInfo.maxLod = 1.0f;
-
-	texture.textureSampler = (*vulkanDevice.device).createSampler(samplerInfo);
 }
 
 TextureHandle TextureManager::createShadowMap(uint32_t shadowResolutionX, uint32_t shadowResolutionY)
@@ -174,26 +157,13 @@ TextureHandle TextureManager::createShadowMap(uint32_t shadowResolutionX, uint32
 	                            vk::ImageUsageFlagBits::eDepthStencilAttachment | vk::ImageUsageFlagBits::eSampled,
 	                            VMA_MEMORY_USAGE_AUTO, texture);
 	TextureManager::createImageView(texture, shadowFormat, vk::ImageAspectFlagBits::eDepth);
-	TextureManager::createShadowSampler(texture);
+
+	SamplerDesc desc;
+	desc.addressMode = SamplerAddressMode::ClampToBorder;
+	desc.borderColor = SamplerBorderColor::FloatOpaqueBlack;
+	desc.compareOp = SamplerCompareOp::Greater;
+	createSampler(texture, desc);
 	return TextureHandle{slot};
-}
-
-void TextureManager::createShadowSampler(Texture& texture)
-{
-	vk::SamplerCreateInfo samplerInfo;
-	samplerInfo.magFilter = vk::Filter::eLinear;
-	samplerInfo.minFilter = vk::Filter::eLinear;
-	samplerInfo.mipmapMode = vk::SamplerMipmapMode::eLinear;
-
-	samplerInfo.addressModeU = vk::SamplerAddressMode::eClampToBorder;
-	samplerInfo.addressModeV = vk::SamplerAddressMode::eClampToBorder;
-	samplerInfo.addressModeW = vk::SamplerAddressMode::eClampToBorder;
-	samplerInfo.borderColor = vk::BorderColor::eFloatOpaqueBlack;
-
-	samplerInfo.compareEnable = vk::True;
-	samplerInfo.compareOp = vk::CompareOp::eGreater;
-
-	texture.textureSampler = (*vulkanDevice.device).createSampler(samplerInfo);
 }
 
 vk::Format TextureManager::findBestFormat()
@@ -244,7 +214,7 @@ TextureHandle TextureManager::generateTextureData(const char texturePath[MAX_PAT
 	                            VMA_MEMORY_USAGE_AUTO, texture, mipLevels);
 	TextureUploader::uploadTextureFromBuffer(pixels, texWidth, texHeight, texture, allocator, vulkanDevice);
 	TextureManager::createImageView(texture, format, vk::ImageAspectFlagBits::eColor);
-	TextureManager::createTextureSampler(texture);
+	createSampler(texture, samplerPresets::texture());
 
 	TextureHandle handle{slot};
 	texturePaths[std::string(texturePath)] = handle;
@@ -264,7 +234,7 @@ TextureHandle TextureManager::generateTextureDataFromKtx(const char texturePath[
 
 	TextureUploader::uploadKtxTextureData(ktxData, dataSize, texture, isSrgb, allocator, vulkanDevice);
 	createImageView(texture, texture.format, vk::ImageAspectFlagBits::eColor);
-	createTextureSampler(texture); // maxLod uses texture.mipLevels set inside uploadKtxTextureData
+	createSampler(texture, samplerPresets::texture()); // maxLod uses texture.mipLevels set inside uploadKtxTextureData
 
 	TextureHandle handle{slot};
 	texturePaths[std::string(texturePath)] = handle;
@@ -458,42 +428,9 @@ void TextureManager::createCubemapImageView(Texture& texture, vk::Format format,
 	texture.aspectFlags = aspectFlags;
 }
 
-void TextureManager::createTextureSampler(Texture& texture)
+void TextureManager::createSampler(Texture& texture, const SamplerDesc& desc)
 {
-	vk::PhysicalDeviceProperties properties = vulkanDevice.physicalDevice.getProperties();
-	vk::SamplerCreateInfo samplerInfo;
-	samplerInfo.magFilter = vk::Filter::eLinear;
-	samplerInfo.minFilter = vk::Filter::eLinear;
-	samplerInfo.mipmapMode = vk::SamplerMipmapMode::eLinear;
-
-	samplerInfo.anisotropyEnable = vk::True;
-	samplerInfo.maxAnisotropy = properties.limits.maxSamplerAnisotropy;
-	samplerInfo.compareOp = vk::CompareOp::eAlways;
-	samplerInfo.borderColor = vk::BorderColor::eIntOpaqueBlack;
-	samplerInfo.minLod = 0.0f;
-	samplerInfo.maxLod = static_cast<float>(texture.mipLevels);
-
-	texture.textureSampler = (*vulkanDevice.device).createSampler(samplerInfo);
-}
-
-void TextureManager::createCubemapSampler(Texture& texture)
-{
-	vk::SamplerCreateInfo samplerInfo;
-	samplerInfo.magFilter = vk::Filter::eLinear;
-	samplerInfo.minFilter = vk::Filter::eLinear;
-	samplerInfo.mipmapMode = vk::SamplerMipmapMode::eLinear;
-	samplerInfo.addressModeU = vk::SamplerAddressMode::eClampToEdge;
-	samplerInfo.addressModeV = vk::SamplerAddressMode::eClampToEdge;
-	samplerInfo.addressModeW = vk::SamplerAddressMode::eClampToEdge;
-	samplerInfo.anisotropyEnable = vk::True;
-	vk::PhysicalDeviceProperties properties = vulkanDevice.physicalDevice.getProperties();
-	samplerInfo.maxAnisotropy = properties.limits.maxSamplerAnisotropy;
-	samplerInfo.compareOp = vk::CompareOp::eNever;
-	samplerInfo.borderColor = vk::BorderColor::eFloatOpaqueWhite;
-	samplerInfo.minLod = 0.0f;
-	samplerInfo.maxLod = static_cast<float>(texture.mipLevels);
-
-	texture.textureSampler = (*vulkanDevice.device).createSampler(samplerInfo);
+	texture.textureSampler = VulkanUtils::createSampler(vulkanDevice, desc, texture.mipLevels);
 }
 
 void TextureManager::resizeTexture(TextureHandle handle, uint32_t newWidth, uint32_t newHeight)

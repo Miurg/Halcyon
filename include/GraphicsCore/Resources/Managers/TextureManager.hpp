@@ -8,6 +8,7 @@
 #include "GraphicsCore/VulkanConst.hpp"
 #include <vk_mem_alloc.h>
 #include "GraphicsCore/Resources/Managers/Texture.hpp"
+#include "GraphicsCore/SamplerDesc.hpp"
 #include "GraphicsCore/Resources/Managers/Buffer.hpp"
 #include "GraphicsCore/Resources/Components/BindlessTextureDSetComponent.hpp"
 #include "GraphicsCore/VulkanDevice.hpp"
@@ -37,13 +38,10 @@ public:
 	void resizeTexture(TextureHandle handle, uint32_t newWidth, uint32_t newHeight);
 	TextureHandle createDepthImage(uint32_t resolutionWidth, uint32_t resolutionHeight);
 	TextureHandle createOffscreenImage(uint32_t resolutionWidth, uint32_t resolutionHeight, vk::Format offscreenFormat);
-	void createOffscreenSampler(Texture& texture);
 	TextureHandle createShadowMap(uint32_t shadowResolutionX, uint32_t shadowResolutionY);
 	void createImageView(Texture& texture, vk::Format format, vk::ImageAspectFlags aspectFlags);
 	void createCubemapImageView(Texture& texture, vk::Format format, vk::ImageAspectFlags aspectFlags);
-	void createTextureSampler(Texture& texture);
-	void createCubemapSampler(Texture& texture);
-	void createShadowSampler(Texture& texture);
+	void createSampler(Texture& texture, const SamplerDesc& desc);
 	vk::Format findBestFormat();
 	vk::Format findBestSupportedFormat(const std::vector<vk::Format>& candidates, vk::ImageTiling tiling,
 	                                   vk::FormatFeatureFlags features);

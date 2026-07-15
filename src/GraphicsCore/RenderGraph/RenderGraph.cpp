@@ -1,5 +1,6 @@
 #include "GraphicsCore/RenderGraph/RenderGraph.hpp"
 #include "GraphicsCore/VulkanDevice.hpp"
+#include "GraphicsCore/VulkanUtils.hpp"
 #include "GraphicsCore/Resources/Managers/DescriptorManager.hpp"
 #include "GraphicsCore/Resources/Components/GlobalDSetComponent.hpp"
 #include "GraphicsCore/Resources/Managers/Bindings.hpp"
@@ -769,35 +770,20 @@ void RenderGraph::createSampler(RGResourceEntry& res)
 		return;
 	}
 
-	vk::SamplerCreateInfo samplerInfo;
-	samplerInfo.magFilter = vk::Filter::eLinear;
-	samplerInfo.minFilter = vk::Filter::eLinear;
-	samplerInfo.mipmapMode = vk::SamplerMipmapMode::eLinear;
-	samplerInfo.minLod = 0.0f;
-	samplerInfo.maxLod = static_cast<float>(std::max(1u, res.mipLevels));
-
+	SamplerDesc desc;
+	desc.addressMode = SamplerAddressMode::ClampToBorder;
 	if (res.desc.aspectFlags & vk::ImageAspectFlagBits::eDepth)
 	{
-		// Depth sampler
-		vk::PhysicalDeviceProperties properties = vulkanDevice.physicalDevice.getProperties();
-		samplerInfo.anisotropyEnable = vk::True;
-		samplerInfo.maxAnisotropy = properties.limits.maxSamplerAnisotropy;
-		samplerInfo.compareOp = vk::CompareOp::eAlways;
-		samplerInfo.compareEnable = vk::True;
-		samplerInfo.addressModeU = vk::SamplerAddressMode::eClampToBorder;
-		samplerInfo.addressModeV = vk::SamplerAddressMode::eClampToBorder;
-		samplerInfo.borderColor = vk::BorderColor::eFloatTransparentBlack;
+		desc.borderColor = SamplerBorderColor::FloatTransparentBlack;
+		desc.compareOp = SamplerCompareOp::Always;
+		desc.anisotropy = true;
 	}
 	else
 	{
-		// Color sampler
-		samplerInfo.addressModeU = vk::SamplerAddressMode::eClampToBorder;
-		samplerInfo.addressModeV = vk::SamplerAddressMode::eClampToBorder;
-		samplerInfo.addressModeW = vk::SamplerAddressMode::eClampToBorder;
-		samplerInfo.borderColor = vk::BorderColor::eFloatOpaqueBlack;
+		desc.borderColor = SamplerBorderColor::FloatOpaqueBlack;
 	}
 
-	res.sampler = (*vulkanDevice.device).createSampler(samplerInfo);
+	res.sampler = VulkanUtils::createSampler(vulkanDevice, desc, res.mipLevels);
 }
 
 // ===Mappings===

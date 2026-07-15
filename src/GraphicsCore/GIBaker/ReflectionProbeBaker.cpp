@@ -94,7 +94,7 @@ RefCapture createCapture(const RefBakeContext& ctx)
 	Texture& tex = ctx.textureManager->getTexture(cap.cubemap);
 	cap.image = tex.textureImage;
 	ctx.textureManager->createCubemapImageView(tex, kCaptureFormat, vk::ImageAspectFlagBits::eColor);
-	ctx.textureManager->createCubemapSampler(tex);
+	ctx.textureManager->createSampler(tex, samplerPresets::cubemap());
 
 	cap.faceViews.reserve(6);
 	for (uint32_t f = 0; f < 6; ++f)
