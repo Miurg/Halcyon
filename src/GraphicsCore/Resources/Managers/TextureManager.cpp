@@ -48,7 +48,19 @@ void TextureManager::destroyTextureResources(Texture& texture)
 
 void TextureManager::destroyTexture(TextureHandle handle)
 {
+	if (handle.id < 0 || handle.id >= static_cast<int>(textures.size())) return;
+
+	// Otherwise isTextureLoaded would later hand out this destroyed texture.
+	for (auto it = texturePaths.begin(); it != texturePaths.end();)
+	{
+		if (it->second.id == handle.id)
+			it = texturePaths.erase(it);
+		else
+			++it;
+	}
+
 	destroyTextureResources(textures[handle.id]);
+	_freeTextureSlots.push_back(handle.id);
 }
 
 int TextureManager::allocateTextureSlot()
