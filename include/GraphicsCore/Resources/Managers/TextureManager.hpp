@@ -39,8 +39,8 @@ public:
 	TextureHandle createDepthImage(uint32_t resolutionWidth, uint32_t resolutionHeight);
 	TextureHandle createOffscreenImage(uint32_t resolutionWidth, uint32_t resolutionHeight, vk::Format offscreenFormat);
 	TextureHandle createShadowMap(uint32_t shadowResolutionX, uint32_t shadowResolutionY);
-	void createImageView(Texture& texture, vk::Format format, vk::ImageAspectFlags aspectFlags);
-	void createCubemapImageView(Texture& texture, vk::Format format, vk::ImageAspectFlags aspectFlags);
+	void createImageView(Texture& texture, vk::Format format, vk::ImageAspectFlags aspectFlags,
+	                     vk::ImageViewType viewType = vk::ImageViewType::e2D);
 	void createSampler(Texture& texture, const SamplerDesc& desc);
 	vk::Format findBestFormat();
 	vk::Format findBestSupportedFormat(const std::vector<vk::Format>& candidates, vk::ImageTiling tiling,

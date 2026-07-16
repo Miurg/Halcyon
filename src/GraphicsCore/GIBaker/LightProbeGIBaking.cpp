@@ -32,7 +32,8 @@ static TempImages createTempImages(const BakeContext& ctx)
 
 	Texture& captureTex = ctx.textureManager->getTexture(tmp.captureHandle);
 	tmp.captureImage = captureTex.textureImage;
-	ctx.textureManager->createCubemapImageView(captureTex, kCaptureFormat, vk::ImageAspectFlagBits::eColor);
+	ctx.textureManager->createImageView(captureTex, kCaptureFormat, vk::ImageAspectFlagBits::eColor,
+	                                    vk::ImageViewType::eCube);
 	ctx.textureManager->createSampler(captureTex, samplerPresets::cubemap());
 
 	tmp.faceViews.reserve(6);

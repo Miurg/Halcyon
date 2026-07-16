@@ -396,33 +396,18 @@ TextureHandle TextureManager::createCubemapImage(uint32_t width, uint32_t height
 	return TextureHandle{slot};
 }
 
-void TextureManager::createImageView(Texture& texture, vk::Format format, vk::ImageAspectFlags aspectFlags)
+void TextureManager::createImageView(Texture& texture, vk::Format format, vk::ImageAspectFlags aspectFlags,
+                                     vk::ImageViewType viewType)
 {
 	vk::ImageViewCreateInfo viewInfo;
 	viewInfo.image = texture.textureImage;
-	viewInfo.viewType = vk::ImageViewType::e2D;
+	viewInfo.viewType = viewType;
 	viewInfo.format = format;
 	viewInfo.subresourceRange.aspectMask = aspectFlags;
 	viewInfo.subresourceRange.baseMipLevel = 0;
 	viewInfo.subresourceRange.levelCount = texture.mipLevels;
 	viewInfo.subresourceRange.baseArrayLayer = 0;
-	viewInfo.subresourceRange.layerCount = 1;
-
-	texture.textureImageView = (*vulkanDevice.device).createImageView(viewInfo);
-	texture.aspectFlags = aspectFlags;
-}
-
-void TextureManager::createCubemapImageView(Texture& texture, vk::Format format, vk::ImageAspectFlags aspectFlags)
-{
-	vk::ImageViewCreateInfo viewInfo;
-	viewInfo.image = texture.textureImage;
-	viewInfo.viewType = vk::ImageViewType::eCube;
-	viewInfo.format = format;
-	viewInfo.subresourceRange.aspectMask = aspectFlags;
-	viewInfo.subresourceRange.baseMipLevel = 0;
-	viewInfo.subresourceRange.levelCount = texture.mipLevels;
-	viewInfo.subresourceRange.baseArrayLayer = 0;
-	viewInfo.subresourceRange.layerCount = 6;
+	viewInfo.subresourceRange.layerCount = texture.layerCount;
 
 	texture.textureImageView = (*vulkanDevice.device).createImageView(viewInfo);
 	texture.aspectFlags = aspectFlags;

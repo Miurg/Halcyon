@@ -17,7 +17,8 @@ TextureHandle EnvMapFactory::cubemapFromHdr(TextureManager& tManager, VulkanDevi
 	    1024, 1024, vk::Format::eR32G32B32A32Sfloat,
 	    vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eStorage);
 	Texture& cubemapTexture = tManager.getTexture(cubemapHandle);
-	tManager.createCubemapImageView(cubemapTexture, vk::Format::eR32G32B32A32Sfloat, vk::ImageAspectFlagBits::eColor);
+	tManager.createImageView(cubemapTexture, vk::Format::eR32G32B32A32Sfloat, vk::ImageAspectFlagBits::eColor,
+	                         vk::ImageViewType::eCube);
 	tManager.createSampler(cubemapTexture, samplerPresets::cubemap());
 
 	vk::ImageViewCreateInfo viewInfo;
@@ -76,8 +77,8 @@ TextureHandle EnvMapFactory::prefilteredEnvMap(TextureManager& tManager, VulkanD
 	    vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eStorage,
 	    maxMipLevels);
 	Texture& prefilteredTexture = tManager.getTexture(prefilteredHandle);
-	tManager.createCubemapImageView(prefilteredTexture, vk::Format::eR32G32B32A32Sfloat,
-	                                vk::ImageAspectFlagBits::eColor);
+	tManager.createImageView(prefilteredTexture, vk::Format::eR32G32B32A32Sfloat, vk::ImageAspectFlagBits::eColor,
+	                         vk::ImageViewType::eCube);
 	tManager.createSampler(prefilteredTexture, samplerPresets::cubemap());
 
 	auto initCmd = VulkanUtils::beginSingleTimeCommands(vulkanDevice);
