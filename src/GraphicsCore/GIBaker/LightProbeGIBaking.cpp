@@ -273,7 +273,8 @@ void LightProbeGIBaking::bakeAll(GeneralManager& gm)
 	Texture& captureTex = ctx.textureManager->getTexture(tempImages.captureHandle);
 	ctx.descriptorManagerComponent->descriptorManager->update(
 	    ctx.bindlessDSet->bindlessTextureSet, Bindings::Textures::GICaptureCubemap, 0,
-	    vk::DescriptorType::eCombinedImageSampler, captureTex.textureImageView, captureTex.textureSampler);
+	    vk::DescriptorType::eCombinedImageSampler, captureTex.textureImageView,
+	    ctx.textureManager->getSampler(captureTex.samplerHandle));
 
 	const float influenceRadius = ctx.grid->spacing * 1.2f;
 	const glm::ivec3 gridCount = ctx.grid->count;
@@ -302,7 +303,8 @@ void LightProbeGIBaking::bakeAll(GeneralManager& gm)
 	Texture& skyboxTex = ctx.textureManager->getTexture(ctx.skybox->cubemapTexture);
 	ctx.descriptorManagerComponent->descriptorManager->update(
 	    ctx.bindlessDSet->bindlessTextureSet, Bindings::Textures::GICaptureCubemap, 0,
-	    vk::DescriptorType::eCombinedImageSampler, skyboxTex.textureImageView, skyboxTex.textureSampler);
+	    vk::DescriptorType::eCombinedImageSampler, skyboxTex.textureImageView,
+	    ctx.textureManager->getSampler(skyboxTex.samplerHandle));
 
 	// All submissions must finish before we free temp cubemap/depth.
 	ctx.device->device.waitIdle();

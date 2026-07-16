@@ -1,6 +1,7 @@
 #pragma once
 
 #include "HalcyonExport.hpp"
+#include "GraphicsCore/Resources/Managers/ResourceHandles.hpp"
 #include <vulkan/vulkan_raii.hpp>
 #include <vk_mem_alloc.h>
 #include <cstdint>
@@ -10,7 +11,7 @@ struct HALCYON_API Texture
 	vk::Image textureImage;
 	VmaAllocation textureImageAllocation;
 	vk::ImageView textureImageView;
-	vk::Sampler textureSampler;
+	SamplerHandle samplerHandle;
 
 	uint32_t width = 0;
 	uint32_t height = 0;

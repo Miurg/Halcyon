@@ -194,9 +194,10 @@ void PlaceholdersInit::initPlaceholders(GeneralManager& gm)
 	                                         bTextureDSetComponent->bindlessTextureSet, 2);
 
 	// Shadow Map Texture Set (binding 1)
-	dManager->updateSingleTextureDSet(bTextureDSetComponent->bindlessTextureSet, 1,
-	                                  tManager->getTexture(directLight->textureShadowImage).textureImageView,
-	                                  tManager->getTexture(directLight->textureShadowImage).textureSampler);
+	dManager->updateSingleTextureDSet(
+	    bTextureDSetComponent->bindlessTextureSet, 1,
+	    tManager->getTexture(directLight->textureShadowImage).textureImageView,
+	    tManager->getSampler(tManager->getTexture(directLight->textureShadowImage).samplerHandle));
 
 	// Default White Texture
 	auto texturePtr = GltfLoader::createDefaultWhiteTexture();
@@ -235,17 +236,17 @@ void PlaceholdersInit::initPlaceholders(GeneralManager& gm)
 
 	dManager->update(bTextureDSetComponent->bindlessTextureSet, Bindings::Textures::CubemapSampler, 0,
 	                 vk::DescriptorType::eCombinedImageSampler, whiteCubemap.textureImageView,
-	                 whiteCubemap.textureSampler);
+	                 tManager->getSampler(whiteCubemap.samplerHandle));
 	dManager->update(bTextureDSetComponent->bindlessTextureSet, Bindings::Textures::CubemapStorage, 0,
 	                 vk::DescriptorType::eStorageImage, whiteCubemap.textureImageView, nullptr,
 	                 vk::ImageLayout::eGeneral);
 
 	dManager->update(bTextureDSetComponent->bindlessTextureSet, Bindings::Textures::PrefilteredMap, 0,
 	                 vk::DescriptorType::eCombinedImageSampler, whiteCubemap.textureImageView,
-	                 whiteCubemap.textureSampler);
+	                 tManager->getSampler(whiteCubemap.samplerHandle));
 	dManager->update(bTextureDSetComponent->bindlessTextureSet, Bindings::Textures::BrdfLut, 0,
 	                 vk::DescriptorType::eCombinedImageSampler, whiteCubemap.textureImageView,
-	                 whiteCubemap.textureSampler);
+	                 tManager->getSampler(whiteCubemap.samplerHandle));
 
 	// BRDF LUT - generated once, reused across all skybox changes
 	TextureHandle brdfLutHandle =

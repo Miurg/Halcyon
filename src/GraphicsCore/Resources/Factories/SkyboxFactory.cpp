@@ -47,8 +47,9 @@ void SkyboxFactory::loadSkybox(const std::string& hdrPath, GeneralManager& gm)
 	TextureHandle hdrHandle = tManager.texturePaths[hdrPath];
 
 	dManager.update(bTextureDSetComponent.bindlessTextureSet, Bindings::Textures::Array, 0,
-	                vk::DescriptorType::eCombinedImageSampler, hdrTexture.textureImageView, hdrTexture.textureSampler,
-	                vk::ImageLayout::eShaderReadOnlyOptimal, static_cast<uint32_t>(hdrIndex));
+	                vk::DescriptorType::eCombinedImageSampler, hdrTexture.textureImageView,
+	                tManager.getSampler(hdrTexture.samplerHandle), vk::ImageLayout::eShaderReadOnlyOptimal,
+	                static_cast<uint32_t>(hdrIndex));
 
 	TextureHandle cubemapHandle =
 	    EnvMapFactory::cubemapFromHdr(tManager, vulkanDevice, hdrHandle, dManager, bTextureDSetComponent, pManager);
@@ -62,10 +63,10 @@ void SkyboxFactory::loadSkybox(const std::string& hdrPath, GeneralManager& gm)
 	    EnvMapFactory::prefilteredEnvMap(tManager, vulkanDevice, cubemapHandle, dManager, bTextureDSetComponent, pManager);
 	dManager.update(bTextureDSetComponent.bindlessTextureSet, Bindings::Textures::PrefilteredMap, 0,
 	                vk::DescriptorType::eCombinedImageSampler, tManager.getTexture(prefilteredHandle).textureImageView,
-	                tManager.getTexture(prefilteredHandle).textureSampler);
+	                tManager.getSampler(tManager.getTexture(prefilteredHandle).samplerHandle));
 	dManager.update(bTextureDSetComponent.bindlessTextureSet, Bindings::Textures::BrdfLut, 0,
 	                vk::DescriptorType::eCombinedImageSampler, tManager.getTexture(skybox.brdfLut).textureImageView,
-	                tManager.getTexture(skybox.brdfLut).textureSampler);
+	                tManager.getSampler(tManager.getTexture(skybox.brdfLut).samplerHandle));
 
 	skybox.cubemapTexture = cubemapHandle;
 	skybox.prefilteredMap = prefilteredHandle;

@@ -17,3 +17,8 @@ struct HALCYON_API TextureHandle
 {
 	int id = -1;
 };
+
+struct HALCYON_API SamplerHandle
+{
+	int id = -1;
+};

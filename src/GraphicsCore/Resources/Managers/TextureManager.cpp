@@ -22,16 +22,17 @@ TextureManager::~TextureManager()
 	{
 		destroyTextureResources(pending.texture);
 	}
+	for (auto& sampler : samplers)
+	{
+		if (sampler)
+		{
+			(*vulkanDevice.device).destroySampler(sampler);
+		}
+	}
 }
 
 void TextureManager::destroyTextureResources(Texture& texture)
 {
-	if (texture.textureSampler)
-	{
-		(*vulkanDevice.device).destroySampler(texture.textureSampler);
-		texture.textureSampler = nullptr;
-	}
-
 	if (texture.textureImageView)
 	{
 		(*vulkanDevice.device).destroyImageView(texture.textureImageView);
@@ -59,7 +60,10 @@ void TextureManager::destroyTexture(TextureHandle handle)
 			++it;
 	}
 
-	destroyTextureResources(textures[handle.id]);
+	Texture& texture = textures[handle.id];
+	destroySampler(texture.samplerHandle);
+	texture.samplerHandle = {};
+	destroyTextureResources(texture);
 	_freeTextureSlots.push_back(handle.id);
 }
 
@@ -90,12 +94,13 @@ void TextureManager::freeTexture(TextureHandle handle, uint64_t frameNumber)
 	}
 
 	Texture& live = textures[handle.id];
+	freeSampler(live.samplerHandle, frameNumber);
+	live.samplerHandle = {};
 	_pendingFrees.push_back({live, handle.id, frameNumber + MAX_FRAMES_IN_FLIGHT});
 
 	// Nulled so slot reuse and the destructor don't double-free these handles.
 	live.textureImage = nullptr;
 	live.textureImageView = nullptr;
-	live.textureSampler = nullptr;
 	live.textureImageAllocation = nullptr;
 }
 
@@ -232,8 +237,9 @@ TextureHandle TextureManager::generateTextureData(const char texturePath[MAX_PAT
 	TextureHandle handle{slot};
 	texturePaths[std::string(texturePath)] = handle;
 	dManager.update(dSetComponent.bindlessTextureSet, Bindings::Textures::Array, 0,
-	                vk::DescriptorType::eCombinedImageSampler, texture.textureImageView, texture.textureSampler,
-	                vk::ImageLayout::eShaderReadOnlyOptimal, static_cast<uint32_t>(handle.id));
+	                vk::DescriptorType::eCombinedImageSampler, texture.textureImageView,
+	                getSampler(texture.samplerHandle), vk::ImageLayout::eShaderReadOnlyOptimal,
+	                static_cast<uint32_t>(handle.id));
 	return handle;
 }
 
@@ -252,8 +258,9 @@ TextureHandle TextureManager::generateTextureDataFromKtx(const char texturePath[
 	TextureHandle handle{slot};
 	texturePaths[std::string(texturePath)] = handle;
 	dManager.update(dSetComponent.bindlessTextureSet, Bindings::Textures::Array, 0,
-	                vk::DescriptorType::eCombinedImageSampler, texture.textureImageView, texture.textureSampler,
-	                vk::ImageLayout::eShaderReadOnlyOptimal, static_cast<uint32_t>(handle.id));
+	                vk::DescriptorType::eCombinedImageSampler, texture.textureImageView,
+	                getSampler(texture.samplerHandle), vk::ImageLayout::eShaderReadOnlyOptimal,
+	                static_cast<uint32_t>(handle.id));
 	return handle;
 }
 
@@ -354,9 +361,73 @@ void TextureManager::createImageView(Texture& texture, vk::Format format, vk::Im
 	texture.aspectFlags = aspectFlags;
 }
 
-void TextureManager::createSampler(Texture& texture, const SamplerDesc& desc)
+SamplerHandle TextureManager::allocateSamplerSlot()
 {
-	texture.textureSampler = VulkanUtils::createSampler(vulkanDevice, desc, texture.mipLevels);
+	if (!_freeSamplerSlots.empty())
+	{
+		int slot = _freeSamplerSlots.back();
+		_freeSamplerSlots.pop_back();
+		samplers[slot] = nullptr;
+		return SamplerHandle{slot};
+	}
+	samplers.push_back(nullptr);
+	return SamplerHandle{static_cast<int>(samplers.size() - 1)};
+}
+
+void TextureManager::createSampler(SamplerHandle handle, const SamplerDesc& desc, uint32_t mipLevels)
+{
+	samplers[handle.id] = VulkanUtils::createSampler(vulkanDevice, desc, mipLevels);
+}
+
+SamplerHandle TextureManager::createSampler(Texture& texture, const SamplerDesc& desc)
+{
+	SamplerHandle handle = allocateSamplerSlot();
+	createSampler(handle, desc, texture.mipLevels);
+	texture.samplerHandle = handle;
+	return handle;
+}
+
+vk::Sampler TextureManager::getSampler(SamplerHandle handle)
+{
+	return samplers[handle.id];
+}
+
+void TextureManager::destroySampler(SamplerHandle handle)
+{
+	if (handle.id < 0 || handle.id >= static_cast<int>(samplers.size())) return;
+
+	if (samplers[handle.id])
+	{
+		(*vulkanDevice.device).destroySampler(samplers[handle.id]);
+		samplers[handle.id] = nullptr;
+	}
+	_freeSamplerSlots.push_back(handle.id);
+}
+
+void TextureManager::freeSampler(SamplerHandle handle, uint64_t frameNumber)
+{
+	if (handle.id < 0 || handle.id >= static_cast<int>(samplers.size())) return;
+
+	_pendingSamplerFrees.push_back({handle.id, frameNumber + MAX_FRAMES_IN_FLIGHT});
+}
+
+void TextureManager::collectSamplerFrees(uint64_t frameNumber)
+{
+	for (auto it = _pendingSamplerFrees.begin(); it != _pendingSamplerFrees.end();)
+	{
+		if (it->retireFrame <= frameNumber)
+		{
+			if (samplers[it->slot])
+			{
+				(*vulkanDevice.device).destroySampler(samplers[it->slot]);
+				samplers[it->slot] = nullptr;
+			}
+			_freeSamplerSlots.push_back(it->slot);
+			it = _pendingSamplerFrees.erase(it);
+		}
+		else
+			++it;
+	}
 }
 
 void TextureManager::resizeTexture(TextureHandle handle, uint32_t newWidth, uint32_t newHeight)

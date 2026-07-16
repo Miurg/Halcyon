@@ -336,8 +336,8 @@ void ReflectionProbeBaker::bake(GeneralManager& gm, ReflectionProbeComponent& pr
 	ctx.descriptorManagerComponent->descriptorManager->update(
 	    ctx.bindlessDSet->bindlessTextureSet, Bindings::Textures::ReflectionCubemaps, 0,
 	    vk::DescriptorType::eCombinedImageSampler, ctx.textureManager->getTexture(prefiltered).textureImageView,
-	    ctx.textureManager->getTexture(prefiltered).textureSampler, vk::ImageLayout::eShaderReadOnlyOptimal,
-	    static_cast<uint32_t>(cubemapSlot));
+	    ctx.textureManager->getSampler(ctx.textureManager->getTexture(prefiltered).samplerHandle),
+	    vk::ImageLayout::eShaderReadOnlyOptimal, static_cast<uint32_t>(cubemapSlot));
 
 	probe.prefilteredMap = prefiltered;
 	probe.cubemapIndex = cubemapSlot;
@@ -350,7 +350,8 @@ void ReflectionProbeBaker::bake(GeneralManager& gm, ReflectionProbeComponent& pr
 	Texture& skyTex = ctx.textureManager->getTexture(ctx.skybox->cubemapTexture);
 	ctx.descriptorManagerComponent->descriptorManager->update(
 	    ctx.bindlessDSet->bindlessTextureSet, Bindings::Textures::CubemapSampler, 0,
-	    vk::DescriptorType::eCombinedImageSampler, skyTex.textureImageView, skyTex.textureSampler);
+	    vk::DescriptorType::eCombinedImageSampler, skyTex.textureImageView,
+	    ctx.textureManager->getSampler(skyTex.samplerHandle));
 	std::memcpy(ctx.bufferManager->getMapped<CameraStructure>(ctx.globalDSet->cameraBuffers), &savedCam,
 	            sizeof(CameraStructure));
 	gridInfo->captureRange = savedRange;

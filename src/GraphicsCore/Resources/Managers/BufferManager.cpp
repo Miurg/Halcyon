@@ -39,7 +39,8 @@ void BufferManager::bakeSHForProbe(TextureHandle envCubemap, BufferHandle probeB
 {
 	Texture& envTex = tManager.textures[envCubemap.id];
 	dManager.update(dSetComponent.bindlessTextureSet, Bindings::Textures::GICaptureCubemap, 0,
-	                vk::DescriptorType::eCombinedImageSampler, envTex.textureImageView, envTex.textureSampler);
+	                vk::DescriptorType::eCombinedImageSampler, envTex.textureImageView,
+	                tManager.getSampler(envTex.samplerHandle));
 
 	auto cmd = VulkanUtils::beginSingleTimeCommands(vulkanDevice);
 	recordSHProjection(cmd, static_cast<int>(envTex.width), probeSlot, dManager, dSetComponent, globalDSet, pManager);

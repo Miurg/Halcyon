@@ -111,7 +111,7 @@ void GTAOPass::onInit(Orhescyon::GeneralManager& gm)
 
 	dManager.updateSingleTextureDSet(_gtaoDset, GtaoBinding::NoiseInput,
 	                                 tManager.getTexture(_noiseTexture).textureImageView,
-	                                 tManager.getTexture(_noiseTexture).textureSampler);
+	                                 tManager.getSampler(tManager.getTexture(_noiseTexture).samplerHandle));
 }
 
 void GTAOPass::drawGtao(vk::raii::CommandBuffer& cmd, SwapChain& swapChain, DescriptorManagerComponent& dManager,

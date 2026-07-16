@@ -36,7 +36,7 @@ TextureHandle EnvMapFactory::cubemapFromHdr(TextureManager& tManager, VulkanDevi
 
 	dManager.update(dSetComponent.bindlessTextureSet, Bindings::Textures::CubemapSampler, 0,
 	                vk::DescriptorType::eCombinedImageSampler, cubemapTexture.textureImageView,
-	                cubemapTexture.textureSampler);
+	                tManager.getSampler(cubemapTexture.samplerHandle));
 	dManager.update(dSetComponent.bindlessTextureSet, Bindings::Textures::CubemapStorage, 0,
 	                vk::DescriptorType::eStorageImage, *storageImageView, nullptr, vk::ImageLayout::eGeneral);
 
@@ -113,7 +113,7 @@ TextureHandle EnvMapFactory::prefilteredEnvMap(TextureManager& tManager, VulkanD
 
 		dManager.update(dSetComponent.bindlessTextureSet, Bindings::Textures::CubemapSampler, 0,
 		                vk::DescriptorType::eCombinedImageSampler, tManager.getTexture(envCubemap).textureImageView,
-		                tManager.getTexture(envCubemap).textureSampler);
+		                tManager.getSampler(tManager.getTexture(envCubemap).samplerHandle));
 		dManager.update(dSetComponent.bindlessTextureSet, Bindings::Textures::CubemapStorage, 0,
 		                vk::DescriptorType::eStorageImage, *mipStorageView, nullptr, vk::ImageLayout::eGeneral);
 
