@@ -26,9 +26,11 @@ static TempImages createTempImages(const BakeContext& ctx)
 	TempImages tmp;
 
 	// Temp capture cubemap
-	tmp.captureHandle = ctx.textureManager->createCubemapImage(kCaptureSize, kCaptureSize, kCaptureFormat,
-	                                                           vk::ImageUsageFlagBits::eColorAttachment |
-	                                                               vk::ImageUsageFlagBits::eSampled);
+	tmp.captureHandle = TextureHandle{ctx.textureManager->allocateTextureSlot()};
+	ctx.textureManager->createImage(ctx.textureManager->getTexture(tmp.captureHandle),
+	                                imagePresets::cubemap(kCaptureSize, kCaptureFormat,
+	                                                      vk::ImageUsageFlagBits::eColorAttachment |
+	                                                          vk::ImageUsageFlagBits::eSampled));
 
 	Texture& captureTex = ctx.textureManager->getTexture(tmp.captureHandle);
 	tmp.captureImage = captureTex.textureImage;
@@ -45,22 +47,15 @@ static TempImages createTempImages(const BakeContext& ctx)
 	// Depth image (VMA-owned)
 	const vk::Format depthFormat = ctx.textureManager->findBestFormat();
 
-	VkImageCreateInfo depthCI{VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO};
-	depthCI.imageType = VK_IMAGE_TYPE_2D;
-	depthCI.format = static_cast<VkFormat>(depthFormat);
-	depthCI.extent = {kCaptureSize, kCaptureSize, 1};
-	depthCI.mipLevels = 1;
-	depthCI.arrayLayers = 6;
-	depthCI.samples = VK_SAMPLE_COUNT_1_BIT;
-	depthCI.tiling = VK_IMAGE_TILING_OPTIMAL;
-	depthCI.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-	depthCI.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-
-	VmaAllocationCreateInfo depthAllocCI{};
-	depthAllocCI.usage = VMA_MEMORY_USAGE_AUTO;
-
-	if (vmaCreateImage(ctx.allocator, &depthCI, &depthAllocCI, &tmp.depthRaw, &tmp.depthAlloc, nullptr) != VK_SUCCESS)
-		throw std::runtime_error("[LightProbeGISystem] Failed to create temp depth image.");
+	ImageDesc depthDesc;
+	depthDesc.width = kCaptureSize;
+	depthDesc.height = kCaptureSize;
+	depthDesc.format = depthFormat;
+	depthDesc.usage = vk::ImageUsageFlagBits::eDepthStencilAttachment;
+	depthDesc.layerCount = 6;
+	AllocatedImage depthAllocated = VulkanUtils::createImage(ctx.allocator, depthDesc);
+	tmp.depthRaw = depthAllocated.image;
+	tmp.depthAlloc = depthAllocated.allocation;
 
 	vk::Image depthImageWrap(tmp.depthRaw);
 	tmp.depthViews.reserve(6);

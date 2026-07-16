@@ -213,10 +213,12 @@ void PlaceholdersInit::initPlaceholders(GeneralManager& gm)
 	gm.registerContext<SkyBoxContext>(skyboxEntity);
 	SkyboxComponent* skybox = gm.getContextComponent<SkyBoxContext, SkyboxComponent>();
 
-	TextureHandle whiteCubemapHandle = tManager->createCubemapImage(
-	    1, 1, vk::Format::eR32G32B32A32Sfloat,
-	    vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eStorage);
+	TextureHandle whiteCubemapHandle{tManager->allocateTextureSlot()};
 	Texture& whiteCubemap = tManager->getTexture(whiteCubemapHandle);
+	tManager->createImage(whiteCubemap,
+	                      imagePresets::cubemap(1, vk::Format::eR32G32B32A32Sfloat,
+	                                            vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst |
+	                                                vk::ImageUsageFlagBits::eStorage));
 	tManager->createImageView(whiteCubemap, vk::Format::eR32G32B32A32Sfloat, vk::ImageAspectFlagBits::eColor,
 	                          vk::ImageViewType::eCube);
 	tManager->createSampler(whiteCubemap, samplerPresets::cubemap());

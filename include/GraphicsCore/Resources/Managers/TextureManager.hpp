@@ -9,6 +9,7 @@
 #include <vk_mem_alloc.h>
 #include "GraphicsCore/Resources/Managers/Texture.hpp"
 #include "GraphicsCore/SamplerDesc.hpp"
+#include "GraphicsCore/ImageDesc.hpp"
 #include "GraphicsCore/Resources/Managers/Buffer.hpp"
 #include "GraphicsCore/Resources/Components/BindlessTextureDSetComponent.hpp"
 #include "GraphicsCore/VulkanDevice.hpp"
@@ -45,10 +46,7 @@ public:
 	vk::Format findBestFormat();
 	vk::Format findBestSupportedFormat(const std::vector<vk::Format>& candidates, vk::ImageTiling tiling,
 	                                   vk::FormatFeatureFlags features);
-	void createImage(uint32_t width, uint32_t height, vk::Format format, vk::ImageTiling tiling,
-	                 vk::ImageUsageFlags usage, VmaMemoryUsage memoryUsage, Texture& texture, uint32_t mipLevels = 1);
-	TextureHandle createCubemapImage(uint32_t width, uint32_t height, vk::Format format,
-	                                 vk::ImageUsageFlags usage, uint32_t mipLevels = 1);
+	void createImage(Texture& texture, const ImageDesc& desc);
 	void destroyTexture(TextureHandle handle);
 	int allocateTextureSlot();
 	void freeTexture(TextureHandle handle, uint64_t frameNumber);

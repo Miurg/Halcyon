@@ -13,10 +13,12 @@ TextureHandle EnvMapFactory::cubemapFromHdr(TextureManager& tManager, VulkanDevi
                                             TextureHandle hdrTexture, DescriptorManager& dManager,
                                             BindlessTextureDSetComponent& dSetComponent, PipelineManager& pManager)
 {
-	TextureHandle cubemapHandle = tManager.createCubemapImage(
-	    1024, 1024, vk::Format::eR32G32B32A32Sfloat,
-	    vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eStorage);
+	TextureHandle cubemapHandle{tManager.allocateTextureSlot()};
 	Texture& cubemapTexture = tManager.getTexture(cubemapHandle);
+	tManager.createImage(cubemapTexture,
+	                     imagePresets::cubemap(1024, vk::Format::eR32G32B32A32Sfloat,
+	                                           vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst |
+	                                               vk::ImageUsageFlagBits::eStorage));
 	tManager.createImageView(cubemapTexture, vk::Format::eR32G32B32A32Sfloat, vk::ImageAspectFlagBits::eColor,
 	                         vk::ImageViewType::eCube);
 	tManager.createSampler(cubemapTexture, samplerPresets::cubemap());
@@ -72,11 +74,13 @@ TextureHandle EnvMapFactory::prefilteredEnvMap(TextureManager& tManager, VulkanD
 	const uint32_t prefilteredSize = 128;
 	const uint32_t maxMipLevels = 5;
 
-	TextureHandle prefilteredHandle = tManager.createCubemapImage(
-	    prefilteredSize, prefilteredSize, vk::Format::eR32G32B32A32Sfloat,
-	    vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eStorage,
-	    maxMipLevels);
+	TextureHandle prefilteredHandle{tManager.allocateTextureSlot()};
 	Texture& prefilteredTexture = tManager.getTexture(prefilteredHandle);
+	tManager.createImage(prefilteredTexture,
+	                     imagePresets::cubemap(prefilteredSize, vk::Format::eR32G32B32A32Sfloat,
+	                                           vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst |
+	                                               vk::ImageUsageFlagBits::eStorage,
+	                                           maxMipLevels));
 	tManager.createImageView(prefilteredTexture, vk::Format::eR32G32B32A32Sfloat, vk::ImageAspectFlagBits::eColor,
 	                         vk::ImageViewType::eCube);
 	tManager.createSampler(prefilteredTexture, samplerPresets::cubemap());
@@ -150,9 +154,12 @@ TextureHandle EnvMapFactory::brdfLut(TextureManager& tManager, VulkanDevice& vul
 	int slot = tManager.allocateTextureSlot();
 	Texture& brdfLutTexture = tManager.getTexture(TextureHandle{slot});
 
-	tManager.createImage(brdfLutSize, brdfLutSize, vk::Format::eR32G32Sfloat, vk::ImageTiling::eOptimal,
-	                     vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eStorage, VMA_MEMORY_USAGE_AUTO,
-	                     brdfLutTexture);
+	ImageDesc brdfLutDesc;
+	brdfLutDesc.width = brdfLutSize;
+	brdfLutDesc.height = brdfLutSize;
+	brdfLutDesc.format = vk::Format::eR32G32Sfloat;
+	brdfLutDesc.usage = vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eStorage;
+	tManager.createImage(brdfLutTexture, brdfLutDesc);
 	tManager.createImageView(brdfLutTexture, vk::Format::eR32G32Sfloat, vk::ImageAspectFlagBits::eColor);
 
 	SamplerDesc samplerDesc;

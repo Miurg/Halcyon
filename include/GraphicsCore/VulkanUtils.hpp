@@ -5,12 +5,19 @@
 #include <vk_mem_alloc.h>
 #include "GraphicsCore/VulkanDevice.hpp"
 #include "GraphicsCore/SamplerDesc.hpp"
+#include "GraphicsCore/ImageDesc.hpp"
 #include <vector>
 
 struct HALCYON_API StagingBuffer
 {
 	VkBuffer buffer = VK_NULL_HANDLE;
 	VmaAllocation allocation = VK_NULL_HANDLE;
+};
+
+struct HALCYON_API AllocatedImage
+{
+	vk::Image image;
+	VmaAllocation allocation = {};
 };
 
 // Stateless Vulkan helpers — buffer/image creation, memory queries, one-shot command buffers.
@@ -32,10 +39,7 @@ public:
 	             VulkanDevice& vulkanDevice);
 	static std::vector<char> readFile(const std::string& filename);
 
-	static void createImage(uint32_t width, uint32_t height, vk::Format format, vk::ImageTiling tiling,
-	                        vk::ImageUsageFlags usage, vk::MemoryPropertyFlags properties, vk::raii::Image& image,
-	                        vk::raii::DeviceMemory& imageMemory, VulkanDevice& vulkanDevice, uint32_t mipLevels = 1,
-	                        uint32_t arrayLayers = 1, vk::ImageCreateFlags flags = {});
+	static AllocatedImage createImage(VmaAllocator allocator, const ImageDesc& desc);
 
 	static void endSingleTimeCommands(vk::raii::CommandBuffer& commandBuffer, VulkanDevice& vulkanDevice);
 	static vk::raii::CommandBuffer beginSingleTimeCommands(VulkanDevice& vulkanDevice);

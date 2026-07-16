@@ -176,30 +176,40 @@ std::vector<char> VulkanUtils::readFile(const std::string& filename)
 }
 
 // Creates a 2D or Cubemap image and allocates memory for it.
-void VulkanUtils::createImage(uint32_t width, uint32_t height, vk::Format format, vk::ImageTiling tiling,
-                              vk::ImageUsageFlags usage, vk::MemoryPropertyFlags properties, vk::raii::Image& image,
-                              vk::raii::DeviceMemory& imageMemory, VulkanDevice& vulkanDevice, uint32_t mipLevels,
-                              uint32_t arrayLayers, vk::ImageCreateFlags flags)
+AllocatedImage VulkanUtils::createImage(VmaAllocator allocator, const ImageDesc& desc)
 {
-	vk::ImageCreateInfo imageInfo;
-	imageInfo.flags = flags;
-	imageInfo.imageType = vk::ImageType::e2D;
-	imageInfo.format = format;
-	imageInfo.extent = vk::Extent3D{width, height, 1};
-	imageInfo.mipLevels = mipLevels;
-	imageInfo.arrayLayers = arrayLayers;
-	imageInfo.samples = vk::SampleCountFlagBits::e1;
-	imageInfo.tiling = tiling;
-	imageInfo.usage = usage;
-	imageInfo.sharingMode = vk::SharingMode::eExclusive;
+	if (desc.width == 0 || desc.height == 0)
+	{
+		throw std::runtime_error("failed to create VMA image: invalid image dimensions (width or height is 0)!");
+	}
 
-	image = vk::raii::Image(vulkanDevice.device, imageInfo);
+	VkImageCreateInfo imageInfo = {VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO};
+	imageInfo.flags = static_cast<VkImageCreateFlags>(desc.flags);
+	imageInfo.imageType = VK_IMAGE_TYPE_2D;
+	imageInfo.extent.width = desc.width;
+	imageInfo.extent.height = desc.height;
+	imageInfo.extent.depth = 1;
+	imageInfo.mipLevels = desc.mipLevels;
+	imageInfo.arrayLayers = desc.layerCount;
+	imageInfo.format = static_cast<VkFormat>(desc.format);
+	imageInfo.tiling = static_cast<VkImageTiling>(desc.tiling);
+	imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+	imageInfo.usage = static_cast<VkImageUsageFlags>(desc.usage);
+	imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+	imageInfo.samples = static_cast<VkSampleCountFlagBits>(desc.samples);
 
-	vk::MemoryRequirements memRequirements = image.getMemoryRequirements();
-	vk::MemoryAllocateInfo allocInfo(
-	    memRequirements.size, VulkanUtils::findMemoryType(memRequirements.memoryTypeBits, properties, vulkanDevice));
-	imageMemory = vk::raii::DeviceMemory(vulkanDevice.device, allocInfo);
-	image.bindMemory(*imageMemory, 0);
+	VmaAllocationCreateInfo allocInfo = {};
+	allocInfo.usage = desc.memoryUsage;
+
+	VkImage rawImage;
+	AllocatedImage result;
+	VkResult res = vmaCreateImage(allocator, &imageInfo, &allocInfo, &rawImage, &result.allocation, nullptr);
+	if (res != VK_SUCCESS)
+	{
+		throw std::runtime_error("failed to create VMA image!");
+	}
+	result.image = vk::Image(rawImage);
+	return result;
 }
 
 // Creates an image view.

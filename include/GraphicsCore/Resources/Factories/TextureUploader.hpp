@@ -25,6 +25,7 @@ public:
 	                                     VmaAllocator& allocator, VulkanDevice& vulkanDevice);
 	static void generateMipmaps(vk::Image image, vk::Format imageFormat, int32_t texWidth, int32_t texHeight,
 	                            uint32_t mipLevels, VulkanDevice& vulkanDevice);
-	static void uploadKtxTextureData(const unsigned char* ktxData, size_t dataSize, Texture& texture, bool isSrgb,
-	                                 VmaAllocator& allocator, VulkanDevice& vulkanDevice);
+	static void uploadKtxTextureData(const unsigned char* ktxData, size_t dataSize, Texture& texture,
+	                                 TextureManager& tManager, bool isSrgb, VmaAllocator& allocator,
+	                                 VulkanDevice& vulkanDevice);
 };

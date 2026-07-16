@@ -88,10 +88,13 @@ void GTAOPass::onInit(Orhescyon::GeneralManager& gm)
 	// Noise texture (static, 64x64, lives for the entire app — sampled per pixel by gtao.slang)
 	int noiseSlot = tManager.allocateTextureSlot();
 	Texture& noiseTexture = tManager.getTexture(TextureHandle{noiseSlot});
-	tManager.createImage(64, 64, vk::Format::eR8G8B8A8Unorm, vk::ImageTiling::eOptimal,
-	                     vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eTransferDst |
-	                         vk::ImageUsageFlagBits::eSampled,
-	                     VMA_MEMORY_USAGE_AUTO, noiseTexture, 1);
+	ImageDesc noiseDesc;
+	noiseDesc.width = 64;
+	noiseDesc.height = 64;
+	noiseDesc.format = vk::Format::eR8G8B8A8Unorm;
+	noiseDesc.usage = vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eTransferDst |
+	                  vk::ImageUsageFlagBits::eSampled;
+	tManager.createImage(noiseTexture, noiseDesc);
 	tManager.createImageView(noiseTexture, vk::Format::eR8G8B8A8Unorm, vk::ImageAspectFlagBits::eColor);
 
 	SamplerDesc samplerDesc;

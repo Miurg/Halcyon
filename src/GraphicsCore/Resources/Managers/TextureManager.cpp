@@ -120,9 +120,12 @@ TextureHandle TextureManager::createDepthImage(uint32_t resolutionWidth, uint32_
 	Texture& texture = textures[slot];
 	vk::Format depthFormat = findBestFormat();
 
-	TextureManager::createImage(resolutionWidth, resolutionHeight, depthFormat, vk::ImageTiling::eOptimal,
-	                            vk::ImageUsageFlagBits::eDepthStencilAttachment | vk::ImageUsageFlagBits::eSampled,
-	                            VMA_MEMORY_USAGE_AUTO, texture);
+	ImageDesc desc;
+	desc.width = resolutionWidth;
+	desc.height = resolutionHeight;
+	desc.format = depthFormat;
+	desc.usage = vk::ImageUsageFlagBits::eDepthStencilAttachment | vk::ImageUsageFlagBits::eSampled;
+	createImage(texture, desc);
 	TextureManager::createImageView(texture, depthFormat, vk::ImageAspectFlagBits::eDepth);
 	createSampler(texture, samplerPresets::texture());
 	return TextureHandle{slot};
@@ -134,9 +137,12 @@ TextureHandle TextureManager::createOffscreenImage(uint32_t resolutionWidth, uin
 	int slot = allocateTextureSlot();
 	Texture& texture = textures[slot];
 
-	TextureManager::createImage(resolutionWidth, resolutionHeight, offscreenFormat, vk::ImageTiling::eOptimal,
-	                            vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eSampled,
-	                            VMA_MEMORY_USAGE_AUTO, texture);
+	ImageDesc imageDesc;
+	imageDesc.width = resolutionWidth;
+	imageDesc.height = resolutionHeight;
+	imageDesc.format = offscreenFormat;
+	imageDesc.usage = vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eSampled;
+	createImage(texture, imageDesc);
 	TextureManager::createImageView(texture, offscreenFormat, vk::ImageAspectFlagBits::eColor);
 
 	SamplerDesc desc;
@@ -153,9 +159,12 @@ TextureHandle TextureManager::createShadowMap(uint32_t shadowResolutionX, uint32
 	Texture& texture = textures[slot];
 	vk::Format shadowFormat = findBestFormat();
 
-	TextureManager::createImage(shadowResolutionX, shadowResolutionY, shadowFormat, vk::ImageTiling::eOptimal,
-	                            vk::ImageUsageFlagBits::eDepthStencilAttachment | vk::ImageUsageFlagBits::eSampled,
-	                            VMA_MEMORY_USAGE_AUTO, texture);
+	ImageDesc imageDesc;
+	imageDesc.width = shadowResolutionX;
+	imageDesc.height = shadowResolutionY;
+	imageDesc.format = shadowFormat;
+	imageDesc.usage = vk::ImageUsageFlagBits::eDepthStencilAttachment | vk::ImageUsageFlagBits::eSampled;
+	createImage(texture, imageDesc);
 	TextureManager::createImageView(texture, shadowFormat, vk::ImageAspectFlagBits::eDepth);
 
 	SamplerDesc desc;
@@ -208,10 +217,14 @@ TextureHandle TextureManager::generateTextureData(const char texturePath[MAX_PAT
 	Texture& texture = textures[slot];
 
 	uint32_t mipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(texWidth, texHeight)))) + 1;
-	TextureManager::createImage(texWidth, texHeight, format, vk::ImageTiling::eOptimal,
-	                            vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eTransferDst |
-	                                vk::ImageUsageFlagBits::eSampled,
-	                            VMA_MEMORY_USAGE_AUTO, texture, mipLevels);
+	ImageDesc desc;
+	desc.width = texWidth;
+	desc.height = texHeight;
+	desc.format = format;
+	desc.usage = vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eTransferDst |
+	             vk::ImageUsageFlagBits::eSampled;
+	desc.mipLevels = mipLevels;
+	createImage(texture, desc);
 	TextureUploader::uploadTextureFromBuffer(pixels, texWidth, texHeight, texture, allocator, vulkanDevice);
 	TextureManager::createImageView(texture, format, vk::ImageAspectFlagBits::eColor);
 	createSampler(texture, samplerPresets::texture());
@@ -232,7 +245,7 @@ TextureHandle TextureManager::generateTextureDataFromKtx(const char texturePath[
 	int slot = allocateTextureSlot();
 	Texture& texture = textures[slot];
 
-	TextureUploader::uploadKtxTextureData(ktxData, dataSize, texture, isSrgb, allocator, vulkanDevice);
+	TextureUploader::uploadKtxTextureData(ktxData, dataSize, texture, *this, isSrgb, allocator, vulkanDevice);
 	createImageView(texture, texture.format, vk::ImageAspectFlagBits::eColor);
 	createSampler(texture, samplerPresets::texture()); // maxLod uses texture.mipLevels set inside uploadKtxTextureData
 
@@ -249,47 +262,21 @@ bool TextureManager::isTextureLoaded(const char texturePath[MAX_PATH_LEN])
 	return texturePaths.find(texturePath) != texturePaths.end();
 }
 
-void TextureManager::createImage(uint32_t width, uint32_t height, vk::Format format, vk::ImageTiling tiling,
-                                 vk::ImageUsageFlags usage, VmaMemoryUsage memoryUsage, Texture& texture,
-                                 uint32_t mipLevels)
+void TextureManager::createImage(Texture& texture, const ImageDesc& desc)
 {
-	if (width == 0 || height == 0)
-	{
-		throw std::runtime_error("failed to create VMA image: invalid image dimensions (width or height is 0)!");
-	}
-	VkImageCreateInfo imageInfo = {VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO};
-	imageInfo.imageType = VK_IMAGE_TYPE_2D;
-	imageInfo.extent.width = width;
-	imageInfo.extent.height = height;
-	imageInfo.extent.depth = 1;
-	imageInfo.mipLevels = mipLevels;
-	imageInfo.arrayLayers = 1;
-	imageInfo.format = static_cast<VkFormat>(format);
-	imageInfo.tiling = static_cast<VkImageTiling>(tiling);
-	imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	imageInfo.usage = static_cast<VkImageUsageFlags>(usage);
-	imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-	imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+	AllocatedImage allocated = VulkanUtils::createImage(allocator, desc);
+	texture.textureImage = allocated.image;
+	texture.textureImageAllocation = allocated.allocation;
 
-	VmaAllocationCreateInfo allocInfo = {};
-	allocInfo.usage = memoryUsage;
-
-	VkImage textureImageRaw;
-	VkResult res =
-	    vmaCreateImage(allocator, &imageInfo, &allocInfo, &textureImageRaw, &texture.textureImageAllocation, nullptr);
-	if (res != VK_SUCCESS)
-	{
-		throw std::runtime_error("failed to create VMA image!");
-	}
-	texture.textureImage = vk::Image(textureImageRaw);
-
-	texture.width = width;
-	texture.height = height;
-	texture.format = format;
-	texture.tiling = tiling;
-	texture.usage = usage;
-	texture.memoryUsage = memoryUsage;
-	texture.mipLevels = mipLevels;
+	texture.width = desc.width;
+	texture.height = desc.height;
+	texture.format = desc.format;
+	texture.tiling = desc.tiling;
+	texture.usage = desc.usage;
+	texture.memoryUsage = desc.memoryUsage;
+	texture.mipLevels = desc.mipLevels;
+	texture.layerCount = desc.layerCount;
+	texture.imageCreateFlags = desc.flags;
 }
 
 int TextureManager::emplaceMaterials(BindlessTextureDSetComponent& dSetComponent, MaterialStructure materialStr,
@@ -350,52 +337,6 @@ size_t TextureManager::pendingMaterialFreeCount() const
 	return _pendingMaterialFrees.size();
 }
 
-TextureHandle TextureManager::createCubemapImage(uint32_t width, uint32_t height, vk::Format format,
-                                                 vk::ImageUsageFlags usage, uint32_t mipLevels)
-{
-	int slot = allocateTextureSlot();
-	Texture& texture = textures[slot];
-
-	texture.width = width;
-	texture.height = height;
-	texture.format = format;
-	texture.tiling = vk::ImageTiling::eOptimal;
-	texture.usage = usage;
-	texture.memoryUsage = VMA_MEMORY_USAGE_AUTO;
-	texture.layerCount = 6;
-	texture.mipLevels = mipLevels;
-	texture.imageCreateFlags = vk::ImageCreateFlagBits::eCubeCompatible;
-
-	VkImageCreateInfo imageInfo = {VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO};
-	imageInfo.flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
-	imageInfo.imageType = VK_IMAGE_TYPE_2D;
-	imageInfo.extent.width = width;
-	imageInfo.extent.height = height;
-	imageInfo.extent.depth = 1;
-	imageInfo.mipLevels = mipLevels;
-	imageInfo.arrayLayers = 6;
-	imageInfo.format = static_cast<VkFormat>(format);
-	imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
-	imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	imageInfo.usage = static_cast<VkImageUsageFlags>(texture.usage);
-	imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-	imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
-
-	VmaAllocationCreateInfo allocInfo = {};
-	allocInfo.usage = texture.memoryUsage;
-
-	VkImage textureImageRaw;
-	VkResult res =
-	    vmaCreateImage(allocator, &imageInfo, &allocInfo, &textureImageRaw, &texture.textureImageAllocation, nullptr);
-	if (res != VK_SUCCESS)
-	{
-		throw std::runtime_error("failed to create VMA cubemap image!");
-	}
-	texture.textureImage = vk::Image(textureImageRaw);
-
-	return TextureHandle{slot};
-}
-
 void TextureManager::createImageView(Texture& texture, vk::Format format, vk::ImageAspectFlags aspectFlags,
                                      vk::ImageViewType viewType)
 {
@@ -446,8 +387,17 @@ void TextureManager::resizeTexture(TextureHandle handle, uint32_t newWidth, uint
 		vmaDestroyImage(allocator, texture.textureImage, texture.textureImageAllocation);
 	}
 
-	TextureManager::createImage(newWidth, newHeight, texture.format, texture.tiling, texture.usage, texture.memoryUsage,
-	                            texture);
+	ImageDesc desc;
+	desc.width = newWidth;
+	desc.height = newHeight;
+	desc.format = texture.format;
+	desc.usage = texture.usage;
+	desc.mipLevels = texture.mipLevels;
+	desc.layerCount = texture.layerCount;
+	desc.flags = texture.imageCreateFlags;
+	desc.tiling = texture.tiling;
+	desc.memoryUsage = texture.memoryUsage;
+	createImage(texture, desc);
 	TextureManager::createImageView(texture, texture.format, texture.aspectFlags);
 }
 

@@ -697,30 +697,23 @@ void RenderGraph::allocateTransientImage(RGResourceEntry& res)
 	}
 	usage |= res.desc.extraUsage;
 
-	VkImageCreateInfo imageInfo = {VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO};
-	imageInfo.imageType = VK_IMAGE_TYPE_2D;
-	imageInfo.extent.width = res.currentWidth;
-	imageInfo.extent.height = res.currentHeight;
-	imageInfo.extent.depth = 1;
-	imageInfo.mipLevels = mips;
-	imageInfo.arrayLayers = 1;
-	imageInfo.format = static_cast<VkFormat>(res.desc.format);
-	imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
-	imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	imageInfo.usage = static_cast<VkImageUsageFlags>(usage);
-	imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-	imageInfo.samples = static_cast<VkSampleCountFlagBits>(res.desc.samples);
-
-	VmaAllocationCreateInfo allocInfo = {};
-	allocInfo.usage = VMA_MEMORY_USAGE_AUTO;
-
-	VkImage rawImage;
-	VkResult result = vmaCreateImage(allocator, &imageInfo, &allocInfo, &rawImage, &res.allocation, nullptr);
-	if (result != VK_SUCCESS)
+	ImageDesc imageDesc;
+	imageDesc.width = res.currentWidth;
+	imageDesc.height = res.currentHeight;
+	imageDesc.format = res.desc.format;
+	imageDesc.usage = usage;
+	imageDesc.mipLevels = mips;
+	imageDesc.samples = res.desc.samples;
+	try
+	{
+		AllocatedImage allocated = VulkanUtils::createImage(allocator, imageDesc);
+		res.image = allocated.image;
+		res.allocation = allocated.allocation;
+	}
+	catch (const std::exception&)
 	{
 		throw std::runtime_error("RenderGraph: failed to create VMA image for '" + res.name + "'");
 	}
-	res.image = vk::Image(rawImage);
 
 	vk::ImageViewCreateInfo viewInfo;
 	viewInfo.image = res.image;
