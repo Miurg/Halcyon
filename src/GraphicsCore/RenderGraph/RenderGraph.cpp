@@ -764,9 +764,9 @@ void RenderGraph::destroyTransientImage(RGResourceEntry& res)
 
 void RenderGraph::createSampler(RGResourceEntry& res)
 {
-	if (res.desc.customSamplerInfo.has_value())
+	if (res.desc.samplerOverride.has_value())
 	{
-		res.sampler = (*vulkanDevice.device).createSampler(res.desc.customSamplerInfo.value());
+		res.sampler = VulkanUtils::createSampler(vulkanDevice, res.desc.samplerOverride.value(), res.mipLevels);
 		return;
 	}
 
@@ -776,7 +776,7 @@ void RenderGraph::createSampler(RGResourceEntry& res)
 	{
 		desc.borderColor = SamplerBorderColor::FloatTransparentBlack;
 		desc.compareOp = SamplerCompareOp::Always;
-		desc.anisotropy = true;
+		desc.maxAnisotropy = SamplerAnisotropyMax;
 	}
 	else
 	{

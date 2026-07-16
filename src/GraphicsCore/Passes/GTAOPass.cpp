@@ -94,19 +94,11 @@ void GTAOPass::onInit(Orhescyon::GeneralManager& gm)
 	                     VMA_MEMORY_USAGE_AUTO, noiseTexture, 1);
 	tManager.createImageView(noiseTexture, vk::Format::eR8G8B8A8Unorm, vk::ImageAspectFlagBits::eColor);
 
-	vk::SamplerCreateInfo samplerInfo;
-	samplerInfo.magFilter = vk::Filter::eNearest;
-	samplerInfo.minFilter = vk::Filter::eNearest;
-	samplerInfo.mipmapMode = vk::SamplerMipmapMode::eNearest;
-	samplerInfo.addressModeU = vk::SamplerAddressMode::eRepeat;
-	samplerInfo.addressModeV = vk::SamplerAddressMode::eRepeat;
-	samplerInfo.addressModeW = vk::SamplerAddressMode::eRepeat;
-	samplerInfo.anisotropyEnable = vk::False;
-	samplerInfo.compareOp = vk::CompareOp::eAlways;
-	samplerInfo.borderColor = vk::BorderColor::eIntOpaqueBlack;
-	samplerInfo.minLod = 0.0f;
-	samplerInfo.maxLod = 0.0f;
-	noiseTexture.textureSampler = (*vulkanDevice.device).createSampler(samplerInfo);
+	SamplerDesc samplerDesc;
+	samplerDesc.magFilter = SamplerFilter::Nearest;
+	samplerDesc.minFilter = SamplerFilter::Nearest;
+	samplerDesc.mipmapMode = SamplerMipmapMode::Nearest;
+	tManager.createSampler(noiseTexture, samplerDesc);
 
 	_noiseTexture.id = noiseSlot;
 	TextureUploader::uploadTextureFromBuffer(Halcyon::Graphics::Data::GTAO_NOISE_PIXELS,

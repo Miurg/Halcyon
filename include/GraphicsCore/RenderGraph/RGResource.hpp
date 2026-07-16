@@ -1,6 +1,7 @@
 #pragma once
 
 #include "HalcyonExport.hpp"
+#include "GraphicsCore/SamplerDesc.hpp"
 #include <cstdint>
 #include <optional>
 #include <string>
@@ -54,7 +55,7 @@ struct HALCYON_API RGImageDesc
 	vk::SampleCountFlagBits samples = vk::SampleCountFlagBits::e1;
 	uint32_t mipLevels = 1;
 	vk::ImageUsageFlags extraUsage = {}; // e.g. eStorage for compute UAV writes
-	std::optional<vk::SamplerCreateInfo> customSamplerInfo;
+	std::optional<SamplerDesc> samplerOverride;
 };
 
 // Unified resource entry — covers both imported and transient resources

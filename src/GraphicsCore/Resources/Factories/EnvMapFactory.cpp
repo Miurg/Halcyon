@@ -154,14 +154,9 @@ TextureHandle EnvMapFactory::brdfLut(TextureManager& tManager, VulkanDevice& vul
 	                     brdfLutTexture);
 	tManager.createImageView(brdfLutTexture, vk::Format::eR32G32Sfloat, vk::ImageAspectFlagBits::eColor);
 
-	vk::SamplerCreateInfo samplerInfo;
-	samplerInfo.magFilter = vk::Filter::eLinear;
-	samplerInfo.minFilter = vk::Filter::eLinear;
-	samplerInfo.mipmapMode = vk::SamplerMipmapMode::eLinear;
-	samplerInfo.addressModeU = vk::SamplerAddressMode::eClampToEdge;
-	samplerInfo.addressModeV = vk::SamplerAddressMode::eClampToEdge;
-	samplerInfo.addressModeW = vk::SamplerAddressMode::eClampToEdge;
-	brdfLutTexture.textureSampler = (*vulkanDevice.device).createSampler(samplerInfo);
+	SamplerDesc samplerDesc;
+	samplerDesc.addressMode = SamplerAddressMode::ClampToEdge;
+	tManager.createSampler(brdfLutTexture, samplerDesc);
 
 	vk::ImageViewCreateInfo viewInfo;
 	viewInfo.image = brdfLutTexture.textureImage;

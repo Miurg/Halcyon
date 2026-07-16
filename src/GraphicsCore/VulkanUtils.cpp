@@ -18,10 +18,11 @@ vk::Sampler VulkanUtils::createSampler(VulkanDevice& vulkanDevice, const Sampler
 	samplerInfo.addressModeW = addressMode;
 	samplerInfo.borderColor = VulkanConvert::toVkBorderColor(desc.borderColor);
 
-	if (desc.anisotropy)
+	if (desc.maxAnisotropy > 1.0f)
 	{
 		samplerInfo.anisotropyEnable = vk::True;
-		samplerInfo.maxAnisotropy = vulkanDevice.physicalDevice.getProperties().limits.maxSamplerAnisotropy;
+		samplerInfo.maxAnisotropy =
+		    std::min(desc.maxAnisotropy, vulkanDevice.physicalDevice.getProperties().limits.maxSamplerAnisotropy);
 	}
 	else
 	{
@@ -32,8 +33,10 @@ vk::Sampler VulkanUtils::createSampler(VulkanDevice& vulkanDevice, const Sampler
 	samplerInfo.compareEnable = desc.compareOp == SamplerCompareOp::None ? vk::False : vk::True;
 	samplerInfo.compareOp = VulkanConvert::toVkCompareOp(desc.compareOp);
 
-	samplerInfo.minLod = 0.0f;
-	samplerInfo.maxLod = static_cast<float>(std::max(1u, mipLevels));
+	samplerInfo.mipLodBias = desc.mipLodBias;
+	samplerInfo.minLod = desc.minLod;
+	samplerInfo.maxLod = desc.maxLod == SamplerMaxLod::FullChain ? VK_LOD_CLAMP_NONE
+	                                                             : static_cast<float>(std::max(1u, mipLevels));
 
 	return (*vulkanDevice.device).createSampler(samplerInfo);
 }

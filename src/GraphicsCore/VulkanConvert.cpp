@@ -28,6 +28,7 @@ vk::SamplerAddressMode VulkanConvert::toVkAddressMode(SamplerAddressMode mode)
 	case SamplerAddressMode::MirroredRepeat: return vk::SamplerAddressMode::eMirroredRepeat;
 	case SamplerAddressMode::ClampToEdge: return vk::SamplerAddressMode::eClampToEdge;
 	case SamplerAddressMode::ClampToBorder: return vk::SamplerAddressMode::eClampToBorder;
+	case SamplerAddressMode::MirrorClampToEdge: return vk::SamplerAddressMode::eMirrorClampToEdge;
 	}
 	return vk::SamplerAddressMode::eRepeat;
 }
@@ -37,6 +38,8 @@ vk::BorderColor VulkanConvert::toVkBorderColor(SamplerBorderColor color)
 	switch (color)
 	{
 	case SamplerBorderColor::IntOpaqueBlack: return vk::BorderColor::eIntOpaqueBlack;
+	case SamplerBorderColor::IntOpaqueWhite: return vk::BorderColor::eIntOpaqueWhite;
+	case SamplerBorderColor::IntTransparentBlack: return vk::BorderColor::eIntTransparentBlack;
 	case SamplerBorderColor::FloatOpaqueBlack: return vk::BorderColor::eFloatOpaqueBlack;
 	case SamplerBorderColor::FloatOpaqueWhite: return vk::BorderColor::eFloatOpaqueWhite;
 	case SamplerBorderColor::FloatTransparentBlack: return vk::BorderColor::eFloatTransparentBlack;

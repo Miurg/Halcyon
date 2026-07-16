@@ -19,12 +19,15 @@ enum class SamplerAddressMode
 	Repeat,
 	MirroredRepeat,
 	ClampToEdge,
-	ClampToBorder
+	ClampToBorder,
+	MirrorClampToEdge
 };
 
 enum class SamplerBorderColor
 {
 	IntOpaqueBlack,
+	IntOpaqueWhite,
+	IntTransparentBlack,
 	FloatOpaqueBlack,
 	FloatOpaqueWhite,
 	FloatTransparentBlack
@@ -44,6 +47,16 @@ enum class SamplerCompareOp
 	Always
 };
 
+// FromMipLevels clamps the upper LOD to the image's mip count; FullChain leaves it unbounded.
+enum class SamplerMaxLod
+{
+	FromMipLevels,
+	FullChain
+};
+
+// The builder clamps it down to the hardware limit.
+inline constexpr float SamplerAnisotropyMax = 16;
+
 struct HALCYON_API SamplerDesc
 {
 	SamplerFilter magFilter = SamplerFilter::Linear;
@@ -52,7 +65,10 @@ struct HALCYON_API SamplerDesc
 	SamplerAddressMode addressMode = SamplerAddressMode::Repeat;
 	SamplerBorderColor borderColor = SamplerBorderColor::IntOpaqueBlack;
 	SamplerCompareOp compareOp = SamplerCompareOp::None;
-	bool anisotropy = false;
+	float maxAnisotropy = 1.0f; // <= 1 disables anisotropic filtering
+	float mipLodBias = 0.0f;
+	float minLod = 0.0f;
+	SamplerMaxLod maxLod = SamplerMaxLod::FromMipLevels;
 };
 
 namespace samplerPresets
@@ -60,7 +76,7 @@ namespace samplerPresets
 	inline SamplerDesc texture()
 	{
 		SamplerDesc desc;
-		desc.anisotropy = true;
+		desc.maxAnisotropy = SamplerAnisotropyMax;
 		return desc;
 	}
 
@@ -69,7 +85,6 @@ namespace samplerPresets
 		SamplerDesc desc;
 		desc.addressMode = SamplerAddressMode::ClampToEdge;
 		desc.borderColor = SamplerBorderColor::FloatOpaqueWhite;
-		desc.anisotropy = true;
 		return desc;
 	}
 }

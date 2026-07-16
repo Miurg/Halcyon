@@ -36,15 +36,10 @@ void DepthPyramidPass::onInit(Orhescyon::GeneralManager& gm)
 	for (uint32_t i = 0; i < kMaxMips; ++i) _dsets[i] = dManager.allocate("hiZSet");
 
 	// Linear view-space Z pyramid sampling
-	vk::SamplerCreateInfo samplerInfo{};
-	samplerInfo.magFilter = vk::Filter::eLinear;
-	samplerInfo.minFilter = vk::Filter::eLinear;
-	samplerInfo.mipmapMode = vk::SamplerMipmapMode::eNearest;
-	samplerInfo.addressModeU = vk::SamplerAddressMode::eClampToEdge;
-	samplerInfo.addressModeV = vk::SamplerAddressMode::eClampToEdge;
-	samplerInfo.addressModeW = vk::SamplerAddressMode::eClampToEdge;
-	samplerInfo.minLod = 0.0f;
-	samplerInfo.maxLod = VK_LOD_CLAMP_NONE;
+	SamplerDesc pyramidSampler;
+	pyramidSampler.mipmapMode = SamplerMipmapMode::Nearest;
+	pyramidSampler.addressMode = SamplerAddressMode::ClampToEdge;
+	pyramidSampler.maxLod = SamplerMaxLod::FullChain;
 
 	rg.declareLogicalStream("DepthPyramid", {.format = vk::Format::eR32Sfloat,
 	                                         .sizeMode = RGSizeMode::FullExtent,
@@ -52,7 +47,7 @@ void DepthPyramidPass::onInit(Orhescyon::GeneralManager& gm)
 	                                         .samples = vk::SampleCountFlagBits::e1,
 	                                         .mipLevels = RG_FULL_MIP_CHAIN,
 	                                         .extraUsage = vk::ImageUsageFlagBits::eStorage,
-	                                         .customSamplerInfo = samplerInfo});
+	                                         .samplerOverride = pyramidSampler});
 
 	pManager.build(
 	    PipelineDescription{
