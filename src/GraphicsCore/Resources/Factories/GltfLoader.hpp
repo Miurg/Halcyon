@@ -49,4 +49,11 @@ public:
 	                                                   int32_t globalVertexOffset, const MaterialMaps& materialMaps);
 	static std::vector<MeshInfo> modelParser(tinygltf::Model model);
 	static std::shared_ptr<TextureData> createDefaultWhiteTexture();
+
+private:
+	static int loadMaterialTexture(tinygltf::Model& model, const std::map<std::string, tinygltf::Parameter>& params,
+	                               const char* paramName, const char* semantic, bool isSrgb, int fallback,
+	                               const char* filePath, TextureManager& tManager,
+	                               BindlessTextureDSetComponent& dSetComponent, DescriptorManager& dManager,
+	                               VulkanDevice& vulkanDevice, VmaAllocator allocator);
 };

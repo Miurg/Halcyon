@@ -78,6 +78,60 @@ int GltfLoader::loadModelFromFile(const char path[MAX_PATH_LEN], int vertexIndex
 	return modelIndex;
 }
 
+int GltfLoader::loadMaterialTexture(tinygltf::Model& model, const std::map<std::string, tinygltf::Parameter>& params,
+                                    const char* paramName, const char* semantic, bool isSrgb, int fallback,
+                                    const char* filePath, TextureManager& tManager,
+                                    BindlessTextureDSetComponent& dSetComponent, DescriptorManager& dManager,
+                                    VulkanDevice& vulkanDevice, VmaAllocator allocator)
+{
+	auto paramIt = params.find(paramName);
+	if (paramIt == params.end()) return fallback;
+
+	int textureIndex = paramIt->second.TextureIndex();
+	if (textureIndex < 0 || textureIndex >= static_cast<int>(model.textures.size())) return fallback;
+
+	const tinygltf::Texture& tex = model.textures[textureIndex];
+	int sourceImageIndex = tex.source;
+	auto basisuIt = tex.extensions.find("KHR_texture_basisu");
+	if (basisuIt != tex.extensions.end() && basisuIt->second.Has("source"))
+		sourceImageIndex = basisuIt->second.Get("source").GetNumberAsInt();
+	if (sourceImageIndex < 0 || sourceImageIndex >= static_cast<int>(model.images.size())) return fallback;
+
+	tinygltf::Image& img = model.images[sourceImageIndex];
+	std::string prefix = "model_" + std::string(filePath) + "_" + semantic + "_";
+	std::string texName;
+	if (!img.name.empty())
+		texName = prefix + img.name;
+	else if (!img.uri.empty() && img.uri.find("data:") != 0)
+		texName = prefix + img.uri;
+	else
+		texName = prefix + "__embedded_img_" + std::to_string(sourceImageIndex);
+
+	if (tManager.isTextureLoaded(texName.c_str()))
+	{
+		return tManager.texturePaths[texName].id;
+	}
+	if (img.as_is && img.mimeType == "image/ktx2" && !img.image.empty())
+	{
+		return TextureFactory::generateTextureDataFromKtx(tManager, vulkanDevice, allocator, texName.c_str(),
+		                                                  img.image.data(), img.image.size(), dSetComponent, dManager,
+		                                                  isSrgb)
+		    .id;
+	}
+	if (!img.image.empty() && img.width > 0 && img.height > 0)
+	{
+		auto rgbaPixels = ImageConverter::convertToRGBA(img);
+		if (!rgbaPixels.empty())
+		{
+			return TextureFactory::generateTextureData(tManager, vulkanDevice, allocator, texName.c_str(), img.width,
+			                                           img.height, rgbaPixels.data(), dSetComponent, dManager,
+			                                           isSrgb ? vk::Format::eR8G8B8A8Srgb : vk::Format::eR8G8B8A8Unorm)
+			    .id;
+		}
+	}
+	return fallback;
+}
+
 MaterialMaps GltfLoader::materialsParser(tinygltf::Model& model, TextureManager& tManager,
                                          BindlessTextureDSetComponent& dSetComponent, DescriptorManager& dManager,
                                          BufferManager& bManager, const char* filePath, VulkanDevice& vulkanDevice,
@@ -133,155 +187,18 @@ MaterialMaps GltfLoader::materialsParser(tinygltf::Model& model, TextureManager&
 			material.baseColorFactor = colorFactor;
 		}
 		
-		material.textureIndex = whiteTexture; // Default fallback
-		// Base color texture
-		auto texIt = model.materials[i].values.find("baseColorTexture");
-		if (texIt != model.materials[i].values.end())
-		{
-			int textureIndex = texIt->second.TextureIndex();
-			if (textureIndex >= 0 && textureIndex < model.textures.size())
-			{
-				const tinygltf::Texture& tex = model.textures[textureIndex];
-				int sourceImageIndex = tex.source;
-				auto basisuIt = tex.extensions.find("KHR_texture_basisu");
-				if (basisuIt != tex.extensions.end() && basisuIt->second.Has("source"))
-					sourceImageIndex = basisuIt->second.Get("source").GetNumberAsInt();
-				if (sourceImageIndex >= 0 && sourceImageIndex < model.images.size())
-				{
-					tinygltf::Image& img = model.images[sourceImageIndex];
-					std::string prefix = "model_" + std::string(filePath) + "_basecolor_";
-					std::string texName;
-					if (!img.name.empty())
-						texName = prefix + img.name;
-					else if (!img.uri.empty() && img.uri.find("data:") != 0)
-						texName = prefix + img.uri;
-					else
-						texName = prefix + "__embedded_img_" + std::to_string(sourceImageIndex);
+		material.textureIndex =
+		    loadMaterialTexture(model, model.materials[i].values, "baseColorTexture", "basecolor", /*isSrgb*/ true,
+		                        whiteTexture, filePath, tManager, dSetComponent, dManager, vulkanDevice, allocator);
+		material.normalMapIndex =
+		    loadMaterialTexture(model, model.materials[i].additionalValues, "normalTexture", "normal",
+		                        /*isSrgb*/ false, defaultNormalTexture, filePath, tManager, dSetComponent, dManager,
+		                        vulkanDevice, allocator);
+		// Metallic-Roughness texture (packed: G=Roughness, B=Metallic);
+		material.metallicRoughnessIndex =
+		    loadMaterialTexture(model, model.materials[i].values, "metallicRoughnessTexture", "mr", /*isSrgb*/ false,
+		                        defaultMRTexture, filePath, tManager, dSetComponent, dManager, vulkanDevice, allocator);
 
-					if (tManager.isTextureLoaded(texName.c_str()))
-					{
-						material.textureIndex = tManager.texturePaths[texName].id;
-					}
-					else if (img.as_is && img.mimeType == "image/ktx2" && !img.image.empty())
-					{
-						material.textureIndex =
-						    TextureFactory::generateTextureDataFromKtx(tManager, vulkanDevice, allocator, texName.c_str(), img.image.data(), img.image.size(),
-						                                    dSetComponent, dManager, /*isSrgb*/ true)
-						        .id;
-					}
-					else if (!img.image.empty() && img.width > 0 && img.height > 0)
-					{
-						auto rgbaPixels = ImageConverter::convertToRGBA(img);
-						if (!rgbaPixels.empty())
-						{
-							material.textureIndex = TextureFactory::generateTextureData(tManager, vulkanDevice, allocator, texName.c_str(), img.width, img.height,
-							                                                 rgbaPixels.data(), dSetComponent, dManager)
-							                            .id;
-						}
-					}
-				}
-			}
-		}
-		// Normal map texture
-		material.normalMapIndex = defaultNormalTexture; // Default fallback
-		auto normTexIt = model.materials[i].additionalValues.find("normalTexture");
-		if (normTexIt != model.materials[i].additionalValues.end())
-		{
-			int textureIndex = normTexIt->second.TextureIndex();
-			if (textureIndex >= 0 && textureIndex < model.textures.size())
-			{
-				const tinygltf::Texture& tex = model.textures[textureIndex];
-				int sourceImageIndex = tex.source;
-				auto basisuIt = tex.extensions.find("KHR_texture_basisu");
-				if (basisuIt != tex.extensions.end() && basisuIt->second.Has("source"))
-					sourceImageIndex = basisuIt->second.Get("source").GetNumberAsInt();
-				if (sourceImageIndex >= 0 && sourceImageIndex < model.images.size())
-				{
-					tinygltf::Image& img = model.images[sourceImageIndex];
-					std::string prefix = "model_" + std::string(filePath) + "_normal_";
-					std::string texName;
-					if (!img.name.empty())
-						texName = prefix + img.name;
-					else if (!img.uri.empty() && img.uri.find("data:") != 0)
-						texName = prefix + img.uri;
-					else
-						texName = prefix + "__embedded_img_" + std::to_string(sourceImageIndex);
-
-					if (tManager.isTextureLoaded(texName.c_str()))
-					{
-						material.normalMapIndex = tManager.texturePaths[texName].id;
-					}
-					else if (img.as_is && img.mimeType == "image/ktx2" && !img.image.empty())
-					{
-						material.normalMapIndex =
-						    TextureFactory::generateTextureDataFromKtx(tManager, vulkanDevice, allocator, texName.c_str(), img.image.data(), img.image.size(),
-						                                    dSetComponent, dManager, /*isSrgb*/ false)
-						        .id;
-					}
-					else if (!img.image.empty() && img.width > 0 && img.height > 0)
-					{
-						auto rgbaPixels = ImageConverter::convertToRGBA(img);
-						if (!rgbaPixels.empty())
-						{
-							material.normalMapIndex =
-							    TextureFactory::generateTextureData(tManager, vulkanDevice, allocator, texName.c_str(), img.width, img.height, rgbaPixels.data(),
-							                             dSetComponent, dManager, vk::Format::eR8G8B8A8Unorm)
-							        .id;
-						}
-					}
-				}
-			}
-		}
-		// Metallic-Roughness texture (packed: G=Roughness, B=Metallic)
-		material.metallicRoughnessIndex = defaultMRTexture; // Default fallback
-		auto mrTexIt = model.materials[i].values.find("metallicRoughnessTexture");
-		if (mrTexIt != model.materials[i].values.end())
-		{
-			int textureIndex = mrTexIt->second.TextureIndex();
-			if (textureIndex >= 0 && textureIndex < (int)model.textures.size())
-			{
-				const tinygltf::Texture& tex = model.textures[textureIndex];
-				int sourceImageIndex = tex.source;
-				auto basisuIt = tex.extensions.find("KHR_texture_basisu");
-				if (basisuIt != tex.extensions.end() && basisuIt->second.Has("source"))
-					sourceImageIndex = basisuIt->second.Get("source").GetNumberAsInt();
-				if (sourceImageIndex >= 0 && sourceImageIndex < (int)model.images.size())
-				{
-					tinygltf::Image& img = model.images[sourceImageIndex];
-					std::string prefix = "model_" + std::string(filePath) + "_mr_";
-					std::string texName;
-					if (!img.name.empty())
-						texName = prefix + img.name;
-					else if (!img.uri.empty() && img.uri.find("data:") != 0)
-						texName = prefix + img.uri;
-					else
-						texName = prefix + "__embedded_img_" + std::to_string(sourceImageIndex);
-
-					if (tManager.isTextureLoaded(texName.c_str()))
-					{
-						material.metallicRoughnessIndex = tManager.texturePaths[texName].id;
-					}
-					else if (img.as_is && img.mimeType == "image/ktx2" && !img.image.empty())
-					{
-						material.metallicRoughnessIndex =
-						    TextureFactory::generateTextureDataFromKtx(tManager, vulkanDevice, allocator, texName.c_str(), img.image.data(), img.image.size(),
-						                                    dSetComponent, dManager, /*isSrgb*/ false)
-						        .id;
-					}
-					else if (!img.image.empty() && img.width > 0 && img.height > 0)
-					{
-						auto rgbaPixels = ImageConverter::convertToRGBA(img);
-						if (!rgbaPixels.empty())
-						{
-							material.metallicRoughnessIndex =
-							    TextureFactory::generateTextureData(tManager, vulkanDevice, allocator, texName.c_str(), img.width, img.height, rgbaPixels.data(),
-							                             dSetComponent, dManager, vk::Format::eR8G8B8A8Unorm)
-							        .id;
-						}
-					}
-				}
-			}
-		}
 		// Metallic-Roughness factors (defaults are 1.0 as per GLTF spec)
 		auto roughnessFactorIt = model.materials[i].values.find("roughnessFactor");
 		if (roughnessFactorIt != model.materials[i].values.end())
@@ -295,56 +212,10 @@ MaterialMaps GltfLoader::materialsParser(tinygltf::Model& model, TextureManager&
 			material.metallicFactor = static_cast<float>(metallicFactorIt->second.number_value);
 		}
 
-		// Emissive texture
-		material.emissiveIndex = defaultEmissiveTexture; // Default fallback
-		auto emissiveTexIt = model.materials[i].additionalValues.find("emissiveTexture");
-		if (emissiveTexIt != model.materials[i].additionalValues.end())
-		{
-			int textureIndex = emissiveTexIt->second.TextureIndex();
-			if (textureIndex >= 0 && textureIndex < (int)model.textures.size())
-			{
-				const tinygltf::Texture& tex = model.textures[textureIndex];
-				int sourceImageIndex = tex.source;
-				auto basisuIt = tex.extensions.find("KHR_texture_basisu");
-				if (basisuIt != tex.extensions.end() && basisuIt->second.Has("source"))
-					sourceImageIndex = basisuIt->second.Get("source").GetNumberAsInt();
-				if (sourceImageIndex >= 0 && sourceImageIndex < (int)model.images.size())
-				{
-					tinygltf::Image& img = model.images[sourceImageIndex];
-					std::string prefix = "model_" + std::string(filePath) + "_emissive_";
-					std::string texName;
-					if (!img.name.empty())
-						texName = prefix + img.name;
-					else if (!img.uri.empty() && img.uri.find("data:") != 0)
-						texName = prefix + img.uri;
-					else
-						texName = prefix + "__embedded_img_" + std::to_string(sourceImageIndex);
-
-					if (tManager.isTextureLoaded(texName.c_str()))
-					{
-						material.emissiveIndex = tManager.texturePaths[texName].id;
-					}
-					else if (img.as_is && img.mimeType == "image/ktx2" && !img.image.empty())
-					{
-						material.emissiveIndex =
-						    TextureFactory::generateTextureDataFromKtx(tManager, vulkanDevice, allocator, texName.c_str(), img.image.data(), img.image.size(),
-						                                    dSetComponent, dManager, /*isSrgb*/ true)
-						        .id;
-					}
-					else if (!img.image.empty() && img.width > 0 && img.height > 0)
-					{
-						auto rgbaPixels = ImageConverter::convertToRGBA(img);
-						if (!rgbaPixels.empty())
-						{
-							material.emissiveIndex = TextureFactory::generateTextureData(tManager, vulkanDevice, allocator, texName.c_str(), img.width, img.height,
-							                                                  rgbaPixels.data(), dSetComponent,
-							                                                  dManager) // sRGB
-							                             .id;
-						}
-					}
-				}
-			}
-		}
+		material.emissiveIndex =
+		    loadMaterialTexture(model, model.materials[i].additionalValues, "emissiveTexture", "emissive",
+		                        /*isSrgb*/ true, defaultEmissiveTexture, filePath, tManager, dSetComponent, dManager,
+		                        vulkanDevice, allocator);
 		// Emissive Factor
 		bool hasEmissiveTexture = (material.emissiveIndex != defaultEmissiveTexture);
 		auto emissiveFactorIt = model.materials[i].additionalValues.find("emissiveFactor");
