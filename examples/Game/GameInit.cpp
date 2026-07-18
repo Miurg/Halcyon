@@ -16,6 +16,8 @@
 #include <GraphicsCore/Components/NameComponent.hpp>
 #include <GraphicsCore/Components/RelationshipComponent.hpp>
 #include <GraphicsCore/Resources/Components/BindlessTextureDSetComponent.hpp>
+#include <GraphicsCore/Components/VulkanDeviceComponent.hpp>
+#include <GraphicsCore/Components/VMAllocatorComponent.hpp>
 #include <GraphicsCore/Resources/Factories/ModelFactory.hpp>
 #include <SmithCore/Renderables.hpp>
 
@@ -38,12 +40,16 @@ void GameInit::Run(GeneralManager& gm)
 	    gm.getContextComponent<DescriptorManagerContext, DescriptorManagerComponent>()->descriptorManager;
 	BindlessTextureDSetComponent* dSetComponent =
 	    gm.getContextComponent<MainDSetsContext, BindlessTextureDSetComponent>();
+	VulkanDevice& vulkanDevice =
+	    *gm.getContextComponent<MainVulkanDeviceContext, VulkanDeviceComponent>()->vulkanDeviceInstance;
+	VmaAllocator allocator = gm.getContextComponent<VMAllocatorContext, VMAllocatorComponent>()->allocator;
 
 	Orhescyon::Entity cube = gm.createEntity();
 	gm.addComponent<NameComponent>(cube, "Cube");
 	Smith::Renderables::forgeTransform(gm, cube, glm::vec3(0.0f, 0.0f, -5.0f), glm::quat{1.0f, 0.0f, 0.0f, 0.0f});
 
 	Orhescyon::Entity mesh = ModelFactory::loadModel("assets/models/cube.gltf", 0, *bufferManager, *dSetComponent,
-	                                                 *dManager, gm, *textureManager, *modelManager);
+	                                                 *dManager, gm, *textureManager, *modelManager, vulkanDevice,
+	                                                 allocator);
 	gm.getComponent<RelationshipComponent>(cube)->addChild(cube, mesh, gm);
 }

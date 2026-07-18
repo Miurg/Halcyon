@@ -1,14 +1,17 @@
 #include "GltfLoader.hpp"
 #include "ImageConverter.hpp"
+#include "GraphicsCore/Resources/Factories/TextureFactory.hpp"
 #include <algorithm>
 #include <stdexcept>
 #include <utility>
 
 int GltfLoader::loadModelFromFile(const char path[MAX_PATH_LEN], int vertexIndexBInt, BufferManager& bManager,
                                   BindlessTextureDSetComponent& dSetComponent, DescriptorManager& dManager,
-                                  tinygltf::Model& model, TextureManager& tManager, ModelManager& mManager)
+                                  tinygltf::Model& model, TextureManager& tManager, ModelManager& mManager,
+                                  VulkanDevice& vulkanDevice, VmaAllocator allocator)
 {
-	MaterialMaps materialMaps = materialsParser(model, tManager, dSetComponent, dManager, bManager, path);
+	MaterialMaps materialMaps =
+	    materialsParser(model, tManager, dSetComponent, dManager, bManager, path, vulkanDevice, allocator);
 
 	std::vector<Vertex> localVertices;
 	std::vector<uint32_t> localIndices;
@@ -77,37 +80,34 @@ int GltfLoader::loadModelFromFile(const char path[MAX_PATH_LEN], int vertexIndex
 
 MaterialMaps GltfLoader::materialsParser(tinygltf::Model& model, TextureManager& tManager,
                                          BindlessTextureDSetComponent& dSetComponent, DescriptorManager& dManager,
-                                         BufferManager& bManager, const char* filePath)
+                                         BufferManager& bManager, const char* filePath, VulkanDevice& vulkanDevice,
+                                         VmaAllocator allocator)
 {
 	MaterialMaps maps;
 	glm::vec4 colorFactor = {1.0f, 1.0f, 1.0f, 1.0f}; // Default white
 	int whiteTexture =
 	    tManager.isTextureLoaded("sys_default_white")
 	        ? tManager.texturePaths["sys_default_white"].id
-	        : tManager
-	              .generateTextureData("sys_default_white", 1, 1, std::vector<unsigned char>{255, 255, 255, 255}.data(),
+	        : TextureFactory::generateTextureData(tManager, vulkanDevice, allocator, "sys_default_white", 1, 1, std::vector<unsigned char>{255, 255, 255, 255}.data(),
 	                                   dSetComponent, dManager)
 	              .id;
 	// Default flat normal map: (128,128,255,255) = tangent-space up (0,0,1), loaded as linear
 	int defaultNormalTexture =
 	    tManager.isTextureLoaded("sys_default_normal")
 	        ? tManager.texturePaths["sys_default_normal"].id
-	        : tManager
-	              .generateTextureData("sys_default_normal", 1, 1, std::vector<unsigned char>{128, 128, 255, 255}.data(),
+	        : TextureFactory::generateTextureData(tManager, vulkanDevice, allocator, "sys_default_normal", 1, 1, std::vector<unsigned char>{128, 128, 255, 255}.data(),
 	                                   dSetComponent, dManager, vk::Format::eR8G8B8A8Unorm)
 	              .id;
 	int defaultMRTexture =
 	    tManager.isTextureLoaded("sys_default_mr")
 	        ? tManager.texturePaths["sys_default_mr"].id
-	        : tManager
-	              .generateTextureData("sys_default_mr", 1, 1, std::vector<unsigned char>{255, 255, 0, 255}.data(),
+	        : TextureFactory::generateTextureData(tManager, vulkanDevice, allocator, "sys_default_mr", 1, 1, std::vector<unsigned char>{255, 255, 0, 255}.data(),
 	                                   dSetComponent, dManager, vk::Format::eR8G8B8A8Unorm)
 	              .id;
 	int defaultEmissiveTexture =
 	    tManager.isTextureLoaded("sys_default_emissive")
 	        ? tManager.texturePaths["sys_default_emissive"].id
-	        : tManager
-	              .generateTextureData("sys_default_emissive", 1, 1,
+	        : TextureFactory::generateTextureData(tManager, vulkanDevice, allocator, "sys_default_emissive", 1, 1,
 	                                   std::vector<unsigned char>{255, 255, 255, 255}.data(), dSetComponent, dManager)
 	              .id;
 
@@ -165,8 +165,7 @@ MaterialMaps GltfLoader::materialsParser(tinygltf::Model& model, TextureManager&
 					else if (img.as_is && img.mimeType == "image/ktx2" && !img.image.empty())
 					{
 						material.textureIndex =
-						    tManager
-						        .generateTextureDataFromKtx(texName.c_str(), img.image.data(), img.image.size(),
+						    TextureFactory::generateTextureDataFromKtx(tManager, vulkanDevice, allocator, texName.c_str(), img.image.data(), img.image.size(),
 						                                    dSetComponent, dManager, /*isSrgb*/ true)
 						        .id;
 					}
@@ -175,8 +174,7 @@ MaterialMaps GltfLoader::materialsParser(tinygltf::Model& model, TextureManager&
 						auto rgbaPixels = ImageConverter::convertToRGBA(img);
 						if (!rgbaPixels.empty())
 						{
-							material.textureIndex = tManager
-							                            .generateTextureData(texName.c_str(), img.width, img.height,
+							material.textureIndex = TextureFactory::generateTextureData(tManager, vulkanDevice, allocator, texName.c_str(), img.width, img.height,
 							                                                 rgbaPixels.data(), dSetComponent, dManager)
 							                            .id;
 						}
@@ -216,8 +214,7 @@ MaterialMaps GltfLoader::materialsParser(tinygltf::Model& model, TextureManager&
 					else if (img.as_is && img.mimeType == "image/ktx2" && !img.image.empty())
 					{
 						material.normalMapIndex =
-						    tManager
-						        .generateTextureDataFromKtx(texName.c_str(), img.image.data(), img.image.size(),
+						    TextureFactory::generateTextureDataFromKtx(tManager, vulkanDevice, allocator, texName.c_str(), img.image.data(), img.image.size(),
 						                                    dSetComponent, dManager, /*isSrgb*/ false)
 						        .id;
 					}
@@ -227,8 +224,7 @@ MaterialMaps GltfLoader::materialsParser(tinygltf::Model& model, TextureManager&
 						if (!rgbaPixels.empty())
 						{
 							material.normalMapIndex =
-							    tManager
-							        .generateTextureData(texName.c_str(), img.width, img.height, rgbaPixels.data(),
+							    TextureFactory::generateTextureData(tManager, vulkanDevice, allocator, texName.c_str(), img.width, img.height, rgbaPixels.data(),
 							                             dSetComponent, dManager, vk::Format::eR8G8B8A8Unorm)
 							        .id;
 						}
@@ -268,8 +264,7 @@ MaterialMaps GltfLoader::materialsParser(tinygltf::Model& model, TextureManager&
 					else if (img.as_is && img.mimeType == "image/ktx2" && !img.image.empty())
 					{
 						material.metallicRoughnessIndex =
-						    tManager
-						        .generateTextureDataFromKtx(texName.c_str(), img.image.data(), img.image.size(),
+						    TextureFactory::generateTextureDataFromKtx(tManager, vulkanDevice, allocator, texName.c_str(), img.image.data(), img.image.size(),
 						                                    dSetComponent, dManager, /*isSrgb*/ false)
 						        .id;
 					}
@@ -279,8 +274,7 @@ MaterialMaps GltfLoader::materialsParser(tinygltf::Model& model, TextureManager&
 						if (!rgbaPixels.empty())
 						{
 							material.metallicRoughnessIndex =
-							    tManager
-							        .generateTextureData(texName.c_str(), img.width, img.height, rgbaPixels.data(),
+							    TextureFactory::generateTextureData(tManager, vulkanDevice, allocator, texName.c_str(), img.width, img.height, rgbaPixels.data(),
 							                             dSetComponent, dManager, vk::Format::eR8G8B8A8Unorm)
 							        .id;
 						}
@@ -333,8 +327,7 @@ MaterialMaps GltfLoader::materialsParser(tinygltf::Model& model, TextureManager&
 					else if (img.as_is && img.mimeType == "image/ktx2" && !img.image.empty())
 					{
 						material.emissiveIndex =
-						    tManager
-						        .generateTextureDataFromKtx(texName.c_str(), img.image.data(), img.image.size(),
+						    TextureFactory::generateTextureDataFromKtx(tManager, vulkanDevice, allocator, texName.c_str(), img.image.data(), img.image.size(),
 						                                    dSetComponent, dManager, /*isSrgb*/ true)
 						        .id;
 					}
@@ -343,8 +336,7 @@ MaterialMaps GltfLoader::materialsParser(tinygltf::Model& model, TextureManager&
 						auto rgbaPixels = ImageConverter::convertToRGBA(img);
 						if (!rgbaPixels.empty())
 						{
-							material.emissiveIndex = tManager
-							                             .generateTextureData(texName.c_str(), img.width, img.height,
+							material.emissiveIndex = TextureFactory::generateTextureData(tManager, vulkanDevice, allocator, texName.c_str(), img.width, img.height,
 							                                                  rgbaPixels.data(), dSetComponent,
 							                                                  dManager) // sRGB
 							                             .id;

@@ -38,10 +38,12 @@ class GltfLoader
 public:
 	static int loadModelFromFile(const char path[MAX_PATH_LEN], int vertexIndexBInt, BufferManager& bManager,
 	                             BindlessTextureDSetComponent& dSetComponent, DescriptorManager& dManager,
-	                             tinygltf::Model& model, TextureManager& tManager, ModelManager& mManager);
+	                             tinygltf::Model& model, TextureManager& tManager, ModelManager& mManager,
+	                             VulkanDevice& vulkanDevice, VmaAllocator allocator);
 	static MaterialMaps materialsParser(tinygltf::Model& model, TextureManager& tManager,
 	                                    BindlessTextureDSetComponent& dSetComponent, DescriptorManager& dManager,
-	                                    BufferManager& bManager, const char* filePath);
+	                                    BufferManager& bManager, const char* filePath, VulkanDevice& vulkanDevice,
+	                                    VmaAllocator allocator);
 	static std::vector<PrimitivesInfo> primitiveParser(tinygltf::Mesh& mesh, std::vector<Vertex>& outVertices,
 	                                                   std::vector<uint32_t>& outIndices, tinygltf::Model& model,
 	                                                   int32_t globalVertexOffset, const MaterialMaps& materialMaps);

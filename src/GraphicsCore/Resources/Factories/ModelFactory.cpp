@@ -152,7 +152,8 @@ Orhescyon::Entity createEntityHierarchy(Orhescyon::Entity parentEntity, tinygltf
 
 Orhescyon::Entity ModelFactory::loadModel(const char path[MAX_PATH_LEN], int vertexIndexBInt, BufferManager& bManager,
                                BindlessTextureDSetComponent& dSetComponent, DescriptorManager& dManager,
-                               GeneralManager& gm, TextureManager& tManager, ModelManager& mManager)
+                               GeneralManager& gm, TextureManager& tManager, ModelManager& mManager,
+                               VulkanDevice& vulkanDevice, VmaAllocator allocator)
 {
 	tinygltf::Model model;
 	tinygltf::TinyGLTF loader;
@@ -213,7 +214,7 @@ Orhescyon::Entity ModelFactory::loadModel(const char path[MAX_PATH_LEN], int ver
 	else
 	{
 		modelIndex = GltfLoader::loadModelFromFile(path, vertexIndexBInt, bManager, dSetComponent, dManager, model,
-		                                           tManager, mManager);
+		                                           tManager, mManager, vulkanDevice, allocator);
 	}
 
 	// Create root entity for the model

@@ -119,67 +119,6 @@ void TextureManager::collectTextureFrees(uint64_t frameNumber)
 	}
 }
 
-TextureHandle TextureManager::createDepthImage(uint32_t resolutionWidth, uint32_t resolutionHeight)
-{
-	int slot = allocateTextureSlot();
-	Texture& texture = textures[slot];
-	vk::Format depthFormat = findBestFormat();
-
-	ImageDesc desc;
-	desc.width = resolutionWidth;
-	desc.height = resolutionHeight;
-	desc.format = depthFormat;
-	desc.usage = vk::ImageUsageFlagBits::eDepthStencilAttachment | vk::ImageUsageFlagBits::eSampled;
-	createImage(texture, desc);
-	TextureManager::createImageView(texture, depthFormat, vk::ImageAspectFlagBits::eDepth);
-	createSampler(texture, samplerPresets::texture());
-	return TextureHandle{slot};
-}
-
-TextureHandle TextureManager::createOffscreenImage(uint32_t resolutionWidth, uint32_t resolutionHeight,
-                                                   vk::Format offscreenFormat)
-{
-	int slot = allocateTextureSlot();
-	Texture& texture = textures[slot];
-
-	ImageDesc imageDesc;
-	imageDesc.width = resolutionWidth;
-	imageDesc.height = resolutionHeight;
-	imageDesc.format = offscreenFormat;
-	imageDesc.usage = vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eSampled;
-	createImage(texture, imageDesc);
-	TextureManager::createImageView(texture, offscreenFormat, vk::ImageAspectFlagBits::eColor);
-
-	SamplerDesc desc;
-	desc.addressMode = SamplerAddressMode::ClampToBorder;
-	desc.borderColor = SamplerBorderColor::FloatOpaqueBlack;
-	desc.compareOp = SamplerCompareOp::Greater;
-	createSampler(texture, desc);
-	return TextureHandle{slot};
-}
-
-TextureHandle TextureManager::createShadowMap(uint32_t shadowResolutionX, uint32_t shadowResolutionY)
-{
-	int slot = allocateTextureSlot();
-	Texture& texture = textures[slot];
-	vk::Format shadowFormat = findBestFormat();
-
-	ImageDesc imageDesc;
-	imageDesc.width = shadowResolutionX;
-	imageDesc.height = shadowResolutionY;
-	imageDesc.format = shadowFormat;
-	imageDesc.usage = vk::ImageUsageFlagBits::eDepthStencilAttachment | vk::ImageUsageFlagBits::eSampled;
-	createImage(texture, imageDesc);
-	TextureManager::createImageView(texture, shadowFormat, vk::ImageAspectFlagBits::eDepth);
-
-	SamplerDesc desc;
-	desc.addressMode = SamplerAddressMode::ClampToBorder;
-	desc.borderColor = SamplerBorderColor::FloatOpaqueBlack;
-	desc.compareOp = SamplerCompareOp::Greater;
-	createSampler(texture, desc);
-	return TextureHandle{slot};
-}
-
 vk::Format TextureManager::findBestFormat()
 {
 	return findBestSupportedFormat({vk::Format::eD32Sfloat, vk::Format::eD32SfloatS8Uint, vk::Format::eD24UnormS8Uint},
@@ -203,65 +142,6 @@ vk::Format TextureManager::findBestSupportedFormat(const std::vector<vk::Format>
 	}
 
 	throw std::runtime_error("failed to find supported format!");
-}
-
-TextureHandle TextureManager::generateTextureData(const char texturePath[MAX_PATH_LEN], int texWidth, int texHeight,
-                                                  const unsigned char* pixels,
-                                                  BindlessTextureDSetComponent& dSetComponent,
-                                                  DescriptorManager& dManager, vk::Format format)
-{
-	if (!pixels)
-	{
-		throw std::runtime_error("pixels data is null!");
-	}
-	if (texWidth <= 0 || texHeight <= 0)
-	{
-		throw std::runtime_error("Invalid texture dimensions!");
-	}
-	int slot = allocateTextureSlot();
-	Texture& texture = textures[slot];
-
-	uint32_t mipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(texWidth, texHeight)))) + 1;
-	ImageDesc desc;
-	desc.width = texWidth;
-	desc.height = texHeight;
-	desc.format = format;
-	desc.usage = vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eTransferDst |
-	             vk::ImageUsageFlagBits::eSampled;
-	desc.mipLevels = mipLevels;
-	createImage(texture, desc);
-	TextureUploader::uploadTextureFromBuffer(pixels, texWidth, texHeight, texture, allocator, vulkanDevice);
-	TextureManager::createImageView(texture, format, vk::ImageAspectFlagBits::eColor);
-	createSampler(texture, samplerPresets::texture());
-
-	TextureHandle handle{slot};
-	texturePaths[std::string(texturePath)] = handle;
-	dManager.update(dSetComponent.bindlessTextureSet, Bindings::Textures::Array, 0,
-	                vk::DescriptorType::eCombinedImageSampler, texture.textureImageView,
-	                getSampler(texture.samplerHandle), vk::ImageLayout::eShaderReadOnlyOptimal,
-	                static_cast<uint32_t>(handle.id));
-	return handle;
-}
-
-TextureHandle TextureManager::generateTextureDataFromKtx(const char texturePath[MAX_PATH_LEN],
-                                                         const unsigned char* ktxData, size_t dataSize,
-                                                         BindlessTextureDSetComponent& dSetComponent,
-                                                         DescriptorManager& dManager, bool isSrgb)
-{
-	int slot = allocateTextureSlot();
-	Texture& texture = textures[slot];
-
-	TextureUploader::uploadKtxTextureData(ktxData, dataSize, texture, *this, isSrgb, allocator, vulkanDevice);
-	createImageView(texture, texture.format, vk::ImageAspectFlagBits::eColor);
-	createSampler(texture, samplerPresets::texture()); // maxLod uses texture.mipLevels set inside uploadKtxTextureData
-
-	TextureHandle handle{slot};
-	texturePaths[std::string(texturePath)] = handle;
-	dManager.update(dSetComponent.bindlessTextureSet, Bindings::Textures::Array, 0,
-	                vk::DescriptorType::eCombinedImageSampler, texture.textureImageView,
-	                getSampler(texture.samplerHandle), vk::ImageLayout::eShaderReadOnlyOptimal,
-	                static_cast<uint32_t>(handle.id));
-	return handle;
 }
 
 bool TextureManager::isTextureLoaded(const char texturePath[MAX_PATH_LEN])

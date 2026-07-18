@@ -29,17 +29,8 @@ public:
 	// TODO: mass refactor
 	TextureManager(VulkanDevice& vulkanDevice, VmaAllocator allocator);
 	~TextureManager();
-	TextureHandle generateTextureData(const char texturePath[MAX_PATH_LEN], int texWidth, int texHeight,
-	                                  const unsigned char* pixels, BindlessTextureDSetComponent& dSetComponent,
-	                                  DescriptorManager& dManager, vk::Format format = vk::Format::eR8G8B8A8Srgb);
-	TextureHandle generateTextureDataFromKtx(const char texturePath[MAX_PATH_LEN], const unsigned char* ktxData,
-	                                         size_t dataSize, BindlessTextureDSetComponent& dSetComponent,
-	                                         DescriptorManager& dManager, bool isSrgb);
 	bool isTextureLoaded(const char texturePath[MAX_PATH_LEN]);
 	void resizeTexture(TextureHandle handle, uint32_t newWidth, uint32_t newHeight);
-	TextureHandle createDepthImage(uint32_t resolutionWidth, uint32_t resolutionHeight);
-	TextureHandle createOffscreenImage(uint32_t resolutionWidth, uint32_t resolutionHeight, vk::Format offscreenFormat);
-	TextureHandle createShadowMap(uint32_t shadowResolutionX, uint32_t shadowResolutionY);
 	void createImageView(Texture& texture, vk::Format format, vk::ImageAspectFlags aspectFlags,
 	                     vk::ImageViewType viewType = vk::ImageViewType::e2D);
 	SamplerHandle allocateSamplerSlot();

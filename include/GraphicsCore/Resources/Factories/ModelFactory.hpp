@@ -17,7 +17,8 @@ class HALCYON_API ModelFactory
 public:
 	static Orhescyon::Entity loadModel(const char path[MAX_PATH_LEN], int vertexIndexBInt, BufferManager& bManager,
 	                        BindlessTextureDSetComponent& dSetComponent, DescriptorManager& dManager,
-	                        GeneralManager& gm, TextureManager& tManager, ModelManager& mManager);
+	                        GeneralManager& gm, TextureManager& tManager, ModelManager& mManager,
+	                        VulkanDevice& vulkanDevice, VmaAllocator allocator);
 	static bool unloadModel(Orhescyon::Entity modelRootEntity, GeneralManager& gm, ModelManager& mManager,
 	                        TextureManager& tManager);
 };

@@ -2,6 +2,7 @@
 #include <limits>
 #include "GraphicsInit.hpp"
 #include "GraphicsCore/Components/VulkanDeviceComponent.hpp"
+#include "GraphicsCore/Components/VMAllocatorComponent.hpp"
 #include "GraphicsCore/Components/TextureManagerComponent.hpp"
 #include "GraphicsCore/Components/BufferManagerComponent.hpp"
 #include "GraphicsCore/Components/DescriptorManagerComponent.hpp"
@@ -19,6 +20,7 @@
 #include "GraphicsCore/Components/SkyboxComponent.hpp"
 #include "GraphicsCore/VulkanDevice.hpp"
 #include "GraphicsCore/Resources/Managers/TextureManager.hpp"
+#include "GraphicsCore/Resources/Factories/TextureFactory.hpp"
 #include "GraphicsCore/Resources/Managers/BufferManager.hpp"
 #include "GraphicsCore/Resources/Managers/ModelManager.hpp"
 #include "GraphicsCore/Resources/Managers/DescriptorManager.hpp"
@@ -48,6 +50,7 @@ void PlaceholdersInit::initPlaceholders(GeneralManager& gm)
 	GlobalDSetComponent* globalDSetComponent = gm.getContextComponent<MainDSetsContext, GlobalDSetComponent>();
 	VulkanDevice* vulkanDevice =
 	    gm.getContextComponent<MainVulkanDeviceContext, VulkanDeviceComponent>()->vulkanDeviceInstance;
+	VmaAllocator allocator = gm.getContextComponent<VMAllocatorContext, VMAllocatorComponent>()->allocator;
 	PipelineManager& pManager =
 	    *gm.getContextComponent<PipelineManagerContext, PipelineManagerComponent>()->pipelineManager;
 #pragma endregion
@@ -79,7 +82,7 @@ void PlaceholdersInit::initPlaceholders(GeneralManager& gm)
 	gm.registerContext<SunContext>(directLightEntity);
 	CameraComponent* directLightCamera = gm.getContextComponent<SunContext, CameraComponent>();
 	DirectLightComponent* directLight = gm.getContextComponent<SunContext, DirectLightComponent>();
-	directLight->textureShadowImage = tManager->createShadowMap(directLight->sizeX, directLight->sizeY);
+	directLight->textureShadowImage = TextureFactory::createShadowMap(*tManager, directLight->sizeX, directLight->sizeY);
 
 #pragma endregion
 	// === Graphics Settings ===
@@ -205,7 +208,8 @@ void PlaceholdersInit::initPlaceholders(GeneralManager& gm)
 	int texHeight = texturePtr.get()->height;
 	auto data = texturePtr->pixels.data();
 	auto path = texturePtr.get()->name.c_str();
-	tManager->generateTextureData(path, texWidth, texHeight, data, *bTextureDSetComponent, *dManager);
+	TextureFactory::generateTextureData(*tManager, *vulkanDevice, allocator, path, texWidth, texHeight, data,
+	                                    *bTextureDSetComponent, *dManager);
 
 	// White placeholder Skybox (can be replaced by SkyboxFactory::loadSkybox)
 	Orhescyon::Entity skyboxEntity = gm.createEntity();
