@@ -61,8 +61,6 @@ void TextureManager::destroyTexture(TextureHandle handle)
 	}
 
 	Texture& texture = textures[handle.id];
-	destroySampler(texture.samplerHandle);
-	texture.samplerHandle = {};
 	destroyTextureResources(texture);
 	_freeTextureSlots.push_back(handle.id);
 }
@@ -94,8 +92,6 @@ void TextureManager::freeTexture(TextureHandle handle, uint64_t frameNumber)
 	}
 
 	Texture& live = textures[handle.id];
-	freeSampler(live.samplerHandle, frameNumber);
-	live.samplerHandle = {};
 	_pendingFrees.push_back({live, handle.id, frameNumber + MAX_FRAMES_IN_FLIGHT});
 
 	// Nulled so slot reuse and the destructor don't double-free these handles.
@@ -243,26 +239,27 @@ void TextureManager::createImageView(Texture& texture, vk::Format format, vk::Im
 
 SamplerHandle TextureManager::allocateSamplerSlot()
 {
-	if (!_freeSamplerSlots.empty())
-	{
-		int slot = _freeSamplerSlots.back();
-		_freeSamplerSlots.pop_back();
-		samplers[slot] = nullptr;
-		return SamplerHandle{slot};
-	}
 	samplers.push_back(nullptr);
 	return SamplerHandle{static_cast<int>(samplers.size() - 1)};
 }
 
-void TextureManager::createSampler(SamplerHandle handle, const SamplerDesc& desc, uint32_t mipLevels)
+void TextureManager::createSampler(SamplerHandle handle, const SamplerDesc& desc)
 {
-	samplers[handle.id] = VulkanUtils::createSampler(vulkanDevice, desc, mipLevels);
+	samplers[handle.id] = VulkanUtils::createSampler(vulkanDevice, desc);
 }
 
 SamplerHandle TextureManager::createSampler(Texture& texture, const SamplerDesc& desc)
 {
+	auto cached = _samplerCache.find(desc);
+	if (cached != _samplerCache.end())
+	{
+		texture.samplerHandle = cached->second;
+		return cached->second;
+	}
+
 	SamplerHandle handle = allocateSamplerSlot();
-	createSampler(handle, desc, texture.mipLevels);
+	createSampler(handle, desc);
+	_samplerCache.emplace(desc, handle);
 	texture.samplerHandle = handle;
 	return handle;
 }
@@ -270,44 +267,6 @@ SamplerHandle TextureManager::createSampler(Texture& texture, const SamplerDesc&
 vk::Sampler TextureManager::getSampler(SamplerHandle handle)
 {
 	return samplers[handle.id];
-}
-
-void TextureManager::destroySampler(SamplerHandle handle)
-{
-	if (handle.id < 0 || handle.id >= static_cast<int>(samplers.size())) return;
-
-	if (samplers[handle.id])
-	{
-		(*vulkanDevice.device).destroySampler(samplers[handle.id]);
-		samplers[handle.id] = nullptr;
-	}
-	_freeSamplerSlots.push_back(handle.id);
-}
-
-void TextureManager::freeSampler(SamplerHandle handle, uint64_t frameNumber)
-{
-	if (handle.id < 0 || handle.id >= static_cast<int>(samplers.size())) return;
-
-	_pendingSamplerFrees.push_back({handle.id, frameNumber + MAX_FRAMES_IN_FLIGHT});
-}
-
-void TextureManager::collectSamplerFrees(uint64_t frameNumber)
-{
-	for (auto it = _pendingSamplerFrees.begin(); it != _pendingSamplerFrees.end();)
-	{
-		if (it->retireFrame <= frameNumber)
-		{
-			if (samplers[it->slot])
-			{
-				(*vulkanDevice.device).destroySampler(samplers[it->slot]);
-				samplers[it->slot] = nullptr;
-			}
-			_freeSamplerSlots.push_back(it->slot);
-			it = _pendingSamplerFrees.erase(it);
-		}
-		else
-			++it;
-	}
 }
 
 void TextureManager::resizeTexture(TextureHandle handle, uint32_t newWidth, uint32_t newHeight)

@@ -34,12 +34,9 @@ public:
 	void createImageView(Texture& texture, vk::Format format, vk::ImageAspectFlags aspectFlags,
 	                     vk::ImageViewType viewType = vk::ImageViewType::e2D);
 	SamplerHandle allocateSamplerSlot();
-	void createSampler(SamplerHandle handle, const SamplerDesc& desc, uint32_t mipLevels = 1);
+	void createSampler(SamplerHandle handle, const SamplerDesc& desc);
 	SamplerHandle createSampler(Texture& texture, const SamplerDesc& desc);
 	vk::Sampler getSampler(SamplerHandle handle);
-	void destroySampler(SamplerHandle handle);
-	void freeSampler(SamplerHandle handle, uint64_t frameNumber);
-	void collectSamplerFrees(uint64_t frameNumber);
 	vk::Format findBestFormat();
 	vk::Format findBestSupportedFormat(const std::vector<vk::Format>& candidates, vk::ImageTiling tiling,
 	                                   vk::FormatFeatureFlags features);
@@ -79,14 +76,7 @@ private:
 	};
 	std::vector<PendingTextureFree> _pendingFrees;
 
-	std::vector<int> _freeSamplerSlots;
-
-	struct PendingSamplerFree
-	{
-		int slot;
-		uint64_t retireFrame;
-	};
-	std::vector<PendingSamplerFree> _pendingSamplerFrees;
+	std::unordered_map<SamplerDesc, SamplerHandle> _samplerCache;
 
 	struct PendingMaterialFree
 	{

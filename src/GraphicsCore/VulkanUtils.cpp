@@ -5,7 +5,7 @@
 #include <filesystem>
 #include <algorithm>
 
-vk::Sampler VulkanUtils::createSampler(VulkanDevice& vulkanDevice, const SamplerDesc& desc, uint32_t mipLevels)
+vk::Sampler VulkanUtils::createSampler(VulkanDevice& vulkanDevice, const SamplerDesc& desc)
 {
 	vk::SamplerCreateInfo samplerInfo;
 	samplerInfo.magFilter = VulkanConvert::toVkFilter(desc.magFilter);
@@ -35,8 +35,7 @@ vk::Sampler VulkanUtils::createSampler(VulkanDevice& vulkanDevice, const Sampler
 
 	samplerInfo.mipLodBias = desc.mipLodBias;
 	samplerInfo.minLod = desc.minLod;
-	samplerInfo.maxLod = desc.maxLod == SamplerMaxLod::FullChain ? VK_LOD_CLAMP_NONE
-	                                                             : static_cast<float>(std::max(1u, mipLevels));
+	samplerInfo.maxLod = VK_LOD_CLAMP_NONE;
 
 	return (*vulkanDevice.device).createSampler(samplerInfo);
 }

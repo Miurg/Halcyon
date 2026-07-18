@@ -1,6 +1,8 @@
 #pragma once
 
 #include "HalcyonExport.hpp"
+#include <cstddef>
+#include <functional>
 
 enum class SamplerFilter
 {
@@ -47,13 +49,6 @@ enum class SamplerCompareOp
 	Always
 };
 
-// FromMipLevels clamps the upper LOD to the image's mip count; FullChain leaves it unbounded.
-enum class SamplerMaxLod
-{
-	FromMipLevels,
-	FullChain
-};
-
 // The builder clamps it down to the hardware limit.
 inline constexpr float SamplerAnisotropyMax = 16;
 
@@ -68,7 +63,28 @@ struct HALCYON_API SamplerDesc
 	float maxAnisotropy = 1.0f; // <= 1 disables anisotropic filtering
 	float mipLodBias = 0.0f;
 	float minLod = 0.0f;
-	SamplerMaxLod maxLod = SamplerMaxLod::FromMipLevels;
+
+	bool operator==(const SamplerDesc&) const = default;
+};
+
+template <>
+struct std::hash<SamplerDesc>
+{
+	size_t operator()(const SamplerDesc& desc) const noexcept
+	{
+		size_t seed = 0;
+		auto combine = [&seed](size_t value) { seed ^= value + 0x9e3779b9 + (seed << 6) + (seed >> 2); };
+		combine(static_cast<size_t>(desc.magFilter));
+		combine(static_cast<size_t>(desc.minFilter));
+		combine(static_cast<size_t>(desc.mipmapMode));
+		combine(static_cast<size_t>(desc.addressMode));
+		combine(static_cast<size_t>(desc.borderColor));
+		combine(static_cast<size_t>(desc.compareOp));
+		combine(std::hash<float>{}(desc.maxAnisotropy));
+		combine(std::hash<float>{}(desc.mipLodBias));
+		combine(std::hash<float>{}(desc.minLod));
+		return seed;
+	}
 };
 
 namespace samplerPresets

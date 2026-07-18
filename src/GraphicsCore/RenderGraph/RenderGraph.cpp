@@ -759,7 +759,7 @@ void RenderGraph::createSampler(RGResourceEntry& res)
 {
 	if (res.desc.samplerOverride.has_value())
 	{
-		res.sampler = VulkanUtils::createSampler(vulkanDevice, res.desc.samplerOverride.value(), res.mipLevels);
+		res.sampler = VulkanUtils::createSampler(vulkanDevice, res.desc.samplerOverride.value());
 		return;
 	}
 
@@ -776,7 +776,7 @@ void RenderGraph::createSampler(RGResourceEntry& res)
 		desc.borderColor = SamplerBorderColor::FloatOpaqueBlack;
 	}
 
-	res.sampler = VulkanUtils::createSampler(vulkanDevice, desc, res.mipLevels);
+	res.sampler = VulkanUtils::createSampler(vulkanDevice, desc);
 }
 
 // ===Mappings===

@@ -157,7 +157,7 @@ void GTAOPass::drawGtao(vk::raii::CommandBuffer& cmd, SwapChain& swapChain, Desc
 	push.texelSize[0] = 1.0f / static_cast<float>(swapChain.swapChainExtent.width);
 	push.texelSize[1] = 1.0f / static_cast<float>(swapChain.swapChainExtent.height);
 
-	// Index of the last pyramid mip; sampler clamps maxLod as a backstop.
+	// Index of the last pyramid mip; the view's mip range clamps sampled LOD as a backstop.
 	push.maxMip = static_cast<int>(std::bit_width(std::max(swapChain.swapChainExtent.width,
 	                                                       swapChain.swapChainExtent.height))) -
 	              1;

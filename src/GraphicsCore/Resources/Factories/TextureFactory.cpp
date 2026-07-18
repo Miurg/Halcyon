@@ -118,7 +118,7 @@ TextureHandle TextureFactory::generateTextureDataFromKtx(TextureManager& tManage
 
 	TextureUploader::uploadKtxTextureData(ktxData, dataSize, texture, tManager, isSrgb, allocator, vulkanDevice);
 	tManager.createImageView(texture, texture.format, vk::ImageAspectFlagBits::eColor);
-	tManager.createSampler(texture, samplerPresets::texture()); // maxLod uses texture.mipLevels set inside upload
+	tManager.createSampler(texture, samplerPresets::texture());
 
 	tManager.texturePaths[std::string(texturePath)] = handle;
 	dManager.update(dSetComponent.bindlessTextureSet, Bindings::Textures::Array, 0,

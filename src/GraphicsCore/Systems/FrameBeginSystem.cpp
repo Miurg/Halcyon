@@ -85,7 +85,6 @@ void FrameBeginSystem::update(GeneralManager& gm)
 	TextureManager& textureManager =
 	    *gm.getContextComponent<TextureManagerContext, TextureManagerComponent>()->textureManager;
 	textureManager.collectTextureFrees(currentFrameComp->frameNumber);
-	textureManager.collectSamplerFrees(currentFrameComp->frameNumber);
 	textureManager.collectMaterialFrees(currentFrameComp->frameNumber);
 
 	ModelManager& modelManager =

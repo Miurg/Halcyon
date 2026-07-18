@@ -39,7 +39,6 @@ void DepthPyramidPass::onInit(Orhescyon::GeneralManager& gm)
 	SamplerDesc pyramidSampler;
 	pyramidSampler.mipmapMode = SamplerMipmapMode::Nearest;
 	pyramidSampler.addressMode = SamplerAddressMode::ClampToEdge;
-	pyramidSampler.maxLod = SamplerMaxLod::FullChain;
 
 	rg.declareLogicalStream("DepthPyramid", {.format = vk::Format::eR32Sfloat,
 	                                         .sizeMode = RGSizeMode::FullExtent,
