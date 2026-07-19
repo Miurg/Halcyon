@@ -52,8 +52,8 @@ public:
 
 private:
 	static int loadMaterialTexture(tinygltf::Model& model, const std::map<std::string, tinygltf::Parameter>& params,
-	                               const char* paramName, const char* semantic, bool isSrgb, int fallback,
-	                               const char* filePath, std::vector<int>& ownedTextures, TextureManager& tManager,
+	                               const char* paramName, bool isSrgb, int fallback, const char* filePath,
+	                               std::vector<int>& ownedTextures, TextureManager& tManager,
 	                               BindlessTextureDSetComponent& dSetComponent, DescriptorManager& dManager,
 	                               VulkanDevice& vulkanDevice, VmaAllocator allocator);
 };

@@ -1,6 +1,7 @@
 #include "GltfLoader.hpp"
 #include "ImageConverter.hpp"
 #include "GraphicsCore/Resources/Factories/TextureFactory.hpp"
+#include <filesystem>
 #include <algorithm>
 #include <stdexcept>
 #include <utility>
@@ -79,8 +80,8 @@ int GltfLoader::loadModelFromFile(const char path[MAX_PATH_LEN], int vertexIndex
 }
 
 int GltfLoader::loadMaterialTexture(tinygltf::Model& model, const std::map<std::string, tinygltf::Parameter>& params,
-                                    const char* paramName, const char* semantic, bool isSrgb, int fallback,
-                                    const char* filePath, std::vector<int>& ownedTextures, TextureManager& tManager,
+                                    const char* paramName, bool isSrgb, int fallback, const char* filePath,
+                                    std::vector<int>& ownedTextures, TextureManager& tManager,
                                     BindlessTextureDSetComponent& dSetComponent, DescriptorManager& dManager,
                                     VulkanDevice& vulkanDevice, VmaAllocator allocator)
 {
@@ -98,14 +99,23 @@ int GltfLoader::loadMaterialTexture(tinygltf::Model& model, const std::map<std::
 	if (sourceImageIndex < 0 || sourceImageIndex >= static_cast<int>(model.images.size())) return fallback;
 
 	tinygltf::Image& img = model.images[sourceImageIndex];
-	std::string prefix = "model_" + std::string(filePath) + "_" + semantic + "_";
+	// External files key by their resolved on-disk path so models can share them;
+	// embedded images have no identity outside their model file.
 	std::string texName;
-	if (!img.name.empty())
-		texName = prefix + img.name;
-	else if (!img.uri.empty() && img.uri.find("data:") != 0)
-		texName = prefix + img.uri;
+	if (!img.uri.empty() && img.uri.find("data:") != 0)
+	{
+		std::string decodedUri = img.uri;
+		tinygltf::URIDecode(img.uri, &decodedUri, nullptr);
+		texName = std::filesystem::absolute(std::filesystem::path(filePath).parent_path() / decodedUri)
+		              .lexically_normal()
+		              .generic_string();
+	}
 	else
-		texName = prefix + "__embedded_img_" + std::to_string(sourceImageIndex);
+	{
+		texName = std::string(filePath) + "#img" + std::to_string(sourceImageIndex);
+	}
+	// The same bytes under sRGB vs UNORM are two different images.
+	texName += isSrgb ? "|srgb" : "|linear";
 
 	if (tManager.isTextureLoaded(texName.c_str()))
 	{
@@ -194,16 +204,16 @@ MaterialMaps GltfLoader::materialsParser(tinygltf::Model& model, TextureManager&
 		}
 		
 		material.textureIndex =
-		    loadMaterialTexture(model, model.materials[i].values, "baseColorTexture", "basecolor", /*isSrgb*/ true,
-		                        whiteTexture, filePath, maps.ownedTextures, tManager, dSetComponent, dManager,
-		                        vulkanDevice, allocator);
+		    loadMaterialTexture(model, model.materials[i].values, "baseColorTexture", /*isSrgb*/ true, whiteTexture,
+		                        filePath, maps.ownedTextures, tManager, dSetComponent, dManager, vulkanDevice,
+		                        allocator);
 		material.normalMapIndex =
-		    loadMaterialTexture(model, model.materials[i].additionalValues, "normalTexture", "normal",
-		                        /*isSrgb*/ false, defaultNormalTexture, filePath, maps.ownedTextures, tManager,
-		                        dSetComponent, dManager, vulkanDevice, allocator);
+		    loadMaterialTexture(model, model.materials[i].additionalValues, "normalTexture", /*isSrgb*/ false,
+		                        defaultNormalTexture, filePath, maps.ownedTextures, tManager, dSetComponent, dManager,
+		                        vulkanDevice, allocator);
 		// Metallic-Roughness texture (packed: G=Roughness, B=Metallic);
 		material.metallicRoughnessIndex =
-		    loadMaterialTexture(model, model.materials[i].values, "metallicRoughnessTexture", "mr", /*isSrgb*/ false,
+		    loadMaterialTexture(model, model.materials[i].values, "metallicRoughnessTexture", /*isSrgb*/ false,
 		                        defaultMRTexture, filePath, maps.ownedTextures, tManager, dSetComponent, dManager,
 		                        vulkanDevice, allocator);
 
@@ -221,9 +231,9 @@ MaterialMaps GltfLoader::materialsParser(tinygltf::Model& model, TextureManager&
 		}
 
 		material.emissiveIndex =
-		    loadMaterialTexture(model, model.materials[i].additionalValues, "emissiveTexture", "emissive",
-		                        /*isSrgb*/ true, defaultEmissiveTexture, filePath, maps.ownedTextures, tManager,
-		                        dSetComponent, dManager, vulkanDevice, allocator);
+		    loadMaterialTexture(model, model.materials[i].additionalValues, "emissiveTexture", /*isSrgb*/ true,
+		                        defaultEmissiveTexture, filePath, maps.ownedTextures, tManager, dSetComponent,
+		                        dManager, vulkanDevice, allocator);
 		// Emissive Factor
 		bool hasEmissiveTexture = (material.emissiveIndex != defaultEmissiveTexture);
 		auto emissiveFactorIt = model.materials[i].additionalValues.find("emissiveFactor");
