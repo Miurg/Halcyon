@@ -32,7 +32,7 @@ glm::mat4 convertGLTFMatrix(const std::vector<double>& matrix)
 	return glm::make_mat4(m);
 }
 Orhescyon::Entity createEntityHierarchy(Orhescyon::Entity parentEntity, tinygltf::Model& model, GeneralManager& gm,
-                                           const std::vector<int>& meshSlots, BufferManager& bManager, int nodeIndex)
+                                           const std::vector<int>& meshSlots, BufferManager& bufferManager, int nodeIndex)
 {
 	tinygltf::Node& node = model.nodes[nodeIndex];
 
@@ -145,14 +145,14 @@ Orhescyon::Entity createEntityHierarchy(Orhescyon::Entity parentEntity, tinygltf
 
 	for (int childIndex : node.children)
 	{
-		createEntityHierarchy(entity, model, gm, meshSlots, bManager, childIndex);
+		createEntityHierarchy(entity, model, gm, meshSlots, bufferManager, childIndex);
 	}
 	return entity;
 }
 
-Orhescyon::Entity ModelFactory::loadModel(const char path[MAX_PATH_LEN], int vertexIndexBInt, BufferManager& bManager,
-                               BindlessTextureDSetComponent& dSetComponent, DescriptorManager& dManager,
-                               GeneralManager& gm, TextureManager& tManager, ModelManager& mManager,
+Orhescyon::Entity ModelFactory::loadModel(const char path[MAX_PATH_LEN], int vertexIndexBInt, BufferManager& bufferManager,
+                               BindlessTextureDSetComponent& dSetComponent, DescriptorManager& descriptorManager,
+                               GeneralManager& gm, TextureManager& textureManager, ModelManager& modelManager,
                                VulkanDevice& vulkanDevice, VmaAllocator allocator)
 {
 	tinygltf::Model model;
@@ -206,15 +206,15 @@ Orhescyon::Entity ModelFactory::loadModel(const char path[MAX_PATH_LEN], int ver
 	}
 
 	int modelIndex;
-	if (mManager.isModelLoaded(path))
+	if (modelManager.isModelLoaded(path))
 	{
-		modelIndex = mManager.modelPaths[path];
-		mManager.getModel(modelIndex).refCount++;
+		modelIndex = modelManager.modelPaths[path];
+		modelManager.getModel(modelIndex).refCount++;
 	}
 	else
 	{
-		modelIndex = GltfLoader::loadModelFromFile(path, vertexIndexBInt, bManager, dSetComponent, dManager, model,
-		                                           tManager, mManager, vulkanDevice, allocator);
+		modelIndex = GltfLoader::loadModelFromFile(path, vertexIndexBInt, bufferManager, dSetComponent, descriptorManager, model,
+		                                           textureManager, modelManager, vulkanDevice, allocator);
 	}
 
 	// Create root entity for the model
@@ -234,7 +234,7 @@ Orhescyon::Entity ModelFactory::loadModel(const char path[MAX_PATH_LEN], int ver
 
 	for (int rootNodeIndex : scene.nodes)
 	{
-		createEntityHierarchy(modelRootEntity, model, gm, mManager.getModel(modelIndex).meshes, bManager, rootNodeIndex);
+		createEntityHierarchy(modelRootEntity, model, gm, modelManager.getModel(modelIndex).meshes, bufferManager, rootNodeIndex);
 	}
 	std::cout << "Loaded model: " << path << std::endl;
 	return modelRootEntity;
@@ -252,8 +252,8 @@ void collectSubtree(Orhescyon::Entity entity, GeneralManager& gm, std::vector<Or
 	}
 }
 
-bool ModelFactory::unloadModel(Orhescyon::Entity modelRootEntity, GeneralManager& gm, ModelManager& mManager,
-                               TextureManager& tManager)
+bool ModelFactory::unloadModel(Orhescyon::Entity modelRootEntity, GeneralManager& gm, ModelManager& modelManager,
+                               TextureManager& textureManager)
 {
 	if (!gm.hasComponent<ModelComponent>(modelRootEntity)) return false;
 	int modelIndex = gm.getComponent<ModelComponent>(modelRootEntity)->modelIndex;
@@ -275,23 +275,23 @@ bool ModelFactory::unloadModel(Orhescyon::Entity modelRootEntity, GeneralManager
 	collectSubtree(modelRootEntity, gm, toDestroy);
 	for (Orhescyon::Entity entity : toDestroy) gm.destroyEntity(entity);
 
-	Model& model = mManager.getModel(modelIndex);
+	Model& model = modelManager.getModel(modelIndex);
 	model.refCount--;
 	if (model.refCount > 0) return true;
 
 	uint32_t frameNumber = gm.getContextComponent<CurrentFrameContext, CurrentFrameComponent>()->frameNumber;
-	mManager.freeGeometry(model.allocation, frameNumber);
-	for (int slot : model.meshes) mManager.freeMeshSlot(slot);
-	for (int textureId : model.textures) tManager.freeTexture(TextureHandle{textureId}, frameNumber);
-	for (int materialSlot : model.materials) tManager.freeMaterial(materialSlot, frameNumber);
-	for (auto it = mManager.modelPaths.begin(); it != mManager.modelPaths.end();)
+	modelManager.freeGeometry(model.allocation, frameNumber);
+	for (int slot : model.meshes) modelManager.freeMeshSlot(slot);
+	for (int textureId : model.textures) textureManager.freeTexture(TextureHandle{textureId}, frameNumber);
+	for (int materialSlot : model.materials) textureManager.freeMaterial(materialSlot, frameNumber);
+	for (auto it = modelManager.modelPaths.begin(); it != modelManager.modelPaths.end();)
 	{
 		if (it->second == modelIndex)
-			it = mManager.modelPaths.erase(it);
+			it = modelManager.modelPaths.erase(it);
 		else
 			++it;
 	}
-	mManager.freeModelSlot(modelIndex);
+	modelManager.freeModelSlot(modelIndex);
 
 	return true;
 }

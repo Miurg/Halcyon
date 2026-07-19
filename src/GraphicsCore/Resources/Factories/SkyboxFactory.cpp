@@ -20,11 +20,11 @@
 
 void SkyboxFactory::loadSkybox(const std::string& hdrPath, GeneralManager& gm)
 {
-	TextureManager& tManager =
+	TextureManager& textureManager =
 	    *gm.getContextComponent<TextureManagerContext, TextureManagerComponent>()->textureManager;
-	DescriptorManager& dManager =
+	DescriptorManager& descriptorManager =
 	    *gm.getContextComponent<DescriptorManagerContext, DescriptorManagerComponent>()->descriptorManager;
-	PipelineManager& pManager =
+	PipelineManager& pipelineManager =
 	    *gm.getContextComponent<PipelineManagerContext, PipelineManagerComponent>()->pipelineManager;
 	BindlessTextureDSetComponent& bTextureDSetComponent =
 	    *gm.getContextComponent<MainDSetsContext, BindlessTextureDSetComponent>();
@@ -32,7 +32,7 @@ void SkyboxFactory::loadSkybox(const std::string& hdrPath, GeneralManager& gm)
 	    gm.getContextComponent<VMAllocatorContext, VMAllocatorComponent>()->allocator;
 	VulkanDevice& vulkanDevice =
 	    *gm.getContextComponent<MainVulkanDeviceContext, VulkanDeviceComponent>()->vulkanDeviceInstance;
-	BufferManager& bManager =
+	BufferManager& bufferManager =
 	    *gm.getContextComponent<BufferManagerContext, BufferManagerComponent>()->bufferManager;
 	SkyboxComponent& skybox =
 	    *gm.getContextComponent<SkyBoxContext, SkyboxComponent>();
@@ -40,33 +40,33 @@ void SkyboxFactory::loadSkybox(const std::string& hdrPath, GeneralManager& gm)
 	    *gm.getContextComponent<MainDSetsContext, GlobalDSetComponent>();
 
 	// Upload HDR texture
-	int hdrIndex = tManager.allocateTextureSlot();
-	Texture& hdrTexture = tManager.getTexture(TextureHandle{hdrIndex});
-	TextureUploader::uploadHdrTextureFromFile(hdrPath.c_str(), hdrTexture, tManager, allocator, vulkanDevice);
-	tManager.texturePaths[hdrPath] = TextureHandle{hdrIndex};
-	TextureHandle hdrHandle = tManager.texturePaths[hdrPath];
+	int hdrIndex = textureManager.allocateTextureSlot();
+	Texture& hdrTexture = textureManager.getTexture(TextureHandle{hdrIndex});
+	TextureUploader::uploadHdrTextureFromFile(hdrPath.c_str(), hdrTexture, textureManager, allocator, vulkanDevice);
+	textureManager.texturePaths[hdrPath] = TextureHandle{hdrIndex};
+	TextureHandle hdrHandle = textureManager.texturePaths[hdrPath];
 
-	dManager.update(bTextureDSetComponent.bindlessTextureSet, Bindings::Textures::Array, 0,
+	descriptorManager.update(bTextureDSetComponent.bindlessTextureSet, Bindings::Textures::Array, 0,
 	                vk::DescriptorType::eCombinedImageSampler, hdrTexture.textureImageView,
-	                tManager.getSampler(hdrTexture.samplerHandle), vk::ImageLayout::eShaderReadOnlyOptimal,
+	                textureManager.getSampler(hdrTexture.samplerHandle), vk::ImageLayout::eShaderReadOnlyOptimal,
 	                static_cast<uint32_t>(hdrIndex));
 
 	TextureHandle cubemapHandle =
-	    EnvMapFactory::cubemapFromHdr(tManager, vulkanDevice, hdrHandle, dManager, bTextureDSetComponent, pManager);
+	    EnvMapFactory::cubemapFromHdr(textureManager, vulkanDevice, hdrHandle, descriptorManager, bTextureDSetComponent, pipelineManager);
 
 	// Bake skybox SH into probe slot 0 (the global fallback probe)
-	bManager.bakeSHForProbe(cubemapHandle, globalDSetComp.shProbeBuffer, 0,
-	                         dManager, bTextureDSetComponent,
-	                         globalDSetComp.globalDSets, pManager, tManager);
+	bufferManager.bakeSHForProbe(cubemapHandle, globalDSetComp.shProbeBuffer, 0,
+	                         descriptorManager, bTextureDSetComponent,
+	                         globalDSetComp.globalDSets, pipelineManager, textureManager);
 
 	TextureHandle prefilteredHandle =
-	    EnvMapFactory::prefilteredEnvMap(tManager, vulkanDevice, cubemapHandle, dManager, bTextureDSetComponent, pManager);
-	dManager.update(bTextureDSetComponent.bindlessTextureSet, Bindings::Textures::PrefilteredMap, 0,
-	                vk::DescriptorType::eCombinedImageSampler, tManager.getTexture(prefilteredHandle).textureImageView,
-	                tManager.getSampler(tManager.getTexture(prefilteredHandle).samplerHandle));
-	dManager.update(bTextureDSetComponent.bindlessTextureSet, Bindings::Textures::BrdfLut, 0,
-	                vk::DescriptorType::eCombinedImageSampler, tManager.getTexture(skybox.brdfLut).textureImageView,
-	                tManager.getSampler(tManager.getTexture(skybox.brdfLut).samplerHandle));
+	    EnvMapFactory::prefilteredEnvMap(textureManager, vulkanDevice, cubemapHandle, descriptorManager, bTextureDSetComponent, pipelineManager);
+	descriptorManager.update(bTextureDSetComponent.bindlessTextureSet, Bindings::Textures::PrefilteredMap, 0,
+	                vk::DescriptorType::eCombinedImageSampler, textureManager.getTexture(prefilteredHandle).textureImageView,
+	                textureManager.getSampler(textureManager.getTexture(prefilteredHandle).samplerHandle));
+	descriptorManager.update(bTextureDSetComponent.bindlessTextureSet, Bindings::Textures::BrdfLut, 0,
+	                vk::DescriptorType::eCombinedImageSampler, textureManager.getTexture(skybox.brdfLut).textureImageView,
+	                textureManager.getSampler(textureManager.getTexture(skybox.brdfLut).samplerHandle));
 
 	skybox.cubemapTexture = cubemapHandle;
 	skybox.prefilteredMap = prefilteredHandle;

@@ -34,36 +34,36 @@ BufferHandle BufferManager::createBuffer(vk::MemoryPropertyFlags propertyBits, v
 }
 
 void BufferManager::bakeSHForProbe(TextureHandle envCubemap, BufferHandle probeBuffer, int probeSlot,
-                                   DescriptorManager& dManager, BindlessTextureDSetComponent& dSetComponent,
-                                   DSetHandle globalDSet, PipelineManager& pManager, TextureManager& tManager)
+                                   DescriptorManager& descriptorManager, BindlessTextureDSetComponent& dSetComponent,
+                                   DSetHandle globalDSet, PipelineManager& pipelineManager, TextureManager& textureManager)
 {
-	Texture& envTex = tManager.textures[envCubemap.id];
-	dManager.update(dSetComponent.bindlessTextureSet, Bindings::Textures::GICaptureCubemap, 0,
+	Texture& envTex = textureManager.textures[envCubemap.id];
+	descriptorManager.update(dSetComponent.bindlessTextureSet, Bindings::Textures::GICaptureCubemap, 0,
 	                vk::DescriptorType::eCombinedImageSampler, envTex.textureImageView,
-	                tManager.getSampler(envTex.samplerHandle));
+	                textureManager.getSampler(envTex.samplerHandle));
 
 	auto cmd = VulkanUtils::beginSingleTimeCommands(vulkanDevice);
-	recordSHProjection(cmd, static_cast<int>(envTex.width), probeSlot, dManager, dSetComponent, globalDSet, pManager);
+	recordSHProjection(cmd, static_cast<int>(envTex.width), probeSlot, descriptorManager, dSetComponent, globalDSet, pipelineManager);
 	VulkanUtils::endSingleTimeCommands(cmd, vulkanDevice);
 }
 
 void BufferManager::recordSHProjection(vk::raii::CommandBuffer& cmd, int cubemapResolution, int probeSlot,
-                                       DescriptorManager& dManager, BindlessTextureDSetComponent& dSetComponent,
-                                       DSetHandle globalDSet, PipelineManager& pManager)
+                                       DescriptorManager& descriptorManager, BindlessTextureDSetComponent& dSetComponent,
+                                       DSetHandle globalDSet, PipelineManager& pipelineManager)
 {
-	cmd.bindPipeline(vk::PipelineBindPoint::eCompute, *pManager.pipelines["sh_projection"].pipeline);
+	cmd.bindPipeline(vk::PipelineBindPoint::eCompute, *pipelineManager.pipelines["sh_projection"].pipeline);
 
 	// sh_projection: set 0 = globalSet (SHProbeEntry[] output), set 1 = textureSet (cubemap input)
 	std::array<vk::DescriptorSet, 2> sets = {
-	    dManager.getSet(globalDSet),
-	    dManager.getSet(dSetComponent.bindlessTextureSet),
+	    descriptorManager.getSet(globalDSet),
+	    descriptorManager.getSet(dSetComponent.bindlessTextureSet),
 	};
-	cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute, *pManager.pipelines["sh_projection"].layout,
+	cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute, *pipelineManager.pipelines["sh_projection"].layout,
 	                       0, sets, nullptr);
 
 	struct PushData { int cubemapResolution; int probeSlot; };
 	PushData pushData = { cubemapResolution, probeSlot };
-	cmd.pushConstants(*pManager.pipelines["sh_projection"].layout, vk::ShaderStageFlagBits::eCompute,
+	cmd.pushConstants(*pipelineManager.pipelines["sh_projection"].layout, vk::ShaderStageFlagBits::eCompute,
 	                  0, vk::ArrayProxy<const PushData>(1, &pushData));
 
 	cmd.dispatch(1, 1, 1);

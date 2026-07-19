@@ -37,8 +37,8 @@ struct ColorGradingPush
 
 void ToneMappingPass::onInit(Orhescyon::GeneralManager& gm)
 {
-	auto& dManager = *gm.getContextComponent<DescriptorManagerContext, DescriptorManagerComponent>()->descriptorManager;
-	auto& pManager = *gm.getContextComponent<PipelineManagerContext, PipelineManagerComponent>()->pipelineManager;
+	auto& descriptorManager = *gm.getContextComponent<DescriptorManagerContext, DescriptorManagerComponent>()->descriptorManager;
+	auto& pipelineManager = *gm.getContextComponent<PipelineManagerContext, PipelineManagerComponent>()->pipelineManager;
 	auto& swapChain = *gm.getContextComponent<MainSwapChainContext, SwapChainComponent>()->swapChainInstance;
 	auto& rg = *gm.getContextComponent<RenderGraphContext, RenderGraphComponent>()->renderGraph;
 
@@ -47,19 +47,19 @@ void ToneMappingPass::onInit(Orhescyon::GeneralManager& gm)
 	                        {swapChain.swapChainImageFormat, RGSizeMode::FullExtent, vk::ImageAspectFlagBits::eColor});
 	rg.setTerminalOutput("PostProcessColor", "swapChainImage");
 
-	_dSetMainColor = dManager.allocate("screenSpaceSet");
-	_dSetExposure = dManager.allocate("exposureSet", MAX_FRAMES_IN_FLIGHT);
+	_dSetMainColor = descriptorManager.allocate("screenSpaceSet");
+	_dSetExposure = descriptorManager.allocate("exposureSet", MAX_FRAMES_IN_FLIGHT);
 
 	auto& exposureComp = *gm.getContextComponent<ExposureBufferContext, ExposureBufferComponent>();
-	auto& bManager = *gm.getContextComponent<BufferManagerContext, BufferManagerComponent>()->bufferManager;
+	auto& bufferManager = *gm.getContextComponent<BufferManagerContext, BufferManagerComponent>()->bufferManager;
 
 	for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
 	{
-		dManager.update(_dSetExposure, 1, i, vk::DescriptorType::eStorageBuffer,
-		                bManager.getBuffer(exposureComp.exposureBuffer));
+		descriptorManager.update(_dSetExposure, 1, i, vk::DescriptorType::eStorageBuffer,
+		                bufferManager.getBuffer(exposureComp.exposureBuffer));
 	}
 
-	pManager.build(PipelineDescription{
+	pipelineManager.build(PipelineDescription{
 	    .shaderPath = "tone_mapping.spv",
 	    .specializationValues = {1},
 	    .cullMode = vk::CullModeFlagBits::eNone,
@@ -72,11 +72,11 @@ void ToneMappingPass::onInit(Orhescyon::GeneralManager& gm)
 
 void ToneMappingPass::onSettingsChanged(Orhescyon::GeneralManager& gm)
 {
-	auto& pManager = *gm.getContextComponent<PipelineManagerContext, PipelineManagerComponent>()->pipelineManager;
+	auto& pipelineManager = *gm.getContextComponent<PipelineManagerContext, PipelineManagerComponent>()->pipelineManager;
 	auto& swapChain = *gm.getContextComponent<MainSwapChainContext, SwapChainComponent>()->swapChainInstance;
 	auto& settings = *gm.getContextComponent<GraphicsSettingsContext, GraphicsSettingsComponent>();
 
-	pManager.rebuild(PipelineDescription{
+	pipelineManager.rebuild(PipelineDescription{
 	    .shaderPath = "tone_mapping.spv",
 	    .specializationValues = {settings.enableAutoExposure ? 1 : 0},
 	    .cullMode = vk::CullModeFlagBits::eNone,
@@ -90,8 +90,8 @@ void ToneMappingPass::onSettingsChanged(Orhescyon::GeneralManager& gm)
 void ToneMappingPass::addToGraph(Orhescyon::GeneralManager& gm, RenderGraph& rg, uint32_t frame)
 {
 	auto& swapChain = *gm.getContextComponent<MainSwapChainContext, SwapChainComponent>()->swapChainInstance;
-	auto& dManager = *gm.getContextComponent<DescriptorManagerContext, DescriptorManagerComponent>();
-	auto& pManager = *gm.getContextComponent<PipelineManagerContext, PipelineManagerComponent>()->pipelineManager;
+	auto& descriptorManager = *gm.getContextComponent<DescriptorManagerContext, DescriptorManagerComponent>();
+	auto& pipelineManager = *gm.getContextComponent<PipelineManagerContext, PipelineManagerComponent>()->pipelineManager;
 	auto& settings = *gm.getContextComponent<GraphicsSettingsContext, GraphicsSettingsComponent>();
 
 	ColorGradingPush grading{
@@ -111,27 +111,27 @@ void ToneMappingPass::addToGraph(Orhescyon::GeneralManager& gm, RenderGraph& rg,
 	    {{"MainColor", RGResourceUsage::ShaderRead}}, {{"PostProcessColor", RGResourceUsage::ColorAttachmentWrite}},
 	    [&, frame, grading, dset = _dSetMainColor](vk::raii::CommandBuffer& cmd)
 	    {
-		    cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pManager.pipelines["tone_mapping"].pipeline);
+		    cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipelineManager.pipelines["tone_mapping"].pipeline);
 
 		    cmd.setViewport(0, vk::Viewport(0.0f, 0.0f, static_cast<float>(swapChain.swapChainExtent.width),
 		                                    static_cast<float>(swapChain.swapChainExtent.height), 0.0f, 1.0f));
 		    cmd.setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), swapChain.swapChainExtent));
 
-		    cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pManager.pipelines["tone_mapping"].layout, 0,
-		                           dManager.descriptorManager->getSet(dset), nullptr);
-		    cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pManager.pipelines["tone_mapping"].layout, 1,
-		                           dManager.descriptorManager->getSet(_dSetExposure, frame), nullptr);
+		    cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineManager.pipelines["tone_mapping"].layout, 0,
+		                           descriptorManager.descriptorManager->getSet(dset), nullptr);
+		    cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineManager.pipelines["tone_mapping"].layout, 1,
+		                           descriptorManager.descriptorManager->getSet(_dSetExposure, frame), nullptr);
 
-		    cmd.pushConstants<ColorGradingPush>(*pManager.pipelines["tone_mapping"].layout,
+		    cmd.pushConstants<ColorGradingPush>(*pipelineManager.pipelines["tone_mapping"].layout,
 		                                        vk::ShaderStageFlagBits::eFragment, 0, grading);
 
 		    cmd.setCullMode(vk::CullModeFlagBits::eNone);
 		    cmd.draw(3, 1, 0, 0);
 	    },
-	    [&dManager, dset = _dSetMainColor](const RenderGraph& graph, const RGPass& pass)
+	    [&descriptorManager, dset = _dSetMainColor](const RenderGraph& graph, const RGPass& pass)
 	    {
 		    auto colorHnd = pass.getPhysicalRead("MainColor");
-		    dManager.descriptorManager->updateSingleTextureDSet(dset, Binding::OffscreenInput,
+		    descriptorManager.descriptorManager->updateSingleTextureDSet(dset, Binding::OffscreenInput,
 		                                                        graph.getImageView(colorHnd), graph.getSampler(colorHnd));
 	    });
 }

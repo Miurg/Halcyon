@@ -34,7 +34,7 @@ public:
 	            vk::DeviceSize offset = 0, vk::DeviceSize range = VK_WHOLE_SIZE);
 
 	void updateSingleTextureDSet(DSetHandle dIndex, int binding, vk::ImageView imageView, vk::Sampler sampler);
-	void updateStorageBufferDescriptors(BufferManager& bManager, BufferHandle bNumber, DSetHandle dSet,
+	void updateStorageBufferDescriptors(BufferManager& bufferManager, BufferHandle bNumber, DSetHandle dSet,
 	                                    uint32_t binding);
 
 	// Returns the set at the given slot index (0 for single-buffered, currentFrame for per-frame).

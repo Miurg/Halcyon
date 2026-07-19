@@ -15,8 +15,8 @@ public:
 private:
 	static constexpr uint32_t kMaxMips = 16;
 
-	void drawDownsample(vk::raii::CommandBuffer& cmd, DescriptorManagerComponent& dManager, DSetHandle dSetHandle,
-	                    DSetHandle globalDSet, PipelineManager& pManager, uint32_t dstWidth, uint32_t dstHeight,
+	void drawDownsample(vk::raii::CommandBuffer& cmd, DescriptorManagerComponent& descriptorManager, DSetHandle dSetHandle,
+	                    DSetHandle globalDSet, PipelineManager& pipelineManager, uint32_t dstWidth, uint32_t dstHeight,
 	                    uint32_t passIdx, float edgeRange);
 
 	DSetHandle _dsets[kMaxMips];

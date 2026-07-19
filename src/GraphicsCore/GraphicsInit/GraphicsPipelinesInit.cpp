@@ -46,9 +46,9 @@ void GraphicsPipelinesInit::initPipelines(GeneralManager& gm)
 #endif //_DEBUG
 	VulkanDevice* vulkanDevice =
 	    gm.getContextComponent<MainVulkanDeviceContext, VulkanDeviceComponent>()->vulkanDeviceInstance;
-	DescriptorManager* dManager =
+	DescriptorManager* descriptorManager =
 	    gm.getContextComponent<DescriptorManagerContext, DescriptorManagerComponent>()->descriptorManager;
-	TextureManager* tManager = gm.getContextComponent<TextureManagerContext, TextureManagerComponent>()->textureManager;
+	TextureManager* textureManager = gm.getContextComponent<TextureManagerContext, TextureManagerComponent>()->textureManager;
 	VmaAllocator vmaAlloc = gm.getContextComponent<VMAllocatorContext, VMAllocatorComponent>()->allocator;
 	SwapChain* swapChain = gm.getContextComponent<MainSwapChainContext, SwapChainComponent>()->swapChainInstance;
 
@@ -74,19 +74,19 @@ void GraphicsPipelinesInit::initPipelines(GeneralManager& gm)
 #pragma region Pipelines
 	Orhescyon::Entity pManagerEntity = gm.createEntity();
 	gm.registerContext<PipelineManagerContext>(pManagerEntity);
-	PipelineManager* pManager = new PipelineManager(*vulkanDevice, *dManager);
-	gm.addComponent<PipelineManagerComponent>(pManagerEntity, pManager);
+	PipelineManager* pipelineManager = new PipelineManager(*vulkanDevice, *descriptorManager);
+	gm.addComponent<PipelineManagerComponent>(pManagerEntity, pipelineManager);
 	gm.addComponent<NameComponent>(pManagerEntity, "SYSTEM Pipeline Manager");
-	dq->push_function([pManager]() { delete pManager; });
+	dq->push_function([pipelineManager]() { delete pipelineManager; });
 
 	auto bindingDesc = Vertex::getBindingDescription();
 	auto attrDescs = Vertex::getAttributeDescriptions();
-	auto depthFormat = tManager->findBestFormat();
+	auto depthFormat = textureManager->findBestFormat();
 
 	std::vector<std::string> mainLayouts = {"globalSet", "modelSet", "textureSet"};
 
 	// === Capture ===
-	pManager->build(
+	pipelineManager->build(
 	    PipelineDescription{
 	        .shaderPath = "global_illumination_forward.spv",
 	        .specializationValues = {0, 1}, // ALPHA_TEST=0, IBL=1
@@ -107,7 +107,7 @@ void GraphicsPipelinesInit::initPipelines(GeneralManager& gm)
 	    "global_illumination_forward");
 
 	// === Capture alpha  ===
-	pManager->build(
+	pipelineManager->build(
 	    PipelineDescription{
 	        .shaderPath = "global_illumination_forward.spv",
 	        .specializationValues = {1, 1}, // ALPHA_TEST=1, IBL=1
@@ -127,7 +127,7 @@ void GraphicsPipelinesInit::initPipelines(GeneralManager& gm)
 	    "global_illumination_forward_alpha");
 
 	// === Skybox for baking ===
-	pManager->build(
+	pipelineManager->build(
 	    PipelineDescription{
 	        .shaderPath = "global_illumination_skybox.spv",
 	        .cullMode = vk::CullModeFlagBits::eNone,
@@ -144,53 +144,53 @@ void GraphicsPipelinesInit::initPipelines(GeneralManager& gm)
 	    "skybox_capture");
 
 	// === Compute pipelines ===
-	pManager->build(PipelineDescription{
+	pipelineManager->build(PipelineDescription{
 	    .isCompute = true,
 	    .shaderPath = "shadow_frustum_culling.spv",
 	    .setLayoutNames = {"globalSet", "modelSet"},
 	    .pushConstants = {{vk::ShaderStageFlagBits::eCompute, 0, sizeof(uint32_t)}},
 	});
 
-	pManager->build(PipelineDescription{
+	pipelineManager->build(PipelineDescription{
 	    .isCompute = true,
 	    .shaderPath = "frustum_compaction.spv",
 	    .setLayoutNames = {"modelSet"},
 	    .pushConstants = {{vk::ShaderStageFlagBits::eCompute, 0, sizeof(uint32_t) * 4}},
 	});
 
-	pManager->build(PipelineDescription{
+	pipelineManager->build(PipelineDescription{
 	    .isCompute = true,
 	    .shaderPath = "reset_instance_count.spv",
 	    .setLayoutNames = {"modelSet"},
 	    .pushConstants = {{vk::ShaderStageFlagBits::eCompute, 0, sizeof(uint32_t)}},
 	});
 
-	pManager->build(PipelineDescription{
+	pipelineManager->build(PipelineDescription{
 	    .isCompute = true,
 	    .shaderPath = "equirect_to_cube.spv",
 	    .setLayoutNames = {"textureSet"},
 	    .pushConstants = {{vk::ShaderStageFlagBits::eCompute, 0, sizeof(uint32_t)}},
 	});
-	pManager->build(PipelineDescription{
+	pipelineManager->build(PipelineDescription{
 	    .isCompute = true,
 	    .shaderPath = "sh_projection.spv",
 	    .setLayoutNames = {"globalSet", "textureSet"},
 	    .pushConstants = {{vk::ShaderStageFlagBits::eCompute, 0, sizeof(int) * 2}},
 	});
-	pManager->build(PipelineDescription{
+	pipelineManager->build(PipelineDescription{
 	    .isCompute = true,
 	    .shaderPath = "prefilter_env_map.spv",
 	    .setLayoutNames = {"textureSet"},
 	    .pushConstants = {{vk::ShaderStageFlagBits::eCompute, 0, sizeof(float)}},
 	});
-	pManager->build(PipelineDescription{
+	pipelineManager->build(PipelineDescription{
 	    .isCompute = true,
 	    .shaderPath = "brdf_lut.spv",
 	    .setLayoutNames = {"textureSet"},
 	});
 
 	// === GI light source bake ===
-	pManager->build(
+	pipelineManager->build(
 	    PipelineDescription{
 	        .shaderPath = "gi_light_source_bake.spv",
 	        .topology = vk::PrimitiveTopology::eTriangleList,
@@ -207,21 +207,21 @@ void GraphicsPipelinesInit::initPipelines(GeneralManager& gm)
 	    "gi_light_source_bake");
 
 	// === GI bake culling (one region per probe-face) ===
-	pManager->build(PipelineDescription{
+	pipelineManager->build(PipelineDescription{
 	    .isCompute = true,
 	    .shaderPath = "gi_bake_reset.spv",
 	    .setLayoutNames = {"modelSet", "modelSet"}, // set 0 = main (templates), set 1 = bake outputs
 	    .pushConstants = {{vk::ShaderStageFlagBits::eCompute, 0, sizeof(uint32_t) * 2}},
 	});
 
-	pManager->build(PipelineDescription{
+	pipelineManager->build(PipelineDescription{
 	    .isCompute = true,
 	    .shaderPath = "gi_bake_cull.spv",
 	    .setLayoutNames = {"globalSet", "modelSet"},
 	    .pushConstants = {{vk::ShaderStageFlagBits::eCompute, 0, sizeof(uint32_t) * 3}},
 	});
 
-	pManager->build(PipelineDescription{
+	pipelineManager->build(PipelineDescription{
 	    .isCompute = true,
 	    .shaderPath = "gi_bake_compaction.spv",
 	    .setLayoutNames = {"modelSet"},

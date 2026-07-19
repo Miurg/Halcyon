@@ -11,14 +11,14 @@
 #include "GraphicsCore/Resources/Managers/TextureManager.hpp"
 #include "GraphicsCore/Managers/PipelineManager.hpp"
 
-void drawResetInstancePass(vk::raii::CommandBuffer& cmd, uint32_t frame, DescriptorManagerComponent& dManager,
+void drawResetInstancePass(vk::raii::CommandBuffer& cmd, uint32_t frame, DescriptorManagerComponent& descriptorManager,
                            ModelDSetComponent& objectDSetComponent, const DrawInfoComponent& drawInfo,
-                           PipelineManager& pManager)
+                           PipelineManager& pipelineManager)
 {
-	cmd.bindPipeline(vk::PipelineBindPoint::eCompute, *pManager.pipelines["reset_instance_count"].pipeline);
+	cmd.bindPipeline(vk::PipelineBindPoint::eCompute, *pipelineManager.pipelines["reset_instance_count"].pipeline);
 
-	cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute, *pManager.pipelines["reset_instance_count"].layout, 0,
-	                       dManager.descriptorManager->getSet(objectDSetComponent.modelBufferDSet, frame), nullptr);
+	cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute, *pipelineManager.pipelines["reset_instance_count"].layout, 0,
+	                       descriptorManager.descriptorManager->getSet(objectDSetComponent.modelBufferDSet, frame), nullptr);
 
 	struct PushConsts
 	{
@@ -27,7 +27,7 @@ void drawResetInstancePass(vk::raii::CommandBuffer& cmd, uint32_t frame, Descrip
 
 	push.drawCommandCount = drawInfo.totalDrawCount;
 
-	cmd.pushConstants<PushConsts>(*pManager.pipelines["reset_instance_count"].layout, vk::ShaderStageFlagBits::eCompute,
+	cmd.pushConstants<PushConsts>(*pipelineManager.pipelines["reset_instance_count"].layout, vk::ShaderStageFlagBits::eCompute,
 	                              0, push);
 	uint32_t groupCountX = (drawInfo.totalDrawCount + 63) / 64;
 	if (groupCountX > 0) cmd.dispatch(groupCountX, 1, 1);
@@ -44,17 +44,17 @@ void drawResetInstancePass(vk::raii::CommandBuffer& cmd, uint32_t frame, Descrip
 	cmd.pipelineBarrier2(resetDepInfo);
 }
 
-void drawCullPass(vk::raii::CommandBuffer& cmd, uint32_t frame, DescriptorManagerComponent& dManager,
+void drawCullPass(vk::raii::CommandBuffer& cmd, uint32_t frame, DescriptorManagerComponent& descriptorManager,
                   GlobalDSetComponent& globalDSetComponent, ModelDSetComponent& objectDSetComponent,
-                  ModelManager& mManager, BufferManager& bManager, const DrawInfoComponent& drawInfo,
-                  PipelineManager& pManager)
+                  ModelManager& modelManager, BufferManager& bufferManager, const DrawInfoComponent& drawInfo,
+                  PipelineManager& pipelineManager)
 {
-	cmd.bindPipeline(vk::PipelineBindPoint::eCompute, *pManager.pipelines["frustum_culling"].pipeline);
+	cmd.bindPipeline(vk::PipelineBindPoint::eCompute, *pipelineManager.pipelines["frustum_culling"].pipeline);
 
-	cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute, *pManager.pipelines["frustum_culling"].layout, 0,
-	                       dManager.descriptorManager->getSet(globalDSetComponent.globalDSets, frame), nullptr);
-	cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute, *pManager.pipelines["frustum_culling"].layout, 1,
-	                       dManager.descriptorManager->getSet(objectDSetComponent.modelBufferDSet, frame), nullptr);
+	cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute, *pipelineManager.pipelines["frustum_culling"].layout, 0,
+	                       descriptorManager.descriptorManager->getSet(globalDSetComponent.globalDSets, frame), nullptr);
+	cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute, *pipelineManager.pipelines["frustum_culling"].layout, 1,
+	                       descriptorManager.descriptorManager->getSet(objectDSetComponent.modelBufferDSet, frame), nullptr);
 
 	struct PushConsts
 	{
@@ -63,7 +63,7 @@ void drawCullPass(vk::raii::CommandBuffer& cmd, uint32_t frame, DescriptorManage
 
 	push.objectCount = drawInfo.totalObjectCount;
 
-	cmd.pushConstants<PushConsts>(*pManager.pipelines["frustum_culling"].layout, vk::ShaderStageFlagBits::eCompute, 0,
+	cmd.pushConstants<PushConsts>(*pipelineManager.pipelines["frustum_culling"].layout, vk::ShaderStageFlagBits::eCompute, 0,
 	                              push);
 	uint32_t groupCountX = (drawInfo.totalObjectCount + 63) / 64;
 	if (groupCountX > 0) cmd.dispatch(groupCountX, 1, 1);
@@ -79,7 +79,7 @@ void drawCullPass(vk::raii::CommandBuffer& cmd, uint32_t frame, DescriptorManage
 	cullDepInfo.pMemoryBarriers = &cullBarrier;
 	cmd.pipelineBarrier2(cullDepInfo);
 
-	cmd.fillBuffer(bManager.getBuffer(objectDSetComponent.drawCountBuffer, frame), 0, sizeof(uint32_t) * 6, 0);
+	cmd.fillBuffer(bufferManager.getBuffer(objectDSetComponent.drawCountBuffer, frame), 0, sizeof(uint32_t) * 6, 0);
 
 	vk::MemoryBarrier2 fillBarrier;
 	fillBarrier.srcStageMask = vk::PipelineStageFlagBits2::eTransfer;
@@ -92,9 +92,9 @@ void drawCullPass(vk::raii::CommandBuffer& cmd, uint32_t frame, DescriptorManage
 	fillDepInfo.pMemoryBarriers = &fillBarrier;
 	cmd.pipelineBarrier2(fillDepInfo);
 
-	cmd.bindPipeline(vk::PipelineBindPoint::eCompute, *pManager.pipelines["frustum_compaction"].pipeline);
-	cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute, *pManager.pipelines["frustum_compaction"].layout, 0,
-	                       dManager.descriptorManager->getSet(objectDSetComponent.modelBufferDSet, frame), nullptr);
+	cmd.bindPipeline(vk::PipelineBindPoint::eCompute, *pipelineManager.pipelines["frustum_compaction"].pipeline);
+	cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute, *pipelineManager.pipelines["frustum_compaction"].layout, 0,
+	                       descriptorManager.descriptorManager->getSet(objectDSetComponent.modelBufferDSet, frame), nullptr);
 
 	struct CompactionPush
 	{
@@ -117,7 +117,7 @@ void drawCullPass(vk::raii::CommandBuffer& cmd, uint32_t frame, DescriptorManage
 		compactPush.outputOffset = currentOffset;
 		compactPush.inputOffset = currentOffset;
 		compactPush.countIndex = segment;
-		cmd.pushConstants<CompactionPush>(*pManager.pipelines["frustum_compaction"].layout,
+		cmd.pushConstants<CompactionPush>(*pipelineManager.pipelines["frustum_compaction"].layout,
 		                                  vk::ShaderStageFlagBits::eCompute, 0, compactPush);
 		cmd.dispatch((count + 63) / 64, 1, 1);
 		currentOffset += count;
@@ -135,17 +135,17 @@ void drawCullPass(vk::raii::CommandBuffer& cmd, uint32_t frame, DescriptorManage
 	cmd.pipelineBarrier2(drawDepInfo);
 }
 
-void drawShadowCullPass(vk::raii::CommandBuffer& cmd, uint32_t frame, DescriptorManagerComponent& dManager,
+void drawShadowCullPass(vk::raii::CommandBuffer& cmd, uint32_t frame, DescriptorManagerComponent& descriptorManager,
                         GlobalDSetComponent& globalDSetComponent, ModelDSetComponent& objectDSetComponent,
-                        ModelManager& mManager, BufferManager& bManager, const DrawInfoComponent& drawInfo,
-                        PipelineManager& pManager)
+                        ModelManager& modelManager, BufferManager& bufferManager, const DrawInfoComponent& drawInfo,
+                        PipelineManager& pipelineManager)
 {
-	cmd.bindPipeline(vk::PipelineBindPoint::eCompute, *pManager.pipelines["shadow_frustum_culling"].pipeline);
+	cmd.bindPipeline(vk::PipelineBindPoint::eCompute, *pipelineManager.pipelines["shadow_frustum_culling"].pipeline);
 
-	cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute, *pManager.pipelines["shadow_frustum_culling"].layout, 0,
-	                       dManager.descriptorManager->getSet(globalDSetComponent.globalDSets, frame), nullptr);
-	cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute, *pManager.pipelines["shadow_frustum_culling"].layout, 1,
-	                       dManager.descriptorManager->getSet(objectDSetComponent.modelBufferDSet, frame), nullptr);
+	cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute, *pipelineManager.pipelines["shadow_frustum_culling"].layout, 0,
+	                       descriptorManager.descriptorManager->getSet(globalDSetComponent.globalDSets, frame), nullptr);
+	cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute, *pipelineManager.pipelines["shadow_frustum_culling"].layout, 1,
+	                       descriptorManager.descriptorManager->getSet(objectDSetComponent.modelBufferDSet, frame), nullptr);
 
 	struct PushConsts
 	{
@@ -154,7 +154,7 @@ void drawShadowCullPass(vk::raii::CommandBuffer& cmd, uint32_t frame, Descriptor
 
 	push.objectCount = drawInfo.totalObjectCount;
 
-	cmd.pushConstants<PushConsts>(*pManager.pipelines["shadow_frustum_culling"].layout,
+	cmd.pushConstants<PushConsts>(*pipelineManager.pipelines["shadow_frustum_culling"].layout,
 	                              vk::ShaderStageFlagBits::eCompute, 0, push);
 	uint32_t groupCountX = (drawInfo.totalObjectCount + 63) / 64;
 	if (groupCountX > 0) cmd.dispatch(groupCountX, 1, 1);
@@ -170,7 +170,7 @@ void drawShadowCullPass(vk::raii::CommandBuffer& cmd, uint32_t frame, Descriptor
 	cullDepInfo.pMemoryBarriers = &cullBarrier;
 	cmd.pipelineBarrier2(cullDepInfo);
 
-	cmd.fillBuffer(bManager.getBuffer(objectDSetComponent.drawCountBuffer, frame), 0, sizeof(uint32_t) * 6, 0);
+	cmd.fillBuffer(bufferManager.getBuffer(objectDSetComponent.drawCountBuffer, frame), 0, sizeof(uint32_t) * 6, 0);
 
 	vk::MemoryBarrier2 fillBarrier;
 	fillBarrier.srcStageMask = vk::PipelineStageFlagBits2::eTransfer;
@@ -183,9 +183,9 @@ void drawShadowCullPass(vk::raii::CommandBuffer& cmd, uint32_t frame, Descriptor
 	fillDepInfo.pMemoryBarriers = &fillBarrier;
 	cmd.pipelineBarrier2(fillDepInfo);
 
-	cmd.bindPipeline(vk::PipelineBindPoint::eCompute, *pManager.pipelines["frustum_compaction"].pipeline);
-	cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute, *pManager.pipelines["frustum_compaction"].layout, 0,
-	                       dManager.descriptorManager->getSet(objectDSetComponent.modelBufferDSet, frame), nullptr);
+	cmd.bindPipeline(vk::PipelineBindPoint::eCompute, *pipelineManager.pipelines["frustum_compaction"].pipeline);
+	cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute, *pipelineManager.pipelines["frustum_compaction"].layout, 0,
+	                       descriptorManager.descriptorManager->getSet(objectDSetComponent.modelBufferDSet, frame), nullptr);
 
 	struct CompactionPush
 	{
@@ -208,7 +208,7 @@ void drawShadowCullPass(vk::raii::CommandBuffer& cmd, uint32_t frame, Descriptor
 		compactPush.outputOffset = currentOffset;
 		compactPush.inputOffset = currentOffset;
 		compactPush.countIndex = segment;
-		cmd.pushConstants<CompactionPush>(*pManager.pipelines["frustum_compaction"].layout,
+		cmd.pushConstants<CompactionPush>(*pipelineManager.pipelines["frustum_compaction"].layout,
 		                                  vk::ShaderStageFlagBits::eCompute, 0, compactPush);
 		cmd.dispatch((count + 63) / 64, 1, 1);
 		currentOffset += count;
@@ -227,24 +227,24 @@ void drawShadowCullPass(vk::raii::CommandBuffer& cmd, uint32_t frame, Descriptor
 }
 
 void drawShadowPass(vk::raii::CommandBuffer& cmd, uint32_t frame, DirectLightComponent& lightTexture,
-                    DescriptorManagerComponent& dManager, GlobalDSetComponent& globalDSetComponent,
+                    DescriptorManagerComponent& descriptorManager, GlobalDSetComponent& globalDSetComponent,
                     ModelDSetComponent& objectDSetComponent, BindlessTextureDSetComponent& bTextureDSet,
-                    TextureManager& tManager, ModelManager& mManager, BufferManager& bManager,
-                    const DrawInfoComponent& drawInfo, PipelineManager& pManager)
+                    TextureManager& textureManager, ModelManager& modelManager, BufferManager& bufferManager,
+                    const DrawInfoComponent& drawInfo, PipelineManager& pipelineManager)
 {
-	cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pManager.pipelines["shadow"].pipeline);
-	cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pManager.pipelines["shadow"].layout, 0,
-	                       dManager.descriptorManager->getSet(globalDSetComponent.globalDSets, frame), nullptr);
-	cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pManager.pipelines["shadow"].layout, 1,
-	                       dManager.descriptorManager->getSet(objectDSetComponent.modelBufferDSet, frame), nullptr);
-	cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pManager.pipelines["shadow"].layout, 2,
-	                       dManager.descriptorManager->getSet(bTextureDSet.bindlessTextureSet), nullptr);
+	cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipelineManager.pipelines["shadow"].pipeline);
+	cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineManager.pipelines["shadow"].layout, 0,
+	                       descriptorManager.descriptorManager->getSet(globalDSetComponent.globalDSets, frame), nullptr);
+	cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineManager.pipelines["shadow"].layout, 1,
+	                       descriptorManager.descriptorManager->getSet(objectDSetComponent.modelBufferDSet, frame), nullptr);
+	cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineManager.pipelines["shadow"].layout, 2,
+	                       descriptorManager.descriptorManager->getSet(bTextureDSet.bindlessTextureSet), nullptr);
 	cmd.setViewport(0, vk::Viewport(0.0f, 0.0f, lightTexture.sizeX, lightTexture.sizeY, 0.0f, 1.0f));
 	cmd.setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), vk::Extent2D(lightTexture.sizeX, lightTexture.sizeY)));
 
 	const uint32_t commandStride = sizeof(VkDrawIndexedIndirectCommand);
-	cmd.bindVertexBuffers(0, mManager.getVertexIndexBuffer(0).vertexBuffer, {0});
-	cmd.bindIndexBuffer(mManager.getVertexIndexBuffer(0).indexBuffer, 0,
+	cmd.bindVertexBuffers(0, modelManager.getVertexIndexBuffer(0).vertexBuffer, {0});
+	cmd.bindIndexBuffer(modelManager.getVertexIndexBuffer(0).indexBuffer, 0,
 	                    vk::IndexType::eUint32);
 
 	// BLEND (segs 4,5) is excluded from shadow casting.
@@ -257,15 +257,15 @@ void drawShadowPass(vk::raii::CommandBuffer& cmd, uint32_t frame, DirectLightCom
 	for (uint32_t segment = 0; segment < 4; ++segment)
 	{
 		// MASK (segs 2,3) casts through the fragment shadow pipeline.
-		if (segment == 2) cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pManager.pipelines["shadow_alpha"].pipeline);
+		if (segment == 2) cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipelineManager.pipelines["shadow_alpha"].pipeline);
 
 		uint32_t count = segmentCounts[segment];
 		if (count > 0)
 		{
 			cmd.setCullMode((segment & 1) ? vk::CullModeFlagBits::eNone : vk::CullModeFlagBits::eBack);
-			cmd.drawIndexedIndirectCount(bManager.getBuffer(objectDSetComponent.compactedDrawBuffer, frame),
+			cmd.drawIndexedIndirectCount(bufferManager.getBuffer(objectDSetComponent.compactedDrawBuffer, frame),
 			                             currentCommandOffset,
-			                             bManager.getBuffer(objectDSetComponent.drawCountBuffer, frame),
+			                             bufferManager.getBuffer(objectDSetComponent.drawCountBuffer, frame),
 			                             currentCountBufferOffset, count, commandStride);
 			currentCommandOffset += count * commandStride;
 		}

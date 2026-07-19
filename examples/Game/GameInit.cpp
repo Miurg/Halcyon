@@ -36,7 +36,7 @@ void GameInit::Run(GeneralManager& gm)
 	TextureManager* textureManager =
 	    gm.getContextComponent<TextureManagerContext, TextureManagerComponent>()->textureManager;
 	ModelManager* modelManager = gm.getContextComponent<ModelManagerContext, ModelManagerComponent>()->modelManager;
-	DescriptorManager* dManager =
+	DescriptorManager* descriptorManager =
 	    gm.getContextComponent<DescriptorManagerContext, DescriptorManagerComponent>()->descriptorManager;
 	BindlessTextureDSetComponent* dSetComponent =
 	    gm.getContextComponent<MainDSetsContext, BindlessTextureDSetComponent>();
@@ -49,7 +49,7 @@ void GameInit::Run(GeneralManager& gm)
 	Smith::Renderables::forgeTransform(gm, cube, glm::vec3(0.0f, 0.0f, -5.0f), glm::quat{1.0f, 0.0f, 0.0f, 0.0f});
 
 	Orhescyon::Entity mesh = ModelFactory::loadModel("assets/models/cube.gltf", 0, *bufferManager, *dSetComponent,
-	                                                 *dManager, gm, *textureManager, *modelManager, vulkanDevice,
+	                                                 *descriptorManager, gm, *textureManager, *modelManager, vulkanDevice,
 	                                                 allocator);
 	gm.getComponent<RelationshipComponent>(cube)->addChild(cube, mesh, gm);
 }

@@ -227,11 +227,11 @@ void DescriptorManager::updateSingleTextureDSet(DSetHandle dIndex, int binding, 
 		update(dIndex, static_cast<uint32_t>(binding), i, vk::DescriptorType::eCombinedImageSampler, imageView, sampler);
 }
 
-void DescriptorManager::updateStorageBufferDescriptors(BufferManager& bManager, BufferHandle bNumber, DSetHandle dSet,
+void DescriptorManager::updateStorageBufferDescriptors(BufferManager& bufferManager, BufferHandle bNumber, DSetHandle dSet,
                                                        uint32_t binding)
 {
 	const uint32_t copies = getSetCount(dSet);
-	const auto& buffers = bManager.buffers[bNumber.id].buffer;
+	const auto& buffers = bufferManager.buffers[bNumber.id].buffer;
 	const bool sharedBuf = (buffers.size() == 1);
 
 	for (uint32_t i = 0; i < copies; ++i)

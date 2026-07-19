@@ -25,18 +25,18 @@
 
 void DirectLightPass::onInit(Orhescyon::GeneralManager& gm)
 {
-	auto& pManager = *gm.getContextComponent<PipelineManagerContext, PipelineManagerComponent>()->pipelineManager;
-	auto& tManager = *gm.getContextComponent<TextureManagerContext, TextureManagerComponent>()->textureManager;
+	auto& pipelineManager = *gm.getContextComponent<PipelineManagerContext, PipelineManagerComponent>()->pipelineManager;
+	auto& textureManager = *gm.getContextComponent<TextureManagerContext, TextureManagerComponent>()->textureManager;
 	auto& rg = *gm.getContextComponent<RenderGraphContext, RenderGraphComponent>()->renderGraph;
 	auto bindingDesc = Vertex::getBindingDescription();
 	auto attrDescs = Vertex::getAttributeDescriptions();
-	auto depthFormat = tManager.findBestFormat();
+	auto depthFormat = textureManager.findBestFormat();
 	std::vector<std::string> mainLayouts = {"globalSet", "modelSet", "textureSet"};
 
 	// Shadow pass writes directly into the imported physical shadow map (no transient image needed)
 	rg.setTerminalOutput("shadowMap", "shadowMap");
 
-	pManager.build(PipelineDescription{
+	pipelineManager.build(PipelineDescription{
 	    .shaderPath = "shadow.spv",
 	    .fragEntry = "", // vertex only
 	    .vertexBindings = {bindingDesc},
@@ -52,7 +52,7 @@ void DirectLightPass::onInit(Orhescyon::GeneralManager& gm)
 	});
 
 	// Alpha-tested shadow caster: samples base color and discards below alphaCutoff.
-	pManager.build(
+	pipelineManager.build(
 	    PipelineDescription{
 	        .shaderPath = "shadow.spv",
 	        .specializationValues = {1}, // ALPHA_TEST_ENABLED=1
@@ -72,13 +72,13 @@ void DirectLightPass::onInit(Orhescyon::GeneralManager& gm)
 
 void DirectLightPass::addToGraph(Orhescyon::GeneralManager& gm, RenderGraph& rg, uint32_t frame)
 {
-	auto& dManager = *gm.getContextComponent<DescriptorManagerContext, DescriptorManagerComponent>();
+	auto& descriptorManager = *gm.getContextComponent<DescriptorManagerContext, DescriptorManagerComponent>();
 	auto& globalDSetComponent = *gm.getContextComponent<MainDSetsContext, GlobalDSetComponent>();
-	auto& bManager = *gm.getContextComponent<BufferManagerContext, BufferManagerComponent>()->bufferManager;
+	auto& bufferManager = *gm.getContextComponent<BufferManagerContext, BufferManagerComponent>()->bufferManager;
 	auto& objectDSetComponent = *gm.getContextComponent<MainDSetsContext, ModelDSetComponent>();
-	auto& mManager = *gm.getContextComponent<ModelManagerContext, ModelManagerComponent>()->modelManager;
+	auto& modelManager = *gm.getContextComponent<ModelManagerContext, ModelManagerComponent>()->modelManager;
 	auto& drawInfo = *gm.getContextComponent<CurrentFrameContext, DrawInfoComponent>();
-	auto& pManager = *gm.getContextComponent<PipelineManagerContext, PipelineManagerComponent>()->pipelineManager;
+	auto& pipelineManager = *gm.getContextComponent<PipelineManagerContext, PipelineManagerComponent>()->pipelineManager;
 	auto& textureManager = *gm.getContextComponent<TextureManagerContext, TextureManagerComponent>()->textureManager;
 	auto& lightTexture = *gm.getContextComponent<SunContext, DirectLightComponent>();
 	auto& bindlessTextureDSetComponent = *gm.getContextComponent<MainDSetsContext, BindlessTextureDSetComponent>();
@@ -87,8 +87,8 @@ void DirectLightPass::addToGraph(Orhescyon::GeneralManager& gm, RenderGraph& rg,
 	rg.addPass("ShadowCull", {.isCompute = true}, {}, {},
 	           [&, frame](vk::raii::CommandBuffer& cmd)
 	           {
-		           drawShadowCullPass(cmd, frame, dManager, globalDSetComponent, objectDSetComponent, mManager,
-		                              bManager, drawInfo, pManager);
+		           drawShadowCullPass(cmd, frame, descriptorManager, globalDSetComponent, objectDSetComponent, modelManager,
+		                              bufferManager, drawInfo, pipelineManager);
 	           });
 
 	rg.addPass("Shadow",
@@ -99,7 +99,7 @@ void DirectLightPass::addToGraph(Orhescyon::GeneralManager& gm, RenderGraph& rg,
 	           {}, {{"shadowMap", RGResourceUsage::DepthAttachmentWrite}},
 	           [&, frame](vk::raii::CommandBuffer& cmd)
 	           {
-		           drawShadowPass(cmd, frame, lightTexture, dManager, globalDSetComponent, objectDSetComponent,
-		                          bindlessTextureDSetComponent, textureManager, mManager, bManager, drawInfo, pManager);
+		           drawShadowPass(cmd, frame, lightTexture, descriptorManager, globalDSetComponent, objectDSetComponent,
+		                          bindlessTextureDSetComponent, textureManager, modelManager, bufferManager, drawInfo, pipelineManager);
 	           });
 }

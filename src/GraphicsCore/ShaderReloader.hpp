@@ -11,7 +11,7 @@ class ShaderReloader
 {
 public:
 	ShaderReloader(const std::string& shadersDir = "shaders", const std::string& outDir = "shaders");
-	void update(PipelineManager& pManager, VulkanDevice& device);
+	void update(PipelineManager& pipelineManager, VulkanDevice& device);
 
 private:
 	struct ShaderInfo

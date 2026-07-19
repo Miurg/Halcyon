@@ -19,9 +19,9 @@
 
 void CullPass::onInit(Orhescyon::GeneralManager& gm)
 {
-	auto& pManager = *gm.getContextComponent<PipelineManagerContext, PipelineManagerComponent>()->pipelineManager;
+	auto& pipelineManager = *gm.getContextComponent<PipelineManagerContext, PipelineManagerComponent>()->pipelineManager;
 
-	pManager.build(PipelineDescription{
+	pipelineManager.build(PipelineDescription{
 	    .isCompute = true,
 	    .shaderPath = "frustum_culling.spv",
 	    .setLayoutNames = {"globalSet", "modelSet"},
@@ -31,21 +31,21 @@ void CullPass::onInit(Orhescyon::GeneralManager& gm)
 
 void CullPass::addToGraph(Orhescyon::GeneralManager& gm, RenderGraph& rg, uint32_t frame)
 {
-	auto& dManager = *gm.getContextComponent<DescriptorManagerContext, DescriptorManagerComponent>();
+	auto& descriptorManager = *gm.getContextComponent<DescriptorManagerContext, DescriptorManagerComponent>();
 	auto& globalDSetComponent = *gm.getContextComponent<MainDSetsContext, GlobalDSetComponent>();
-	auto& bManager = *gm.getContextComponent<BufferManagerContext, BufferManagerComponent>()->bufferManager;
+	auto& bufferManager = *gm.getContextComponent<BufferManagerContext, BufferManagerComponent>()->bufferManager;
 	auto& objectDSetComponent = *gm.getContextComponent<MainDSetsContext, ModelDSetComponent>();
-	auto& mManager = *gm.getContextComponent<ModelManagerContext, ModelManagerComponent>()->modelManager;
+	auto& modelManager = *gm.getContextComponent<ModelManagerContext, ModelManagerComponent>()->modelManager;
 	auto& drawInfo = *gm.getContextComponent<CurrentFrameContext, DrawInfoComponent>();
-	auto& pManager = *gm.getContextComponent<PipelineManagerContext, PipelineManagerComponent>()->pipelineManager;
+	auto& pipelineManager = *gm.getContextComponent<PipelineManagerContext, PipelineManagerComponent>()->pipelineManager;
 
 	rg.addPass("ResetInstanceCount", {.isCompute = true}, {}, {}, [&, frame](vk::raii::CommandBuffer& cmd)
-	           { drawResetInstancePass(cmd, frame, dManager, objectDSetComponent, drawInfo, pManager); });
+	           { drawResetInstancePass(cmd, frame, descriptorManager, objectDSetComponent, drawInfo, pipelineManager); });
 
 	rg.addPass("Cull", {.isCompute = true}, {}, {},
 	           [&, frame](vk::raii::CommandBuffer& cmd)
 	           {
-		           drawCullPass(cmd, frame, dManager, globalDSetComponent, objectDSetComponent, mManager, bManager,
-		                        drawInfo, pManager);
+		           drawCullPass(cmd, frame, descriptorManager, globalDSetComponent, objectDSetComponent, modelManager, bufferManager,
+		                        drawInfo, pipelineManager);
 	           });
 }

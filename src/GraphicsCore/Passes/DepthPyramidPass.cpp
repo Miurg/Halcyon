@@ -29,11 +29,11 @@ enum : uint32_t
 
 void DepthPyramidPass::onInit(Orhescyon::GeneralManager& gm)
 {
-	auto& dManager = *gm.getContextComponent<DescriptorManagerContext, DescriptorManagerComponent>()->descriptorManager;
-	auto& pManager = *gm.getContextComponent<PipelineManagerContext, PipelineManagerComponent>()->pipelineManager;
+	auto& descriptorManager = *gm.getContextComponent<DescriptorManagerContext, DescriptorManagerComponent>()->descriptorManager;
+	auto& pipelineManager = *gm.getContextComponent<PipelineManagerContext, PipelineManagerComponent>()->pipelineManager;
 	auto& rg = *gm.getContextComponent<RenderGraphContext, RenderGraphComponent>()->renderGraph;
 
-	for (uint32_t i = 0; i < kMaxMips; ++i) _dsets[i] = dManager.allocate("hiZSet");
+	for (uint32_t i = 0; i < kMaxMips; ++i) _dsets[i] = descriptorManager.allocate("hiZSet");
 
 	// Linear view-space Z pyramid sampling
 	SamplerDesc pyramidSampler;
@@ -48,7 +48,7 @@ void DepthPyramidPass::onInit(Orhescyon::GeneralManager& gm)
 	                                         .extraUsage = vk::ImageUsageFlagBits::eStorage,
 	                                         .samplerOverride = pyramidSampler});
 
-	pManager.build(
+	pipelineManager.build(
 	    PipelineDescription{
 	        .isCompute = true,
 	        .shaderPath = "depth_pyramid.spv",
@@ -59,15 +59,15 @@ void DepthPyramidPass::onInit(Orhescyon::GeneralManager& gm)
 	    "depth_pyramid");
 }
 
-void DepthPyramidPass::drawDownsample(vk::raii::CommandBuffer& cmd, DescriptorManagerComponent& dManager,
-                                      DSetHandle dSetHandle, DSetHandle globalDSet, PipelineManager& pManager,
+void DepthPyramidPass::drawDownsample(vk::raii::CommandBuffer& cmd, DescriptorManagerComponent& descriptorManager,
+                                      DSetHandle dSetHandle, DSetHandle globalDSet, PipelineManager& pipelineManager,
                                       uint32_t dstWidth, uint32_t dstHeight, uint32_t passIdx, float edgeRange)
 {
-	cmd.bindPipeline(vk::PipelineBindPoint::eCompute, *pManager.pipelines["depth_pyramid"].pipeline);
-	cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute, *pManager.pipelines["depth_pyramid"].layout, 0,
-	                       dManager.descriptorManager->getSet(dSetHandle), nullptr);
-	cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute, *pManager.pipelines["depth_pyramid"].layout, 1,
-	                       dManager.descriptorManager->getSet(globalDSet), nullptr);
+	cmd.bindPipeline(vk::PipelineBindPoint::eCompute, *pipelineManager.pipelines["depth_pyramid"].pipeline);
+	cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute, *pipelineManager.pipelines["depth_pyramid"].layout, 0,
+	                       descriptorManager.descriptorManager->getSet(dSetHandle), nullptr);
+	cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute, *pipelineManager.pipelines["depth_pyramid"].layout, 1,
+	                       descriptorManager.descriptorManager->getSet(globalDSet), nullptr);
 	struct PushConsts
 	{
 		uint32_t dstWidth;
@@ -81,7 +81,7 @@ void DepthPyramidPass::drawDownsample(vk::raii::CommandBuffer& cmd, DescriptorMa
 	push.passIdx = passIdx;
 	push.edgeRange = edgeRange;
 
-	cmd.pushConstants<PushConsts>(*pManager.pipelines["depth_pyramid"].layout, vk::ShaderStageFlagBits::eCompute, 0,
+	cmd.pushConstants<PushConsts>(*pipelineManager.pipelines["depth_pyramid"].layout, vk::ShaderStageFlagBits::eCompute, 0,
 	                              push);
 	cmd.dispatch((dstWidth + 7) / 8, (dstHeight + 7) / 8, 1);
 }
@@ -89,8 +89,8 @@ void DepthPyramidPass::drawDownsample(vk::raii::CommandBuffer& cmd, DescriptorMa
 void DepthPyramidPass::addToGraph(Orhescyon::GeneralManager& gm, RenderGraph& rg, uint32_t /*frame*/)
 {
 	auto& swapChain = *gm.getContextComponent<MainSwapChainContext, SwapChainComponent>()->swapChainInstance;
-	auto& dManager = *gm.getContextComponent<DescriptorManagerContext, DescriptorManagerComponent>();
-	auto& pManager = *gm.getContextComponent<PipelineManagerContext, PipelineManagerComponent>()->pipelineManager;
+	auto& descriptorManager = *gm.getContextComponent<DescriptorManagerContext, DescriptorManagerComponent>();
+	auto& pipelineManager = *gm.getContextComponent<PipelineManagerContext, PipelineManagerComponent>()->pipelineManager;
 	auto& globalDSetComponent = *gm.getContextComponent<MainDSetsContext, GlobalDSetComponent>();
 	auto& gtaoSettings = *gm.getContextComponent<GtaoSettingsContext, GtaoSettingsComponent>();
 
@@ -118,19 +118,19 @@ void DepthPyramidPass::addToGraph(Orhescyon::GeneralManager& gm, RenderGraph& rg
 		    "DepthPyramid" + std::to_string(i), {.isCompute = true},
 		    {{srcName, RGResourceUsage::ShaderRead, srcMip, 1}},
 		    {{"DepthPyramid", RGResourceUsage::StorageReadWrite, i, 1}},
-		    [this, &dManager, &pManager, &gtaoSettings, passIdx, dstExt, dset,
+		    [this, &descriptorManager, &pipelineManager, &gtaoSettings, passIdx, dstExt, dset,
 		     globalDSet = globalDSetComponent.globalDSets](vk::raii::CommandBuffer& cmd) {
-			    drawDownsample(cmd, dManager, dset, globalDSet, pManager, dstExt.width, dstExt.height, passIdx,
+			    drawDownsample(cmd, descriptorManager, dset, globalDSet, pipelineManager, dstExt.width, dstExt.height, passIdx,
 			                   gtaoSettings.pyramidEdgeRange);
 		    },
-		    [&dManager, srcName, srcMip, i, dset](const RenderGraph& graph, const RGPass& pass)
+		    [&descriptorManager, srcName, srcMip, i, dset](const RenderGraph& graph, const RGPass& pass)
 		    {
 			    auto srcHnd = pass.getPhysicalRead(srcName);
 			    auto dstHnd = pass.getPhysicalWrite("DepthPyramid");
-			    dManager.descriptorManager->update(
+			    descriptorManager.descriptorManager->update(
 			        dset, DepthPyramidBinding::DepthInput, 0, vk::DescriptorType::eCombinedImageSampler,
 			        graph.getImageView(srcHnd, srcMip), graph.getSampler(dstHnd), vk::ImageLayout::eShaderReadOnlyOptimal);
-			    dManager.descriptorManager->update(dset, DepthPyramidBinding::MipOutput, 0,
+			    descriptorManager.descriptorManager->update(dset, DepthPyramidBinding::MipOutput, 0,
 			                                       vk::DescriptorType::eStorageImage, graph.getImageView(dstHnd, i),
 			                                       vk::Sampler{}, vk::ImageLayout::eGeneral);
 		    });

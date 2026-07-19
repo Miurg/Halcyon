@@ -51,47 +51,47 @@ struct drawIndirect
 };
 
 void ParticleSystemRenderPass::drawParticlRender(vk::raii::CommandBuffer& cmd, uint32_t frame,
-                                                 DescriptorManagerComponent& dManager, BufferManager& bManager,
-                                                 PipelineManager& pManager, GlobalDSetComponent& globalDSetComponent,
+                                                 DescriptorManagerComponent& descriptorManager, BufferManager& bufferManager,
+                                                 PipelineManager& pipelineManager, GlobalDSetComponent& globalDSetComponent,
                                                  BufferHandle& indirectBuffer, uint32_t totalFrames)
 {
-	cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pManager.pipelines["system_render"].pipeline);
+	cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipelineManager.pipelines["system_render"].pipeline);
 
-	cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pManager.pipelines["system_render"].layout, 0,
-	                       dManager.descriptorManager->getSet(_dSetParticles, frame), nullptr);
-	cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pManager.pipelines["system_render"].layout, 1,
-	                       dManager.descriptorManager->getSet(globalDSetComponent.globalDSets, frame), nullptr);
+	cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineManager.pipelines["system_render"].layout, 0,
+	                       descriptorManager.descriptorManager->getSet(_dSetParticles, frame), nullptr);
+	cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineManager.pipelines["system_render"].layout, 1,
+	                       descriptorManager.descriptorManager->getSet(globalDSetComponent.globalDSets, frame), nullptr);
 
-	cmd.pushConstants<uint32_t>(*pManager.pipelines["system_render"].layout, vk::ShaderStageFlagBits::eVertex, 0,
+	cmd.pushConstants<uint32_t>(*pipelineManager.pipelines["system_render"].layout, vk::ShaderStageFlagBits::eVertex, 0,
 	                            totalFrames);
 
-	cmd.drawIndirect(bManager.getBuffer(indirectBuffer, frame), 0, 1, sizeof(drawIndirect));
+	cmd.drawIndirect(bufferManager.getBuffer(indirectBuffer, frame), 0, 1, sizeof(drawIndirect));
 }
 
 void ParticleSystemRenderPass::onInit(Orhescyon::GeneralManager& gm)
 {
-	auto& pManager = *gm.getContextComponent<PipelineManagerContext, PipelineManagerComponent>()->pipelineManager;
-	auto& bManager = *gm.getContextComponent<BufferManagerContext, BufferManagerComponent>()->bufferManager;
-	auto& dManager = *gm.getContextComponent<DescriptorManagerContext, DescriptorManagerComponent>()->descriptorManager;
+	auto& pipelineManager = *gm.getContextComponent<PipelineManagerContext, PipelineManagerComponent>()->pipelineManager;
+	auto& bufferManager = *gm.getContextComponent<BufferManagerContext, BufferManagerComponent>()->bufferManager;
+	auto& descriptorManager = *gm.getContextComponent<DescriptorManagerContext, DescriptorManagerComponent>()->descriptorManager;
 	auto& swapChain = *gm.getContextComponent<MainSwapChainContext, SwapChainComponent>()->swapChainInstance;
 	auto& rg = *gm.getContextComponent<RenderGraphContext, RenderGraphComponent>()->renderGraph;
 	auto& particlesBuffer = *gm.getContextComponent<ParticlesBufferContext, ParticlesBufferComponent>();
-	auto& tManager = *gm.getContextComponent<TextureManagerContext, TextureManagerComponent>()->textureManager;
-	auto depthFormat = tManager.findBestFormat();
+	auto& textureManager = *gm.getContextComponent<TextureManagerContext, TextureManagerComponent>()->textureManager;
+	auto depthFormat = textureManager.findBestFormat();
 
-	_dSetParticles = dManager.allocate("particleSystemSet", MAX_FRAMES_IN_FLIGHT);
+	_dSetParticles = descriptorManager.allocate("particleSystemSet", MAX_FRAMES_IN_FLIGHT);
 
 	for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
 	{
-		dManager.update(_dSetParticles, 0, i, vk::DescriptorType::eStorageBuffer,
-		                bManager.getBuffer(particlesBuffer.particlesBuffer));
-		dManager.update(_dSetParticles, 5, i, vk::DescriptorType::eStorageBuffer,
-		                bManager.getBuffer(particlesBuffer.aliveIndicesBufferA));
-		dManager.update(_dSetParticles, 6, i, vk::DescriptorType::eStorageBuffer,
-		                bManager.getBuffer(particlesBuffer.aliveIndicesBufferB));
+		descriptorManager.update(_dSetParticles, 0, i, vk::DescriptorType::eStorageBuffer,
+		                bufferManager.getBuffer(particlesBuffer.particlesBuffer));
+		descriptorManager.update(_dSetParticles, 5, i, vk::DescriptorType::eStorageBuffer,
+		                bufferManager.getBuffer(particlesBuffer.aliveIndicesBufferA));
+		descriptorManager.update(_dSetParticles, 6, i, vk::DescriptorType::eStorageBuffer,
+		                bufferManager.getBuffer(particlesBuffer.aliveIndicesBufferB));
 	}
 
-	pManager.build(PipelineDescription{
+	pipelineManager.build(PipelineDescription{
 	    .shaderPath = "system_render.spv",
 	    .cullMode = vk::CullModeFlagBits::eNone,
 	    .depthTest = true,
@@ -107,9 +107,9 @@ void ParticleSystemRenderPass::onInit(Orhescyon::GeneralManager& gm)
 
 void ParticleSystemRenderPass::addToGraph(Orhescyon::GeneralManager& gm, RenderGraph& rg, uint32_t frame)
 {
-	auto& dManager = *gm.getContextComponent<DescriptorManagerContext, DescriptorManagerComponent>();
-	auto& bManager = *gm.getContextComponent<BufferManagerContext, BufferManagerComponent>()->bufferManager;
-	auto& pManager = *gm.getContextComponent<PipelineManagerContext, PipelineManagerComponent>()->pipelineManager;
+	auto& descriptorManager = *gm.getContextComponent<DescriptorManagerContext, DescriptorManagerComponent>();
+	auto& bufferManager = *gm.getContextComponent<BufferManagerContext, BufferManagerComponent>()->bufferManager;
+	auto& pipelineManager = *gm.getContextComponent<PipelineManagerContext, PipelineManagerComponent>()->pipelineManager;
 	uint32_t totalFrames = gm.getContextComponent<CurrentFrameContext, CurrentFrameComponent>()->frameNumber;
 	float deltaTime = gm.getContextComponent<DeltaTimeContext, DeltaTimeComponent>()->deltaTime;
 	auto& globalDSetComponent = *gm.getContextComponent<MainDSetsContext, GlobalDSetComponent>();
@@ -125,6 +125,6 @@ void ParticleSystemRenderPass::addToGraph(Orhescyon::GeneralManager& gm, RenderG
 	    {}, {{"MainColor", RGResourceUsage::ColorAttachmentWrite}, {"Depth", RGResourceUsage::DepthAttachmentWrite}},
 	    [&, frame, totalFrames, deltaTime](vk::raii::CommandBuffer& cmd)
 	    {
-		    drawParticlRender(cmd, frame, dManager, bManager, pManager, globalDSetComponent, indirectBuffer, totalFrames);
+		    drawParticlRender(cmd, frame, descriptorManager, bufferManager, pipelineManager, globalDSetComponent, indirectBuffer, totalFrames);
 	    });
 }

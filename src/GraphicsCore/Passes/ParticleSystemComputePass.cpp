@@ -60,33 +60,33 @@ struct alignas(16) EmitorPushConst
 };
 
 void ParticleSystemComputePass::drawParticleCompute(vk::raii::CommandBuffer& cmd, uint32_t frame,
-                                                    DescriptorManagerComponent& dManager, BufferManager& bManager,
-                                                    PipelineManager& pManager, uint32_t totalFrames, float deltaTime)
+                                                    DescriptorManagerComponent& descriptorManager, BufferManager& bufferManager,
+                                                    PipelineManager& pipelineManager, uint32_t totalFrames, float deltaTime)
 {
-	cmd.bindPipeline(vk::PipelineBindPoint::eCompute, *pManager.pipelines["particles_spawner"].pipeline);
-	cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute, *pManager.pipelines["particles_spawner"].layout, 0,
-	                       dManager.descriptorManager->getSet(_dSetParticles, frame), nullptr);
+	cmd.bindPipeline(vk::PipelineBindPoint::eCompute, *pipelineManager.pipelines["particles_spawner"].pipeline);
+	cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute, *pipelineManager.pipelines["particles_spawner"].layout, 0,
+	                       descriptorManager.descriptorManager->getSet(_dSetParticles, frame), nullptr);
 
 	if (totalFrames % 2 == 0)
 	{
 		
-		cmd.fillBuffer(bManager.getBuffer(_dispatchBufferForEmiterB), 0, 4,
+		cmd.fillBuffer(bufferManager.getBuffer(_dispatchBufferForEmiterB), 0, 4,
 		               0); // Nulling x
-		cmd.fillBuffer(bManager.getBuffer(_dispatchBufferForEmiterB), 12, 4,
+		cmd.fillBuffer(bufferManager.getBuffer(_dispatchBufferForEmiterB), 12, 4,
 		               0); // Nulling spawnCount
 	}
 	else
 	{
-		cmd.fillBuffer(bManager.getBuffer(_dispatchBufferForEmiterA), 0, 4,
+		cmd.fillBuffer(bufferManager.getBuffer(_dispatchBufferForEmiterA), 0, 4,
 		               0); // Nulling x
-		cmd.fillBuffer(bManager.getBuffer(_dispatchBufferForEmiterA), 12, 4,
+		cmd.fillBuffer(bufferManager.getBuffer(_dispatchBufferForEmiterA), 12, 4,
 		               0); // Nulling spawnCount
 	}
 
-	cmd.pushConstants<uint32_t>(*pManager.pipelines["particles_spawner"].layout, vk::ShaderStageFlagBits::eCompute, 0,
+	cmd.pushConstants<uint32_t>(*pipelineManager.pipelines["particles_spawner"].layout, vk::ShaderStageFlagBits::eCompute, 0,
 	                            totalFrames);
 	
-	cmd.dispatchIndirect(bManager.getBuffer(_dispatchBuffer), 0);
+	cmd.dispatchIndirect(bufferManager.getBuffer(_dispatchBuffer), 0);
 
 	vk::MemoryBarrier2 fillBarrier;
 	fillBarrier.srcStageMask = vk::PipelineStageFlagBits2::eDrawIndirect | vk::PipelineStageFlagBits2::eComputeShader |
@@ -103,13 +103,13 @@ void ParticleSystemComputePass::drawParticleCompute(vk::raii::CommandBuffer& cmd
 	fillDepInfo.pMemoryBarriers = &fillBarrier;
 	cmd.pipelineBarrier2(fillDepInfo);
 
-	cmd.fillBuffer(bManager.getBuffer(_dispatchBuffer), 0, 4,
+	cmd.fillBuffer(bufferManager.getBuffer(_dispatchBuffer), 0, 4,
 	               0); // Nulling x
-	cmd.fillBuffer(bManager.getBuffer(_dispatchBuffer), 12, 4,
+	cmd.fillBuffer(bufferManager.getBuffer(_dispatchBuffer), 12, 4,
 	               0); // Nulling spawnCount
 	// ^ We dont want to nulling y and z ^
 	
-	cmd.fillBuffer(bManager.getBuffer(_indirectBuffer, frame), 4, 4, 0);
+	cmd.fillBuffer(bufferManager.getBuffer(_indirectBuffer, frame), 4, 4, 0);
 
 	vk::MemoryBarrier2 emiterBarrier;
 	emiterBarrier.srcStageMask = vk::PipelineStageFlagBits2::eTransfer | vk::PipelineStageFlagBits2::eComputeShader;
@@ -123,24 +123,24 @@ void ParticleSystemComputePass::drawParticleCompute(vk::raii::CommandBuffer& cmd
 	emiterDepInfo.pMemoryBarriers = &emiterBarrier;
 	cmd.pipelineBarrier2(emiterDepInfo);
 
-	cmd.bindPipeline(vk::PipelineBindPoint::eCompute, *pManager.pipelines["particles_emiter"].pipeline);
-	cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute, *pManager.pipelines["particles_emiter"].layout, 0,
-	                       dManager.descriptorManager->getSet(_dSetParticles, frame), nullptr);
+	cmd.bindPipeline(vk::PipelineBindPoint::eCompute, *pipelineManager.pipelines["particles_emiter"].pipeline);
+	cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute, *pipelineManager.pipelines["particles_emiter"].layout, 0,
+	                       descriptorManager.descriptorManager->getSet(_dSetParticles, frame), nullptr);
 
 	EmitorPushConst push;
 	push.deltaTime = deltaTime;
 	push.totalFrames = totalFrames;
 
-	cmd.pushConstants<EmitorPushConst>(*pManager.pipelines["particles_emiter"].layout, vk::ShaderStageFlagBits::eCompute,
+	cmd.pushConstants<EmitorPushConst>(*pipelineManager.pipelines["particles_emiter"].layout, vk::ShaderStageFlagBits::eCompute,
 	                                   0, push);
 
 	if (totalFrames % 2 == 0)
 	{
-		cmd.dispatchIndirect(bManager.getBuffer(_dispatchBufferForEmiterA), 0);
+		cmd.dispatchIndirect(bufferManager.getBuffer(_dispatchBufferForEmiterA), 0);
 	}
 	else
 	{
-		cmd.dispatchIndirect(bManager.getBuffer(_dispatchBufferForEmiterB), 0);
+		cmd.dispatchIndirect(bufferManager.getBuffer(_dispatchBufferForEmiterB), 0);
 	}
 
 	vk::MemoryBarrier2 renderReadyBarrier;
@@ -158,75 +158,75 @@ void ParticleSystemComputePass::drawParticleCompute(vk::raii::CommandBuffer& cmd
 
 void ParticleSystemComputePass::onInit(Orhescyon::GeneralManager& gm)
 {
-	auto& pManager = *gm.getContextComponent<PipelineManagerContext, PipelineManagerComponent>()->pipelineManager;
-	auto& bManager = *gm.getContextComponent<BufferManagerContext, BufferManagerComponent>()->bufferManager;
-	auto& dManager = *gm.getContextComponent<DescriptorManagerContext, DescriptorManagerComponent>()->descriptorManager;
+	auto& pipelineManager = *gm.getContextComponent<PipelineManagerContext, PipelineManagerComponent>()->pipelineManager;
+	auto& bufferManager = *gm.getContextComponent<BufferManagerContext, BufferManagerComponent>()->bufferManager;
+	auto& descriptorManager = *gm.getContextComponent<DescriptorManagerContext, DescriptorManagerComponent>()->descriptorManager;
 	auto allocator = gm.getContextComponent<VMAllocatorContext, VMAllocatorComponent>()->allocator;
 
-	_dSetParticles = dManager.allocate("particleSystemSet", MAX_FRAMES_IN_FLIGHT);
+	_dSetParticles = descriptorManager.allocate("particleSystemSet", MAX_FRAMES_IN_FLIGHT);
 
-	_particlesBuffer = bManager.createBuffer(
+	_particlesBuffer = bufferManager.createBuffer(
 	    vk::MemoryPropertyFlagBits::eDeviceLocal, sizeof(ParticleProperties) * MAX_NUMBER_PARTICLES, 1,
 	    vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst);
 
 	_particlesStack =
-	    bManager.createBuffer(vk::MemoryPropertyFlagBits::eHostVisible, sizeof(uint32_t) * MAX_NUMBER_PARTICLES, 1,
+	    bufferManager.createBuffer(vk::MemoryPropertyFlagBits::eHostVisible, sizeof(uint32_t) * MAX_NUMBER_PARTICLES, 1,
 	                          vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst);
 
 	_emitersData =
-	    bManager.createBuffer(vk::MemoryPropertyFlagBits::eHostVisible, sizeof(EmiterData) * MAX_NUMBER_EMITERS, 1,
+	    bufferManager.createBuffer(vk::MemoryPropertyFlagBits::eHostVisible, sizeof(EmiterData) * MAX_NUMBER_EMITERS, 1,
 	                          vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst);
 
 	_dispatchBuffer =
-	    bManager.createBuffer(vk::MemoryPropertyFlagBits::eHostVisible, sizeof(DispatchIndirect), 1,
+	    bufferManager.createBuffer(vk::MemoryPropertyFlagBits::eHostVisible, sizeof(DispatchIndirect), 1,
 	                          vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eIndirectBuffer |
 	                              vk::BufferUsageFlagBits::eTransferDst);
 	_indirectBuffer =
-	    bManager.createBuffer(vk::MemoryPropertyFlagBits::eDeviceLocal, sizeof(DrawIndirect), MAX_FRAMES_IN_FLIGHT,
+	    bufferManager.createBuffer(vk::MemoryPropertyFlagBits::eDeviceLocal, sizeof(DrawIndirect), MAX_FRAMES_IN_FLIGHT,
 	                          vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eIndirectBuffer |
 	                              vk::BufferUsageFlagBits::eTransferDst);
 	_aliveIndicesBufferA =
-	    bManager.createBuffer(vk::MemoryPropertyFlagBits::eDeviceLocal, sizeof(uint32_t) * MAX_NUMBER_PARTICLES, 1,
+	    bufferManager.createBuffer(vk::MemoryPropertyFlagBits::eDeviceLocal, sizeof(uint32_t) * MAX_NUMBER_PARTICLES, 1,
 	                          vk::BufferUsageFlagBits::eStorageBuffer);
 	_aliveIndicesBufferB =
-	    bManager.createBuffer(vk::MemoryPropertyFlagBits::eDeviceLocal, sizeof(uint32_t) * MAX_NUMBER_PARTICLES, 1,
+	    bufferManager.createBuffer(vk::MemoryPropertyFlagBits::eDeviceLocal, sizeof(uint32_t) * MAX_NUMBER_PARTICLES, 1,
 	                          vk::BufferUsageFlagBits::eStorageBuffer);
 
 	_dispatchBufferForEmiterA =
-	    bManager.createBuffer(vk::MemoryPropertyFlagBits::eDeviceLocal, sizeof(DispatchIndirect), 1,
+	    bufferManager.createBuffer(vk::MemoryPropertyFlagBits::eDeviceLocal, sizeof(DispatchIndirect), 1,
 	                          vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eIndirectBuffer |
 	                              vk::BufferUsageFlagBits::eTransferDst);
 
 	_dispatchBufferForEmiterB =
-	    bManager.createBuffer(vk::MemoryPropertyFlagBits::eDeviceLocal, sizeof(DispatchIndirect), 1,
+	    bufferManager.createBuffer(vk::MemoryPropertyFlagBits::eDeviceLocal, sizeof(DispatchIndirect), 1,
 	                          vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eIndirectBuffer |
 	                              vk::BufferUsageFlagBits::eTransferDst);
 	_particlesMetadata =
-	    bManager.createBuffer(vk::MemoryPropertyFlagBits::eHostVisible, sizeof(ParticlesMetadata), 1,
+	    bufferManager.createBuffer(vk::MemoryPropertyFlagBits::eHostVisible, sizeof(ParticlesMetadata), 1,
 	                          vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst);
 
 	for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
 	{
-		dManager.update(_dSetParticles, 0, i, vk::DescriptorType::eStorageBuffer,
-		                bManager.getBuffer(_particlesBuffer));
-		dManager.update(_dSetParticles, 1, i, vk::DescriptorType::eStorageBuffer,
-		                bManager.getBuffer(_particlesStack));
-		dManager.update(_dSetParticles, 2, i, vk::DescriptorType::eStorageBuffer,
-		                bManager.getBuffer(_emitersData));
-		dManager.update(_dSetParticles, 3, i, vk::DescriptorType::eStorageBuffer,
-		                bManager.getBuffer(_dispatchBuffer));
-		dManager.update(_dSetParticles, 4, i, vk::DescriptorType::eStorageBuffer,
-		                bManager.getBuffer(_indirectBuffer, i));
-		dManager.update(_dSetParticles, 5, i, vk::DescriptorType::eStorageBuffer,
-		                bManager.getBuffer(_aliveIndicesBufferA));
-		dManager.update(_dSetParticles, 6, i, vk::DescriptorType::eStorageBuffer,
-		                bManager.getBuffer(_aliveIndicesBufferB));
-		dManager.update(_dSetParticles, 7, i, vk::DescriptorType::eStorageBuffer,
-		                bManager.getBuffer(_dispatchBufferForEmiterA));
-		dManager.update(_dSetParticles, 8, i, vk::DescriptorType::eStorageBuffer,
-		                bManager.getBuffer(_dispatchBufferForEmiterB));
-		dManager.update(_dSetParticles, 9, i, vk::DescriptorType::eStorageBuffer,
-		                bManager.getBuffer(_particlesMetadata));
+		descriptorManager.update(_dSetParticles, 0, i, vk::DescriptorType::eStorageBuffer,
+		                bufferManager.getBuffer(_particlesBuffer));
+		descriptorManager.update(_dSetParticles, 1, i, vk::DescriptorType::eStorageBuffer,
+		                bufferManager.getBuffer(_particlesStack));
+		descriptorManager.update(_dSetParticles, 2, i, vk::DescriptorType::eStorageBuffer,
+		                bufferManager.getBuffer(_emitersData));
+		descriptorManager.update(_dSetParticles, 3, i, vk::DescriptorType::eStorageBuffer,
+		                bufferManager.getBuffer(_dispatchBuffer));
+		descriptorManager.update(_dSetParticles, 4, i, vk::DescriptorType::eStorageBuffer,
+		                bufferManager.getBuffer(_indirectBuffer, i));
+		descriptorManager.update(_dSetParticles, 5, i, vk::DescriptorType::eStorageBuffer,
+		                bufferManager.getBuffer(_aliveIndicesBufferA));
+		descriptorManager.update(_dSetParticles, 6, i, vk::DescriptorType::eStorageBuffer,
+		                bufferManager.getBuffer(_aliveIndicesBufferB));
+		descriptorManager.update(_dSetParticles, 7, i, vk::DescriptorType::eStorageBuffer,
+		                bufferManager.getBuffer(_dispatchBufferForEmiterA));
+		descriptorManager.update(_dSetParticles, 8, i, vk::DescriptorType::eStorageBuffer,
+		                bufferManager.getBuffer(_dispatchBufferForEmiterB));
+		descriptorManager.update(_dSetParticles, 9, i, vk::DescriptorType::eStorageBuffer,
+		                bufferManager.getBuffer(_particlesMetadata));
 	}
 
 	auto& vulkanDevice = *gm.getContextComponent<MainVulkanDeviceContext, VulkanDeviceComponent>()->vulkanDeviceInstance;
@@ -257,7 +257,7 @@ void ParticleSystemComputePass::onInit(Orhescyon::GeneralManager& gm)
 	copyRegion.dstOffset = 0;
 	copyRegion.size = sizeof(uint32_t) * MAX_NUMBER_PARTICLES;
 
-	cmd.copyBuffer(vk::Buffer(staging.buffer), bManager.getBuffer(_particlesStack), copyRegion);
+	cmd.copyBuffer(vk::Buffer(staging.buffer), bufferManager.getBuffer(_particlesStack), copyRegion);
 
 	// Particles
 	vk::BufferCopy copyRegionParticles;
@@ -265,7 +265,7 @@ void ParticleSystemComputePass::onInit(Orhescyon::GeneralManager& gm)
 	copyRegionParticles.dstOffset = 0;
 	copyRegionParticles.size = sizeof(ParticleProperties) * MAX_NUMBER_PARTICLES;
 
-	cmd.copyBuffer(vk::Buffer(stagingParticles.buffer), bManager.getBuffer(_particlesBuffer),
+	cmd.copyBuffer(vk::Buffer(stagingParticles.buffer), bufferManager.getBuffer(_particlesBuffer),
 	               copyRegionParticles);
 
 	// dispatch. For some reason cant use updateBuffer for this one, maybe because of the size of the buffer or
@@ -281,19 +281,19 @@ void ParticleSystemComputePass::onInit(Orhescyon::GeneralManager& gm)
 	copyRegionDispatch.dstOffset = 0;
 	copyRegionDispatch.size = sizeof(DispatchIndirect);
 
-	cmd.copyBuffer(vk::Buffer(stagingDispatch.buffer), bManager.getBuffer(_dispatchBuffer),
+	cmd.copyBuffer(vk::Buffer(stagingDispatch.buffer), bufferManager.getBuffer(_dispatchBuffer),
 	               copyRegionDispatch);
 
 	// Dispatch for emiter
 	DispatchIndirect initialDispatchForEmiter = {.x = 0, .y = 1, .z = 1, .spawnCount = 0};
 	for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
 	{
-		cmd.updateBuffer(bManager.getBuffer(_dispatchBufferForEmiterA), 0,
+		cmd.updateBuffer(bufferManager.getBuffer(_dispatchBufferForEmiterA), 0,
 		                 vk::ArrayProxy<const DispatchIndirect>(1, &initialDispatchForEmiter));
 	}
 	for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
 	{
-		cmd.updateBuffer(bManager.getBuffer(_dispatchBufferForEmiterB), 0,
+		cmd.updateBuffer(bufferManager.getBuffer(_dispatchBufferForEmiterB), 0,
 		                 vk::ArrayProxy<const DispatchIndirect>(1, &initialDispatchForEmiter));
 	}
 	VulkanUtils::endSingleTimeCommands(cmd, vulkanDevice);
@@ -310,7 +310,7 @@ void ParticleSystemComputePass::onInit(Orhescyon::GeneralManager& gm)
 	// Metadata
 	ParticlesMetadata initialParticlesMetadata = {
 	    .bottomOfStack = 0, .maxNumberOfPatricles = MAX_NUMBER_PARTICLES, .numberOfEmiters = MAX_NUMBER_EMITERS};
-	cmd.updateBuffer(bManager.getBuffer(_particlesMetadata), 0,
+	cmd.updateBuffer(bufferManager.getBuffer(_particlesMetadata), 0,
 	                 vk::ArrayProxy<const ParticlesMetadata>(1, &initialParticlesMetadata));
 
 	VulkanUtils::endSingleTimeCommands(cmd, vulkanDevice);
@@ -321,19 +321,19 @@ void ParticleSystemComputePass::onInit(Orhescyon::GeneralManager& gm)
 	DrawIndirect initialDraw = {.vertexCount = 6, .instanceCount = 0, .firstVertex = 0, .firstInstance = 0};
 	for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
 	{
-		cmd.updateBuffer(bManager.getBuffer(_indirectBuffer, i), 0,
+		cmd.updateBuffer(bufferManager.getBuffer(_indirectBuffer, i), 0,
 		                 vk::ArrayProxy<const DrawIndirect>(1, &initialDraw));
 	}
 	VulkanUtils::endSingleTimeCommands(cmd, vulkanDevice);
 
-	pManager.build(PipelineDescription{
+	pipelineManager.build(PipelineDescription{
 	    .isCompute = true,
 	    .shaderPath = "particles_spawner.spv",
 	    .setLayoutNames = {"particleSystemSet"},
 	    .pushConstants = {{vk::ShaderStageFlagBits::eCompute, 0, sizeof(uint32_t)}},
 	});
 
-	pManager.build(PipelineDescription{
+	pipelineManager.build(PipelineDescription{
 	    .isCompute = true,
 	    .shaderPath = "particles_emiter.spv",
 	    .setLayoutNames = {"particleSystemSet"},
@@ -348,13 +348,13 @@ void ParticleSystemComputePass::onInit(Orhescyon::GeneralManager& gm)
 
 void ParticleSystemComputePass::addToGraph(Orhescyon::GeneralManager& gm, RenderGraph& rg, uint32_t frame)
 {
-	auto& dManager = *gm.getContextComponent<DescriptorManagerContext, DescriptorManagerComponent>();
-	auto& bManager = *gm.getContextComponent<BufferManagerContext, BufferManagerComponent>()->bufferManager;
-	auto& pManager = *gm.getContextComponent<PipelineManagerContext, PipelineManagerComponent>()->pipelineManager;
+	auto& descriptorManager = *gm.getContextComponent<DescriptorManagerContext, DescriptorManagerComponent>();
+	auto& bufferManager = *gm.getContextComponent<BufferManagerContext, BufferManagerComponent>()->bufferManager;
+	auto& pipelineManager = *gm.getContextComponent<PipelineManagerContext, PipelineManagerComponent>()->pipelineManager;
 	uint32_t totalFrames = gm.getContextComponent<CurrentFrameContext, CurrentFrameComponent>()->frameNumber;
 	float deltaTime = gm.getContextComponent<DeltaTimeContext, DeltaTimeComponent>()->deltaTime;
 
 	rg.addPass("ParticleSystemCompute", {.isCompute = true}, {}, {},
 	           [&, frame, totalFrames, deltaTime](vk::raii::CommandBuffer& cmd)
-	           { drawParticleCompute(cmd, frame, dManager, bManager, pManager, totalFrames, deltaTime); });
+	           { drawParticleCompute(cmd, frame, descriptorManager, bufferManager, pipelineManager, totalFrames, deltaTime); });
 }

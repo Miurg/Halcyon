@@ -119,7 +119,7 @@ void TextureUploader::uploadHdrTextureFromBuffer(const float* pixels, int texWid
 	VulkanUtils::destroyStagingBuffer(staging, allocator);
 }
 
-void TextureUploader::uploadHdrTextureFromFile(const char* texturePath, Texture& texture, TextureManager& tManager,
+void TextureUploader::uploadHdrTextureFromFile(const char* texturePath, Texture& texture, TextureManager& textureManager,
                                                VmaAllocator& allocator, VulkanDevice& vulkanDevice)
 {
 	int hdrWidth, hdrHeight, hdrChannels;
@@ -147,12 +147,12 @@ void TextureUploader::uploadHdrTextureFromFile(const char* texturePath, Texture&
 	desc.usage = vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eTransferDst |
 	             vk::ImageUsageFlagBits::eSampled;
 	desc.mipLevels = mipLevels;
-	tManager.createImage(texture, desc);
+	textureManager.createImage(texture, desc);
 
 	uploadHdrTextureFromBuffer(hdrPixels, hdrWidth, hdrHeight, texture, allocator, vulkanDevice);
 
-	tManager.createImageView(texture, vk::Format::eR32G32B32A32Sfloat, vk::ImageAspectFlagBits::eColor);
-	tManager.createSampler(texture, samplerPresets::texture());
+	textureManager.createImageView(texture, vk::Format::eR32G32B32A32Sfloat, vk::ImageAspectFlagBits::eColor);
+	textureManager.createSampler(texture, samplerPresets::texture());
 
 	if (freePixels)
 	{
@@ -161,7 +161,7 @@ void TextureUploader::uploadHdrTextureFromFile(const char* texturePath, Texture&
 }
 
 void TextureUploader::uploadKtxTextureData(const unsigned char* ktxData, size_t dataSize, Texture& texture,
-                                           TextureManager& tManager, bool isSrgb,
+                                           TextureManager& textureManager, bool isSrgb,
                                            VmaAllocator& allocator, VulkanDevice& vulkanDevice)
 {
 	ktxTexture2* ktxTex = nullptr;
@@ -195,7 +195,7 @@ void TextureUploader::uploadKtxTextureData(const unsigned char* ktxData, size_t 
 	desc.mipLevels = mipLevels;
 	try
 	{
-		tManager.createImage(texture, desc);
+		textureManager.createImage(texture, desc);
 	}
 	catch (...)
 	{

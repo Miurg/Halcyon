@@ -41,17 +41,17 @@ void PlaceholdersInit::initPlaceholders(GeneralManager& gm)
 	std::cout << "GRAPHICSINIT::PLACEHOLDERENTITYS::Start creating placeholder entities" << std::endl;
 #endif //_DEBUG
 #pragma region Fetch Contexts
-	DescriptorManager* dManager =
+	DescriptorManager* descriptorManager =
 	    gm.getContextComponent<DescriptorManagerContext, DescriptorManagerComponent>()->descriptorManager;
-	BufferManager* bManager = gm.getContextComponent<BufferManagerContext, BufferManagerComponent>()->bufferManager;
-	TextureManager* tManager = gm.getContextComponent<TextureManagerContext, TextureManagerComponent>()->textureManager;
+	BufferManager* bufferManager = gm.getContextComponent<BufferManagerContext, BufferManagerComponent>()->bufferManager;
+	TextureManager* textureManager = gm.getContextComponent<TextureManagerContext, TextureManagerComponent>()->textureManager;
 	BindlessTextureDSetComponent* bTextureDSetComponent =
 	    gm.getContextComponent<MainDSetsContext, BindlessTextureDSetComponent>();
 	GlobalDSetComponent* globalDSetComponent = gm.getContextComponent<MainDSetsContext, GlobalDSetComponent>();
 	VulkanDevice* vulkanDevice =
 	    gm.getContextComponent<MainVulkanDeviceContext, VulkanDeviceComponent>()->vulkanDeviceInstance;
 	VmaAllocator allocator = gm.getContextComponent<VMAllocatorContext, VMAllocatorComponent>()->allocator;
-	PipelineManager& pManager =
+	PipelineManager& pipelineManager =
 	    *gm.getContextComponent<PipelineManagerContext, PipelineManagerComponent>()->pipelineManager;
 #pragma endregion
 
@@ -82,7 +82,7 @@ void PlaceholdersInit::initPlaceholders(GeneralManager& gm)
 	gm.registerContext<SunContext>(directLightEntity);
 	CameraComponent* directLightCamera = gm.getContextComponent<SunContext, CameraComponent>();
 	DirectLightComponent* directLight = gm.getContextComponent<SunContext, DirectLightComponent>();
-	directLight->textureShadowImage = TextureFactory::createShadowMap(*tManager, directLight->sizeX, directLight->sizeY);
+	directLight->textureShadowImage = TextureFactory::createShadowMap(*textureManager, directLight->sizeX, directLight->sizeY);
 
 #pragma endregion
 	// === Graphics Settings ===
@@ -108,37 +108,37 @@ void PlaceholdersInit::initPlaceholders(GeneralManager& gm)
 	settings->appliedMsaaSamples = settings->msaaSamples;
 
 #pragma region Global Descriptor Set (Set 0)
-	globalDSetComponent->globalDSets = dManager->allocate("globalSet", MAX_FRAMES_IN_FLIGHT);
+	globalDSetComponent->globalDSets = descriptorManager->allocate("globalSet", MAX_FRAMES_IN_FLIGHT);
 
 	// Camera buffer
 	globalDSetComponent->cameraBuffers =
-	    bManager->createBuffer((vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal),
+	    bufferManager->createBuffer((vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal),
 	                           sizeof(CameraStructure), MAX_FRAMES_IN_FLIGHT,
 	                           vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst);
-	dManager->updateStorageBufferDescriptors(*bManager, globalDSetComponent->cameraBuffers,
+	descriptorManager->updateStorageBufferDescriptors(*bufferManager, globalDSetComponent->cameraBuffers,
 	                                         globalDSetComponent->globalDSets, Bindings::Global::Camera);
 
 	// Sun buffer
-	globalDSetComponent->sunCameraBuffers = bManager->createBuffer(
+	globalDSetComponent->sunCameraBuffers = bufferManager->createBuffer(
 	    (vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal),
 	    sizeof(DirectLightStructure), MAX_FRAMES_IN_FLIGHT, vk::BufferUsageFlagBits::eStorageBuffer);
-	dManager->updateStorageBufferDescriptors(*bManager, globalDSetComponent->sunCameraBuffers,
+	descriptorManager->updateStorageBufferDescriptors(*bufferManager, globalDSetComponent->sunCameraBuffers,
 	                                         globalDSetComponent->globalDSets, Bindings::Global::Sun);
 	// Point light buffer
-	globalDSetComponent->pointLightBuffers = bManager->createBuffer(
+	globalDSetComponent->pointLightBuffers = bufferManager->createBuffer(
 	    (vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal),
 	    sizeof(PointLightStructure) * 100, MAX_FRAMES_IN_FLIGHT, vk::BufferUsageFlagBits::eStorageBuffer);
-	dManager->updateStorageBufferDescriptors(*bManager, globalDSetComponent->pointLightBuffers,
+	descriptorManager->updateStorageBufferDescriptors(*bufferManager, globalDSetComponent->pointLightBuffers,
 	                                         globalDSetComponent->globalDSets, Bindings::Global::PointLights);
 	globalDSetComponent->pointLightCountBuffer =
-	    bManager->createBuffer((vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal),
+	    bufferManager->createBuffer((vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal),
 	                           sizeof(uint32_t), MAX_FRAMES_IN_FLIGHT, vk::BufferUsageFlagBits::eStorageBuffer);
-	dManager->updateStorageBufferDescriptors(*bManager, globalDSetComponent->pointLightCountBuffer,
+	descriptorManager->updateStorageBufferDescriptors(*bufferManager, globalDSetComponent->pointLightCountBuffer,
 	                                         globalDSetComponent->globalDSets, Bindings::Global::PointLightCount);
 
 	// SH Probe buffer.
 	globalDSetComponent->shProbeBuffer =
-	    bManager->createBuffer((vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal),
+	    bufferManager->createBuffer((vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal),
 	                           sizeof(SHProbeEntry) * MAX_SH_PROBES, 1,
 	                           vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst);
 	{
@@ -146,61 +146,61 @@ void PlaceholdersInit::initPlaceholders(GeneralManager& gm)
 		skyboxSlot.position = glm::vec3(0.0f);
 		skyboxSlot.influenceRadius = std::numeric_limits<float>::max();
 		auto cmd = VulkanUtils::beginSingleTimeCommands(*vulkanDevice);
-		cmd.updateBuffer(bManager->getBuffer(globalDSetComponent->shProbeBuffer), 0,
+		cmd.updateBuffer(bufferManager->getBuffer(globalDSetComponent->shProbeBuffer), 0,
 		                 vk::ArrayProxy<const SHProbeEntry>(1, &skyboxSlot));
 		VulkanUtils::endSingleTimeCommands(cmd, *vulkanDevice);
 	}
-	dManager->updateStorageBufferDescriptors(*bManager, globalDSetComponent->shProbeBuffer,
+	descriptorManager->updateStorageBufferDescriptors(*bufferManager, globalDSetComponent->shProbeBuffer,
 	                                         globalDSetComponent->globalDSets, Bindings::Global::SHProbes);
 
 	// SH grid info - slot 0 (skybox) always present, so initial probeCount = 1.
-	globalDSetComponent->shGridInfoBuffer = bManager->createBuffer(
+	globalDSetComponent->shGridInfoBuffer = bufferManager->createBuffer(
 	    (vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal), sizeof(SHGridInfo), 1,
 	    vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst);
-	dManager->updateStorageBufferDescriptors(*bManager, globalDSetComponent->shGridInfoBuffer,
+	descriptorManager->updateStorageBufferDescriptors(*bufferManager, globalDSetComponent->shGridInfoBuffer,
 	                                         globalDSetComponent->globalDSets, Bindings::Global::SHGridInfo);
 	{
 		SHGridInfo initialGridInfo{};
 		initialGridInfo.probeCount = 1u;
 		initialGridInfo.giBounceMultiplier = 1.0f;
 		auto cmd = VulkanUtils::beginSingleTimeCommands(*vulkanDevice);
-		cmd.updateBuffer(bManager->getBuffer(globalDSetComponent->shGridInfoBuffer), 0,
+		cmd.updateBuffer(bufferManager->getBuffer(globalDSetComponent->shGridInfoBuffer), 0,
 		                 vk::ArrayProxy<const SHGridInfo>(1, &initialGridInfo));
 		VulkanUtils::endSingleTimeCommands(cmd, *vulkanDevice);
 	}
 
 	// Reflection probes — box metadata + cubemap indices, refilled per frame by ReflectionProbeUpdateSystem.
-	globalDSetComponent->reflectionProbeBuffer = bManager->createBuffer(
+	globalDSetComponent->reflectionProbeBuffer = bufferManager->createBuffer(
 	    (vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal),
 	    sizeof(ReflectionProbeData) * MAX_REFLECTION_PROBES, MAX_FRAMES_IN_FLIGHT,
 	    vk::BufferUsageFlagBits::eStorageBuffer);
-	dManager->updateStorageBufferDescriptors(*bManager, globalDSetComponent->reflectionProbeBuffer,
+	descriptorManager->updateStorageBufferDescriptors(*bufferManager, globalDSetComponent->reflectionProbeBuffer,
 	                                         globalDSetComponent->globalDSets, Bindings::Global::ReflectionProbes);
 
-	globalDSetComponent->reflectionProbeCountBuffer = bManager->createBuffer(
+	globalDSetComponent->reflectionProbeCountBuffer = bufferManager->createBuffer(
 	    (vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal), sizeof(uint32_t),
 	    MAX_FRAMES_IN_FLIGHT, vk::BufferUsageFlagBits::eStorageBuffer);
-	dManager->updateStorageBufferDescriptors(*bManager, globalDSetComponent->reflectionProbeCountBuffer,
+	descriptorManager->updateStorageBufferDescriptors(*bufferManager, globalDSetComponent->reflectionProbeCountBuffer,
 	                                         globalDSetComponent->globalDSets, Bindings::Global::ReflectionProbeCount);
 	for (uint32_t frame = 0; frame < MAX_FRAMES_IN_FLIGHT; ++frame)
-		*bManager->getMapped<uint32_t>(globalDSetComponent->reflectionProbeCountBuffer, frame) = 0u;
+		*bufferManager->getMapped<uint32_t>(globalDSetComponent->reflectionProbeCountBuffer, frame) = 0u;
 #pragma endregion
 
 #pragma region Material & Texture System (Set 2)
-	bTextureDSetComponent->bindlessTextureSet = dManager->allocate("textureSet");
+	bTextureDSetComponent->bindlessTextureSet = descriptorManager->allocate("textureSet");
 
 	// Material Buffer
 	bTextureDSetComponent->materialBuffer =
-	    bManager->createBuffer((vk::MemoryPropertyFlagBits::eHostVisible), 10240 * sizeof(MaterialStructure), 1,
+	    bufferManager->createBuffer((vk::MemoryPropertyFlagBits::eHostVisible), 10240 * sizeof(MaterialStructure), 1,
 	                           vk::BufferUsageFlagBits::eStorageBuffer);
-	dManager->updateStorageBufferDescriptors(*bManager, bTextureDSetComponent->materialBuffer,
+	descriptorManager->updateStorageBufferDescriptors(*bufferManager, bTextureDSetComponent->materialBuffer,
 	                                         bTextureDSetComponent->bindlessTextureSet, 2);
 
 	// Shadow Map Texture Set (binding 1)
-	dManager->updateSingleTextureDSet(
+	descriptorManager->updateSingleTextureDSet(
 	    bTextureDSetComponent->bindlessTextureSet, 1,
-	    tManager->getTexture(directLight->textureShadowImage).textureImageView,
-	    tManager->getSampler(tManager->getTexture(directLight->textureShadowImage).samplerHandle));
+	    textureManager->getTexture(directLight->textureShadowImage).textureImageView,
+	    textureManager->getSampler(textureManager->getTexture(directLight->textureShadowImage).samplerHandle));
 
 	// Default White Texture
 	auto texturePtr = GltfLoader::createDefaultWhiteTexture();
@@ -208,8 +208,8 @@ void PlaceholdersInit::initPlaceholders(GeneralManager& gm)
 	int texHeight = texturePtr.get()->height;
 	auto data = texturePtr->pixels.data();
 	auto path = texturePtr.get()->name.c_str();
-	TextureFactory::generateTextureData(*tManager, *vulkanDevice, allocator, path, texWidth, texHeight, data,
-	                                    *bTextureDSetComponent, *dManager);
+	TextureFactory::generateTextureData(*textureManager, *vulkanDevice, allocator, path, texWidth, texHeight, data,
+	                                    *bTextureDSetComponent, *descriptorManager);
 
 	// White placeholder Skybox (can be replaced by SkyboxFactory::loadSkybox)
 	Orhescyon::Entity skyboxEntity = gm.createEntity();
@@ -218,15 +218,15 @@ void PlaceholdersInit::initPlaceholders(GeneralManager& gm)
 	gm.registerContext<SkyBoxContext>(skyboxEntity);
 	SkyboxComponent* skybox = gm.getContextComponent<SkyBoxContext, SkyboxComponent>();
 
-	TextureHandle whiteCubemapHandle{tManager->allocateTextureSlot()};
-	Texture& whiteCubemap = tManager->getTexture(whiteCubemapHandle);
-	tManager->createImage(whiteCubemap,
+	TextureHandle whiteCubemapHandle{textureManager->allocateTextureSlot()};
+	Texture& whiteCubemap = textureManager->getTexture(whiteCubemapHandle);
+	textureManager->createImage(whiteCubemap,
 	                      imagePresets::cubemap(1, vk::Format::eR32G32B32A32Sfloat,
 	                                            vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst |
 	                                                vk::ImageUsageFlagBits::eStorage));
-	tManager->createImageView(whiteCubemap, vk::Format::eR32G32B32A32Sfloat, vk::ImageAspectFlagBits::eColor,
+	textureManager->createImageView(whiteCubemap, vk::Format::eR32G32B32A32Sfloat, vk::ImageAspectFlagBits::eColor,
 	                          vk::ImageViewType::eCube);
-	tManager->createSampler(whiteCubemap, samplerPresets::cubemap());
+	textureManager->createSampler(whiteCubemap, samplerPresets::cubemap());
 
 	// Transition cubemap to shader-read layout so it's valid for sampling
 	{
@@ -238,23 +238,23 @@ void PlaceholdersInit::initPlaceholders(GeneralManager& gm)
 		VulkanUtils::endSingleTimeCommands(cmd, *vulkanDevice);
 	}
 
-	dManager->update(bTextureDSetComponent->bindlessTextureSet, Bindings::Textures::CubemapSampler, 0,
+	descriptorManager->update(bTextureDSetComponent->bindlessTextureSet, Bindings::Textures::CubemapSampler, 0,
 	                 vk::DescriptorType::eCombinedImageSampler, whiteCubemap.textureImageView,
-	                 tManager->getSampler(whiteCubemap.samplerHandle));
-	dManager->update(bTextureDSetComponent->bindlessTextureSet, Bindings::Textures::CubemapStorage, 0,
+	                 textureManager->getSampler(whiteCubemap.samplerHandle));
+	descriptorManager->update(bTextureDSetComponent->bindlessTextureSet, Bindings::Textures::CubemapStorage, 0,
 	                 vk::DescriptorType::eStorageImage, whiteCubemap.textureImageView, nullptr,
 	                 vk::ImageLayout::eGeneral);
 
-	dManager->update(bTextureDSetComponent->bindlessTextureSet, Bindings::Textures::PrefilteredMap, 0,
+	descriptorManager->update(bTextureDSetComponent->bindlessTextureSet, Bindings::Textures::PrefilteredMap, 0,
 	                 vk::DescriptorType::eCombinedImageSampler, whiteCubemap.textureImageView,
-	                 tManager->getSampler(whiteCubemap.samplerHandle));
-	dManager->update(bTextureDSetComponent->bindlessTextureSet, Bindings::Textures::BrdfLut, 0,
+	                 textureManager->getSampler(whiteCubemap.samplerHandle));
+	descriptorManager->update(bTextureDSetComponent->bindlessTextureSet, Bindings::Textures::BrdfLut, 0,
 	                 vk::DescriptorType::eCombinedImageSampler, whiteCubemap.textureImageView,
-	                 tManager->getSampler(whiteCubemap.samplerHandle));
+	                 textureManager->getSampler(whiteCubemap.samplerHandle));
 
 	// BRDF LUT - generated once, reused across all skybox changes
 	TextureHandle brdfLutHandle =
-	    EnvMapFactory::brdfLut(*tManager, *vulkanDevice, *dManager, *bTextureDSetComponent, pManager);
+	    EnvMapFactory::brdfLut(*textureManager, *vulkanDevice, *descriptorManager, *bTextureDSetComponent, pipelineManager);
 
 	skybox->cubemapTexture = whiteCubemapHandle;
 	skybox->prefilteredMap = whiteCubemapHandle;
@@ -264,49 +264,49 @@ void PlaceholdersInit::initPlaceholders(GeneralManager& gm)
 
 #pragma region Model & Frustum Culling Buffers (Set 1)
 	ModelDSetComponent* objectDSetComponent = gm.getContextComponent<MainDSetsContext, ModelDSetComponent>();
-	objectDSetComponent->modelBufferDSet = dManager->allocate("modelSet", MAX_FRAMES_IN_FLIGHT);
-	objectDSetComponent->bakeModelDSet = dManager->allocate("modelSet", 1);
+	objectDSetComponent->modelBufferDSet = descriptorManager->allocate("modelSet", MAX_FRAMES_IN_FLIGHT);
+	objectDSetComponent->bakeModelDSet = descriptorManager->allocate("modelSet", 1);
 
 	objectDSetComponent->primitiveBuffer =
-	    bManager->createBuffer((vk::MemoryPropertyFlagBits::eHostVisible), 10240 * sizeof(PrimitiveSctructure),
+	    bufferManager->createBuffer((vk::MemoryPropertyFlagBits::eHostVisible), 10240 * sizeof(PrimitiveSctructure),
 	                           MAX_FRAMES_IN_FLIGHT, vk::BufferUsageFlagBits::eStorageBuffer);
-	dManager->updateStorageBufferDescriptors(*bManager, objectDSetComponent->primitiveBuffer,
+	descriptorManager->updateStorageBufferDescriptors(*bufferManager, objectDSetComponent->primitiveBuffer,
 	                                         objectDSetComponent->modelBufferDSet, 0);
 
 	objectDSetComponent->transformBuffer =
-	    bManager->createBuffer((vk::MemoryPropertyFlagBits::eHostVisible), 10240 * sizeof(TransformStructure),
+	    bufferManager->createBuffer((vk::MemoryPropertyFlagBits::eHostVisible), 10240 * sizeof(TransformStructure),
 	                           MAX_FRAMES_IN_FLIGHT, vk::BufferUsageFlagBits::eStorageBuffer);
-	dManager->updateStorageBufferDescriptors(*bManager, objectDSetComponent->transformBuffer,
+	descriptorManager->updateStorageBufferDescriptors(*bufferManager, objectDSetComponent->transformBuffer,
 	                                         objectDSetComponent->modelBufferDSet, 1);
 
 	objectDSetComponent->indirectDrawBuffer =
-	    bManager->createBuffer((vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal),
+	    bufferManager->createBuffer((vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal),
 	                           sizeof(IndirectDrawStructure) * 10240, MAX_FRAMES_IN_FLIGHT,
 	                           vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eIndirectBuffer |
 	                               vk::BufferUsageFlagBits::eTransferDst);
-	dManager->updateStorageBufferDescriptors(*bManager, objectDSetComponent->indirectDrawBuffer,
+	descriptorManager->updateStorageBufferDescriptors(*bufferManager, objectDSetComponent->indirectDrawBuffer,
 	                                         objectDSetComponent->modelBufferDSet, 2);
 
 	objectDSetComponent->visibleIndicesBuffer =
-	    bManager->createBuffer((vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal),
+	    bufferManager->createBuffer((vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal),
 	                           sizeof(uint32_t) * 10240, MAX_FRAMES_IN_FLIGHT, vk::BufferUsageFlagBits::eStorageBuffer);
-	dManager->updateStorageBufferDescriptors(*bManager, objectDSetComponent->visibleIndicesBuffer,
+	descriptorManager->updateStorageBufferDescriptors(*bufferManager, objectDSetComponent->visibleIndicesBuffer,
 	                                         objectDSetComponent->modelBufferDSet, 3);
 
 	objectDSetComponent->compactedDrawBuffer =
-	    bManager->createBuffer((vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal),
+	    bufferManager->createBuffer((vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal),
 	                           sizeof(IndirectDrawStructure) * 10240, MAX_FRAMES_IN_FLIGHT,
 	                           vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eIndirectBuffer |
 	                               vk::BufferUsageFlagBits::eTransferDst);
-	dManager->updateStorageBufferDescriptors(*bManager, objectDSetComponent->compactedDrawBuffer,
+	descriptorManager->updateStorageBufferDescriptors(*bufferManager, objectDSetComponent->compactedDrawBuffer,
 	                                         objectDSetComponent->modelBufferDSet, 4);
 
 	objectDSetComponent->drawCountBuffer =
-	    bManager->createBuffer((vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal),
+	    bufferManager->createBuffer((vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal),
 	                           sizeof(uint32_t) * 10240, MAX_FRAMES_IN_FLIGHT,
 	                           vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eIndirectBuffer |
 	                               vk::BufferUsageFlagBits::eTransferDst);
-	dManager->updateStorageBufferDescriptors(*bManager, objectDSetComponent->drawCountBuffer,
+	descriptorManager->updateStorageBufferDescriptors(*bufferManager, objectDSetComponent->drawCountBuffer,
 	                                         objectDSetComponent->modelBufferDSet, 5);
 #pragma endregion
 

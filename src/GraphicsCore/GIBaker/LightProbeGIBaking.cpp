@@ -103,32 +103,32 @@ static void ensureBakeBuffers(const BakeContext& ctx)
 {
 	if (ctx.modelDSet->bakeBuffersReady) return;
 
-	BufferManager& bManager = *ctx.bufferManager;
+	BufferManager& bufferManager = *ctx.bufferManager;
 	const auto memoryProps = vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal;
 
 	ctx.modelDSet->bakeIndirectDrawBuffer =
-	    bManager.createBuffer(memoryProps, sizeof(IndirectDrawStructure) * kBakeMaxDrawCommands * kBakeRegionCount, 1,
+	    bufferManager.createBuffer(memoryProps, sizeof(IndirectDrawStructure) * kBakeMaxDrawCommands * kBakeRegionCount, 1,
 	                          vk::BufferUsageFlagBits::eStorageBuffer);
 	ctx.modelDSet->bakeVisibleIndicesBuffer =
-	    bManager.createBuffer(memoryProps, sizeof(uint32_t) * kBakeMaxDrawCommands * kBakeRegionCount, 1,
+	    bufferManager.createBuffer(memoryProps, sizeof(uint32_t) * kBakeMaxDrawCommands * kBakeRegionCount, 1,
 	                          vk::BufferUsageFlagBits::eStorageBuffer);
 	ctx.modelDSet->bakeCompactedDrawBuffer =
-	    bManager.createBuffer(memoryProps, sizeof(IndirectDrawStructure) * kBakeMaxDrawCommands * kBakeRegionCount, 1,
+	    bufferManager.createBuffer(memoryProps, sizeof(IndirectDrawStructure) * kBakeMaxDrawCommands * kBakeRegionCount, 1,
 	                          vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eIndirectBuffer);
 	ctx.modelDSet->bakeDrawCountBuffer =
-	    bManager.createBuffer(memoryProps, sizeof(uint32_t) * 6 * kBakeRegionCount, 1,
+	    bufferManager.createBuffer(memoryProps, sizeof(uint32_t) * 6 * kBakeRegionCount, 1,
 	                          vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eIndirectBuffer);
 
-	DescriptorManager& dManager = *ctx.descriptorManagerComponent->descriptorManager;
-	dManager.updateStorageBufferDescriptors(bManager, ctx.modelDSet->primitiveBuffer, ctx.modelDSet->bakeModelDSet, 0);
-	dManager.updateStorageBufferDescriptors(bManager, ctx.modelDSet->transformBuffer, ctx.modelDSet->bakeModelDSet, 1);
-	dManager.updateStorageBufferDescriptors(bManager, ctx.modelDSet->bakeIndirectDrawBuffer,
+	DescriptorManager& descriptorManager = *ctx.descriptorManagerComponent->descriptorManager;
+	descriptorManager.updateStorageBufferDescriptors(bufferManager, ctx.modelDSet->primitiveBuffer, ctx.modelDSet->bakeModelDSet, 0);
+	descriptorManager.updateStorageBufferDescriptors(bufferManager, ctx.modelDSet->transformBuffer, ctx.modelDSet->bakeModelDSet, 1);
+	descriptorManager.updateStorageBufferDescriptors(bufferManager, ctx.modelDSet->bakeIndirectDrawBuffer,
 	                                        ctx.modelDSet->bakeModelDSet, 2);
-	dManager.updateStorageBufferDescriptors(bManager, ctx.modelDSet->bakeVisibleIndicesBuffer,
+	descriptorManager.updateStorageBufferDescriptors(bufferManager, ctx.modelDSet->bakeVisibleIndicesBuffer,
 	                                        ctx.modelDSet->bakeModelDSet, 3);
-	dManager.updateStorageBufferDescriptors(bManager, ctx.modelDSet->bakeCompactedDrawBuffer,
+	descriptorManager.updateStorageBufferDescriptors(bufferManager, ctx.modelDSet->bakeCompactedDrawBuffer,
 	                                        ctx.modelDSet->bakeModelDSet, 4);
-	dManager.updateStorageBufferDescriptors(bManager, ctx.modelDSet->bakeDrawCountBuffer, ctx.modelDSet->bakeModelDSet,
+	descriptorManager.updateStorageBufferDescriptors(bufferManager, ctx.modelDSet->bakeDrawCountBuffer, ctx.modelDSet->bakeModelDSet,
 	                                        5);
 
 	ctx.modelDSet->bakeBuffersReady = true;
@@ -151,7 +151,7 @@ static void computeToComputeBarrier(vk::raii::CommandBuffer& cmd)
 static void recordChunkCull(vk::raii::CommandBuffer& cmd, const BakeContext& ctx, uint32_t firstProbeLinear,
                             uint32_t probesInChunk)
 {
-	DescriptorManager& dManager = *ctx.descriptorManagerComponent->descriptorManager;
+	DescriptorManager& descriptorManager = *ctx.descriptorManagerComponent->descriptorManager;
 	const uint32_t regions = probesInChunk * 6u;
 	const uint32_t drawCount = ctx.drawInfo->totalDrawCount;
 	const uint32_t objectCount = ctx.drawInfo->totalObjectCount;
@@ -161,9 +161,9 @@ static void recordChunkCull(vk::raii::CommandBuffer& cmd, const BakeContext& ctx
 		auto& pip = ctx.pipelineManager->pipelines["gi_bake_reset"];
 		cmd.bindPipeline(vk::PipelineBindPoint::eCompute, *pip.pipeline);
 		cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute, *pip.layout, 0,
-		                       dManager.getSet(ctx.modelDSet->modelBufferDSet, 0), nullptr);
+		                       descriptorManager.getSet(ctx.modelDSet->modelBufferDSet, 0), nullptr);
 		cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute, *pip.layout, 1,
-		                       dManager.getSet(ctx.modelDSet->bakeModelDSet), nullptr);
+		                       descriptorManager.getSet(ctx.modelDSet->bakeModelDSet), nullptr);
 		struct ResetPush
 		{
 			uint32_t drawCommandCount;
@@ -180,9 +180,9 @@ static void recordChunkCull(vk::raii::CommandBuffer& cmd, const BakeContext& ctx
 		auto& pip = ctx.pipelineManager->pipelines["gi_bake_cull"];
 		cmd.bindPipeline(vk::PipelineBindPoint::eCompute, *pip.pipeline);
 		cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute, *pip.layout, 0,
-		                       dManager.getSet(ctx.globalDSet->globalDSets, 0), nullptr);
+		                       descriptorManager.getSet(ctx.globalDSet->globalDSets, 0), nullptr);
 		cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute, *pip.layout, 1,
-		                       dManager.getSet(ctx.modelDSet->bakeModelDSet), nullptr);
+		                       descriptorManager.getSet(ctx.modelDSet->bakeModelDSet), nullptr);
 		struct CullPush
 		{
 			uint32_t objectCount;
@@ -200,7 +200,7 @@ static void recordChunkCull(vk::raii::CommandBuffer& cmd, const BakeContext& ctx
 		auto& pip = ctx.pipelineManager->pipelines["gi_bake_compaction"];
 		cmd.bindPipeline(vk::PipelineBindPoint::eCompute, *pip.pipeline);
 		cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute, *pip.layout, 0,
-		                       dManager.getSet(ctx.modelDSet->bakeModelDSet), nullptr);
+		                       descriptorManager.getSet(ctx.modelDSet->bakeModelDSet), nullptr);
 		struct CompactionPush
 		{
 			uint32_t drawCommandCount;

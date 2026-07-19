@@ -36,13 +36,13 @@ struct MaterialMaps
 class GltfLoader
 {
 public:
-	static int loadModelFromFile(const char path[MAX_PATH_LEN], int vertexIndexBInt, BufferManager& bManager,
-	                             BindlessTextureDSetComponent& dSetComponent, DescriptorManager& dManager,
-	                             tinygltf::Model& model, TextureManager& tManager, ModelManager& mManager,
+	static int loadModelFromFile(const char path[MAX_PATH_LEN], int vertexIndexBInt, BufferManager& bufferManager,
+	                             BindlessTextureDSetComponent& dSetComponent, DescriptorManager& descriptorManager,
+	                             tinygltf::Model& model, TextureManager& textureManager, ModelManager& modelManager,
 	                             VulkanDevice& vulkanDevice, VmaAllocator allocator);
-	static MaterialMaps materialsParser(tinygltf::Model& model, TextureManager& tManager,
-	                                    BindlessTextureDSetComponent& dSetComponent, DescriptorManager& dManager,
-	                                    BufferManager& bManager, const char* filePath, VulkanDevice& vulkanDevice,
+	static MaterialMaps materialsParser(tinygltf::Model& model, TextureManager& textureManager,
+	                                    BindlessTextureDSetComponent& dSetComponent, DescriptorManager& descriptorManager,
+	                                    BufferManager& bufferManager, const char* filePath, VulkanDevice& vulkanDevice,
 	                                    VmaAllocator allocator);
 	static std::vector<PrimitivesInfo> primitiveParser(tinygltf::Mesh& mesh, std::vector<Vertex>& outVertices,
 	                                                   std::vector<uint32_t>& outIndices, tinygltf::Model& model,
@@ -53,7 +53,7 @@ public:
 private:
 	static int loadMaterialTexture(tinygltf::Model& model, const std::map<std::string, tinygltf::Parameter>& params,
 	                               const char* paramName, bool isSrgb, int fallback, const char* filePath,
-	                               std::vector<int>& ownedTextures, TextureManager& tManager,
-	                               BindlessTextureDSetComponent& dSetComponent, DescriptorManager& dManager,
+	                               std::vector<int>& ownedTextures, TextureManager& textureManager,
+	                               BindlessTextureDSetComponent& dSetComponent, DescriptorManager& descriptorManager,
 	                               VulkanDevice& vulkanDevice, VmaAllocator allocator);
 };

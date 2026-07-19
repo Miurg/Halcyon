@@ -14,8 +14,8 @@ public:
 	void addToGraph(Orhescyon::GeneralManager& gm, RenderGraph& rg, uint32_t frame) override;
 
 private:
-	void drawParticlRender(vk::raii::CommandBuffer& cmd, uint32_t frame, DescriptorManagerComponent& dManager,
-	                       BufferManager& bManager, PipelineManager& pManager, GlobalDSetComponent& globalDSetComponent,
+	void drawParticlRender(vk::raii::CommandBuffer& cmd, uint32_t frame, DescriptorManagerComponent& descriptorManager,
+	                       BufferManager& bufferManager, PipelineManager& pipelineManager, GlobalDSetComponent& globalDSetComponent,
 	                       BufferHandle& indirectBuffer, uint32_t totalFrames);
 	DSetHandle _dSetParticles;
 };

@@ -16,11 +16,11 @@ public:
 private:
 	static constexpr uint32_t kMipCount = 5;
 
-	void drawDownsample(vk::raii::CommandBuffer& cmd, DescriptorManagerComponent& dManager, DSetHandle dSetHandle,
-	                    PipelineManager& pManager, float texelSizeX, float texelSizeY, float threshold, float knee,
+	void drawDownsample(vk::raii::CommandBuffer& cmd, DescriptorManagerComponent& descriptorManager, DSetHandle dSetHandle,
+	                    PipelineManager& pipelineManager, float texelSizeX, float texelSizeY, float threshold, float knee,
 	                    int isFirstPass, vk::Extent2D extent);
-	void drawUpsample(vk::raii::CommandBuffer& cmd, DescriptorManagerComponent& dManager, DSetHandle dSetHandle,
-	                  PipelineManager& pManager, float texelSizeX, float texelSizeY, float blendFactor,
+	void drawUpsample(vk::raii::CommandBuffer& cmd, DescriptorManagerComponent& descriptorManager, DSetHandle dSetHandle,
+	                  PipelineManager& pipelineManager, float texelSizeX, float texelSizeY, float blendFactor,
 	                  vk::Extent2D extent);
 
 	DSetHandle _downsampleDsets[kMipCount];

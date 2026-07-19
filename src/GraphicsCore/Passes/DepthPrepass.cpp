@@ -28,8 +28,8 @@
 void DepthPrepass::declareStreams(Orhescyon::GeneralManager& gm, vk::SampleCountFlagBits samples)
 {
 	auto& rg = *gm.getContextComponent<RenderGraphContext, RenderGraphComponent>()->renderGraph;
-	auto& tManager = *gm.getContextComponent<TextureManagerContext, TextureManagerComponent>()->textureManager;
-	auto depthFormat = tManager.findBestFormat();
+	auto& textureManager = *gm.getContextComponent<TextureManagerContext, TextureManagerComponent>()->textureManager;
+	auto depthFormat = textureManager.findBestFormat();
 
 	rg.declareLogicalStream("Depth", {depthFormat, RGSizeMode::FullExtent, vk::ImageAspectFlagBits::eDepth});
 	rg.declareLogicalStream("ViewNormals",
@@ -42,11 +42,11 @@ void DepthPrepass::declareStreams(Orhescyon::GeneralManager& gm, vk::SampleCount
 
 void DepthPrepass::buildPipelines(Orhescyon::GeneralManager& gm, vk::SampleCountFlagBits samples, bool rebuild)
 {
-	auto& pManager = *gm.getContextComponent<PipelineManagerContext, PipelineManagerComponent>()->pipelineManager;
-	auto& tManager = *gm.getContextComponent<TextureManagerContext, TextureManagerComponent>()->textureManager;
+	auto& pipelineManager = *gm.getContextComponent<PipelineManagerContext, PipelineManagerComponent>()->pipelineManager;
+	auto& textureManager = *gm.getContextComponent<TextureManagerContext, TextureManagerComponent>()->textureManager;
 	auto bindingDesc = Vertex::getBindingDescription();
 	auto attrDescs = Vertex::getAttributeDescriptions();
-	auto depthFormat = tManager.findBestFormat();
+	auto depthFormat = textureManager.findBestFormat();
 	std::vector<std::string> mainLayouts = {"globalSet", "modelSet", "textureSet"};
 
 	const bool a2c = samples != vk::SampleCountFlagBits::e1;
@@ -73,13 +73,13 @@ void DepthPrepass::buildPipelines(Orhescyon::GeneralManager& gm, vk::SampleCount
 
 	if (rebuild)
 	{
-		pManager.rebuild(makeDesc(0, false), "depth_prepass");
-		pManager.rebuild(makeDesc(1, a2c), "depth_prepass_alpha");
+		pipelineManager.rebuild(makeDesc(0, false), "depth_prepass");
+		pipelineManager.rebuild(makeDesc(1, a2c), "depth_prepass_alpha");
 	}
 	else
 	{
-		pManager.build(makeDesc(0, false));
-		pManager.build(makeDesc(1, a2c), "depth_prepass_alpha");
+		pipelineManager.build(makeDesc(0, false));
+		pipelineManager.build(makeDesc(1, a2c), "depth_prepass_alpha");
 	}
 }
 
@@ -99,28 +99,28 @@ void DepthPrepass::onSettingsChanged(Orhescyon::GeneralManager& gm)
 }
 
 void DepthPrepass::draw(vk::raii::CommandBuffer& cmd, uint32_t frame, SwapChain& swapChain,
-                        DescriptorManagerComponent& dManager, GlobalDSetComponent& globalDSetComponent,
-                        BufferManager& bManager, ModelDSetComponent& objectDSetComponent,
-                        BindlessTextureDSetComponent& bindlessTextureDSetComponent, ModelManager& mManager,
-                        const DrawInfoComponent& drawInfo, PipelineManager& pManager)
+                        DescriptorManagerComponent& descriptorManager, GlobalDSetComponent& globalDSetComponent,
+                        BufferManager& bufferManager, ModelDSetComponent& objectDSetComponent,
+                        BindlessTextureDSetComponent& bindlessTextureDSetComponent, ModelManager& modelManager,
+                        const DrawInfoComponent& drawInfo, PipelineManager& pipelineManager)
 {
-	auto& opaquePipe = pManager.pipelines["depth_prepass"];
-	auto& alphaPipe = pManager.pipelines["depth_prepass_alpha"];
+	auto& opaquePipe = pipelineManager.pipelines["depth_prepass"];
+	auto& alphaPipe = pipelineManager.pipelines["depth_prepass_alpha"];
 
 	cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *opaquePipe.layout, 0,
-	                       dManager.descriptorManager->getSet(globalDSetComponent.globalDSets, frame), nullptr);
+	                       descriptorManager.descriptorManager->getSet(globalDSetComponent.globalDSets, frame), nullptr);
 	cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *opaquePipe.layout, 1,
-	                       dManager.descriptorManager->getSet(objectDSetComponent.modelBufferDSet, frame), nullptr);
+	                       descriptorManager.descriptorManager->getSet(objectDSetComponent.modelBufferDSet, frame), nullptr);
 	cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *opaquePipe.layout, 2,
-	                       dManager.descriptorManager->getSet(bindlessTextureDSetComponent.bindlessTextureSet), nullptr);
+	                       descriptorManager.descriptorManager->getSet(bindlessTextureDSetComponent.bindlessTextureSet), nullptr);
 
 	cmd.setViewport(0, vk::Viewport(0.0f, 0.0f, static_cast<float>(swapChain.swapChainExtent.width),
 	                                static_cast<float>(swapChain.swapChainExtent.height), 0.0f, 1.0f));
 	cmd.setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), swapChain.swapChainExtent));
 
 	const uint32_t commandStride = sizeof(VkDrawIndexedIndirectCommand);
-	cmd.bindVertexBuffers(0, mManager.getVertexIndexBuffer(0).vertexBuffer, {0});
-	cmd.bindIndexBuffer(mManager.getVertexIndexBuffer(0).indexBuffer, 0,
+	cmd.bindVertexBuffers(0, modelManager.getVertexIndexBuffer(0).vertexBuffer, {0});
+	cmd.bindIndexBuffer(modelManager.getVertexIndexBuffer(0).indexBuffer, 0,
 	                    vk::IndexType::eUint32);
 	// Segments 0,1 = opaque, 2,3 = mask
 	const uint32_t segmentCounts[4] = {drawInfo.opaqueSingleCount, drawInfo.opaqueDoubleCount, drawInfo.maskSingleCount,
@@ -135,9 +135,9 @@ void DepthPrepass::draw(vk::raii::CommandBuffer& cmd, uint32_t frame, SwapChain&
 		if (count > 0)
 		{
 			cmd.setCullMode((seg & 1) ? vk::CullModeFlagBits::eNone : vk::CullModeFlagBits::eBack);
-			cmd.drawIndexedIndirectCount(bManager.getBuffer(objectDSetComponent.compactedDrawBuffer, frame),
+			cmd.drawIndexedIndirectCount(bufferManager.getBuffer(objectDSetComponent.compactedDrawBuffer, frame),
 			                             currentCommandOffset,
-			                             bManager.getBuffer(objectDSetComponent.drawCountBuffer, frame),
+			                             bufferManager.getBuffer(objectDSetComponent.drawCountBuffer, frame),
 			                             currentCountBufferOffset, count, commandStride);
 			currentCommandOffset += count * commandStride;
 		}
@@ -156,13 +156,13 @@ void DepthPrepass::draw(vk::raii::CommandBuffer& cmd, uint32_t frame, SwapChain&
 void DepthPrepass::addToGraph(Orhescyon::GeneralManager& gm, RenderGraph& rg, uint32_t frame)
 {
 	auto& swapChain = *gm.getContextComponent<MainSwapChainContext, SwapChainComponent>()->swapChainInstance;
-	auto& dManager = *gm.getContextComponent<DescriptorManagerContext, DescriptorManagerComponent>();
+	auto& descriptorManager = *gm.getContextComponent<DescriptorManagerContext, DescriptorManagerComponent>();
 	auto& globalDSetComponent = *gm.getContextComponent<MainDSetsContext, GlobalDSetComponent>();
-	auto& bManager = *gm.getContextComponent<BufferManagerContext, BufferManagerComponent>()->bufferManager;
+	auto& bufferManager = *gm.getContextComponent<BufferManagerContext, BufferManagerComponent>()->bufferManager;
 	auto& objectDSetComponent = *gm.getContextComponent<MainDSetsContext, ModelDSetComponent>();
-	auto& mManager = *gm.getContextComponent<ModelManagerContext, ModelManagerComponent>()->modelManager;
+	auto& modelManager = *gm.getContextComponent<ModelManagerContext, ModelManagerComponent>()->modelManager;
 	auto& drawInfo = *gm.getContextComponent<CurrentFrameContext, DrawInfoComponent>();
-	auto& pManager = *gm.getContextComponent<PipelineManagerContext, PipelineManagerComponent>()->pipelineManager;
+	auto& pipelineManager = *gm.getContextComponent<PipelineManagerContext, PipelineManagerComponent>()->pipelineManager;
 	auto& graphicsSettings = *gm.getContextComponent<GraphicsSettingsContext, GraphicsSettingsComponent>();
 	auto& bindlessTextureDSetComponent = *gm.getContextComponent<MainDSetsContext, BindlessTextureDSetComponent>();
 
@@ -200,7 +200,7 @@ void DepthPrepass::addToGraph(Orhescyon::GeneralManager& gm, RenderGraph& rg, ui
 	           mainWrites,
 	           [&, frame](vk::raii::CommandBuffer& cmd)
 	           {
-		           draw(cmd, frame, swapChain, dManager, globalDSetComponent, bManager, objectDSetComponent,
-		                bindlessTextureDSetComponent, mManager, drawInfo, pManager);
+		           draw(cmd, frame, swapChain, descriptorManager, globalDSetComponent, bufferManager, objectDSetComponent,
+		                bindlessTextureDSetComponent, modelManager, drawInfo, pipelineManager);
 	           });
 }

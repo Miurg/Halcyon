@@ -16,18 +16,18 @@ struct VulkanDevice;
 class HALCYON_API TextureFactory
 {
 public:
-	static TextureHandle createDepthImage(TextureManager& tManager, uint32_t width, uint32_t height);
-	static TextureHandle createOffscreenImage(TextureManager& tManager, uint32_t width, uint32_t height,
+	static TextureHandle createDepthImage(TextureManager& textureManager, uint32_t width, uint32_t height);
+	static TextureHandle createOffscreenImage(TextureManager& textureManager, uint32_t width, uint32_t height,
 	                                          vk::Format format);
-	static TextureHandle createShadowMap(TextureManager& tManager, uint32_t width, uint32_t height);
-	static TextureHandle generateTextureData(TextureManager& tManager, VulkanDevice& vulkanDevice,
+	static TextureHandle createShadowMap(TextureManager& textureManager, uint32_t width, uint32_t height);
+	static TextureHandle generateTextureData(TextureManager& textureManager, VulkanDevice& vulkanDevice,
 	                                         VmaAllocator allocator, const char* texturePath, int texWidth,
 	                                         int texHeight, const unsigned char* pixels,
-	                                         BindlessTextureDSetComponent& dSetComponent, DescriptorManager& dManager,
+	                                         BindlessTextureDSetComponent& dSetComponent, DescriptorManager& descriptorManager,
 	                                         vk::Format format = vk::Format::eR8G8B8A8Srgb);
-	static TextureHandle generateTextureDataFromKtx(TextureManager& tManager, VulkanDevice& vulkanDevice,
+	static TextureHandle generateTextureDataFromKtx(TextureManager& textureManager, VulkanDevice& vulkanDevice,
 	                                                VmaAllocator allocator, const char* texturePath,
 	                                                const unsigned char* ktxData, size_t dataSize,
 	                                                BindlessTextureDSetComponent& dSetComponent,
-	                                                DescriptorManager& dManager, bool isSrgb);
+	                                                DescriptorManager& descriptorManager, bool isSrgb);
 };

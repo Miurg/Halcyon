@@ -288,11 +288,11 @@ void ImGuiSystem::update(GeneralManager& gm)
 	if (autoShaderReload)
 	{
 		ShaderReloader* sr = gm.getContextComponent<ShaderReloaderContext, ShaderReloaderComponent>()->shaderReloader;
-		PipelineManager* pManager =
+		PipelineManager* pipelineManager =
 		    gm.getContextComponent<PipelineManagerContext, PipelineManagerComponent>()->pipelineManager;
 		VulkanDevice* vulkanDevice =
 		    gm.getContextComponent<MainVulkanDeviceContext, VulkanDeviceComponent>()->vulkanDeviceInstance;
-		sr->update(*pManager, *vulkanDevice);
+		sr->update(*pipelineManager, *vulkanDevice);
 	}
 
 	if (auto* gs = gm.getContextComponent<GraphicsSettingsContext, GraphicsSettingsComponent>())

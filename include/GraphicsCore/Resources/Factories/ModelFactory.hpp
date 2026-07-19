@@ -15,10 +15,10 @@ using Orhescyon::GeneralManager;
 class HALCYON_API ModelFactory
 {
 public:
-	static Orhescyon::Entity loadModel(const char path[MAX_PATH_LEN], int vertexIndexBInt, BufferManager& bManager,
-	                        BindlessTextureDSetComponent& dSetComponent, DescriptorManager& dManager,
-	                        GeneralManager& gm, TextureManager& tManager, ModelManager& mManager,
+	static Orhescyon::Entity loadModel(const char path[MAX_PATH_LEN], int vertexIndexBInt, BufferManager& bufferManager,
+	                        BindlessTextureDSetComponent& dSetComponent, DescriptorManager& descriptorManager,
+	                        GeneralManager& gm, TextureManager& textureManager, ModelManager& modelManager,
 	                        VulkanDevice& vulkanDevice, VmaAllocator allocator);
-	static bool unloadModel(Orhescyon::Entity modelRootEntity, GeneralManager& gm, ModelManager& mManager,
-	                        TextureManager& tManager);
+	static bool unloadModel(Orhescyon::Entity modelRootEntity, GeneralManager& gm, ModelManager& modelManager,
+	                        TextureManager& textureManager);
 };

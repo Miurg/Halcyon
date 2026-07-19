@@ -40,12 +40,12 @@ void MainPass::declareStreams(Orhescyon::GeneralManager& gm, vk::SampleCountFlag
 void MainPass::buildPipelines(Orhescyon::GeneralManager& gm, vk::SampleCountFlagBits samples, int gtaoEnabled,
                               bool rebuild)
 {
-	auto& pManager = *gm.getContextComponent<PipelineManagerContext, PipelineManagerComponent>()->pipelineManager;
-	auto& tManager = *gm.getContextComponent<TextureManagerContext, TextureManagerComponent>()->textureManager;
+	auto& pipelineManager = *gm.getContextComponent<PipelineManagerContext, PipelineManagerComponent>()->pipelineManager;
+	auto& textureManager = *gm.getContextComponent<TextureManagerContext, TextureManagerComponent>()->textureManager;
 	auto& swapChain = *gm.getContextComponent<MainSwapChainContext, SwapChainComponent>()->swapChainInstance;
 	auto bindingDesc = Vertex::getBindingDescription();
 	auto attrDescs = Vertex::getAttributeDescriptions();
-	auto depthFormat = tManager.findBestFormat();
+	auto depthFormat = textureManager.findBestFormat();
 	std::vector<std::string> mainLayouts = {"globalSet", "modelSet", "textureSet"};
 
 	const bool a2c = samples != vk::SampleCountFlagBits::e1;
@@ -85,23 +85,23 @@ void MainPass::buildPipelines(Orhescyon::GeneralManager& gm, vk::SampleCountFlag
 
 	if (rebuild)
 	{
-		pManager.rebuild(makeForward(0, 1, false, vk::CompareOp::eEqual), "standard_forward_opaque");
-		pManager.rebuild(makeForward(0, 0, false, vk::CompareOp::eEqual), "standard_forward_opaque_no_ibl");
-		pManager.rebuild(makeForward(1, 1, a2c, vk::CompareOp::eGreaterOrEqual), "standard_forward_mask");
-		pManager.rebuild(makeForward(1, 0, a2c, vk::CompareOp::eGreaterOrEqual), "standard_forward_mask_no_ibl");
-		pManager.rebuild(makeForward(0, 1, false, vk::CompareOp::eGreaterOrEqual), "standard_forward_blend");
-		pManager.rebuild(makeForward(0, 0, false, vk::CompareOp::eGreaterOrEqual), "standard_forward_blend_no_ibl");
-		pManager.rebuild(skyboxDesc, "skybox");
+		pipelineManager.rebuild(makeForward(0, 1, false, vk::CompareOp::eEqual), "standard_forward_opaque");
+		pipelineManager.rebuild(makeForward(0, 0, false, vk::CompareOp::eEqual), "standard_forward_opaque_no_ibl");
+		pipelineManager.rebuild(makeForward(1, 1, a2c, vk::CompareOp::eGreaterOrEqual), "standard_forward_mask");
+		pipelineManager.rebuild(makeForward(1, 0, a2c, vk::CompareOp::eGreaterOrEqual), "standard_forward_mask_no_ibl");
+		pipelineManager.rebuild(makeForward(0, 1, false, vk::CompareOp::eGreaterOrEqual), "standard_forward_blend");
+		pipelineManager.rebuild(makeForward(0, 0, false, vk::CompareOp::eGreaterOrEqual), "standard_forward_blend_no_ibl");
+		pipelineManager.rebuild(skyboxDesc, "skybox");
 	}
 	else
 	{
-		pManager.build(makeForward(0, 1, false, vk::CompareOp::eEqual), "standard_forward_opaque");
-		pManager.build(makeForward(0, 0, false, vk::CompareOp::eEqual), "standard_forward_opaque_no_ibl");
-		pManager.build(makeForward(1, 1, a2c, vk::CompareOp::eGreaterOrEqual), "standard_forward_mask");
-		pManager.build(makeForward(1, 0, a2c, vk::CompareOp::eGreaterOrEqual), "standard_forward_mask_no_ibl");
-		pManager.build(makeForward(0, 1, false, vk::CompareOp::eGreaterOrEqual), "standard_forward_blend");
-		pManager.build(makeForward(0, 0, false, vk::CompareOp::eGreaterOrEqual), "standard_forward_blend_no_ibl");
-		pManager.build(skyboxDesc);
+		pipelineManager.build(makeForward(0, 1, false, vk::CompareOp::eEqual), "standard_forward_opaque");
+		pipelineManager.build(makeForward(0, 0, false, vk::CompareOp::eEqual), "standard_forward_opaque_no_ibl");
+		pipelineManager.build(makeForward(1, 1, a2c, vk::CompareOp::eGreaterOrEqual), "standard_forward_mask");
+		pipelineManager.build(makeForward(1, 0, a2c, vk::CompareOp::eGreaterOrEqual), "standard_forward_mask_no_ibl");
+		pipelineManager.build(makeForward(0, 1, false, vk::CompareOp::eGreaterOrEqual), "standard_forward_blend");
+		pipelineManager.build(makeForward(0, 0, false, vk::CompareOp::eGreaterOrEqual), "standard_forward_blend_no_ibl");
+		pipelineManager.build(skyboxDesc);
 	}
 }
 
@@ -126,10 +126,10 @@ void MainPass::onSettingsChanged(Orhescyon::GeneralManager& gm)
 }
 
 void MainPass::draw(vk::raii::CommandBuffer& cmd, SwapChain& swapChain, uint32_t frame,
-                    BindlessTextureDSetComponent& bindlessTextureDSetComponent, DescriptorManagerComponent& dManager,
-                    GlobalDSetComponent& globalDSetComponent, BufferManager& bManager,
-                    ModelDSetComponent& objectDSetComponent, ModelManager& mManager, const DrawInfoComponent& drawInfo,
-                    PipelineManager& pManager, bool hasSkybox)
+                    BindlessTextureDSetComponent& bindlessTextureDSetComponent, DescriptorManagerComponent& descriptorManager,
+                    GlobalDSetComponent& globalDSetComponent, BufferManager& bufferManager,
+                    ModelDSetComponent& objectDSetComponent, ModelManager& modelManager, const DrawInfoComponent& drawInfo,
+                    PipelineManager& pipelineManager, bool hasSkybox)
 {
 	cmd.setViewport(0, vk::Viewport(0.0f, 0.0f, static_cast<float>(swapChain.swapChainExtent.width),
 	                                static_cast<float>(swapChain.swapChainExtent.height), 0.0f, 1.0f));
@@ -139,16 +139,16 @@ void MainPass::draw(vk::raii::CommandBuffer& cmd, SwapChain& swapChain, uint32_t
 	const std::string maskPipeline = hasSkybox ? "standard_forward_mask" : "standard_forward_mask_no_ibl";
 	const std::string blendPipeline = hasSkybox ? "standard_forward_blend" : "standard_forward_blend_no_ibl";
 
-	cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pManager.pipelines[opaquePipeline].layout, 0,
-	                       dManager.descriptorManager->getSet(globalDSetComponent.globalDSets, frame), nullptr);
-	cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pManager.pipelines[opaquePipeline].layout, 1,
-	                       dManager.descriptorManager->getSet(objectDSetComponent.modelBufferDSet, frame), nullptr);
-	cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pManager.pipelines[opaquePipeline].layout, 2,
-	                       dManager.descriptorManager->getSet(bindlessTextureDSetComponent.bindlessTextureSet), nullptr);
+	cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineManager.pipelines[opaquePipeline].layout, 0,
+	                       descriptorManager.descriptorManager->getSet(globalDSetComponent.globalDSets, frame), nullptr);
+	cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineManager.pipelines[opaquePipeline].layout, 1,
+	                       descriptorManager.descriptorManager->getSet(objectDSetComponent.modelBufferDSet, frame), nullptr);
+	cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineManager.pipelines[opaquePipeline].layout, 2,
+	                       descriptorManager.descriptorManager->getSet(bindlessTextureDSetComponent.bindlessTextureSet), nullptr);
 
 	const uint32_t commandStride = sizeof(VkDrawIndexedIndirectCommand);
-	cmd.bindVertexBuffers(0, mManager.getVertexIndexBuffer(0).vertexBuffer, {0});
-	cmd.bindIndexBuffer(mManager.getVertexIndexBuffer(0).indexBuffer, 0,
+	cmd.bindVertexBuffers(0, modelManager.getVertexIndexBuffer(0).vertexBuffer, {0});
+	cmd.bindIndexBuffer(modelManager.getVertexIndexBuffer(0).indexBuffer, 0,
 	                    vk::IndexType::eUint32);
 
 	const uint32_t segmentCounts[6] = {drawInfo.opaqueSingleCount, drawInfo.opaqueDoubleCount,
@@ -164,9 +164,9 @@ void MainPass::draw(vk::raii::CommandBuffer& cmd, SwapChain& swapChain, uint32_t
 		if (count > 0)
 		{
 			cmd.setCullMode(backfaceCulling ? vk::CullModeFlagBits::eBack : vk::CullModeFlagBits::eNone);
-			cmd.drawIndexedIndirectCount(bManager.getBuffer(objectDSetComponent.compactedDrawBuffer, frame),
+			cmd.drawIndexedIndirectCount(bufferManager.getBuffer(objectDSetComponent.compactedDrawBuffer, frame),
 			                             currentCommandOffset,
-			                             bManager.getBuffer(objectDSetComponent.drawCountBuffer, frame),
+			                             bufferManager.getBuffer(objectDSetComponent.drawCountBuffer, frame),
 			                             currentCountBufferOffset, count, commandStride);
 			currentCommandOffset += count * commandStride;
 		}
@@ -174,24 +174,24 @@ void MainPass::draw(vk::raii::CommandBuffer& cmd, SwapChain& swapChain, uint32_t
 	};
 
 	// OPAQUE
-	cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pManager.pipelines[opaquePipeline].pipeline);
+	cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipelineManager.pipelines[opaquePipeline].pipeline);
 	drawSegment(0, true);
 	drawSegment(1, false);
 
 	if (hasSkybox)
 	{
-		cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pManager.pipelines["skybox"].pipeline);
+		cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipelineManager.pipelines["skybox"].pipeline);
 		cmd.setCullMode(vk::CullModeFlagBits::eNone);
 		cmd.draw(3, 1, 0, 0);
 	}
 
 	// MASK
-	cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pManager.pipelines[maskPipeline].pipeline);
+	cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipelineManager.pipelines[maskPipeline].pipeline);
 	drawSegment(2, true);
 	drawSegment(3, false);
 
 	// BLEND
-	cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pManager.pipelines[blendPipeline].pipeline);
+	cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipelineManager.pipelines[blendPipeline].pipeline);
 	drawSegment(4, true);
 	drawSegment(5, false);
 }
@@ -199,13 +199,13 @@ void MainPass::draw(vk::raii::CommandBuffer& cmd, SwapChain& swapChain, uint32_t
 void MainPass::addToGraph(Orhescyon::GeneralManager& gm, RenderGraph& rg, uint32_t frame)
 {
 	auto& swapChain = *gm.getContextComponent<MainSwapChainContext, SwapChainComponent>()->swapChainInstance;
-	auto& dManager = *gm.getContextComponent<DescriptorManagerContext, DescriptorManagerComponent>();
+	auto& descriptorManager = *gm.getContextComponent<DescriptorManagerContext, DescriptorManagerComponent>();
 	auto& globalDSetComponent = *gm.getContextComponent<MainDSetsContext, GlobalDSetComponent>();
-	auto& bManager = *gm.getContextComponent<BufferManagerContext, BufferManagerComponent>()->bufferManager;
+	auto& bufferManager = *gm.getContextComponent<BufferManagerContext, BufferManagerComponent>()->bufferManager;
 	auto& objectDSetComponent = *gm.getContextComponent<MainDSetsContext, ModelDSetComponent>();
-	auto& mManager = *gm.getContextComponent<ModelManagerContext, ModelManagerComponent>()->modelManager;
+	auto& modelManager = *gm.getContextComponent<ModelManagerContext, ModelManagerComponent>()->modelManager;
 	auto& drawInfo = *gm.getContextComponent<CurrentFrameContext, DrawInfoComponent>();
-	auto& pManager = *gm.getContextComponent<PipelineManagerContext, PipelineManagerComponent>()->pipelineManager;
+	auto& pipelineManager = *gm.getContextComponent<PipelineManagerContext, PipelineManagerComponent>()->pipelineManager;
 	auto& bindlessTextureDSetComponent = *gm.getContextComponent<MainDSetsContext, BindlessTextureDSetComponent>();
 	auto& graphicsSettings = *gm.getContextComponent<GraphicsSettingsContext, GraphicsSettingsComponent>();
 	bool hasSkybox = gm.getContextComponent<SkyBoxContext, SkyboxComponent>()->hasSkybox;
@@ -244,14 +244,14 @@ void MainPass::addToGraph(Orhescyon::GeneralManager& gm, RenderGraph& rg, uint32
 	    "Main", {.colorAttachments = colorAttachments, .depthAttachment = depthAttachment}, reads, std::move(mainWrites),
 	    [&, frame, hasSkybox](vk::raii::CommandBuffer& cmd)
 	    {
-		    draw(cmd, swapChain, frame, bindlessTextureDSetComponent, dManager, globalDSetComponent, bManager,
-		         objectDSetComponent, mManager, drawInfo, pManager, hasSkybox);
+		    draw(cmd, swapChain, frame, bindlessTextureDSetComponent, descriptorManager, globalDSetComponent, bufferManager,
+		         objectDSetComponent, modelManager, drawInfo, pipelineManager, hasSkybox);
 	    },
-	    [&dManager, &globalDSetComponent, &graphicsSettings](const RenderGraph& graph, const RGPass& pass)
+	    [&descriptorManager, &globalDSetComponent, &graphicsSettings](const RenderGraph& graph, const RGPass& pass)
 	    {
 		    if (!graphicsSettings.enableGtao) return;
 		    auto h = pass.getPhysicalRead("GTAOTexture");
-		    dManager.descriptorManager->updateSingleTextureDSet(globalDSetComponent.globalDSets,
+		    descriptorManager.descriptorManager->updateSingleTextureDSet(globalDSetComponent.globalDSets,
 		                                                        Bindings::Global::GtaoTexture, graph.getImageView(h),
 		                                                        graph.getSampler(h));
 	    });

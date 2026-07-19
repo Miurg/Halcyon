@@ -85,7 +85,7 @@ bool ShaderReloader::compileShader(const std::string& slangPath, const std::stri
 	return true;
 }
 
-void ShaderReloader::update(PipelineManager& pManager, VulkanDevice& device)
+void ShaderReloader::update(PipelineManager& pipelineManager, VulkanDevice& device)
 {
 	// Make sure the output directory exists
 	if (!std::filesystem::exists(outDir))
@@ -119,7 +119,7 @@ void ShaderReloader::update(PipelineManager& pManager, VulkanDevice& device)
 
 				// Find all pipelines that depend on this spv file
 				std::vector<std::string> pipelinesToRebuild;
-				for (auto& [pipelineName, builtDesc] : pManager.pipelines)
+				for (auto& [pipelineName, builtDesc] : pipelineManager.pipelines)
 				{
 					if (builtDesc.desc.shaderPath == info.name + ".spv")
 					{
@@ -130,7 +130,7 @@ void ShaderReloader::update(PipelineManager& pManager, VulkanDevice& device)
 				for (const auto& pName : pipelinesToRebuild)
 				{
 					std::cout << "ShaderReloader rebuilding pipeline: " << pName << std::endl;
-					pManager.rebuild(pName);
+					pipelineManager.rebuild(pName);
 				}
 
 				anyRebuilt = true;

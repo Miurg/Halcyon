@@ -21,9 +21,9 @@ public:
 
 private:
 	void draw(vk::raii::CommandBuffer& cmd, SwapChain& swapChain, uint32_t frame,
-	          BindlessTextureDSetComponent& bindlessTextureDSetComponent, DescriptorManagerComponent& dManager,
-	          GlobalDSetComponent& globalDSetComponent, BufferManager& bManager, ModelDSetComponent& objectDSetComponent,
-	          ModelManager& mManager, const DrawInfoComponent& drawInfo, PipelineManager& pManager, bool hasSkybox);
+	          BindlessTextureDSetComponent& bindlessTextureDSetComponent, DescriptorManagerComponent& descriptorManager,
+	          GlobalDSetComponent& globalDSetComponent, BufferManager& bufferManager, ModelDSetComponent& objectDSetComponent,
+	          ModelManager& modelManager, const DrawInfoComponent& drawInfo, PipelineManager& pipelineManager, bool hasSkybox);
 
 	void declareStreams(Orhescyon::GeneralManager& gm, vk::SampleCountFlagBits samples);
 	void buildPipelines(Orhescyon::GeneralManager& gm, vk::SampleCountFlagBits samples, int gtaoEnabled, bool rebuild);

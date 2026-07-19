@@ -15,22 +15,22 @@ struct DrawInfoComponent;
 struct DirectLightComponent;
 struct BindlessTextureDSetComponent;
 
-HALCYON_API void drawResetInstancePass(vk::raii::CommandBuffer& cmd, uint32_t frame, DescriptorManagerComponent& dManager,
+HALCYON_API void drawResetInstancePass(vk::raii::CommandBuffer& cmd, uint32_t frame, DescriptorManagerComponent& descriptorManager,
                            ModelDSetComponent& objectDSetComponent, const DrawInfoComponent& drawInfo,
-                           PipelineManager& pManager);
+                           PipelineManager& pipelineManager);
 
-HALCYON_API void drawCullPass(vk::raii::CommandBuffer& cmd, uint32_t frame, DescriptorManagerComponent& dManager,
+HALCYON_API void drawCullPass(vk::raii::CommandBuffer& cmd, uint32_t frame, DescriptorManagerComponent& descriptorManager,
                   GlobalDSetComponent& globalDSetComponent, ModelDSetComponent& objectDSetComponent,
-                  ModelManager& mManager, BufferManager& bManager, const DrawInfoComponent& drawInfo,
-                  PipelineManager& pManager);
+                  ModelManager& modelManager, BufferManager& bufferManager, const DrawInfoComponent& drawInfo,
+                  PipelineManager& pipelineManager);
 
-HALCYON_API void drawShadowCullPass(vk::raii::CommandBuffer& cmd, uint32_t frame, DescriptorManagerComponent& dManager,
+HALCYON_API void drawShadowCullPass(vk::raii::CommandBuffer& cmd, uint32_t frame, DescriptorManagerComponent& descriptorManager,
                         GlobalDSetComponent& globalDSetComponent, ModelDSetComponent& objectDSetComponent,
-                        ModelManager& mManager, BufferManager& bManager, const DrawInfoComponent& drawInfo,
-                        PipelineManager& pManager);
+                        ModelManager& modelManager, BufferManager& bufferManager, const DrawInfoComponent& drawInfo,
+                        PipelineManager& pipelineManager);
 
 HALCYON_API void drawShadowPass(vk::raii::CommandBuffer& cmd, uint32_t frame, DirectLightComponent& lightTexture,
-                    DescriptorManagerComponent& dManager, GlobalDSetComponent& globalDSetComponent,
+                    DescriptorManagerComponent& descriptorManager, GlobalDSetComponent& globalDSetComponent,
                     ModelDSetComponent& objectDSetComponent, BindlessTextureDSetComponent& bTextureDSet,
-                    TextureManager& tManager, ModelManager& mManager, BufferManager& bManager,
-                    const DrawInfoComponent& drawInfo, PipelineManager& pManager);
+                    TextureManager& textureManager, ModelManager& modelManager, BufferManager& bufferManager,
+                    const DrawInfoComponent& drawInfo, PipelineManager& pipelineManager);

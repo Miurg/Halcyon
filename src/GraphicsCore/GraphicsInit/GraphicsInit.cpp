@@ -217,34 +217,34 @@ void GraphicsInit::initManagers(GeneralManager& gm)
 	// Buffer Manager
 	Orhescyon::Entity bufferManagerEntity = gm.createEntity();
 	gm.registerContext<BufferManagerContext>(bufferManagerEntity);
-	BufferManager* bManager = new BufferManager(*vulkanDevice, allocator);
-	gm.addComponent<BufferManagerComponent>(bufferManagerEntity, bManager);
+	BufferManager* bufferManager = new BufferManager(*vulkanDevice, allocator);
+	gm.addComponent<BufferManagerComponent>(bufferManagerEntity, bufferManager);
 	gm.addComponent<NameComponent>(bufferManagerEntity, "SYSTEM Buffer Manager");
-	dq->push_function([bManager]() { delete bManager; });
+	dq->push_function([bufferManager]() { delete bufferManager; });
 
 	// Model Manager
 	Orhescyon::Entity modelManagerEntity = gm.createEntity();
 	gm.registerContext<ModelManagerContext>(modelManagerEntity);
-	ModelManager* mManager = new ModelManager(*vulkanDevice, allocator);
-	gm.addComponent<ModelManagerComponent>(modelManagerEntity, mManager);
+	ModelManager* modelManager = new ModelManager(*vulkanDevice, allocator);
+	gm.addComponent<ModelManagerComponent>(modelManagerEntity, modelManager);
 	gm.addComponent<NameComponent>(modelManagerEntity, "SYSTEM Model Manager");
-	dq->push_function([mManager]() { delete mManager; });
+	dq->push_function([modelManager]() { delete modelManager; });
 
 	// Descriptor Manager
 	Orhescyon::Entity descriptorManagerEntity = gm.createEntity();
 	gm.registerContext<DescriptorManagerContext>(descriptorManagerEntity);
-	DescriptorManager* dManager = new DescriptorManager(*vulkanDevice);
-	gm.addComponent<DescriptorManagerComponent>(descriptorManagerEntity, dManager);
+	DescriptorManager* descriptorManager = new DescriptorManager(*vulkanDevice);
+	gm.addComponent<DescriptorManagerComponent>(descriptorManagerEntity, descriptorManager);
 	gm.addComponent<NameComponent>(descriptorManagerEntity, "SYSTEM Descriptor Manager");
-	dq->push_function([dManager]() { delete dManager; });
+	dq->push_function([descriptorManager]() { delete descriptorManager; });
 
 	// Frame Manager
 	Orhescyon::Entity frameManagerEntity = gm.createEntity();
 	gm.registerContext<FrameManagerContext>(frameManagerEntity);
-	FrameManager* fManager = new FrameManager(*vulkanDevice);
-	gm.addComponent<FrameManagerComponent>(frameManagerEntity, fManager);
+	FrameManager* frameManager = new FrameManager(*vulkanDevice);
+	gm.addComponent<FrameManagerComponent>(frameManagerEntity, frameManager);
 	gm.addComponent<NameComponent>(frameManagerEntity, "SYSTEM Frame Manager");
-	dq->push_function([fManager]() { delete fManager; });
+	dq->push_function([frameManager]() { delete frameManager; });
 }
 #pragma endregion
 
@@ -253,18 +253,18 @@ void GraphicsInit::initFrameData(GeneralManager& gm)
 {
 	DeletionQueue* dq = gm.getContextComponent<DeletionQueueContext, DeletionQueueComponent>()->queue;
 
-	FrameManager* fManager = gm.getContextComponent<FrameManagerContext, FrameManagerComponent>()->frameManager;
+	FrameManager* frameManager = gm.getContextComponent<FrameManagerContext, FrameManagerComponent>()->frameManager;
 	VulkanDevice* vulkanDevice =
 	    gm.getContextComponent<MainVulkanDeviceContext, VulkanDeviceComponent>()->vulkanDeviceInstance;
 	Window* window = gm.getContextComponent<MainWindowContext, WindowComponent>()->windowInstance;
-	TextureManager* tManager = gm.getContextComponent<TextureManagerContext, TextureManagerComponent>()->textureManager;
+	TextureManager* textureManager = gm.getContextComponent<TextureManagerContext, TextureManagerComponent>()->textureManager;
 
 	Orhescyon::Entity frameDataEntity = gm.createEntity();
 	gm.registerContext<MainFrameDataContext>(frameDataEntity);
 	gm.registerContext<CurrentFrameContext>(frameDataEntity);
 	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
 	{
-		fManager->initFrameData();
+		frameManager->initFrameData();
 	}
 	gm.addComponent<FrameDataComponent>(frameDataEntity, 0);
 	gm.addComponent<CurrentFrameComponent>(frameDataEntity);

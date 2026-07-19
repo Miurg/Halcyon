@@ -28,12 +28,12 @@ public:
 	BufferHandle createBuffer(vk::MemoryPropertyFlags propertyBits, vk::DeviceSize sizeBuffer,
 	                          uint_fast16_t numberBuffers, vk::Flags<vk::BufferUsageFlagBits> usageBuffer);
 	void bakeSHForProbe(TextureHandle envCubemap, BufferHandle probeBuffer, int probeSlot,
-	                    DescriptorManager& dManager, BindlessTextureDSetComponent& dSetComponent,
-	                    DSetHandle globalDSet, PipelineManager& pManager, TextureManager& tManager);
+	                    DescriptorManager& descriptorManager, BindlessTextureDSetComponent& dSetComponent,
+	                    DSetHandle globalDSet, PipelineManager& pipelineManager, TextureManager& textureManager);
 	// Records the sh_projection dispatch only; GICaptureCubemap descriptor must already point at the input.
 	void recordSHProjection(vk::raii::CommandBuffer& cmd, int cubemapResolution, int probeSlot,
-	                        DescriptorManager& dManager, BindlessTextureDSetComponent& dSetComponent,
-	                        DSetHandle globalDSet, PipelineManager& pManager);
+	                        DescriptorManager& descriptorManager, BindlessTextureDSetComponent& dSetComponent,
+	                        DSetHandle globalDSet, PipelineManager& pipelineManager);
 
 	template <typename T>
 	void writeToBuffer(BufferHandle handle, uint32_t bufferIndex, uint32_t elementIndex, const T& value)

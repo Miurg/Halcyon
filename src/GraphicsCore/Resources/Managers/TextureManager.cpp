@@ -176,7 +176,7 @@ void TextureManager::createImage(Texture& texture, const ImageDesc& desc)
 }
 
 int TextureManager::emplaceMaterials(BindlessTextureDSetComponent& dSetComponent, MaterialStructure materialStr,
-                                     BufferManager& bManager)
+                                     BufferManager& bufferManager)
 {
 	int slot;
 	if (!_freeMaterialSlots.empty())
@@ -190,7 +190,7 @@ int TextureManager::emplaceMaterials(BindlessTextureDSetComponent& dSetComponent
 		materials.push_back(materialStr);
 		slot = static_cast<int>(materials.size() - 1);
 	}
-	bManager.writeToBuffer(dSetComponent.materialBuffer, 0, slot, materialStr);
+	bufferManager.writeToBuffer(dSetComponent.materialBuffer, 0, slot, materialStr);
 	return slot;
 }
 

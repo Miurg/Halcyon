@@ -50,10 +50,10 @@ struct ExposurePush
 	float logLumRange;
 };
 
-void ExposurePass::drawExposurePass(vk::raii::CommandBuffer& cmd, uint32_t frame, DescriptorManager& dManager,
-                                    BufferManager& bManager, PipelineManager& pManager, SwapChain& swapChain, float deltaTime, AutoExposureSettingsComponent& aeSettings)
+void ExposurePass::drawExposurePass(vk::raii::CommandBuffer& cmd, uint32_t frame, DescriptorManager& descriptorManager,
+                                    BufferManager& bufferManager, PipelineManager& pipelineManager, SwapChain& swapChain, float deltaTime, AutoExposureSettingsComponent& aeSettings)
 {
-	cmd.fillBuffer(bManager.getBuffer(_histogramBuffer, frame), 0, sizeof(uint32_t) * 256, 0);
+	cmd.fillBuffer(bufferManager.getBuffer(_histogramBuffer, frame), 0, sizeof(uint32_t) * 256, 0);
 
 	vk::MemoryBarrier2 drawBarrier;
 	drawBarrier.srcStageMask = vk::PipelineStageFlagBits2::eTransfer;
@@ -66,11 +66,11 @@ void ExposurePass::drawExposurePass(vk::raii::CommandBuffer& cmd, uint32_t frame
 	drawDepInfo.pMemoryBarriers = &drawBarrier;
 	cmd.pipelineBarrier2(drawDepInfo);
 
-	cmd.bindPipeline(vk::PipelineBindPoint::eCompute, *pManager.pipelines["histogram"].pipeline);
-	cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute, *pManager.pipelines["histogram"].layout, 0,
-	                       dManager.getSet(_dSetMainColor, frame), nullptr);
-	cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute, *pManager.pipelines["histogram"].layout, 1,
-	                       dManager.getSet(_dSetExposure, frame), nullptr);
+	cmd.bindPipeline(vk::PipelineBindPoint::eCompute, *pipelineManager.pipelines["histogram"].pipeline);
+	cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute, *pipelineManager.pipelines["histogram"].layout, 0,
+	                       descriptorManager.getSet(_dSetMainColor, frame), nullptr);
+	cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute, *pipelineManager.pipelines["histogram"].layout, 1,
+	                       descriptorManager.getSet(_dSetExposure, frame), nullptr);
 
 	const float minLogLum = aeSettings.minEV;
 	const float logLumRange = aeSettings.maxEV - aeSettings.minEV;
@@ -80,7 +80,7 @@ void ExposurePass::drawExposurePass(vk::raii::CommandBuffer& cmd, uint32_t frame
 	hPush.logLumRange = logLumRange;
 	hPush.resolution = {swapChain.swapChainExtent.width, swapChain.swapChainExtent.height};
 
-	cmd.pushConstants<HistogramPush>(*pManager.pipelines["histogram"].layout, vk::ShaderStageFlagBits::eCompute, 0,
+	cmd.pushConstants<HistogramPush>(*pipelineManager.pipelines["histogram"].layout, vk::ShaderStageFlagBits::eCompute, 0,
 	                                 hPush);
 
 	uint32_t gx = (swapChain.swapChainExtent.width + 15) / 16;
@@ -94,9 +94,9 @@ void ExposurePass::drawExposurePass(vk::raii::CommandBuffer& cmd, uint32_t frame
 
 	cmd.pipelineBarrier2(drawDepInfo);
 
-	cmd.bindPipeline(vk::PipelineBindPoint::eCompute, *pManager.pipelines["exposure"].pipeline);
-	cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute, *pManager.pipelines["exposure"].layout, 0,
-	                       dManager.getSet(_dSetExposure, frame), nullptr);
+	cmd.bindPipeline(vk::PipelineBindPoint::eCompute, *pipelineManager.pipelines["exposure"].pipeline);
+	cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute, *pipelineManager.pipelines["exposure"].layout, 0,
+	                       descriptorManager.getSet(_dSetExposure, frame), nullptr);
 
 	ExposurePush ePush{};
 	ePush.deltaTime = std::min(deltaTime, 0.05f);
@@ -112,7 +112,7 @@ void ExposurePass::drawExposurePass(vk::raii::CommandBuffer& cmd, uint32_t frame
 	ePush.minLogLum = hPush.minLogLum;
 	ePush.logLumRange = hPush.logLumRange;
 
-	cmd.pushConstants<ExposurePush>(*pManager.pipelines["exposure"].layout, vk::ShaderStageFlagBits::eCompute, 0, ePush);
+	cmd.pushConstants<ExposurePush>(*pipelineManager.pipelines["exposure"].layout, vk::ShaderStageFlagBits::eCompute, 0, ePush);
 
 	cmd.dispatch(1, 1, 1);
 
@@ -125,44 +125,44 @@ void ExposurePass::drawExposurePass(vk::raii::CommandBuffer& cmd, uint32_t frame
 
 void ExposurePass::onInit(Orhescyon::GeneralManager& gm)
 {
-	auto& pManager = *gm.getContextComponent<PipelineManagerContext, PipelineManagerComponent>()->pipelineManager;
-	auto& bManager = *gm.getContextComponent<BufferManagerContext, BufferManagerComponent>()->bufferManager;
-	auto& dManager = *gm.getContextComponent<DescriptorManagerContext, DescriptorManagerComponent>()->descriptorManager;
+	auto& pipelineManager = *gm.getContextComponent<PipelineManagerContext, PipelineManagerComponent>()->pipelineManager;
+	auto& bufferManager = *gm.getContextComponent<BufferManagerContext, BufferManagerComponent>()->bufferManager;
+	auto& descriptorManager = *gm.getContextComponent<DescriptorManagerContext, DescriptorManagerComponent>()->descriptorManager;
 
-	_dSetExposure = dManager.allocate("exposureSet", MAX_FRAMES_IN_FLIGHT);
-	_dSetMainColor = dManager.allocate("screenSpaceSet", MAX_FRAMES_IN_FLIGHT);
+	_dSetExposure = descriptorManager.allocate("exposureSet", MAX_FRAMES_IN_FLIGHT);
+	_dSetMainColor = descriptorManager.allocate("screenSpaceSet", MAX_FRAMES_IN_FLIGHT);
 
 	_histogramBuffer =
-	    bManager.createBuffer(vk::MemoryPropertyFlagBits::eDeviceLocal, sizeof(uint32_t) * 256, MAX_FRAMES_IN_FLIGHT,
+	    bufferManager.createBuffer(vk::MemoryPropertyFlagBits::eDeviceLocal, sizeof(uint32_t) * 256, MAX_FRAMES_IN_FLIGHT,
 	                          vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst);
-	_exposureBuffer = bManager.createBuffer(vk::MemoryPropertyFlagBits::eDeviceLocal, sizeof(float), 1,
+	_exposureBuffer = bufferManager.createBuffer(vk::MemoryPropertyFlagBits::eDeviceLocal, sizeof(float), 1,
 	                          vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst);
 
 	auto& vulkanDevice = *gm.getContextComponent<MainVulkanDeviceContext, VulkanDeviceComponent>()->vulkanDeviceInstance;
 	float initialExposure = 1.0f;
 	auto cmd = VulkanUtils::beginSingleTimeCommands(vulkanDevice);
 
-	cmd.updateBuffer(bManager.getBuffer(_exposureBuffer), 0,
+	cmd.updateBuffer(bufferManager.getBuffer(_exposureBuffer), 0,
 	                 vk::ArrayProxy<const float>(1, &initialExposure));
 
 	VulkanUtils::endSingleTimeCommands(cmd, vulkanDevice);
 
 	for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
 	{
-		dManager.update(_dSetExposure, 0, i, vk::DescriptorType::eStorageBuffer,
-		                bManager.getBuffer(_histogramBuffer, i));
-		dManager.update(_dSetExposure, 1, i, vk::DescriptorType::eStorageBuffer,
-		                bManager.getBuffer(_exposureBuffer));
+		descriptorManager.update(_dSetExposure, 0, i, vk::DescriptorType::eStorageBuffer,
+		                bufferManager.getBuffer(_histogramBuffer, i));
+		descriptorManager.update(_dSetExposure, 1, i, vk::DescriptorType::eStorageBuffer,
+		                bufferManager.getBuffer(_exposureBuffer));
 	}
 
-	pManager.build(PipelineDescription{
+	pipelineManager.build(PipelineDescription{
 	    .isCompute = true,
 	    .shaderPath = "histogram.spv",
 	    .setLayoutNames = {"screenSpaceSet", "exposureSet"},
 	    .pushConstants = {{vk::ShaderStageFlagBits::eCompute, 0, sizeof(HistogramPush)}},
 	});
 
-	pManager.build(PipelineDescription{
+	pipelineManager.build(PipelineDescription{
 	    .isCompute = true,
 	    .shaderPath = "exposure.spv",
 	    .setLayoutNames = {"exposureSet"},
@@ -181,9 +181,9 @@ bool ExposurePass::isEnabled(Orhescyon::GeneralManager& gm) const
 
 void ExposurePass::addToGraph(Orhescyon::GeneralManager& gm, RenderGraph& rg, uint32_t frame)
 {
-	auto& dManager = *gm.getContextComponent<DescriptorManagerContext, DescriptorManagerComponent>()->descriptorManager;
-	auto& bManager = *gm.getContextComponent<BufferManagerContext, BufferManagerComponent>()->bufferManager;
-	auto& pManager = *gm.getContextComponent<PipelineManagerContext, PipelineManagerComponent>()->pipelineManager;
+	auto& descriptorManager = *gm.getContextComponent<DescriptorManagerContext, DescriptorManagerComponent>()->descriptorManager;
+	auto& bufferManager = *gm.getContextComponent<BufferManagerContext, BufferManagerComponent>()->bufferManager;
+	auto& pipelineManager = *gm.getContextComponent<PipelineManagerContext, PipelineManagerComponent>()->pipelineManager;
 	auto& swapChain = *gm.getContextComponent<MainSwapChainContext, SwapChainComponent>()->swapChainInstance;
 	float deltaTime = gm.getContextComponent<DeltaTimeContext, DeltaTimeComponent>()->deltaTime;
 	auto& aeSettings = *gm.getContextComponent<GraphicsSettingsContext, AutoExposureSettingsComponent>();
@@ -192,11 +192,11 @@ void ExposurePass::addToGraph(Orhescyon::GeneralManager& gm, RenderGraph& rg, ui
 
 	rg.addPass(
 	    "Exposure", {.isCompute = true}, reads, {}, [&, frame, deltaTime](vk::raii::CommandBuffer& cmd)
-	    { drawExposurePass(cmd, frame, dManager, bManager, pManager, swapChain, deltaTime, aeSettings); },
-	           [&dManager, dSetMainColor = _dSetMainColor](const RenderGraph& graph, const RGPass& pass)
+	    { drawExposurePass(cmd, frame, descriptorManager, bufferManager, pipelineManager, swapChain, deltaTime, aeSettings); },
+	           [&descriptorManager, dSetMainColor = _dSetMainColor](const RenderGraph& graph, const RGPass& pass)
 	           {
 		           auto colorHnd = pass.getPhysicalRead("MainColor");
-		           dManager.updateSingleTextureDSet(dSetMainColor, Binding::OffscreenInput,
+		           descriptorManager.updateSingleTextureDSet(dSetMainColor, Binding::OffscreenInput,
 		                                                               graph.getImageView(colorHnd), graph.getSampler(colorHnd));
 	           });
 }

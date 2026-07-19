@@ -53,7 +53,7 @@ public:
 	std::unordered_map<std::string, TextureHandle> texturePaths;
 
 	int emplaceMaterials(BindlessTextureDSetComponent& dSetComponent, MaterialStructure materialMaps,
-	                     BufferManager& bManager);
+	                     BufferManager& bufferManager);
 	void freeMaterial(int slot, uint64_t frameNumber);
 	void collectMaterialFrees(uint64_t frameNumber);
 	size_t freeTextureSlotCount() const;
