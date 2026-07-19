@@ -50,6 +50,8 @@ void TextureManager::destroyTextureResources(Texture& texture)
 void TextureManager::destroyTexture(TextureHandle handle)
 {
 	if (handle.id < 0 || handle.id >= static_cast<int>(textures.size())) return;
+	if (_textureRefCounts[handle.id] <= 0) return;
+	if (--_textureRefCounts[handle.id] > 0) return;
 
 	// Otherwise isTextureLoaded would later hand out this destroyed texture.
 	for (auto it = texturePaths.begin(); it != texturePaths.end();)
@@ -72,15 +74,26 @@ int TextureManager::allocateTextureSlot()
 		int slot = _freeTextureSlots.back();
 		_freeTextureSlots.pop_back();
 		textures[slot] = Texture();
+		_textureRefCounts[slot] = 1;
 		return slot;
 	}
 	textures.push_back(Texture());
+	_textureRefCounts.push_back(1);
 	return static_cast<int>(textures.size() - 1);
+}
+
+void TextureManager::addTextureRef(TextureHandle handle)
+{
+	if (handle.id < 0 || handle.id >= static_cast<int>(textures.size())) return;
+
+	_textureRefCounts[handle.id]++;
 }
 
 void TextureManager::freeTexture(TextureHandle handle, uint64_t frameNumber)
 {
 	if (handle.id < 0 || handle.id >= static_cast<int>(textures.size())) return;
+	if (_textureRefCounts[handle.id] <= 0) return;
+	if (--_textureRefCounts[handle.id] > 0) return;
 
 	// Otherwise isTextureLoaded would later hand out this freed texture.
 	for (auto it = texturePaths.begin(); it != texturePaths.end();)

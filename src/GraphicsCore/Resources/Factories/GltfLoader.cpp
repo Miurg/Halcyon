@@ -80,7 +80,7 @@ int GltfLoader::loadModelFromFile(const char path[MAX_PATH_LEN], int vertexIndex
 
 int GltfLoader::loadMaterialTexture(tinygltf::Model& model, const std::map<std::string, tinygltf::Parameter>& params,
                                     const char* paramName, const char* semantic, bool isSrgb, int fallback,
-                                    const char* filePath, TextureManager& tManager,
+                                    const char* filePath, std::vector<int>& ownedTextures, TextureManager& tManager,
                                     BindlessTextureDSetComponent& dSetComponent, DescriptorManager& dManager,
                                     VulkanDevice& vulkanDevice, VmaAllocator allocator)
 {
@@ -109,24 +109,30 @@ int GltfLoader::loadMaterialTexture(tinygltf::Model& model, const std::map<std::
 
 	if (tManager.isTextureLoaded(texName.c_str()))
 	{
-		return tManager.texturePaths[texName].id;
+		TextureHandle handle = tManager.texturePaths[texName];
+		tManager.addTextureRef(handle);
+		ownedTextures.push_back(handle.id);
+		return handle.id;
 	}
 	if (img.as_is && img.mimeType == "image/ktx2" && !img.image.empty())
 	{
-		return TextureFactory::generateTextureDataFromKtx(tManager, vulkanDevice, allocator, texName.c_str(),
-		                                                  img.image.data(), img.image.size(), dSetComponent, dManager,
-		                                                  isSrgb)
-		    .id;
+		TextureHandle handle = TextureFactory::generateTextureDataFromKtx(tManager, vulkanDevice, allocator,
+		                                                                  texName.c_str(), img.image.data(),
+		                                                                  img.image.size(), dSetComponent, dManager,
+		                                                                  isSrgb);
+		ownedTextures.push_back(handle.id);
+		return handle.id;
 	}
 	if (!img.image.empty() && img.width > 0 && img.height > 0)
 	{
 		auto rgbaPixels = ImageConverter::convertToRGBA(img);
 		if (!rgbaPixels.empty())
 		{
-			return TextureFactory::generateTextureData(tManager, vulkanDevice, allocator, texName.c_str(), img.width,
-			                                           img.height, rgbaPixels.data(), dSetComponent, dManager,
-			                                           isSrgb ? vk::Format::eR8G8B8A8Srgb : vk::Format::eR8G8B8A8Unorm)
-			    .id;
+			TextureHandle handle = TextureFactory::generateTextureData(
+			    tManager, vulkanDevice, allocator, texName.c_str(), img.width, img.height, rgbaPixels.data(),
+			    dSetComponent, dManager, isSrgb ? vk::Format::eR8G8B8A8Srgb : vk::Format::eR8G8B8A8Unorm);
+			ownedTextures.push_back(handle.id);
+			return handle.id;
 		}
 	}
 	return fallback;
@@ -189,15 +195,17 @@ MaterialMaps GltfLoader::materialsParser(tinygltf::Model& model, TextureManager&
 		
 		material.textureIndex =
 		    loadMaterialTexture(model, model.materials[i].values, "baseColorTexture", "basecolor", /*isSrgb*/ true,
-		                        whiteTexture, filePath, tManager, dSetComponent, dManager, vulkanDevice, allocator);
+		                        whiteTexture, filePath, maps.ownedTextures, tManager, dSetComponent, dManager,
+		                        vulkanDevice, allocator);
 		material.normalMapIndex =
 		    loadMaterialTexture(model, model.materials[i].additionalValues, "normalTexture", "normal",
-		                        /*isSrgb*/ false, defaultNormalTexture, filePath, tManager, dSetComponent, dManager,
-		                        vulkanDevice, allocator);
+		                        /*isSrgb*/ false, defaultNormalTexture, filePath, maps.ownedTextures, tManager,
+		                        dSetComponent, dManager, vulkanDevice, allocator);
 		// Metallic-Roughness texture (packed: G=Roughness, B=Metallic);
 		material.metallicRoughnessIndex =
 		    loadMaterialTexture(model, model.materials[i].values, "metallicRoughnessTexture", "mr", /*isSrgb*/ false,
-		                        defaultMRTexture, filePath, tManager, dSetComponent, dManager, vulkanDevice, allocator);
+		                        defaultMRTexture, filePath, maps.ownedTextures, tManager, dSetComponent, dManager,
+		                        vulkanDevice, allocator);
 
 		// Metallic-Roughness factors (defaults are 1.0 as per GLTF spec)
 		auto roughnessFactorIt = model.materials[i].values.find("roughnessFactor");
@@ -214,8 +222,8 @@ MaterialMaps GltfLoader::materialsParser(tinygltf::Model& model, TextureManager&
 
 		material.emissiveIndex =
 		    loadMaterialTexture(model, model.materials[i].additionalValues, "emissiveTexture", "emissive",
-		                        /*isSrgb*/ true, defaultEmissiveTexture, filePath, tManager, dSetComponent, dManager,
-		                        vulkanDevice, allocator);
+		                        /*isSrgb*/ true, defaultEmissiveTexture, filePath, maps.ownedTextures, tManager,
+		                        dSetComponent, dManager, vulkanDevice, allocator);
 		// Emissive Factor
 		bool hasEmissiveTexture = (material.emissiveIndex != defaultEmissiveTexture);
 		auto emissiveFactorIt = model.materials[i].additionalValues.find("emissiveFactor");
@@ -262,25 +270,6 @@ MaterialMaps GltfLoader::materialsParser(tinygltf::Model& model, TextureManager&
 		material.doubleSided = model.materials[i].doubleSided ? 1 : 0;
 
 		maps.materials.emplace(static_cast<uint32_t>(i), tManager.emplaceMaterials(dSetComponent, material, bManager));
-	}
-
-	// sys_default_* are engine-owned and shared by every model — never part of a model's ownership.
-	auto noteOwned = [&](uint32_t textureId)
-	{
-		if (textureId == static_cast<uint32_t>(whiteTexture) || textureId == static_cast<uint32_t>(defaultNormalTexture) ||
-		    textureId == static_cast<uint32_t>(defaultMRTexture) || textureId == static_cast<uint32_t>(defaultEmissiveTexture))
-			return;
-		int id = static_cast<int>(textureId);
-		if (std::find(maps.ownedTextures.begin(), maps.ownedTextures.end(), id) == maps.ownedTextures.end())
-			maps.ownedTextures.push_back(id);
-	};
-	for (const auto& [gltfIndex, materialSlot] : maps.materials)
-	{
-		const MaterialStructure& material = tManager.getMaterial(materialSlot);
-		noteOwned(material.textureIndex);
-		noteOwned(material.normalMapIndex);
-		noteOwned(material.metallicRoughnessIndex);
-		noteOwned(material.emissiveIndex);
 	}
 
 	return maps;

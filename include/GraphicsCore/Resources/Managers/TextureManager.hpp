@@ -43,6 +43,7 @@ public:
 	void createImage(Texture& texture, const ImageDesc& desc);
 	void destroyTexture(TextureHandle handle);
 	int allocateTextureSlot();
+	void addTextureRef(TextureHandle handle);
 	void freeTexture(TextureHandle handle, uint64_t frameNumber);
 	void collectTextureFrees(uint64_t frameNumber);
 	Texture& getTexture(TextureHandle handle);
@@ -67,6 +68,7 @@ private:
 	VulkanDevice& vulkanDevice;
 	VmaAllocator allocator = {};
 	std::vector<int> _freeTextureSlots;
+	std::vector<int> _textureRefCounts;
 
 	struct PendingTextureFree
 	{
