@@ -17,6 +17,8 @@
 #include "GraphicsCore/RenderGraph/RenderGraph.hpp"
 #include "GraphicsCore/Components/TextureManagerComponent.hpp"
 #include "GraphicsCore/Resources/Managers/TextureManager.hpp"
+#include "GraphicsCore/Components/MaterialManagerComponent.hpp"
+#include "GraphicsCore/Resources/Managers/MaterialManager.hpp"
 #include "GraphicsCore/Components/ModelManagerComponent.hpp"
 #include "GraphicsCore/Resources/Managers/ModelManager.hpp"
 
@@ -85,7 +87,9 @@ void FrameBeginSystem::update(GeneralManager& gm)
 	TextureManager& textureManager =
 	    *gm.getContextComponent<TextureManagerContext, TextureManagerComponent>()->textureManager;
 	textureManager.collectTextureFrees(currentFrameComp->frameNumber);
-	textureManager.collectMaterialFrees(currentFrameComp->frameNumber);
+	MaterialManager& materialManager =
+	    *gm.getContextComponent<MaterialManagerContext, MaterialManagerComponent>()->materialManager;
+	materialManager.collectMaterialFrees(currentFrameComp->frameNumber);
 
 	ModelManager& modelManager =
 	    *gm.getContextComponent<ModelManagerContext, ModelManagerComponent>()->modelManager;

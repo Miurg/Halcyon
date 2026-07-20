@@ -52,17 +52,8 @@ public:
 	std::vector<vk::Sampler> samplers;
 	std::unordered_map<std::string, TextureHandle> texturePaths;
 
-	int emplaceMaterials(BindlessTextureDSetComponent& dSetComponent, MaterialStructure materialMaps,
-	                     BufferManager& bufferManager);
-	void freeMaterial(int slot, uint64_t frameNumber);
-	void collectMaterialFrees(uint64_t frameNumber);
 	size_t freeTextureSlotCount() const;
 	size_t pendingTextureFreeCount() const;
-	size_t freeMaterialSlotCount() const;
-	size_t pendingMaterialFreeCount() const;
-	MaterialStructure& getMaterial(int slot);
-
-	std::vector<MaterialStructure> materials;
 
 private:
 	VulkanDevice& vulkanDevice;
@@ -79,14 +70,6 @@ private:
 	std::vector<PendingTextureFree> _pendingFrees;
 
 	std::unordered_map<SamplerDesc, SamplerHandle> _samplerCache;
-
-	struct PendingMaterialFree
-	{
-		int slot;
-		uint64_t retireFrame;
-	};
-	std::vector<PendingMaterialFree> _pendingMaterialFrees;
-	std::vector<int> _freeMaterialSlots;
 
 	void destroyTextureResources(Texture& texture);
 };

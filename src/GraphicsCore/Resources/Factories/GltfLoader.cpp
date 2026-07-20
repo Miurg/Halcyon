@@ -9,10 +9,10 @@
 int GltfLoader::loadModelFromFile(const char path[MAX_PATH_LEN], int vertexIndexBInt, BufferManager& bufferManager,
                                   BindlessTextureDSetComponent& dSetComponent, DescriptorManager& descriptorManager,
                                   tinygltf::Model& model, TextureManager& textureManager, ModelManager& modelManager,
-                                  VulkanDevice& vulkanDevice, VmaAllocator allocator)
+                                  MaterialManager& materialManager, VulkanDevice& vulkanDevice, VmaAllocator allocator)
 {
-	MaterialMaps materialMaps =
-	    materialsParser(model, textureManager, dSetComponent, descriptorManager, bufferManager, path, vulkanDevice, allocator);
+	MaterialMaps materialMaps = materialsParser(model, textureManager, materialManager, dSetComponent,
+	                                            descriptorManager, bufferManager, path, vulkanDevice, allocator);
 
 	std::vector<Vertex> localVertices;
 	std::vector<uint32_t> localIndices;
@@ -149,9 +149,9 @@ int GltfLoader::loadMaterialTexture(tinygltf::Model& model, const std::map<std::
 }
 
 MaterialMaps GltfLoader::materialsParser(tinygltf::Model& model, TextureManager& textureManager,
-                                         BindlessTextureDSetComponent& dSetComponent, DescriptorManager& descriptorManager,
-                                         BufferManager& bufferManager, const char* filePath, VulkanDevice& vulkanDevice,
-                                         VmaAllocator allocator)
+                                         MaterialManager& materialManager, BindlessTextureDSetComponent& dSetComponent,
+                                         DescriptorManager& descriptorManager, BufferManager& bufferManager,
+                                         const char* filePath, VulkanDevice& vulkanDevice, VmaAllocator allocator)
 {
 	MaterialMaps maps;
 	glm::vec4 colorFactor = {1.0f, 1.0f, 1.0f, 1.0f}; // Default white
@@ -188,7 +188,7 @@ MaterialMaps GltfLoader::materialsParser(tinygltf::Model& model, TextureManager&
 	defaultMaterial.emissiveIndex = defaultEmissiveTexture;
 
 	maps.materials.emplace(static_cast<uint32_t>(-1),
-	                       textureManager.emplaceMaterials(dSetComponent, defaultMaterial, bufferManager));
+	                       materialManager.emplaceMaterial(dSetComponent, defaultMaterial, bufferManager));
 
 	for (size_t i = 0; i < model.materials.size(); i++)
 	{
@@ -279,7 +279,8 @@ MaterialMaps GltfLoader::materialsParser(tinygltf::Model& model, TextureManager&
 		// Double Sided
 		material.doubleSided = model.materials[i].doubleSided ? 1 : 0;
 
-		maps.materials.emplace(static_cast<uint32_t>(i), textureManager.emplaceMaterials(dSetComponent, material, bufferManager));
+		maps.materials.emplace(static_cast<uint32_t>(i),
+		                       materialManager.emplaceMaterial(dSetComponent, material, bufferManager));
 	}
 
 	return maps;

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "HalcyonExport.hpp"
-#include <glm/fwd.hpp>
+#include <glm/glm.hpp>
 
 struct HALCYON_API CameraStructure
 {

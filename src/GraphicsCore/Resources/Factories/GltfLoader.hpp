@@ -10,6 +10,7 @@
 #include "GraphicsCore/Resources/Managers/MeshInfo.hpp"
 #include "GraphicsCore/Resources/Managers/BufferManager.hpp"
 #include "GraphicsCore/Resources/Managers/TextureManager.hpp"
+#include "GraphicsCore/Resources/Managers/MaterialManager.hpp"
 #include "GraphicsCore/Resources/Managers/ModelManager.hpp"
 
 struct TextureData
@@ -39,11 +40,11 @@ public:
 	static int loadModelFromFile(const char path[MAX_PATH_LEN], int vertexIndexBInt, BufferManager& bufferManager,
 	                             BindlessTextureDSetComponent& dSetComponent, DescriptorManager& descriptorManager,
 	                             tinygltf::Model& model, TextureManager& textureManager, ModelManager& modelManager,
-	                             VulkanDevice& vulkanDevice, VmaAllocator allocator);
+	                             MaterialManager& materialManager, VulkanDevice& vulkanDevice, VmaAllocator allocator);
 	static MaterialMaps materialsParser(tinygltf::Model& model, TextureManager& textureManager,
-	                                    BindlessTextureDSetComponent& dSetComponent, DescriptorManager& descriptorManager,
-	                                    BufferManager& bufferManager, const char* filePath, VulkanDevice& vulkanDevice,
-	                                    VmaAllocator allocator);
+	                                    MaterialManager& materialManager, BindlessTextureDSetComponent& dSetComponent,
+	                                    DescriptorManager& descriptorManager, BufferManager& bufferManager,
+	                                    const char* filePath, VulkanDevice& vulkanDevice, VmaAllocator allocator);
 	static std::vector<PrimitivesInfo> primitiveParser(tinygltf::Mesh& mesh, std::vector<Vertex>& outVertices,
 	                                                   std::vector<uint32_t>& outIndices, tinygltf::Model& model,
 	                                                   int32_t globalVertexOffset, const MaterialMaps& materialMaps);

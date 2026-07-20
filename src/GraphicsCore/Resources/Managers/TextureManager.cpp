@@ -175,44 +175,6 @@ void TextureManager::createImage(Texture& texture, const ImageDesc& desc)
 	texture.imageCreateFlags = desc.flags;
 }
 
-int TextureManager::emplaceMaterials(BindlessTextureDSetComponent& dSetComponent, MaterialStructure materialStr,
-                                     BufferManager& bufferManager)
-{
-	int slot;
-	if (!_freeMaterialSlots.empty())
-	{
-		slot = _freeMaterialSlots.back();
-		_freeMaterialSlots.pop_back();
-		materials[slot] = materialStr;
-	}
-	else
-	{
-		materials.push_back(materialStr);
-		slot = static_cast<int>(materials.size() - 1);
-	}
-	bufferManager.writeToBuffer(dSetComponent.materialBuffer, 0, slot, materialStr);
-	return slot;
-}
-
-void TextureManager::freeMaterial(int slot, uint64_t frameNumber)
-{
-	_pendingMaterialFrees.push_back({slot, frameNumber + MAX_FRAMES_IN_FLIGHT});
-}
-
-void TextureManager::collectMaterialFrees(uint64_t frameNumber)
-{
-	for (auto it = _pendingMaterialFrees.begin(); it != _pendingMaterialFrees.end();)
-	{
-		if (it->retireFrame <= frameNumber)
-		{
-			_freeMaterialSlots.push_back(it->slot);
-			it = _pendingMaterialFrees.erase(it);
-		}
-		else
-			++it;
-	}
-}
-
 size_t TextureManager::freeTextureSlotCount() const
 {
 	return _freeTextureSlots.size();
@@ -221,16 +183,6 @@ size_t TextureManager::freeTextureSlotCount() const
 size_t TextureManager::pendingTextureFreeCount() const
 {
 	return _pendingFrees.size();
-}
-
-size_t TextureManager::freeMaterialSlotCount() const
-{
-	return _freeMaterialSlots.size();
-}
-
-size_t TextureManager::pendingMaterialFreeCount() const
-{
-	return _pendingMaterialFrees.size();
 }
 
 void TextureManager::createImageView(Texture& texture, vk::Format format, vk::ImageAspectFlags aspectFlags,
@@ -329,7 +281,3 @@ Texture& TextureManager::getTexture(TextureHandle handle)
 	return textures[handle.id];
 }
 
-MaterialStructure& TextureManager::getMaterial(int slot)
-{
-	return materials[slot];
-}

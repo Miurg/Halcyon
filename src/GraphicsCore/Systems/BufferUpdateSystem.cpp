@@ -14,6 +14,8 @@
 #include "GraphicsCore/Components/ModelManagerComponent.hpp"
 #include "GraphicsCore/Components/TextureManagerComponent.hpp"
 #include "GraphicsCore/Resources/Managers/TextureManager.hpp"
+#include "GraphicsCore/Components/MaterialManagerComponent.hpp"
+#include "GraphicsCore/Resources/Managers/MaterialManager.hpp"
 #include "GraphicsCore/Resources/ResourceStructures.hpp"
 
 #ifdef TRACY_ENABLE
@@ -42,8 +44,8 @@ void BufferUpdateSystem::update(GeneralManager& gm)
 	BufferManager& bufferManager =
 	    *gm.getContextComponent<BufferManagerContext, BufferManagerComponent>()->bufferManager;
 	ModelManager& modelManager = *gm.getContextComponent<ModelManagerContext, ModelManagerComponent>()->modelManager;
-	TextureManager& textureManager =
-	    *gm.getContextComponent<TextureManagerContext, TextureManagerComponent>()->textureManager;
+	MaterialManager& materialManager =
+	    *gm.getContextComponent<MaterialManagerContext, MaterialManagerComponent>()->materialManager;
 	ModelDSetComponent* objectDSetComponent = gm.getContextComponent<MainDSetsContext, ModelDSetComponent>();
 	DrawInfoComponent* drawInfo = gm.getContextComponent<CurrentFrameContext, DrawInfoComponent>();
 
@@ -106,8 +108,8 @@ void BufferUpdateSystem::update(GeneralManager& gm)
 			for (int i = 0; i < primitiveCount; i++)
 			{
 				uint32_t matIdx = modelManager.getMesh(meshIdx).primitives[i].materialIndex;
-				int category = textureManager.getMaterial(matIdx).alphaMode; // 0=opaque, 1=mask, 2=blend
-				bool isDoubleSided = (textureManager.getMaterial(matIdx).doubleSided == 1);
+				int category = materialManager.getMaterial(matIdx).alphaMode; // 0=opaque, 1=mask, 2=blend
+				bool isDoubleSided = (materialManager.getMaterial(matIdx).doubleSided == 1);
 
 				if (categoryPass != category || isDoubleSidedPass != isDoubleSided) continue;
 

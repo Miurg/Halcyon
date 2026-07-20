@@ -13,6 +13,7 @@
 #include "GraphicsCore/Components/BufferManagerComponent.hpp"
 #include "GraphicsCore/Components/ModelManagerComponent.hpp"
 #include "GraphicsCore/Components/DescriptorManagerComponent.hpp"
+#include "GraphicsCore/Components/MaterialManagerComponent.hpp"
 #include "GraphicsCore/Components/FrameManagerComponent.hpp"
 #include "GraphicsCore/Components/FrameDataComponent.hpp"
 #include "GraphicsCore/Components/CurrentFrameComponent.hpp"
@@ -237,6 +238,14 @@ void GraphicsInit::initManagers(GeneralManager& gm)
 	gm.addComponent<DescriptorManagerComponent>(descriptorManagerEntity, descriptorManager);
 	gm.addComponent<NameComponent>(descriptorManagerEntity, "SYSTEM Descriptor Manager");
 	dq->push_function([descriptorManager]() { delete descriptorManager; });
+
+	// Material Manager
+	Orhescyon::Entity materialManagerEntity = gm.createEntity();
+	gm.registerContext<MaterialManagerContext>(materialManagerEntity);
+	MaterialManager* materialManager = new MaterialManager();
+	gm.addComponent<MaterialManagerComponent>(materialManagerEntity, materialManager);
+	gm.addComponent<NameComponent>(materialManagerEntity, "SYSTEM Material Manager");
+	dq->push_function([materialManager]() { delete materialManager; });
 
 	// Frame Manager
 	Orhescyon::Entity frameManagerEntity = gm.createEntity();

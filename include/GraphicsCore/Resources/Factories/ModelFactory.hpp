@@ -9,6 +9,7 @@
 #include "GraphicsCore/Resources/Managers/DescriptorManager.hpp"
 #include "GraphicsCore/Resources/Components/BindlessTextureDSetComponent.hpp"
 #include "GraphicsCore/Resources/Managers/TextureManager.hpp"
+#include "GraphicsCore/Resources/Managers/MaterialManager.hpp"
 #include "GraphicsCore/Resources/Managers/ModelManager.hpp"
 
 using Orhescyon::GeneralManager;
@@ -18,7 +19,7 @@ public:
 	static Orhescyon::Entity loadModel(const char path[MAX_PATH_LEN], int vertexIndexBInt, BufferManager& bufferManager,
 	                        BindlessTextureDSetComponent& dSetComponent, DescriptorManager& descriptorManager,
 	                        GeneralManager& gm, TextureManager& textureManager, ModelManager& modelManager,
-	                        VulkanDevice& vulkanDevice, VmaAllocator allocator);
+	                        MaterialManager& materialManager, VulkanDevice& vulkanDevice, VmaAllocator allocator);
 	static bool unloadModel(Orhescyon::Entity modelRootEntity, GeneralManager& gm, ModelManager& modelManager,
-	                        TextureManager& textureManager);
+	                        TextureManager& textureManager, MaterialManager& materialManager);
 };

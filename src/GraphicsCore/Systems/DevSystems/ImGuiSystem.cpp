@@ -36,6 +36,8 @@
 #include "PhysicsCore/JoltGlm.hpp"
 #include "GraphicsCore/Components/ModelManagerComponent.hpp"
 #include "GraphicsCore/Components/TextureManagerComponent.hpp"
+#include "GraphicsCore/Components/MaterialManagerComponent.hpp"
+#include "GraphicsCore/Resources/Managers/MaterialManager.hpp"
 #include "GraphicsCore/Resources/Managers/ModelManager.hpp"
 #include "GraphicsCore/Resources/Managers/TextureManager.hpp"
 #include "GraphicsCore/Resources/Components/ModelComponent.hpp"
@@ -82,6 +84,8 @@ void drawMemoryWindow(GeneralManager& gm)
 	ModelManager* modelManager = gm.getContextComponent<ModelManagerContext, ModelManagerComponent>()->modelManager;
 	TextureManager* textureManager =
 	    gm.getContextComponent<TextureManagerContext, TextureManagerComponent>()->textureManager;
+	MaterialManager* materialManager =
+	    gm.getContextComponent<MaterialManagerContext, MaterialManagerComponent>()->materialManager;
 
 	ImGui::Begin("Memory");
 
@@ -103,7 +107,7 @@ void drawMemoryWindow(GeneralManager& gm)
 		ImGui::SameLine();
 		if (ImGui::Button("Unload"))
 		{
-			ModelFactory::unloadModel(root, gm, *modelManager, *textureManager);
+			ModelFactory::unloadModel(root, gm, *modelManager, *textureManager, *materialManager);
 		}
 		ImGui::PopID();
 	}
@@ -121,8 +125,8 @@ void drawMemoryWindow(GeneralManager& gm)
 	ImGui::SeparatorText("Slot pools");
 	ImGui::Text("Textures : %zu total, %zu free, %zu pending free", textureManager->textures.size(),
 	            textureManager->freeTextureSlotCount(), textureManager->pendingTextureFreeCount());
-	ImGui::Text("Materials: %zu total, %zu free, %zu pending free", textureManager->materials.size(),
-	            textureManager->freeMaterialSlotCount(), textureManager->pendingMaterialFreeCount());
+	ImGui::Text("Materials: %zu total, %zu free, %zu pending free", materialManager->materials.size(),
+	            materialManager->freeMaterialSlotCount(), materialManager->pendingMaterialFreeCount());
 	ImGui::Text("Meshes   : %zu total, %zu free", modelManager->meshes.size(), modelManager->freeMeshSlotCount());
 	ImGui::Text("Models   : %zu total, %zu free", modelManager->models.size(), modelManager->freeModelSlotCount());
 

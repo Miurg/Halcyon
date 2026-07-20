@@ -153,7 +153,7 @@ Orhescyon::Entity createEntityHierarchy(Orhescyon::Entity parentEntity, tinygltf
 Orhescyon::Entity ModelFactory::loadModel(const char path[MAX_PATH_LEN], int vertexIndexBInt, BufferManager& bufferManager,
                                BindlessTextureDSetComponent& dSetComponent, DescriptorManager& descriptorManager,
                                GeneralManager& gm, TextureManager& textureManager, ModelManager& modelManager,
-                               VulkanDevice& vulkanDevice, VmaAllocator allocator)
+                               MaterialManager& materialManager, VulkanDevice& vulkanDevice, VmaAllocator allocator)
 {
 	tinygltf::Model model;
 	tinygltf::TinyGLTF loader;
@@ -214,7 +214,7 @@ Orhescyon::Entity ModelFactory::loadModel(const char path[MAX_PATH_LEN], int ver
 	else
 	{
 		modelIndex = GltfLoader::loadModelFromFile(path, vertexIndexBInt, bufferManager, dSetComponent, descriptorManager, model,
-		                                           textureManager, modelManager, vulkanDevice, allocator);
+		                                           textureManager, modelManager, materialManager, vulkanDevice, allocator);
 	}
 
 	// Create root entity for the model
@@ -253,7 +253,7 @@ void collectSubtree(Orhescyon::Entity entity, GeneralManager& gm, std::vector<Or
 }
 
 bool ModelFactory::unloadModel(Orhescyon::Entity modelRootEntity, GeneralManager& gm, ModelManager& modelManager,
-                               TextureManager& textureManager)
+                               TextureManager& textureManager, MaterialManager& materialManager)
 {
 	if (!gm.hasComponent<ModelComponent>(modelRootEntity)) return false;
 	int modelIndex = gm.getComponent<ModelComponent>(modelRootEntity)->modelIndex;
@@ -283,7 +283,7 @@ bool ModelFactory::unloadModel(Orhescyon::Entity modelRootEntity, GeneralManager
 	modelManager.freeGeometry(model.allocation, frameNumber);
 	for (int slot : model.meshes) modelManager.freeMeshSlot(slot);
 	for (int textureId : model.textures) textureManager.freeTexture(TextureHandle{textureId}, frameNumber);
-	for (int materialSlot : model.materials) textureManager.freeMaterial(materialSlot, frameNumber);
+	for (int materialSlot : model.materials) materialManager.freeMaterial(materialSlot, frameNumber);
 	for (auto it = modelManager.modelPaths.begin(); it != modelManager.modelPaths.end();)
 	{
 		if (it->second == modelIndex)
