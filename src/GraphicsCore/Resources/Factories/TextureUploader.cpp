@@ -119,8 +119,9 @@ void TextureUploader::uploadHdrTextureFromBuffer(const float* pixels, int texWid
 	VulkanUtils::destroyStagingBuffer(staging, allocator);
 }
 
-void TextureUploader::uploadHdrTextureFromFile(const char* texturePath, Texture& texture, TextureManager& textureManager,
-                                               VmaAllocator& allocator, VulkanDevice& vulkanDevice)
+void TextureUploader::uploadHdrTextureFromFile(const char* texturePath, Texture& texture,
+                                               TextureManager& textureManager, VmaAllocator& allocator,
+                                               VulkanDevice& vulkanDevice)
 {
 	int hdrWidth, hdrHeight, hdrChannels;
 	stbi_set_flip_vertically_on_load(true);
@@ -144,8 +145,8 @@ void TextureUploader::uploadHdrTextureFromFile(const char* texturePath, Texture&
 	desc.width = hdrWidth;
 	desc.height = hdrHeight;
 	desc.format = vk::Format::eR32G32B32A32Sfloat;
-	desc.usage = vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eTransferDst |
-	             vk::ImageUsageFlagBits::eSampled;
+	desc.usage =
+	    vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled;
 	desc.mipLevels = mipLevels;
 	textureManager.createImage(texture, desc);
 
@@ -161,8 +162,8 @@ void TextureUploader::uploadHdrTextureFromFile(const char* texturePath, Texture&
 }
 
 void TextureUploader::uploadKtxTextureData(const unsigned char* ktxData, size_t dataSize, Texture& texture,
-                                           TextureManager& textureManager, bool isSrgb,
-                                           VmaAllocator& allocator, VulkanDevice& vulkanDevice)
+                                           TextureManager& textureManager, bool isSrgb, VmaAllocator& allocator,
+                                           VulkanDevice& vulkanDevice)
 {
 	ktxTexture2* ktxTex = nullptr;
 	KTX_error_code res =

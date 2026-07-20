@@ -280,4 +280,3 @@ Texture& TextureManager::getTexture(TextureHandle handle)
 {
 	return textures[handle.id];
 }
-

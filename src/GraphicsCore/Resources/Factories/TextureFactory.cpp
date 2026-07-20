@@ -91,8 +91,8 @@ TextureHandle TextureFactory::generateTextureData(TextureManager& textureManager
 	desc.width = texWidth;
 	desc.height = texHeight;
 	desc.format = format;
-	desc.usage = vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eTransferDst |
-	             vk::ImageUsageFlagBits::eSampled;
+	desc.usage =
+	    vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled;
 	desc.mipLevels = mipLevels;
 	textureManager.createImage(texture, desc);
 	TextureUploader::uploadTextureFromBuffer(pixels, texWidth, texHeight, texture, allocator, vulkanDevice);
@@ -101,9 +101,9 @@ TextureHandle TextureFactory::generateTextureData(TextureManager& textureManager
 
 	textureManager.texturePaths[std::string(texturePath)] = handle;
 	descriptorManager.update(dSetComponent.bindlessTextureSet, Bindings::Textures::Array, 0,
-	                vk::DescriptorType::eCombinedImageSampler, texture.textureImageView,
-	                textureManager.getSampler(texture.samplerHandle), vk::ImageLayout::eShaderReadOnlyOptimal,
-	                static_cast<uint32_t>(handle.id));
+	                         vk::DescriptorType::eCombinedImageSampler, texture.textureImageView,
+	                         textureManager.getSampler(texture.samplerHandle), vk::ImageLayout::eShaderReadOnlyOptimal,
+	                         static_cast<uint32_t>(handle.id));
 	return handle;
 }
 
@@ -122,8 +122,8 @@ TextureHandle TextureFactory::generateTextureDataFromKtx(TextureManager& texture
 
 	textureManager.texturePaths[std::string(texturePath)] = handle;
 	descriptorManager.update(dSetComponent.bindlessTextureSet, Bindings::Textures::Array, 0,
-	                vk::DescriptorType::eCombinedImageSampler, texture.textureImageView,
-	                textureManager.getSampler(texture.samplerHandle), vk::ImageLayout::eShaderReadOnlyOptimal,
-	                static_cast<uint32_t>(handle.id));
+	                         vk::DescriptorType::eCombinedImageSampler, texture.textureImageView,
+	                         textureManager.getSampler(texture.samplerHandle), vk::ImageLayout::eShaderReadOnlyOptimal,
+	                         static_cast<uint32_t>(handle.id));
 	return handle;
 }

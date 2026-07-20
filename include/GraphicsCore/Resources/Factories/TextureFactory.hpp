@@ -23,7 +23,8 @@ public:
 	static TextureHandle generateTextureData(TextureManager& textureManager, VulkanDevice& vulkanDevice,
 	                                         VmaAllocator allocator, const char* texturePath, int texWidth,
 	                                         int texHeight, const unsigned char* pixels,
-	                                         BindlessTextureDSetComponent& dSetComponent, DescriptorManager& descriptorManager,
+	                                         BindlessTextureDSetComponent& dSetComponent,
+	                                         DescriptorManager& descriptorManager,
 	                                         vk::Format format = vk::Format::eR8G8B8A8Srgb);
 	static TextureHandle generateTextureDataFromKtx(TextureManager& textureManager, VulkanDevice& vulkanDevice,
 	                                                VmaAllocator allocator, const char* texturePath,

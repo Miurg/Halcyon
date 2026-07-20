@@ -32,7 +32,7 @@ glm::mat4 convertGLTFMatrix(const std::vector<double>& matrix)
 	return glm::make_mat4(m);
 }
 Orhescyon::Entity createEntityHierarchy(Orhescyon::Entity parentEntity, tinygltf::Model& model, GeneralManager& gm,
-                                           const std::vector<int>& meshSlots, BufferManager& bufferManager, int nodeIndex)
+                                        const std::vector<int>& meshSlots, BufferManager& bufferManager, int nodeIndex)
 {
 	tinygltf::Node& node = model.nodes[nodeIndex];
 
@@ -103,9 +103,8 @@ Orhescyon::Entity createEntityHierarchy(Orhescyon::Entity parentEntity, tinygltf
 				auto* comp = gm.addComponent<PointLightComponent>(entity);
 				gm.subscribeEntity<LightUpdateSystem>(entity);
 
-				comp->intensity =
-				    (lightDef.Has("intensity") ? (float)lightDef.Get("intensity").GetNumberAsDouble()
-				                               : 1.0f); // cd (candela), as per KHR_lights_punctual spec
+				comp->intensity = (lightDef.Has("intensity") ? (float)lightDef.Get("intensity").GetNumberAsDouble()
+				                                             : 1.0f); // cd (candela), as per KHR_lights_punctual spec
 				comp->radius = lightDef.Has("range") ? (float)lightDef.Get("range").GetNumberAsDouble() : 10.0f;
 				comp->innerConeAngle = glm::cos(glm::radians(15.0f));
 				comp->outerConeAngle = glm::cos(glm::radians(30.0f));
@@ -150,10 +149,12 @@ Orhescyon::Entity createEntityHierarchy(Orhescyon::Entity parentEntity, tinygltf
 	return entity;
 }
 
-Orhescyon::Entity ModelFactory::loadModel(const char path[MAX_PATH_LEN], int vertexIndexBInt, BufferManager& bufferManager,
-                               BindlessTextureDSetComponent& dSetComponent, DescriptorManager& descriptorManager,
-                               GeneralManager& gm, TextureManager& textureManager, ModelManager& modelManager,
-                               MaterialManager& materialManager, VulkanDevice& vulkanDevice, VmaAllocator allocator)
+Orhescyon::Entity ModelFactory::loadModel(const char path[MAX_PATH_LEN], int vertexIndexBInt,
+                                          BufferManager& bufferManager, BindlessTextureDSetComponent& dSetComponent,
+                                          DescriptorManager& descriptorManager, GeneralManager& gm,
+                                          TextureManager& textureManager, ModelManager& modelManager,
+                                          MaterialManager& materialManager, VulkanDevice& vulkanDevice,
+                                          VmaAllocator allocator)
 {
 	tinygltf::Model model;
 	tinygltf::TinyGLTF loader;
@@ -173,12 +174,11 @@ Orhescyon::Entity ModelFactory::loadModel(const char path[MAX_PATH_LEN], int ver
 		    }
 		    int w, h, comp;
 		    unsigned char* data = stbi_load_from_memory(bytes, size, &w, &h, &comp, STBI_rgb_alpha);
-		    if (!data)
-			    return false;
-		    image->width      = w;
-		    image->height     = h;
-		    image->component  = 4;
-		    image->bits       = 8;
+		    if (!data) return false;
+		    image->width = w;
+		    image->height = h;
+		    image->component = 4;
+		    image->bits = 8;
 		    image->pixel_type = TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE;
 		    image->image.assign(data, data + static_cast<size_t>(w * h * 4));
 		    stbi_image_free(data);
@@ -213,8 +213,9 @@ Orhescyon::Entity ModelFactory::loadModel(const char path[MAX_PATH_LEN], int ver
 	}
 	else
 	{
-		modelIndex = GltfLoader::loadModelFromFile(path, vertexIndexBInt, bufferManager, dSetComponent, descriptorManager, model,
-		                                           textureManager, modelManager, materialManager, vulkanDevice, allocator);
+		modelIndex =
+		    GltfLoader::loadModelFromFile(path, vertexIndexBInt, bufferManager, dSetComponent, descriptorManager, model,
+		                                  textureManager, modelManager, materialManager, vulkanDevice, allocator);
 	}
 
 	// Create root entity for the model
@@ -234,7 +235,8 @@ Orhescyon::Entity ModelFactory::loadModel(const char path[MAX_PATH_LEN], int ver
 
 	for (int rootNodeIndex : scene.nodes)
 	{
-		createEntityHierarchy(modelRootEntity, model, gm, modelManager.getModel(modelIndex).meshes, bufferManager, rootNodeIndex);
+		createEntityHierarchy(modelRootEntity, model, gm, modelManager.getModel(modelIndex).meshes, bufferManager,
+		                      rootNodeIndex);
 	}
 	std::cout << "Loaded model: " << path << std::endl;
 	return modelRootEntity;

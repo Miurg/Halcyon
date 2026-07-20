@@ -178,8 +178,8 @@ void ModelManager::defragment(VertexIndexBuffer& buffer)
 	}
 
 	auto compact = [&](RangeAllocator& arena, vk::Buffer gpuBuffer, vk::DeviceSize elementSize,
-	                   uint32_t GeometryAllocation::*base, uint32_t GeometryAllocation::*count,
-	                   uint32_t PrimitivesInfo::*offset)
+	                   uint32_t GeometryAllocation::* base, uint32_t GeometryAllocation::* count,
+	                   uint32_t PrimitivesInfo::* offset)
 	{
 		std::sort(liveModels.begin(), liveModels.end(),
 		          [&](int a, int b) { return models[a].allocation.*base < models[b].allocation.*base; });
@@ -221,8 +221,8 @@ void ModelManager::defragment(VertexIndexBuffer& buffer)
 			vk::Buffer scratch;
 			VmaAllocation scratchAllocation = nullptr;
 			createDeviceLocalBuffer(allocator, usedElements * elementSize,
-			                        vk::BufferUsageFlagBits::eTransferSrc | vk::BufferUsageFlagBits::eTransferDst,
-			                        scratch, scratchAllocation);
+			                        vk::BufferUsageFlagBits::eTransferSrc | vk::BufferUsageFlagBits::eTransferDst, scratch,
+			                        scratchAllocation);
 
 			auto gather = VulkanUtils::beginSingleTimeCommands(vulkanDevice);
 			for (const Relocation& relocation : relocations)

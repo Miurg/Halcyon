@@ -26,7 +26,6 @@ class PipelineHandler;
 class HALCYON_API TextureManager
 {
 public:
-	// TODO: mass refactor
 	TextureManager(VulkanDevice& vulkanDevice, VmaAllocator allocator);
 	~TextureManager();
 	bool isTextureLoaded(const char texturePath[MAX_PATH_LEN]);

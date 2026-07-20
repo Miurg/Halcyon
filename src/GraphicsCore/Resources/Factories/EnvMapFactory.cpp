@@ -11,16 +11,17 @@
 
 TextureHandle EnvMapFactory::cubemapFromHdr(TextureManager& textureManager, VulkanDevice& vulkanDevice,
                                             TextureHandle hdrTexture, DescriptorManager& descriptorManager,
-                                            BindlessTextureDSetComponent& dSetComponent, PipelineManager& pipelineManager)
+                                            BindlessTextureDSetComponent& dSetComponent,
+                                            PipelineManager& pipelineManager)
 {
 	TextureHandle cubemapHandle{textureManager.allocateTextureSlot()};
 	Texture& cubemapTexture = textureManager.getTexture(cubemapHandle);
-	textureManager.createImage(cubemapTexture,
-	                     imagePresets::cubemap(1024, vk::Format::eR32G32B32A32Sfloat,
-	                                           vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst |
-	                                               vk::ImageUsageFlagBits::eStorage));
+	textureManager.createImage(cubemapTexture, imagePresets::cubemap(1024, vk::Format::eR32G32B32A32Sfloat,
+	                                                                 vk::ImageUsageFlagBits::eSampled |
+	                                                                     vk::ImageUsageFlagBits::eTransferDst |
+	                                                                     vk::ImageUsageFlagBits::eStorage));
 	textureManager.createImageView(cubemapTexture, vk::Format::eR32G32B32A32Sfloat, vk::ImageAspectFlagBits::eColor,
-	                         vk::ImageViewType::eCube);
+	                               vk::ImageViewType::eCube);
 	textureManager.createSampler(cubemapTexture, samplerPresets::cubemap());
 
 	vk::ImageViewCreateInfo viewInfo;
@@ -35,10 +36,10 @@ TextureHandle EnvMapFactory::cubemapFromHdr(TextureManager& textureManager, Vulk
 	vk::raii::ImageView storageImageView(vulkanDevice.device, viewInfo);
 
 	descriptorManager.update(dSetComponent.bindlessTextureSet, Bindings::Textures::CubemapSampler, 0,
-	                vk::DescriptorType::eCombinedImageSampler, cubemapTexture.textureImageView,
-	                textureManager.getSampler(cubemapTexture.samplerHandle));
+	                         vk::DescriptorType::eCombinedImageSampler, cubemapTexture.textureImageView,
+	                         textureManager.getSampler(cubemapTexture.samplerHandle));
 	descriptorManager.update(dSetComponent.bindlessTextureSet, Bindings::Textures::CubemapStorage, 0,
-	                vk::DescriptorType::eStorageImage, *storageImageView, nullptr, vk::ImageLayout::eGeneral);
+	                         vk::DescriptorType::eStorageImage, *storageImageView, nullptr, vk::ImageLayout::eGeneral);
 
 	auto cmd = VulkanUtils::beginSingleTimeCommands(vulkanDevice);
 
@@ -52,8 +53,8 @@ TextureHandle EnvMapFactory::cubemapFromHdr(TextureManager& textureManager, Vulk
 	                       descriptorManager.getSet(dSetComponent.bindlessTextureSet), nullptr);
 
 	uint32_t pushConstants = hdrTexture.id;
-	cmd.pushConstants<uint32_t>(*pipelineManager.pipelines["equirect_to_cube"].layout, vk::ShaderStageFlagBits::eCompute, 0,
-	                            pushConstants);
+	cmd.pushConstants<uint32_t>(*pipelineManager.pipelines["equirect_to_cube"].layout, vk::ShaderStageFlagBits::eCompute,
+	                            0, pushConstants);
 
 	cmd.dispatch(1024 / 8, 1024 / 8, 6); // TODO: Get rid of hardcoded resolution. Same in SH compute.
 
@@ -69,7 +70,8 @@ TextureHandle EnvMapFactory::cubemapFromHdr(TextureManager& textureManager, Vulk
 
 TextureHandle EnvMapFactory::prefilteredEnvMap(TextureManager& textureManager, VulkanDevice& vulkanDevice,
                                                TextureHandle envCubemap, DescriptorManager& descriptorManager,
-                                               BindlessTextureDSetComponent& dSetComponent, PipelineManager& pipelineManager)
+                                               BindlessTextureDSetComponent& dSetComponent,
+                                               PipelineManager& pipelineManager)
 {
 	const uint32_t prefilteredSize = 128;
 	const uint32_t maxMipLevels = 5;
@@ -77,12 +79,13 @@ TextureHandle EnvMapFactory::prefilteredEnvMap(TextureManager& textureManager, V
 	TextureHandle prefilteredHandle{textureManager.allocateTextureSlot()};
 	Texture& prefilteredTexture = textureManager.getTexture(prefilteredHandle);
 	textureManager.createImage(prefilteredTexture,
-	                     imagePresets::cubemap(prefilteredSize, vk::Format::eR32G32B32A32Sfloat,
-	                                           vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst |
-	                                               vk::ImageUsageFlagBits::eStorage,
-	                                           maxMipLevels));
+	                           imagePresets::cubemap(prefilteredSize, vk::Format::eR32G32B32A32Sfloat,
+	                                                 vk::ImageUsageFlagBits::eSampled |
+	                                                     vk::ImageUsageFlagBits::eTransferDst |
+	                                                     vk::ImageUsageFlagBits::eStorage,
+	                                                 maxMipLevels));
 	textureManager.createImageView(prefilteredTexture, vk::Format::eR32G32B32A32Sfloat, vk::ImageAspectFlagBits::eColor,
-	                         vk::ImageViewType::eCube);
+	                               vk::ImageViewType::eCube);
 	textureManager.createSampler(prefilteredTexture, samplerPresets::cubemap());
 
 	auto initCmd = VulkanUtils::beginSingleTimeCommands(vulkanDevice);
@@ -112,10 +115,11 @@ TextureHandle EnvMapFactory::prefilteredEnvMap(TextureManager& textureManager, V
 		vk::raii::ImageView mipStorageView(vulkanDevice.device, viewInfo);
 
 		descriptorManager.update(dSetComponent.bindlessTextureSet, Bindings::Textures::CubemapSampler, 0,
-		                vk::DescriptorType::eCombinedImageSampler, textureManager.getTexture(envCubemap).textureImageView,
-		                textureManager.getSampler(textureManager.getTexture(envCubemap).samplerHandle));
+		                         vk::DescriptorType::eCombinedImageSampler,
+		                         textureManager.getTexture(envCubemap).textureImageView,
+		                         textureManager.getSampler(textureManager.getTexture(envCubemap).samplerHandle));
 		descriptorManager.update(dSetComponent.bindlessTextureSet, Bindings::Textures::CubemapStorage, 0,
-		                vk::DescriptorType::eStorageImage, *mipStorageView, nullptr, vk::ImageLayout::eGeneral);
+		                         vk::DescriptorType::eStorageImage, *mipStorageView, nullptr, vk::ImageLayout::eGeneral);
 
 		auto cmd = VulkanUtils::beginSingleTimeCommands(vulkanDevice);
 
@@ -124,8 +128,8 @@ TextureHandle EnvMapFactory::prefilteredEnvMap(TextureManager& textureManager, V
 		                       descriptorManager.getSet(dSetComponent.bindlessTextureSet), nullptr);
 
 		float roughness = static_cast<float>(mip) / static_cast<float>(maxMipLevels - 1);
-		cmd.pushConstants<float>(*pipelineManager.pipelines["prefilter_env_map"].layout, vk::ShaderStageFlagBits::eCompute, 0,
-		                         roughness);
+		cmd.pushConstants<float>(*pipelineManager.pipelines["prefilter_env_map"].layout,
+		                         vk::ShaderStageFlagBits::eCompute, 0, roughness);
 
 		uint32_t groupsX = std::max(1u, mipWidth / 8);
 		uint32_t groupsY = std::max(1u, mipHeight / 8);
@@ -146,8 +150,9 @@ TextureHandle EnvMapFactory::prefilteredEnvMap(TextureManager& textureManager, V
 	return prefilteredHandle;
 }
 
-TextureHandle EnvMapFactory::brdfLut(TextureManager& textureManager, VulkanDevice& vulkanDevice, DescriptorManager& descriptorManager,
-                                     BindlessTextureDSetComponent& dSetComponent, PipelineManager& pipelineManager)
+TextureHandle EnvMapFactory::brdfLut(TextureManager& textureManager, VulkanDevice& vulkanDevice,
+                                     DescriptorManager& descriptorManager, BindlessTextureDSetComponent& dSetComponent,
+                                     PipelineManager& pipelineManager)
 {
 	const uint32_t brdfLutSize = 512;
 

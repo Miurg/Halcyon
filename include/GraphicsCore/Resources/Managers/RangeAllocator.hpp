@@ -60,7 +60,7 @@ public:
 		{
 			it->size += next->size;
 			_free.erase(next);
-		} 
+		}
 		if (it != _free.begin())
 		{
 			auto prev = std::prev(it);

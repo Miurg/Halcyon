@@ -84,7 +84,8 @@ DescriptorManager::DescriptorManager(VulkanDevice& vulkanDevice)
 		    vk::DescriptorSetLayoutBinding(Bindings::Textures::BrdfLut, vk::DescriptorType::eCombinedImageSampler, 1,
 		                                   S::eFragment),
 		    vk::DescriptorSetLayoutBinding(Bindings::Textures::ReflectionCubemaps,
-		                                   vk::DescriptorType::eCombinedImageSampler, MAX_REFLECTION_PROBES, S::eFragment),
+		                                   vk::DescriptorType::eCombinedImageSampler, MAX_REFLECTION_PROBES,
+		                                   S::eFragment),
 		};
 		std::array<vk::DescriptorBindingFlags, 9> textureBindingFlags = {
 		    vk::DescriptorBindingFlagBits::ePartiallyBound | vk::DescriptorBindingFlagBits::eUpdateAfterBind,
@@ -95,7 +96,8 @@ DescriptorManager::DescriptorManager(VulkanDevice& vulkanDevice)
 		    vk::DescriptorBindingFlags{}, // giCaptureCubemap
 		    vk::DescriptorBindingFlags{}, // prefilteredMap
 		    vk::DescriptorBindingFlags{}, // brdfLut
-		    vk::DescriptorBindingFlagBits::ePartiallyBound | vk::DescriptorBindingFlagBits::eUpdateAfterBind, // reflectionCubemaps
+		    vk::DescriptorBindingFlagBits::ePartiallyBound |
+		        vk::DescriptorBindingFlagBits::eUpdateAfterBind, // reflectionCubemaps
 		};
 		vk::DescriptorSetLayoutBindingFlagsCreateInfo bindingFlagsInfo;
 		bindingFlagsInfo.bindingCount = static_cast<uint32_t>(textureBindingFlags.size());
@@ -139,7 +141,8 @@ DescriptorManager::DescriptorManager(VulkanDevice& vulkanDevice)
 
 	using S = vk::ShaderStageFlagBits;
 	std::array particleSystemBindings = {
-	    vk::DescriptorSetLayoutBinding(0, vk::DescriptorType::eStorageBuffer, 1, S::eCompute | S::eFragment | S::eVertex),
+	    vk::DescriptorSetLayoutBinding(0, vk::DescriptorType::eStorageBuffer, 1,
+	                                   S::eCompute | S::eFragment | S::eVertex),
 	    vk::DescriptorSetLayoutBinding(1, vk::DescriptorType::eStorageBuffer, 1, S::eCompute),
 	    vk::DescriptorSetLayoutBinding(2, vk::DescriptorType::eStorageBuffer, 1, S::eCompute),
 	    vk::DescriptorSetLayoutBinding(3, vk::DescriptorType::eStorageBuffer, 1, S::eCompute),
@@ -227,8 +230,8 @@ void DescriptorManager::updateSingleTextureDSet(DSetHandle dIndex, int binding, 
 		update(dIndex, static_cast<uint32_t>(binding), i, vk::DescriptorType::eCombinedImageSampler, imageView, sampler);
 }
 
-void DescriptorManager::updateStorageBufferDescriptors(BufferManager& bufferManager, BufferHandle bNumber, DSetHandle dSet,
-                                                       uint32_t binding)
+void DescriptorManager::updateStorageBufferDescriptors(BufferManager& bufferManager, BufferHandle bNumber,
+                                                       DSetHandle dSet, uint32_t binding)
 {
 	const uint32_t copies = getSetCount(dSet);
 	const auto& buffers = bufferManager.buffers[bNumber.id].buffer;
