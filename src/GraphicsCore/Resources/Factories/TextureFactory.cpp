@@ -99,7 +99,7 @@ TextureHandle TextureFactory::generateTextureData(TextureManager& textureManager
 	textureManager.createImageView(texture, format, vk::ImageAspectFlagBits::eColor);
 	textureManager.createSampler(texture, samplerPresets::texture());
 
-	textureManager.texturePaths[std::string(texturePath)] = handle;
+	textureManager.registerTexturePath(texturePath, handle);
 	descriptorManager.update(dSetComponent.bindlessTextureSet, Bindings::Textures::Array, 0,
 	                         vk::DescriptorType::eCombinedImageSampler, texture.textureImageView,
 	                         textureManager.getSampler(texture.samplerHandle), vk::ImageLayout::eShaderReadOnlyOptimal,
@@ -120,7 +120,7 @@ TextureHandle TextureFactory::generateTextureDataFromKtx(TextureManager& texture
 	textureManager.createImageView(texture, texture.format, vk::ImageAspectFlagBits::eColor);
 	textureManager.createSampler(texture, samplerPresets::texture());
 
-	textureManager.texturePaths[std::string(texturePath)] = handle;
+	textureManager.registerTexturePath(texturePath, handle);
 	descriptorManager.update(dSetComponent.bindlessTextureSet, Bindings::Textures::Array, 0,
 	                         vk::DescriptorType::eCombinedImageSampler, texture.textureImageView,
 	                         textureManager.getSampler(texture.samplerHandle), vk::ImageLayout::eShaderReadOnlyOptimal,

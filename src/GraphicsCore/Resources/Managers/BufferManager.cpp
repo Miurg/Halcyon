@@ -38,7 +38,7 @@ void BufferManager::bakeSHForProbe(TextureHandle envCubemap, BufferHandle probeB
                                    DSetHandle globalDSet, PipelineManager& pipelineManager,
                                    TextureManager& textureManager)
 {
-	Texture& envTex = textureManager.textures[envCubemap.id];
+	Texture& envTex = textureManager.getTexture(envCubemap);
 	descriptorManager.update(dSetComponent.bindlessTextureSet, Bindings::Textures::GICaptureCubemap, 0,
 	                         vk::DescriptorType::eCombinedImageSampler, envTex.textureImageView,
 	                         textureManager.getSampler(envTex.samplerHandle));

@@ -54,13 +54,7 @@ void TextureManager::destroyTexture(TextureHandle handle)
 	if (--_textureRefCounts[handle.id] > 0) return;
 
 	// Otherwise isTextureLoaded would later hand out this destroyed texture.
-	for (auto it = texturePaths.begin(); it != texturePaths.end();)
-	{
-		if (it->second.id == handle.id)
-			it = texturePaths.erase(it);
-		else
-			++it;
-	}
+	unregisterTexturePath(handle);
 
 	Texture& texture = textures[handle.id];
 	destroyTextureResources(texture);
@@ -96,13 +90,7 @@ void TextureManager::freeTexture(TextureHandle handle, uint64_t frameNumber)
 	if (--_textureRefCounts[handle.id] > 0) return;
 
 	// Otherwise isTextureLoaded would later hand out this freed texture.
-	for (auto it = texturePaths.begin(); it != texturePaths.end();)
-	{
-		if (it->second.id == handle.id)
-			it = texturePaths.erase(it);
-		else
-			++it;
-	}
+	unregisterTexturePath(handle);
 
 	Texture& live = textures[handle.id];
 	_pendingFrees.push_back({live, handle.id, frameNumber + MAX_FRAMES_IN_FLIGHT});
@@ -153,9 +141,32 @@ vk::Format TextureManager::findBestSupportedFormat(const std::vector<vk::Format>
 	throw std::runtime_error("failed to find supported format!");
 }
 
-bool TextureManager::isTextureLoaded(const char texturePath[MAX_PATH_LEN])
+bool TextureManager::isTextureLoaded(const char texturePath[MAX_PATH_LEN]) const
 {
 	return texturePaths.find(texturePath) != texturePaths.end();
+}
+
+TextureHandle TextureManager::getTextureHandle(const char texturePath[MAX_PATH_LEN]) const
+{
+	auto it = texturePaths.find(texturePath);
+	if (it == texturePaths.end()) return TextureHandle{};
+	return it->second;
+}
+
+void TextureManager::registerTexturePath(const char texturePath[MAX_PATH_LEN], TextureHandle handle)
+{
+	texturePaths[texturePath] = handle;
+}
+
+void TextureManager::unregisterTexturePath(TextureHandle handle)
+{
+	for (auto it = texturePaths.begin(); it != texturePaths.end();)
+	{
+		if (it->second.id == handle.id)
+			it = texturePaths.erase(it);
+		else
+			++it;
+	}
 }
 
 void TextureManager::createImage(Texture& texture, const ImageDesc& desc)
@@ -173,6 +184,16 @@ void TextureManager::createImage(Texture& texture, const ImageDesc& desc)
 	texture.mipLevels = desc.mipLevels;
 	texture.layerCount = desc.layerCount;
 	texture.imageCreateFlags = desc.flags;
+}
+
+size_t TextureManager::textureCount() const
+{
+	return textures.size();
+}
+
+size_t TextureManager::samplerCount() const
+{
+	return samplers.size();
 }
 
 size_t TextureManager::freeTextureSlotCount() const

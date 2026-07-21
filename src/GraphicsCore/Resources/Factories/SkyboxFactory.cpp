@@ -37,16 +37,15 @@ void SkyboxFactory::loadSkybox(const std::string& hdrPath, GeneralManager& gm)
 	GlobalDSetComponent& globalDSetComp = *gm.getContextComponent<MainDSetsContext, GlobalDSetComponent>();
 
 	// Upload HDR texture
-	int hdrIndex = textureManager.allocateTextureSlot();
-	Texture& hdrTexture = textureManager.getTexture(TextureHandle{hdrIndex});
+	TextureHandle hdrHandle{textureManager.allocateTextureSlot()};
+	Texture& hdrTexture = textureManager.getTexture(hdrHandle);
 	TextureUploader::uploadHdrTextureFromFile(hdrPath.c_str(), hdrTexture, textureManager, allocator, vulkanDevice);
-	textureManager.texturePaths[hdrPath] = TextureHandle{hdrIndex};
-	TextureHandle hdrHandle = textureManager.texturePaths[hdrPath];
+	textureManager.registerTexturePath(hdrPath.c_str(), hdrHandle);
 
 	descriptorManager.update(bTextureDSetComponent.bindlessTextureSet, Bindings::Textures::Array, 0,
 	                         vk::DescriptorType::eCombinedImageSampler, hdrTexture.textureImageView,
 	                         textureManager.getSampler(hdrTexture.samplerHandle),
-	                         vk::ImageLayout::eShaderReadOnlyOptimal, static_cast<uint32_t>(hdrIndex));
+	                         vk::ImageLayout::eShaderReadOnlyOptimal, static_cast<uint32_t>(hdrHandle.id));
 
 	TextureHandle cubemapHandle = EnvMapFactory::cubemapFromHdr(
 	    textureManager, vulkanDevice, hdrHandle, descriptorManager, bTextureDSetComponent, pipelineManager);

@@ -28,7 +28,10 @@ class HALCYON_API TextureManager
 public:
 	TextureManager(VulkanDevice& vulkanDevice, VmaAllocator allocator);
 	~TextureManager();
-	bool isTextureLoaded(const char texturePath[MAX_PATH_LEN]);
+	bool isTextureLoaded(const char texturePath[MAX_PATH_LEN]) const;
+	TextureHandle getTextureHandle(const char texturePath[MAX_PATH_LEN]) const;
+	void registerTexturePath(const char texturePath[MAX_PATH_LEN], TextureHandle handle);
+	void unregisterTexturePath(TextureHandle handle);
 	void resizeTexture(TextureHandle handle, uint32_t newWidth, uint32_t newHeight);
 	void createImageView(Texture& texture, vk::Format format, vk::ImageAspectFlags aspectFlags,
 	                     vk::ImageViewType viewType = vk::ImageViewType::e2D);
@@ -47,14 +50,16 @@ public:
 	void collectTextureFrees(uint64_t frameNumber);
 	Texture& getTexture(TextureHandle handle);
 
-	std::vector<Texture> textures;
-	std::vector<vk::Sampler> samplers;
-	std::unordered_map<std::string, TextureHandle> texturePaths;
-
+	size_t textureCount() const;
+	size_t samplerCount() const;
 	size_t freeTextureSlotCount() const;
 	size_t pendingTextureFreeCount() const;
 
 private:
+	std::vector<Texture> textures;
+	std::vector<vk::Sampler> samplers;
+	std::unordered_map<std::string, TextureHandle> texturePaths;
+
 	VulkanDevice& vulkanDevice;
 	VmaAllocator allocator = {};
 	std::vector<int> _freeTextureSlots;

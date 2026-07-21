@@ -116,12 +116,12 @@ int GltfLoader::loadMaterialTexture(tinygltf::Model& model, const std::map<std::
 	// The same bytes under sRGB vs UNORM are two different images.
 	texName += isSrgb ? "|srgb" : "|linear";
 
-	if (textureManager.isTextureLoaded(texName.c_str()))
+	TextureHandle cached = textureManager.getTextureHandle(texName.c_str());
+	if (cached.id != -1)
 	{
-		TextureHandle handle = textureManager.texturePaths[texName];
-		textureManager.addTextureRef(handle);
-		ownedTextures.push_back(handle.id);
-		return handle.id;
+		textureManager.addTextureRef(cached);
+		ownedTextures.push_back(cached.id);
+		return cached.id;
 	}
 	if (img.as_is && img.mimeType == "image/ktx2" && !img.image.empty())
 	{
@@ -153,30 +153,34 @@ MaterialMaps GltfLoader::materialsParser(tinygltf::Model& model, TextureManager&
 {
 	MaterialMaps maps;
 	glm::vec4 colorFactor = {1.0f, 1.0f, 1.0f, 1.0f}; // Default white
-	int whiteTexture = textureManager.isTextureLoaded("sys_default_white")
-	                       ? textureManager.texturePaths["sys_default_white"].id
+	TextureHandle cachedWhite = textureManager.getTextureHandle("sys_default_white");
+	int whiteTexture = cachedWhite.id != -1
+	                       ? cachedWhite.id
 	                       : TextureFactory::generateTextureData(
 	                             textureManager, vulkanDevice, allocator, "sys_default_white", 1, 1,
 	                             std::vector<unsigned char>{255, 255, 255, 255}.data(), dSetComponent, descriptorManager)
 	                             .id;
 	// Default flat normal map: (128,128,255,255) = tangent-space up (0,0,1), loaded as linear
+	TextureHandle cachedNormal = textureManager.getTextureHandle("sys_default_normal");
 	int defaultNormalTexture =
-	    textureManager.isTextureLoaded("sys_default_normal")
-	        ? textureManager.texturePaths["sys_default_normal"].id
+	    cachedNormal.id != -1
+	        ? cachedNormal.id
 	        : TextureFactory::generateTextureData(textureManager, vulkanDevice, allocator, "sys_default_normal", 1, 1,
 	                                              std::vector<unsigned char>{128, 128, 255, 255}.data(), dSetComponent,
 	                                              descriptorManager, vk::Format::eR8G8B8A8Unorm)
 	              .id;
+	TextureHandle cachedMR = textureManager.getTextureHandle("sys_default_mr");
 	int defaultMRTexture =
-	    textureManager.isTextureLoaded("sys_default_mr")
-	        ? textureManager.texturePaths["sys_default_mr"].id
+	    cachedMR.id != -1
+	        ? cachedMR.id
 	        : TextureFactory::generateTextureData(textureManager, vulkanDevice, allocator, "sys_default_mr", 1, 1,
 	                                              std::vector<unsigned char>{255, 255, 0, 255}.data(), dSetComponent,
 	                                              descriptorManager, vk::Format::eR8G8B8A8Unorm)
 	              .id;
+	TextureHandle cachedEmissive = textureManager.getTextureHandle("sys_default_emissive");
 	int defaultEmissiveTexture =
-	    textureManager.isTextureLoaded("sys_default_emissive")
-	        ? textureManager.texturePaths["sys_default_emissive"].id
+	    cachedEmissive.id != -1
+	        ? cachedEmissive.id
 	        : TextureFactory::generateTextureData(textureManager, vulkanDevice, allocator, "sys_default_emissive", 1, 1,
 	                                              std::vector<unsigned char>{255, 255, 255, 255}.data(), dSetComponent,
 	                                              descriptorManager)

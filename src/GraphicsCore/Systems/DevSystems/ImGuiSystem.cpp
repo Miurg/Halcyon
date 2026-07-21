@@ -123,7 +123,7 @@ void drawMemoryWindow(GeneralManager& gm)
 	}
 
 	ImGui::SeparatorText("Slot pools");
-	ImGui::Text("Textures : %zu total, %zu free, %zu pending free", textureManager->textures.size(),
+	ImGui::Text("Textures : %zu total, %zu free, %zu pending free", textureManager->textureCount(),
 	            textureManager->freeTextureSlotCount(), textureManager->pendingTextureFreeCount());
 	ImGui::Text("Materials: %zu total, %zu free, %zu pending free", materialManager->materials.size(),
 	            materialManager->freeMaterialSlotCount(), materialManager->pendingMaterialFreeCount());
