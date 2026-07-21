@@ -17,15 +17,18 @@ class HALCYON_API MaterialManager
 public:
 	int emplaceMaterial(BindlessTextureDSetComponent& dSetComponent, MaterialStructure material,
 	                    BufferManager& bufferManager);
+	void addMaterialRef(int slot);
+	bool releaseMaterialRef(int slot);
 	void freeMaterial(int slot, uint64_t frameNumber);
 	void collectMaterialFrees(uint64_t frameNumber);
 	const MaterialStructure& getMaterial(int slot) const;
+	size_t materialCount() const;
 	size_t freeMaterialSlotCount() const;
 	size_t pendingMaterialFreeCount() const;
 
+private:
 	std::vector<MaterialStructure> materials;
 
-private:
 	struct PendingMaterialFree
 	{
 		int slot;

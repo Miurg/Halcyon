@@ -8,7 +8,7 @@ int MaterialManager::emplaceMaterial(BindlessTextureDSetComponent& dSetComponent
 	auto cached = _materialCache.find(material);
 	if (cached != _materialCache.end())
 	{
-		_materialRefCounts[cached->second]++;
+		addMaterialRef(cached->second);
 		return cached->second;
 	}
 
@@ -31,11 +31,24 @@ int MaterialManager::emplaceMaterial(BindlessTextureDSetComponent& dSetComponent
 	return slot;
 }
 
-void MaterialManager::freeMaterial(int slot, uint64_t frameNumber)
+void MaterialManager::addMaterialRef(int slot)
 {
 	if (slot < 0 || slot >= static_cast<int>(materials.size())) return;
-	if (_materialRefCounts[slot] <= 0) return;
-	if (--_materialRefCounts[slot] > 0) return;
+
+	_materialRefCounts[slot]++;
+}
+
+bool MaterialManager::releaseMaterialRef(int slot)
+{
+	if (slot < 0 || slot >= static_cast<int>(materials.size())) return false;
+	if (_materialRefCounts[slot] <= 0) return false;
+
+	return --_materialRefCounts[slot] == 0;
+}
+
+void MaterialManager::freeMaterial(int slot, uint64_t frameNumber)
+{
+	if (!releaseMaterialRef(slot)) return;
 
 	// Erased immediately so emplaceMaterial can't hand out a slot that is pending free.
 	_materialCache.erase(materials[slot]);
@@ -59,6 +72,11 @@ void MaterialManager::collectMaterialFrees(uint64_t frameNumber)
 const MaterialStructure& MaterialManager::getMaterial(int slot) const
 {
 	return materials[slot];
+}
+
+size_t MaterialManager::materialCount() const
+{
+	return materials.size();
 }
 
 size_t MaterialManager::freeMaterialSlotCount() const
