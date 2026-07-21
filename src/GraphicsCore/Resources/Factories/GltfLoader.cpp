@@ -73,7 +73,6 @@ int GltfLoader::loadModelFromFile(const char path[MAX_PATH_LEN], int vertexIndex
 	modelManager.getModel(modelIndex).meshes = std::move(meshSlots);
 	modelManager.getModel(modelIndex).textures = std::move(materialMaps.ownedTextures);
 	modelManager.getModel(modelIndex).materials = std::move(ownedMaterials);
-	modelManager.getModel(modelIndex).refCount = 1;
 	modelManager.modelPaths[path] = modelIndex;
 
 	return modelIndex;

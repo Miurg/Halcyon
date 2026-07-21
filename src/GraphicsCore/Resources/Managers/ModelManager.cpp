@@ -281,10 +281,27 @@ int ModelManager::allocateModelSlot()
 		int slot = _freeModelSlots.back();
 		_freeModelSlots.pop_back();
 		models[slot] = Model();
+		models[slot].refCount = 1;
 		return slot;
 	}
 	models.push_back(Model());
+	models.back().refCount = 1;
 	return static_cast<int>(models.size() - 1);
+}
+
+void ModelManager::addModelRef(int modelIndex)
+{
+	if (modelIndex < 0 || modelIndex >= static_cast<int>(models.size())) return;
+
+	models[modelIndex].refCount++;
+}
+
+bool ModelManager::releaseModelRef(int modelIndex)
+{
+	if (modelIndex < 0 || modelIndex >= static_cast<int>(models.size())) return false;
+	if (models[modelIndex].refCount <= 0) return false;
+
+	return --models[modelIndex].refCount == 0;
 }
 
 void ModelManager::freeMeshSlot(int slot)

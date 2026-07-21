@@ -52,6 +52,8 @@ public:
 
 	int allocateMeshSlot();
 	int allocateModelSlot();
+	void addModelRef(int modelIndex);
+	bool releaseModelRef(int modelIndex);
 	void freeMeshSlot(int slot);
 	void freeModelSlot(int slot);
 	size_t freeMeshSlotCount() const;

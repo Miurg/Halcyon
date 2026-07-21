@@ -209,7 +209,7 @@ Orhescyon::Entity ModelFactory::loadModel(const char path[MAX_PATH_LEN], int ver
 	if (modelManager.isModelLoaded(path))
 	{
 		modelIndex = modelManager.modelPaths[path];
-		modelManager.getModel(modelIndex).refCount++;
+		modelManager.addModelRef(modelIndex);
 	}
 	else
 	{
@@ -277,9 +277,8 @@ bool ModelFactory::unloadModel(Orhescyon::Entity modelRootEntity, GeneralManager
 	collectSubtree(modelRootEntity, gm, toDestroy);
 	for (Orhescyon::Entity entity : toDestroy) gm.destroyEntity(entity);
 
+	if (!modelManager.releaseModelRef(modelIndex)) return true;
 	Model& model = modelManager.getModel(modelIndex);
-	model.refCount--;
-	if (model.refCount > 0) return true;
 
 	uint32_t frameNumber = gm.getContextComponent<CurrentFrameContext, CurrentFrameComponent>()->frameNumber;
 	modelManager.freeGeometry(model.allocation, frameNumber);
