@@ -41,7 +41,10 @@ class HALCYON_API ModelManager
 public:
 	ModelManager(VulkanDevice& vulkanDevice, VmaAllocator allocator);
 	~ModelManager();
-	bool isModelLoaded(const char path[MAX_PATH_LEN]);
+	bool isModelLoaded(const char path[MAX_PATH_LEN]) const;
+	int getModelIndex(const char path[MAX_PATH_LEN]) const;
+	void registerModelPath(const char path[MAX_PATH_LEN], int modelIndex);
+	void unregisterModelPath(int modelIndex);
 
 	std::optional<GeometryAllocation> allocateGeometry(int bufferIndex, uint32_t vertexCount, uint32_t indexCount);
 	void uploadVertices(int bufferIndex, uint32_t vertexBase, const Vertex* data, uint32_t count);
@@ -56,6 +59,8 @@ public:
 	bool releaseModelRef(int modelIndex);
 	void freeMeshSlot(int slot);
 	void freeModelSlot(int slot);
+	size_t meshCount() const;
+	size_t modelCount() const;
 	size_t freeMeshSlotCount() const;
 	size_t freeModelSlotCount() const;
 	size_t pendingGeometryFreeCount() const;
@@ -64,12 +69,12 @@ public:
 	MeshInfo& getMesh(int slot);
 	Model& getModel(int slot);
 
+private:
 	std::vector<VertexIndexBuffer> vertexIndexBuffers;
 	std::unordered_map<std::string, int> modelPaths;
 	std::vector<MeshInfo> meshes;
 	std::vector<Model> models;
 
-private:
 	struct PendingGeometryFree
 	{
 		GeometryAllocation allocation;

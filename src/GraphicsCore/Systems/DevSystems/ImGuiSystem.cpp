@@ -127,11 +127,11 @@ void drawMemoryWindow(GeneralManager& gm)
 	            textureManager->freeTextureSlotCount(), textureManager->pendingTextureFreeCount());
 	ImGui::Text("Materials: %zu total, %zu free, %zu pending free", materialManager->materials.size(),
 	            materialManager->freeMaterialSlotCount(), materialManager->pendingMaterialFreeCount());
-	ImGui::Text("Meshes   : %zu total, %zu free", modelManager->meshes.size(), modelManager->freeMeshSlotCount());
-	ImGui::Text("Models   : %zu total, %zu free", modelManager->models.size(), modelManager->freeModelSlotCount());
+	ImGui::Text("Meshes   : %zu total, %zu free", modelManager->meshCount(), modelManager->freeMeshSlotCount());
+	ImGui::Text("Models   : %zu total, %zu free", modelManager->modelCount(), modelManager->freeModelSlotCount());
 
 	ImGui::SeparatorText("Loaded models");
-	for (size_t i = 0; i < modelManager->models.size(); ++i)
+	for (size_t i = 0; i < modelManager->modelCount(); ++i)
 	{
 		const Model& model = modelManager->getModel(static_cast<int>(i));
 		if (model.refCount <= 0) continue;

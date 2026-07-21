@@ -205,10 +205,9 @@ Orhescyon::Entity ModelFactory::loadModel(const char path[MAX_PATH_LEN], int ver
 		throw std::runtime_error("Failed to load glTF model");
 	}
 
-	int modelIndex;
-	if (modelManager.isModelLoaded(path))
+	int modelIndex = modelManager.getModelIndex(path);
+	if (modelIndex != -1)
 	{
-		modelIndex = modelManager.modelPaths[path];
 		modelManager.addModelRef(modelIndex);
 	}
 	else
@@ -285,13 +284,7 @@ bool ModelFactory::unloadModel(Orhescyon::Entity modelRootEntity, GeneralManager
 	for (int slot : model.meshes) modelManager.freeMeshSlot(slot);
 	for (int textureId : model.textures) textureManager.freeTexture(TextureHandle{textureId}, frameNumber);
 	for (int materialSlot : model.materials) materialManager.freeMaterial(materialSlot, frameNumber);
-	for (auto it = modelManager.modelPaths.begin(); it != modelManager.modelPaths.end();)
-	{
-		if (it->second == modelIndex)
-			it = modelManager.modelPaths.erase(it);
-		else
-			++it;
-	}
+	modelManager.unregisterModelPath(modelIndex);
 	modelManager.freeModelSlot(modelIndex);
 
 	return true;

@@ -56,7 +56,7 @@ void BufferUpdateSystem::update(GeneralManager& gm)
 	};
 
 	std::vector<std::vector<Agent>> batch;
-	batch.resize(modelManager.meshes.size());
+	batch.resize(modelManager.meshCount());
 
 	forEachSubscribedEntity(gm, [&](Orhescyon::Entity, GlobalTransformComponent& transform, MeshInfoComponent& meshInfo)
 	                        { batch[meshInfo.mesh].push_back({&transform, &meshInfo}); });

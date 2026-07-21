@@ -67,10 +67,33 @@ ModelManager::~ModelManager()
 	}
 }
 
-bool ModelManager::isModelLoaded(const char path[MAX_PATH_LEN])
+bool ModelManager::isModelLoaded(const char path[MAX_PATH_LEN]) const
 {
 	std::string pathStr(path);
 	return modelPaths.find(pathStr) != modelPaths.end();
+}
+
+int ModelManager::getModelIndex(const char path[MAX_PATH_LEN]) const
+{
+	auto it = modelPaths.find(path);
+	if (it == modelPaths.end()) return -1;
+	return it->second;
+}
+
+void ModelManager::registerModelPath(const char path[MAX_PATH_LEN], int modelIndex)
+{
+	modelPaths[path] = modelIndex;
+}
+
+void ModelManager::unregisterModelPath(int modelIndex)
+{
+	for (auto it = modelPaths.begin(); it != modelPaths.end();)
+	{
+		if (it->second == modelIndex)
+			it = modelPaths.erase(it);
+		else
+			++it;
+	}
 }
 
 std::optional<GeometryAllocation> ModelManager::allocateGeometry(int bufferIndex, uint32_t vertexCount,
@@ -312,6 +335,16 @@ void ModelManager::freeMeshSlot(int slot)
 void ModelManager::freeModelSlot(int slot)
 {
 	_freeModelSlots.push_back(slot);
+}
+
+size_t ModelManager::meshCount() const
+{
+	return meshes.size();
+}
+
+size_t ModelManager::modelCount() const
+{
+	return models.size();
 }
 
 size_t ModelManager::freeMeshSlotCount() const

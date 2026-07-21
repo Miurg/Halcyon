@@ -246,7 +246,7 @@ void wholeImageBarrier(vk::raii::CommandBuffer& cmd, vk::Image image, vk::ImageL
 void ReflectionProbeBaker::bake(GeneralManager& gm, ReflectionProbeComponent& probe, int cubemapSlot)
 {
 	RefBakeContext ctx = gather(gm);
-	if (ctx.modelManager->meshes.empty()) return;
+	if (ctx.modelManager->meshCount() == 0) return;
 
 	ctx.device->device.waitIdle();
 
