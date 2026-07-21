@@ -11,12 +11,7 @@
 #include "GraphicsCore/Resources/Components/BindlessTextureDSetComponent.hpp"
 #include "GraphicsCore/VulkanDevice.hpp"
 #include "GraphicsCore/Resources/Managers/ResourceHandles.hpp"
-#include "GraphicsCore/Resources/Components/BindlessTextureDSetComponent.hpp"
 #include "GraphicsCore/Resources/ResourceStructures.hpp"
-
-class DescriptorManager;
-class TextureManager;
-class PipelineManager;
 
 // Manages GPU buffers — creates and tracks allocations via VMA.
 class HALCYON_API BufferManager
@@ -27,13 +22,6 @@ public:
 
 	BufferHandle createBuffer(vk::MemoryPropertyFlags propertyBits, vk::DeviceSize sizeBuffer,
 	                          uint_fast16_t numberBuffers, vk::Flags<vk::BufferUsageFlagBits> usageBuffer);
-	void bakeSHForProbe(TextureHandle envCubemap, BufferHandle probeBuffer, int probeSlot,
-	                    DescriptorManager& descriptorManager, BindlessTextureDSetComponent& dSetComponent,
-	                    DSetHandle globalDSet, PipelineManager& pipelineManager, TextureManager& textureManager);
-	// Records the sh_projection dispatch only; GICaptureCubemap descriptor must already point at the input.
-	void recordSHProjection(vk::raii::CommandBuffer& cmd, int cubemapResolution, int probeSlot,
-	                        DescriptorManager& descriptorManager, BindlessTextureDSetComponent& dSetComponent,
-	                        DSetHandle globalDSet, PipelineManager& pipelineManager);
 
 	template <typename T>
 	void writeToBuffer(BufferHandle handle, uint32_t bufferIndex, uint32_t elementIndex, const T& value)

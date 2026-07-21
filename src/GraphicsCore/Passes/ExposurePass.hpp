@@ -6,6 +6,8 @@
 #include "GraphicsCore/Components/DescriptorManagerComponent.hpp"
 #include "GraphicsCore/Components/AutoExposureSettingsComponent.hpp"
 
+class PipelineManager;
+
 class ExposurePass : public IPass
 {
 public:

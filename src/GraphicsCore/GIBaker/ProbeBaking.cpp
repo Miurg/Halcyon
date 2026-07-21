@@ -221,7 +221,6 @@ void LightProbeGIBaking::recordProbe(vk::raii::CommandBuffer& cmd, const BakeCon
 
 	writeProbeMetadata(ctx, slot, pos, radius);
 
-	ctx.bufferManager->recordSHProjection(cmd, static_cast<int>(kCaptureSize), slot,
-	                                      *ctx.descriptorManagerComponent->descriptorManager, *ctx.bindlessDSet,
-	                                      ctx.globalDSet->globalDSets, *ctx.pipelineManager);
+	recordSHProjection(cmd, static_cast<int>(kCaptureSize), slot, *ctx.descriptorManagerComponent->descriptorManager,
+	                   *ctx.bindlessDSet, ctx.globalDSet->globalDSets, *ctx.pipelineManager);
 }

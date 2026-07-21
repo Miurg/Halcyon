@@ -5,6 +5,7 @@
 #include "GraphicsCore/Resources/Managers/Bindings.hpp"
 #include "GraphicsCore/Resources/Components/BindlessTextureDSetComponent.hpp"
 #include "GraphicsCore/Managers/PipelineManager.hpp"
+#include "GraphicsCore/Passes/PassCommands.hpp"
 #include "GraphicsCore/VulkanDevice.hpp"
 #include "GraphicsCore/VulkanUtils.hpp"
 #include <algorithm>
@@ -217,4 +218,20 @@ TextureHandle EnvMapFactory::brdfLut(TextureManager& textureManager, VulkanDevic
 	VulkanUtils::endSingleTimeCommands(cmd, vulkanDevice);
 
 	return TextureHandle{slot};
+}
+
+void EnvMapFactory::bakeSHForProbe(TextureManager& textureManager, VulkanDevice& vulkanDevice, TextureHandle envCubemap,
+                                   int probeSlot, DescriptorManager& descriptorManager,
+                                   BindlessTextureDSetComponent& dSetComponent, DSetHandle globalDSet,
+                                   PipelineManager& pipelineManager)
+{
+	Texture& envTex = textureManager.getTexture(envCubemap);
+	descriptorManager.update(dSetComponent.bindlessTextureSet, Bindings::Textures::GICaptureCubemap, 0,
+	                         vk::DescriptorType::eCombinedImageSampler, envTex.textureImageView,
+	                         textureManager.getSampler(envTex.samplerHandle));
+
+	auto cmd = VulkanUtils::beginSingleTimeCommands(vulkanDevice);
+	recordSHProjection(cmd, static_cast<int>(envTex.width), probeSlot, descriptorManager, dSetComponent, globalDSet,
+	                   pipelineManager);
+	VulkanUtils::endSingleTimeCommands(cmd, vulkanDevice);
 }

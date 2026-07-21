@@ -3,7 +3,6 @@
 #include "GraphicsCore/Resources/Managers/TextureManager.hpp"
 #include "GraphicsCore/Resources/Managers/DescriptorManager.hpp"
 #include "GraphicsCore/Resources/Managers/Bindings.hpp"
-#include "GraphicsCore/Resources/Managers/BufferManager.hpp"
 #include "GraphicsCore/Resources/Factories/TextureUploader.hpp"
 #include "GraphicsCore/Resources/Factories/EnvMapFactory.hpp"
 #include "GraphicsCore/Components/TextureManagerComponent.hpp"
@@ -11,7 +10,6 @@
 #include "GraphicsCore/Components/VMAllocatorComponent.hpp"
 #include "GraphicsCore/Components/VulkanDeviceComponent.hpp"
 #include "GraphicsCore/Components/SkyboxComponent.hpp"
-#include "GraphicsCore/Components/BufferManagerComponent.hpp"
 #include "GraphicsCore/Resources/Components/BindlessTextureDSetComponent.hpp"
 #include "GraphicsCore/Resources/Components/GlobalDSetComponent.hpp"
 #include "GraphicsCore/GraphicsContexts.hpp"
@@ -31,8 +29,6 @@ void SkyboxFactory::loadSkybox(const std::string& hdrPath, GeneralManager& gm)
 	VmaAllocator allocator = gm.getContextComponent<VMAllocatorContext, VMAllocatorComponent>()->allocator;
 	VulkanDevice& vulkanDevice =
 	    *gm.getContextComponent<MainVulkanDeviceContext, VulkanDeviceComponent>()->vulkanDeviceInstance;
-	BufferManager& bufferManager =
-	    *gm.getContextComponent<BufferManagerContext, BufferManagerComponent>()->bufferManager;
 	SkyboxComponent& skybox = *gm.getContextComponent<SkyBoxContext, SkyboxComponent>();
 	GlobalDSetComponent& globalDSetComp = *gm.getContextComponent<MainDSetsContext, GlobalDSetComponent>();
 
@@ -51,8 +47,8 @@ void SkyboxFactory::loadSkybox(const std::string& hdrPath, GeneralManager& gm)
 	    textureManager, vulkanDevice, hdrHandle, descriptorManager, bTextureDSetComponent, pipelineManager);
 
 	// Bake skybox SH into probe slot 0 (the global fallback probe)
-	bufferManager.bakeSHForProbe(cubemapHandle, globalDSetComp.shProbeBuffer, 0, descriptorManager,
-	                             bTextureDSetComponent, globalDSetComp.globalDSets, pipelineManager, textureManager);
+	EnvMapFactory::bakeSHForProbe(textureManager, vulkanDevice, cubemapHandle, 0, descriptorManager,
+	                              bTextureDSetComponent, globalDSetComp.globalDSets, pipelineManager);
 
 	TextureHandle prefilteredHandle = EnvMapFactory::prefilteredEnvMap(
 	    textureManager, vulkanDevice, cubemapHandle, descriptorManager, bTextureDSetComponent, pipelineManager);

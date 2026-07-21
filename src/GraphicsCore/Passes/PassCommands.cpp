@@ -9,7 +9,46 @@
 #include "GraphicsCore/Resources/Managers/BufferManager.hpp"
 #include "GraphicsCore/Resources/Managers/ModelManager.hpp"
 #include "GraphicsCore/Resources/Managers/TextureManager.hpp"
+#include "GraphicsCore/Resources/Managers/DescriptorManager.hpp"
 #include "GraphicsCore/Managers/PipelineManager.hpp"
+#include <array>
+
+void recordSHProjection(vk::raii::CommandBuffer& cmd, int cubemapResolution, int probeSlot,
+                        DescriptorManager& descriptorManager, BindlessTextureDSetComponent& dSetComponent,
+                        DSetHandle globalDSet, PipelineManager& pipelineManager)
+{
+	cmd.bindPipeline(vk::PipelineBindPoint::eCompute, *pipelineManager.pipelines["sh_projection"].pipeline);
+
+	// sh_projection: set 0 = globalSet (SHProbeEntry[] output), set 1 = textureSet (cubemap input)
+	std::array<vk::DescriptorSet, 2> sets = {
+	    descriptorManager.getSet(globalDSet),
+	    descriptorManager.getSet(dSetComponent.bindlessTextureSet),
+	};
+	cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute, *pipelineManager.pipelines["sh_projection"].layout, 0, sets,
+	                       nullptr);
+
+	struct PushData
+	{
+		int cubemapResolution;
+		int probeSlot;
+	};
+	PushData pushData = {cubemapResolution, probeSlot};
+	cmd.pushConstants(*pipelineManager.pipelines["sh_projection"].layout, vk::ShaderStageFlagBits::eCompute, 0,
+	                  vk::ArrayProxy<const PushData>(1, &pushData));
+
+	cmd.dispatch(1, 1, 1);
+
+	vk::MemoryBarrier2 barrier;
+	barrier.srcStageMask = vk::PipelineStageFlagBits2::eComputeShader;
+	barrier.srcAccessMask = vk::AccessFlagBits2::eShaderWrite;
+	barrier.dstStageMask = vk::PipelineStageFlagBits2::eFragmentShader;
+	barrier.dstAccessMask = vk::AccessFlagBits2::eShaderRead;
+
+	vk::DependencyInfo depInfo;
+	depInfo.memoryBarrierCount = 1;
+	depInfo.pMemoryBarriers = &barrier;
+	cmd.pipelineBarrier2(depInfo);
+}
 
 void drawResetInstancePass(vk::raii::CommandBuffer& cmd, uint32_t frame, DescriptorManagerComponent& descriptorManager,
                            ModelDSetComponent& objectDSetComponent, const DrawInfoComponent& drawInfo,

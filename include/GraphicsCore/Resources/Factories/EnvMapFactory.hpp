@@ -9,6 +9,7 @@ class PipelineManager;
 struct BindlessTextureDSetComponent;
 struct VulkanDevice;
 
+
 class HALCYON_API EnvMapFactory
 {
 public:
@@ -22,4 +23,8 @@ public:
 	static TextureHandle brdfLut(TextureManager& textureManager, VulkanDevice& vulkanDevice,
 	                             DescriptorManager& descriptorManager, BindlessTextureDSetComponent& dSetComponent,
 	                             PipelineManager& pipelineManager);
+	static void bakeSHForProbe(TextureManager& textureManager, VulkanDevice& vulkanDevice, TextureHandle envCubemap,
+	                           int probeSlot, DescriptorManager& descriptorManager,
+	                           BindlessTextureDSetComponent& dSetComponent, DSetHandle globalDSet,
+	                           PipelineManager& pipelineManager);
 };
