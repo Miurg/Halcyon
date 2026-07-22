@@ -73,3 +73,8 @@ vk::Buffer BufferManager::getBuffer(BufferHandle handle, uint32_t index) const
 {
 	return buffers[handle.id].buffer[index];
 }
+
+uint32_t BufferManager::bufferCopyCount(BufferHandle handle) const
+{
+	return static_cast<uint32_t>(buffers[handle.id].buffer.size());
+}

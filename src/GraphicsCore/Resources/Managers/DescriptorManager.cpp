@@ -234,9 +234,8 @@ void DescriptorManager::updateStorageBufferDescriptors(BufferManager& bufferMana
                                                        DSetHandle dSet, uint32_t binding)
 {
 	const uint32_t copies = getSetCount(dSet);
-	const auto& buffers = bufferManager.buffers[bNumber.id].buffer;
-	const bool sharedBuf = (buffers.size() == 1);
+	const bool sharedBuf = (bufferManager.bufferCopyCount(bNumber) == 1);
 
 	for (uint32_t i = 0; i < copies; ++i)
-		update(dSet, binding, i, vk::DescriptorType::eStorageBuffer, buffers[sharedBuf ? 0 : i]);
+		update(dSet, binding, i, vk::DescriptorType::eStorageBuffer, bufferManager.getBuffer(bNumber, sharedBuf ? 0 : i));
 }

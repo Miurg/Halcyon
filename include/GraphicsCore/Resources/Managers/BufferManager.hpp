@@ -31,15 +31,17 @@ public:
 	}
 
 	vk::Buffer getBuffer(BufferHandle handle, uint32_t index = 0) const;
+	// Number of copies created for this handle — 1 means a single buffer shared across all frames.
+	uint32_t bufferCopyCount(BufferHandle handle) const;
 	template <typename T>
 	T* getMapped(BufferHandle handle, uint32_t index = 0) const
 	{
 		return static_cast<T*>(buffers[handle.id].bufferMapped[index]);
 	}
 
+private:
 	std::vector<Buffer> buffers;
 
-private:
 	VulkanDevice& vulkanDevice;
 	VmaAllocator allocator = {};
 
