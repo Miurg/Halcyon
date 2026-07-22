@@ -49,9 +49,7 @@ void TextureManager::destroyTextureResources(Texture& texture)
 
 void TextureManager::destroyTexture(TextureHandle handle)
 {
-	if (handle.id < 0 || handle.id >= static_cast<int>(textures.size())) return;
-	if (_textureRefCounts[handle.id] <= 0) return;
-	if (--_textureRefCounts[handle.id] > 0) return;
+	if (!releaseTextureRef(handle)) return;
 
 	// Otherwise isTextureLoaded would later hand out this destroyed texture.
 	unregisterTexturePath(handle);
@@ -83,11 +81,17 @@ void TextureManager::addTextureRef(TextureHandle handle)
 	_textureRefCounts[handle.id]++;
 }
 
+bool TextureManager::releaseTextureRef(TextureHandle handle)
+{
+	if (handle.id < 0 || handle.id >= static_cast<int>(textures.size())) return false;
+	if (_textureRefCounts[handle.id] <= 0) return false;
+
+	return --_textureRefCounts[handle.id] == 0;
+}
+
 void TextureManager::freeTexture(TextureHandle handle, uint64_t frameNumber)
 {
-	if (handle.id < 0 || handle.id >= static_cast<int>(textures.size())) return;
-	if (_textureRefCounts[handle.id] <= 0) return;
-	if (--_textureRefCounts[handle.id] > 0) return;
+	if (!releaseTextureRef(handle)) return;
 
 	// Otherwise isTextureLoaded would later hand out this freed texture.
 	unregisterTexturePath(handle);

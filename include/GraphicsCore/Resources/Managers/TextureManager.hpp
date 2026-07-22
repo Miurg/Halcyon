@@ -46,6 +46,7 @@ public:
 	void destroyTexture(TextureHandle handle);
 	int allocateTextureSlot();
 	void addTextureRef(TextureHandle handle);
+	bool releaseTextureRef(TextureHandle handle);
 	void freeTexture(TextureHandle handle, uint64_t frameNumber);
 	void collectTextureFrees(uint64_t frameNumber);
 	Texture& getTexture(TextureHandle handle);
