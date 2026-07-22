@@ -42,9 +42,9 @@ public:
 	ModelManager(VulkanDevice& vulkanDevice, VmaAllocator allocator);
 	~ModelManager();
 	bool isModelLoaded(const char path[MAX_PATH_LEN]) const;
-	int getModelIndex(const char path[MAX_PATH_LEN]) const;
-	void registerModelPath(const char path[MAX_PATH_LEN], int modelIndex);
-	void unregisterModelPath(int modelIndex);
+	ModelHandle getModelHandle(const char path[MAX_PATH_LEN]) const;
+	void registerModelPath(const char path[MAX_PATH_LEN], ModelHandle handle);
+	void unregisterModelPath(ModelHandle handle);
 
 	std::optional<GeometryAllocation> allocateGeometry(int bufferIndex, uint32_t vertexCount, uint32_t indexCount);
 	void uploadVertices(int bufferIndex, uint32_t vertexBase, const Vertex* data, uint32_t count);
@@ -54,11 +54,11 @@ public:
 	void defragment(VertexIndexBuffer& buffer);
 
 	int allocateMeshSlot();
-	int allocateModelSlot();
-	void addModelRef(int modelIndex);
-	bool releaseModelRef(int modelIndex);
+	ModelHandle allocateModelSlot();
+	void addModelRef(ModelHandle handle);
+	bool releaseModelRef(ModelHandle handle);
 	void freeMeshSlot(int slot);
-	void freeModelSlot(int slot);
+	void freeModelSlot(ModelHandle handle);
 	size_t meshCount() const;
 	size_t modelCount() const;
 	size_t freeMeshSlotCount() const;
@@ -67,11 +67,11 @@ public:
 
 	VertexIndexBuffer& getVertexIndexBuffer(int index);
 	MeshInfo& getMesh(int slot);
-	Model& getModel(int slot);
+	Model& getModel(ModelHandle handle);
 
 private:
 	std::vector<VertexIndexBuffer> vertexIndexBuffers;
-	std::unordered_map<std::string, int> modelPaths;
+	std::unordered_map<std::string, ModelHandle> modelPaths;
 	std::vector<MeshInfo> meshes;
 	std::vector<Model> models;
 

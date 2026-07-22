@@ -100,10 +100,10 @@ void drawMemoryWindow(GeneralManager& gm)
 	for (Orhescyon::Entity root : modelRoots)
 	{
 		ImGui::PushID(static_cast<int>(root.slot));
-		int modelIndex = gm.getComponent<ModelComponent>(root)->modelIndex;
+		ModelHandle modelHandle = gm.getComponent<ModelComponent>(root)->modelIndex;
 		auto* nameComp = gm.getComponent<NameComponent>(root);
 		ImGui::Text("%u  %s (model %d, refs %d)", root.slot, nameComp ? nameComp->name : "?",
-		            modelIndex, modelManager->getModel(modelIndex).refCount);
+		            modelHandle.id, modelManager->getModel(modelHandle).refCount);
 		ImGui::SameLine();
 		if (ImGui::Button("Unload"))
 		{
@@ -133,7 +133,7 @@ void drawMemoryWindow(GeneralManager& gm)
 	ImGui::SeparatorText("Loaded models");
 	for (size_t i = 0; i < modelManager->modelCount(); ++i)
 	{
-		const Model& model = modelManager->getModel(static_cast<int>(i));
+		const Model& model = modelManager->getModel(ModelHandle{static_cast<int>(i)});
 		if (model.refCount <= 0) continue;
 		ImGui::Text("[%zu] refs %d | meshes %zu | vtx %u | idx %u | tex %zu | mat %zu", i, model.refCount,
 		            model.meshes.size(), model.allocation.vertexCount, model.allocation.indexCount,

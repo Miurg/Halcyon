@@ -73,23 +73,23 @@ bool ModelManager::isModelLoaded(const char path[MAX_PATH_LEN]) const
 	return modelPaths.find(pathStr) != modelPaths.end();
 }
 
-int ModelManager::getModelIndex(const char path[MAX_PATH_LEN]) const
+ModelHandle ModelManager::getModelHandle(const char path[MAX_PATH_LEN]) const
 {
 	auto it = modelPaths.find(path);
-	if (it == modelPaths.end()) return -1;
+	if (it == modelPaths.end()) return ModelHandle{};
 	return it->second;
 }
 
-void ModelManager::registerModelPath(const char path[MAX_PATH_LEN], int modelIndex)
+void ModelManager::registerModelPath(const char path[MAX_PATH_LEN], ModelHandle handle)
 {
-	modelPaths[path] = modelIndex;
+	modelPaths[path] = handle;
 }
 
-void ModelManager::unregisterModelPath(int modelIndex)
+void ModelManager::unregisterModelPath(ModelHandle handle)
 {
 	for (auto it = modelPaths.begin(); it != modelPaths.end();)
 	{
-		if (it->second == modelIndex)
+		if (it->second.id == handle.id)
 			it = modelPaths.erase(it);
 		else
 			++it;
@@ -297,7 +297,7 @@ int ModelManager::allocateMeshSlot()
 	return static_cast<int>(meshes.size() - 1);
 }
 
-int ModelManager::allocateModelSlot()
+ModelHandle ModelManager::allocateModelSlot()
 {
 	if (!_freeModelSlots.empty())
 	{
@@ -305,26 +305,26 @@ int ModelManager::allocateModelSlot()
 		_freeModelSlots.pop_back();
 		models[slot] = Model();
 		models[slot].refCount = 1;
-		return slot;
+		return ModelHandle{slot};
 	}
 	models.push_back(Model());
 	models.back().refCount = 1;
-	return static_cast<int>(models.size() - 1);
+	return ModelHandle{static_cast<int>(models.size() - 1)};
 }
 
-void ModelManager::addModelRef(int modelIndex)
+void ModelManager::addModelRef(ModelHandle handle)
 {
-	if (modelIndex < 0 || modelIndex >= static_cast<int>(models.size())) return;
+	if (handle.id < 0 || handle.id >= static_cast<int>(models.size())) return;
 
-	models[modelIndex].refCount++;
+	models[handle.id].refCount++;
 }
 
-bool ModelManager::releaseModelRef(int modelIndex)
+bool ModelManager::releaseModelRef(ModelHandle handle)
 {
-	if (modelIndex < 0 || modelIndex >= static_cast<int>(models.size())) return false;
-	if (models[modelIndex].refCount <= 0) return false;
+	if (handle.id < 0 || handle.id >= static_cast<int>(models.size())) return false;
+	if (models[handle.id].refCount <= 0) return false;
 
-	return --models[modelIndex].refCount == 0;
+	return --models[handle.id].refCount == 0;
 }
 
 void ModelManager::freeMeshSlot(int slot)
@@ -332,9 +332,9 @@ void ModelManager::freeMeshSlot(int slot)
 	_freeMeshSlots.push_back(slot);
 }
 
-void ModelManager::freeModelSlot(int slot)
+void ModelManager::freeModelSlot(ModelHandle handle)
 {
-	_freeModelSlots.push_back(slot);
+	_freeModelSlots.push_back(handle.id);
 }
 
 size_t ModelManager::meshCount() const
@@ -372,7 +372,7 @@ MeshInfo& ModelManager::getMesh(int slot)
 	return meshes[slot];
 }
 
-Model& ModelManager::getModel(int slot)
+Model& ModelManager::getModel(ModelHandle handle)
 {
-	return models[slot];
+	return models[handle.id];
 }

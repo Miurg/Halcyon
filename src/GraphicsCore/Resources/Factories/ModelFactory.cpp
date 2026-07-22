@@ -205,14 +205,14 @@ Orhescyon::Entity ModelFactory::loadModel(const char path[MAX_PATH_LEN], int ver
 		throw std::runtime_error("Failed to load glTF model");
 	}
 
-	int modelIndex = modelManager.getModelIndex(path);
-	if (modelIndex != -1)
+	ModelHandle modelHandle = modelManager.getModelHandle(path);
+	if (modelHandle.id != -1)
 	{
-		modelManager.addModelRef(modelIndex);
+		modelManager.addModelRef(modelHandle);
 	}
 	else
 	{
-		modelIndex =
+		modelHandle =
 		    GltfLoader::loadModelFromFile(path, vertexIndexBInt, bufferManager, dSetComponent, descriptorManager, model,
 		                                  textureManager, modelManager, materialManager, vulkanDevice, allocator);
 	}
@@ -226,7 +226,7 @@ Orhescyon::Entity ModelFactory::loadModel(const char path[MAX_PATH_LEN], int ver
 	gm.addComponent<GlobalTransformComponent>(modelRootEntity);
 	gm.addComponent<LocalTransformComponent>(modelRootEntity);
 	gm.addComponent<RelationshipComponent>(modelRootEntity);
-	gm.addComponent<ModelComponent>(modelRootEntity, modelIndex);
+	gm.addComponent<ModelComponent>(modelRootEntity, modelHandle);
 	gm.subscribeEntity<TransformSystem>(modelRootEntity);
 
 	const int sceneIndex = model.defaultScene > -1 ? model.defaultScene : 0;
@@ -234,7 +234,7 @@ Orhescyon::Entity ModelFactory::loadModel(const char path[MAX_PATH_LEN], int ver
 
 	for (int rootNodeIndex : scene.nodes)
 	{
-		createEntityHierarchy(modelRootEntity, model, gm, modelManager.getModel(modelIndex).meshes, bufferManager,
+		createEntityHierarchy(modelRootEntity, model, gm, modelManager.getModel(modelHandle).meshes, bufferManager,
 		                      rootNodeIndex);
 	}
 	std::cout << "Loaded model: " << path << std::endl;
@@ -257,7 +257,7 @@ bool ModelFactory::unloadModel(Orhescyon::Entity modelRootEntity, GeneralManager
                                TextureManager& textureManager, MaterialManager& materialManager)
 {
 	if (!gm.hasComponent<ModelComponent>(modelRootEntity)) return false;
-	int modelIndex = gm.getComponent<ModelComponent>(modelRootEntity)->modelIndex;
+	ModelHandle modelHandle = gm.getComponent<ModelComponent>(modelRootEntity)->modelIndex;
 
 	// destroyEntity does not repair neighbours — unlink the root from its parent's child list first.
 	RelationshipComponent* rootRel = gm.getComponent<RelationshipComponent>(modelRootEntity);
@@ -276,16 +276,16 @@ bool ModelFactory::unloadModel(Orhescyon::Entity modelRootEntity, GeneralManager
 	collectSubtree(modelRootEntity, gm, toDestroy);
 	for (Orhescyon::Entity entity : toDestroy) gm.destroyEntity(entity);
 
-	if (!modelManager.releaseModelRef(modelIndex)) return true;
-	Model& model = modelManager.getModel(modelIndex);
+	if (!modelManager.releaseModelRef(modelHandle)) return true;
+	Model& model = modelManager.getModel(modelHandle);
 
 	uint32_t frameNumber = gm.getContextComponent<CurrentFrameContext, CurrentFrameComponent>()->frameNumber;
 	modelManager.freeGeometry(model.allocation, frameNumber);
 	for (int slot : model.meshes) modelManager.freeMeshSlot(slot);
 	for (int textureId : model.textures) textureManager.freeTexture(TextureHandle{textureId}, frameNumber);
 	for (int materialSlot : model.materials) materialManager.freeMaterial(materialSlot, frameNumber);
-	modelManager.unregisterModelPath(modelIndex);
-	modelManager.freeModelSlot(modelIndex);
+	modelManager.unregisterModelPath(modelHandle);
+	modelManager.freeModelSlot(modelHandle);
 
 	return true;
 }

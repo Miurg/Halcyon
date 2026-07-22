@@ -6,10 +6,12 @@
 #include <stdexcept>
 #include <utility>
 
-int GltfLoader::loadModelFromFile(const char path[MAX_PATH_LEN], int vertexIndexBInt, BufferManager& bufferManager,
-                                  BindlessTextureDSetComponent& dSetComponent, DescriptorManager& descriptorManager,
-                                  tinygltf::Model& model, TextureManager& textureManager, ModelManager& modelManager,
-                                  MaterialManager& materialManager, VulkanDevice& vulkanDevice, VmaAllocator allocator)
+ModelHandle GltfLoader::loadModelFromFile(const char path[MAX_PATH_LEN], int vertexIndexBInt,
+                                          BufferManager& bufferManager, BindlessTextureDSetComponent& dSetComponent,
+                                          DescriptorManager& descriptorManager, tinygltf::Model& model,
+                                          TextureManager& textureManager, ModelManager& modelManager,
+                                          MaterialManager& materialManager, VulkanDevice& vulkanDevice,
+                                          VmaAllocator allocator)
 {
 	MaterialMaps materialMaps = materialsParser(model, textureManager, materialManager, dSetComponent, descriptorManager,
 	                                            bufferManager, path, vulkanDevice, allocator);
@@ -68,14 +70,14 @@ int GltfLoader::loadModelFromFile(const char path[MAX_PATH_LEN], int vertexIndex
 	for (const auto& [gltfIndex, materialSlot] : materialMaps.materials)
 		ownedMaterials.push_back(static_cast<int>(materialSlot));
 
-	int modelIndex = modelManager.allocateModelSlot();
-	modelManager.getModel(modelIndex).allocation = allocation;
-	modelManager.getModel(modelIndex).meshes = std::move(meshSlots);
-	modelManager.getModel(modelIndex).textures = std::move(materialMaps.ownedTextures);
-	modelManager.getModel(modelIndex).materials = std::move(ownedMaterials);
-	modelManager.registerModelPath(path, modelIndex);
+	ModelHandle modelHandle = modelManager.allocateModelSlot();
+	modelManager.getModel(modelHandle).allocation = allocation;
+	modelManager.getModel(modelHandle).meshes = std::move(meshSlots);
+	modelManager.getModel(modelHandle).textures = std::move(materialMaps.ownedTextures);
+	modelManager.getModel(modelHandle).materials = std::move(ownedMaterials);
+	modelManager.registerModelPath(path, modelHandle);
 
-	return modelIndex;
+	return modelHandle;
 }
 
 int GltfLoader::loadMaterialTexture(tinygltf::Model& model, const std::map<std::string, tinygltf::Parameter>& params,

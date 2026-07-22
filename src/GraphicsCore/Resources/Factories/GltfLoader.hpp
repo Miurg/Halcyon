@@ -37,7 +37,7 @@ struct MaterialMaps
 class GltfLoader
 {
 public:
-	static int loadModelFromFile(const char path[MAX_PATH_LEN], int vertexIndexBInt, BufferManager& bufferManager,
+	static ModelHandle loadModelFromFile(const char path[MAX_PATH_LEN], int vertexIndexBInt, BufferManager& bufferManager,
 	                             BindlessTextureDSetComponent& dSetComponent, DescriptorManager& descriptorManager,
 	                             tinygltf::Model& model, TextureManager& textureManager, ModelManager& modelManager,
 	                             MaterialManager& materialManager, VulkanDevice& vulkanDevice, VmaAllocator allocator);
