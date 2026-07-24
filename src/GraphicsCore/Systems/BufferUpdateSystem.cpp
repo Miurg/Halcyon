@@ -59,13 +59,13 @@ void BufferUpdateSystem::update(GeneralManager& gm)
 	batch.resize(modelManager.meshCount());
 
 	forEachSubscribedEntity(gm, [&](Orhescyon::Entity, GlobalTransformComponent& transform, MeshInfoComponent& meshInfo)
-	                        { batch[meshInfo.mesh].push_back({&transform, &meshInfo}); });
+	                        { batch[meshInfo.mesh.id].push_back({&transform, &meshInfo}); });
 
 	for (size_t i = 0; i < batch.size(); ++i)
 	{
 		if (!batch[i].empty())
 		{
-			modelManager.getMesh(static_cast<int>(i)).entitiesSubscribed = batch[i].size();
+			modelManager.getMesh(MeshHandle{static_cast<int>(i)}).entitiesSubscribed = batch[i].size();
 		}
 	}
 
@@ -102,12 +102,12 @@ void BufferUpdateSystem::update(GeneralManager& gm)
 			if (agentsInBatch.empty()) continue;
 
 			MeshInfoComponent& meshBaseInfo = *agentsInBatch[0].meshInfo;
-			int meshIdx = meshBaseInfo.mesh;
+			MeshHandle meshIdx = meshBaseInfo.mesh;
 			int primitiveCount = modelManager.getMesh(meshIdx).primitives.size();
 
 			for (int i = 0; i < primitiveCount; i++)
 			{
-				uint32_t matIdx = modelManager.getMesh(meshIdx).primitives[i].materialIndex;
+				MaterialHandle matIdx = modelManager.getMesh(meshIdx).primitives[i].materialIndex;
 				int category = materialManager.getMaterial(matIdx).alphaMode; // 0=opaque, 1=mask, 2=blend
 				bool isDoubleSided = (materialManager.getMaterial(matIdx).doubleSided == 1);
 
@@ -126,10 +126,10 @@ void BufferUpdateSystem::update(GeneralManager& gm)
 				globalCullIndex += modelManager.getMesh(meshIdx).entitiesSubscribed;
 				for (const auto& agent : agentsInBatch)
 				{
-					int agentMeshIndex = agent.meshInfo->mesh;
+					MeshHandle agentMeshIndex = agent.meshInfo->mesh;
 
 					primitivePtr[localPrimitiveIndex].materialIndex =
-					    modelManager.getMesh(agentMeshIndex).primitives[i].materialIndex;
+					    modelManager.getMesh(agentMeshIndex).primitives[i].materialIndex.id;
 					primitivePtr[localPrimitiveIndex].transformIndex = currentEntityTransformIndex;
 					primitivePtr[localPrimitiveIndex].AABBMax = modelManager.getMesh(agentMeshIndex).primitives[i].AABBMax;
 					primitivePtr[localPrimitiveIndex].AABBMin = modelManager.getMesh(agentMeshIndex).primitives[i].AABBMin;

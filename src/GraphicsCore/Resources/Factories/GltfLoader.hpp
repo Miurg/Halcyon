@@ -29,7 +29,7 @@ struct LoadedPrimitive
 
 struct MaterialMaps
 {
-	std::unordered_map<uint32_t, uint32_t> materials;
+	std::unordered_map<uint32_t, MaterialHandle> materials;
 	std::vector<int> ownedTextures;
 };
 

@@ -16,6 +16,7 @@
 #include "GraphicsCore/VulkanDevice.hpp"
 #include "GraphicsCore/Resources/Managers/DescriptorManager.hpp"
 #include "GraphicsCore/Resources/Managers/MeshInfo.hpp"
+#include "GraphicsCore/Resources/Managers/ResourceHandles.hpp"
 
 struct HALCYON_API GeometryAllocation
 {
@@ -29,9 +30,9 @@ struct HALCYON_API GeometryAllocation
 struct HALCYON_API Model
 {
 	GeometryAllocation allocation;
-	std::vector<int> meshes;
+	std::vector<MeshHandle> meshes;
 	std::vector<int> textures;
-	std::vector<int> materials;
+	std::vector<MaterialHandle> materials;
 	int refCount = 0;
 };
 
@@ -53,11 +54,11 @@ public:
 	void collectGeometryFrees(uint64_t frameNumber);
 	void defragment(VertexIndexBuffer& buffer);
 
-	int allocateMeshSlot();
+	MeshHandle allocateMeshSlot();
 	ModelHandle allocateModelSlot();
 	void addModelRef(ModelHandle handle);
 	bool releaseModelRef(ModelHandle handle);
-	void freeMeshSlot(int slot);
+	void freeMeshSlot(MeshHandle handle);
 	void freeModelSlot(ModelHandle handle);
 	size_t meshCount() const;
 	size_t modelCount() const;
@@ -66,7 +67,7 @@ public:
 	size_t pendingGeometryFreeCount() const;
 
 	VertexIndexBuffer& getVertexIndexBuffer(int index);
-	MeshInfo& getMesh(int slot);
+	MeshInfo& getMesh(MeshHandle handle);
 	Model& getModel(ModelHandle handle);
 
 private:

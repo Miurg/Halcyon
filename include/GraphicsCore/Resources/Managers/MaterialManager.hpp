@@ -3,6 +3,7 @@
 #include "HalcyonExport.hpp"
 #include "GraphicsCore/Resources/ResourceStructures.hpp"
 #include "GraphicsCore/Resources/Components/BindlessTextureDSetComponent.hpp"
+#include "GraphicsCore/Resources/Managers/ResourceHandles.hpp"
 #include <vector>
 #include <unordered_map>
 #include <cstddef>
@@ -15,13 +16,13 @@ class BufferManager;
 class HALCYON_API MaterialManager
 {
 public:
-	int emplaceMaterial(BindlessTextureDSetComponent& dSetComponent, MaterialStructure material,
-	                    BufferManager& bufferManager);
-	void addMaterialRef(int slot);
-	bool releaseMaterialRef(int slot);
-	void freeMaterial(int slot, uint64_t frameNumber);
+	MaterialHandle emplaceMaterial(BindlessTextureDSetComponent& dSetComponent, MaterialStructure material,
+	                               BufferManager& bufferManager);
+	void addMaterialRef(MaterialHandle handle);
+	bool releaseMaterialRef(MaterialHandle handle);
+	void freeMaterial(MaterialHandle handle, uint64_t frameNumber);
 	void collectMaterialFrees(uint64_t frameNumber);
-	const MaterialStructure& getMaterial(int slot) const;
+	const MaterialStructure& getMaterial(MaterialHandle handle) const;
 	size_t materialCount() const;
 	size_t freeMaterialSlotCount() const;
 	size_t pendingMaterialFreeCount() const;
@@ -72,5 +73,5 @@ private:
 			       a.roughnessFactor == b.roughnessFactor && a.metallicFactor == b.metallicFactor;
 		}
 	};
-	std::unordered_map<MaterialStructure, int, MaterialKeyHash, MaterialKeyEqual> _materialCache;
+	std::unordered_map<MaterialStructure, MaterialHandle, MaterialKeyHash, MaterialKeyEqual> _materialCache;
 };

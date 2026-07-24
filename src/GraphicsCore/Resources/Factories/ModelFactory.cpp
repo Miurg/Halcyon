@@ -32,7 +32,8 @@ glm::mat4 convertGLTFMatrix(const std::vector<double>& matrix)
 	return glm::make_mat4(m);
 }
 Orhescyon::Entity createEntityHierarchy(Orhescyon::Entity parentEntity, tinygltf::Model& model, GeneralManager& gm,
-                                        const std::vector<int>& meshSlots, BufferManager& bufferManager, int nodeIndex)
+                                        const std::vector<MeshHandle>& meshSlots, BufferManager& bufferManager,
+                                        int nodeIndex)
 {
 	tinygltf::Node& node = model.nodes[nodeIndex];
 
@@ -281,9 +282,9 @@ bool ModelFactory::unloadModel(Orhescyon::Entity modelRootEntity, GeneralManager
 
 	uint32_t frameNumber = gm.getContextComponent<CurrentFrameContext, CurrentFrameComponent>()->frameNumber;
 	modelManager.freeGeometry(model.allocation, frameNumber);
-	for (int slot : model.meshes) modelManager.freeMeshSlot(slot);
+	for (MeshHandle slot : model.meshes) modelManager.freeMeshSlot(slot);
 	for (int textureId : model.textures) textureManager.freeTexture(TextureHandle{textureId}, frameNumber);
-	for (int materialSlot : model.materials) materialManager.freeMaterial(materialSlot, frameNumber);
+	for (MaterialHandle materialSlot : model.materials) materialManager.freeMaterial(materialSlot, frameNumber);
 	modelManager.unregisterModelPath(modelHandle);
 	modelManager.freeModelSlot(modelHandle);
 

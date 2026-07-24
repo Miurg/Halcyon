@@ -56,19 +56,19 @@ ModelHandle GltfLoader::loadModelFromFile(const char path[MAX_PATH_LEN], int ver
 		                           static_cast<uint32_t>(localIndices.size()));
 	}
 
-	std::vector<int> meshSlots;
+	std::vector<MeshHandle> meshSlots;
 	meshSlots.reserve(loadedMeshes.size());
 	for (auto& loadedMesh : loadedMeshes)
 	{
-		int slot = modelManager.allocateMeshSlot();
+		MeshHandle slot = modelManager.allocateMeshSlot();
 		modelManager.getMesh(slot) = std::move(loadedMesh);
 		meshSlots.push_back(slot);
 	}
 
-	std::vector<int> ownedMaterials;
+	std::vector<MaterialHandle> ownedMaterials;
 	ownedMaterials.reserve(materialMaps.materials.size());
 	for (const auto& [gltfIndex, materialSlot] : materialMaps.materials)
-		ownedMaterials.push_back(static_cast<int>(materialSlot));
+		ownedMaterials.push_back(materialSlot);
 
 	ModelHandle modelHandle = modelManager.allocateModelSlot();
 	modelManager.getModel(modelHandle).allocation = allocation;
@@ -472,7 +472,7 @@ std::vector<PrimitivesInfo> GltfLoader::primitiveParser(tinygltf::Mesh& mesh, st
 		{
 			// Fallback to the default material we created at index -1
 			auto itDefault = materialMaps.materials.find(static_cast<uint32_t>(-1));
-			result.materialIndex = (itDefault != materialMaps.materials.end()) ? itDefault->second : 0;
+			result.materialIndex = (itDefault != materialMaps.materials.end()) ? itDefault->second : MaterialHandle{0};
 		}
 
 		loadedPrimitives.push_back(result);

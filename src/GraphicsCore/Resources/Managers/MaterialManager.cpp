@@ -2,8 +2,8 @@
 #include "GraphicsCore/Resources/Managers/BufferManager.hpp"
 #include "GraphicsCore/VulkanConst.hpp"
 
-int MaterialManager::emplaceMaterial(BindlessTextureDSetComponent& dSetComponent, MaterialStructure material,
-                                     BufferManager& bufferManager)
+MaterialHandle MaterialManager::emplaceMaterial(BindlessTextureDSetComponent& dSetComponent, MaterialStructure material,
+                                                BufferManager& bufferManager)
 {
 	auto cached = _materialCache.find(material);
 	if (cached != _materialCache.end())
@@ -26,33 +26,33 @@ int MaterialManager::emplaceMaterial(BindlessTextureDSetComponent& dSetComponent
 		_materialRefCounts.push_back(1);
 		slot = static_cast<int>(materials.size() - 1);
 	}
-	_materialCache.emplace(material, slot);
+	_materialCache.emplace(material, MaterialHandle{slot});
 	bufferManager.writeToBuffer(dSetComponent.materialBuffer, 0, slot, material);
-	return slot;
+	return MaterialHandle{slot};
 }
 
-void MaterialManager::addMaterialRef(int slot)
+void MaterialManager::addMaterialRef(MaterialHandle handle)
 {
-	if (slot < 0 || slot >= static_cast<int>(materials.size())) return;
+	if (handle.id < 0 || handle.id >= static_cast<int>(materials.size())) return;
 
-	_materialRefCounts[slot]++;
+	_materialRefCounts[handle.id]++;
 }
 
-bool MaterialManager::releaseMaterialRef(int slot)
+bool MaterialManager::releaseMaterialRef(MaterialHandle handle)
 {
-	if (slot < 0 || slot >= static_cast<int>(materials.size())) return false;
-	if (_materialRefCounts[slot] <= 0) return false;
+	if (handle.id < 0 || handle.id >= static_cast<int>(materials.size())) return false;
+	if (_materialRefCounts[handle.id] <= 0) return false;
 
-	return --_materialRefCounts[slot] == 0;
+	return --_materialRefCounts[handle.id] == 0;
 }
 
-void MaterialManager::freeMaterial(int slot, uint64_t frameNumber)
+void MaterialManager::freeMaterial(MaterialHandle handle, uint64_t frameNumber)
 {
-	if (!releaseMaterialRef(slot)) return;
+	if (!releaseMaterialRef(handle)) return;
 
 	// Erased immediately so emplaceMaterial can't hand out a slot that is pending free.
-	_materialCache.erase(materials[slot]);
-	_pendingMaterialFrees.push_back({slot, frameNumber + MAX_FRAMES_IN_FLIGHT});
+	_materialCache.erase(materials[handle.id]);
+	_pendingMaterialFrees.push_back({handle.id, frameNumber + MAX_FRAMES_IN_FLIGHT});
 }
 
 void MaterialManager::collectMaterialFrees(uint64_t frameNumber)
@@ -69,9 +69,9 @@ void MaterialManager::collectMaterialFrees(uint64_t frameNumber)
 	}
 }
 
-const MaterialStructure& MaterialManager::getMaterial(int slot) const
+const MaterialStructure& MaterialManager::getMaterial(MaterialHandle handle) const
 {
-	return materials[slot];
+	return materials[handle.id];
 }
 
 size_t MaterialManager::materialCount() const

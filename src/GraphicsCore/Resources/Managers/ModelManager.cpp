@@ -268,9 +268,9 @@ void ModelManager::defragment(VertexIndexBuffer& buffer)
 		{
 			models[relocation.model].allocation.*base = relocation.newBase;
 			if (relocation.newBase == relocation.oldBase) continue;
-			for (int meshSlot : models[relocation.model].meshes)
+			for (MeshHandle meshSlot : models[relocation.model].meshes)
 			{
-				for (PrimitivesInfo& primitive : meshes[meshSlot].primitives)
+				for (PrimitivesInfo& primitive : meshes[meshSlot.id].primitives)
 				{
 					primitive.*offset = primitive.*offset - relocation.oldBase + relocation.newBase;
 				}
@@ -284,17 +284,17 @@ void ModelManager::defragment(VertexIndexBuffer& buffer)
 	        &GeometryAllocation::indexCount, &PrimitivesInfo::indexOffset);
 }
 
-int ModelManager::allocateMeshSlot()
+MeshHandle ModelManager::allocateMeshSlot()
 {
 	if (!_freeMeshSlots.empty())
 	{
 		int slot = _freeMeshSlots.back();
 		_freeMeshSlots.pop_back();
 		meshes[slot] = MeshInfo();
-		return slot;
+		return MeshHandle{slot};
 	}
 	meshes.push_back(MeshInfo());
-	return static_cast<int>(meshes.size() - 1);
+	return MeshHandle{static_cast<int>(meshes.size() - 1)};
 }
 
 ModelHandle ModelManager::allocateModelSlot()
@@ -327,9 +327,9 @@ bool ModelManager::releaseModelRef(ModelHandle handle)
 	return --models[handle.id].refCount == 0;
 }
 
-void ModelManager::freeMeshSlot(int slot)
+void ModelManager::freeMeshSlot(MeshHandle handle)
 {
-	_freeMeshSlots.push_back(slot);
+	_freeMeshSlots.push_back(handle.id);
 }
 
 void ModelManager::freeModelSlot(ModelHandle handle)
@@ -367,9 +367,9 @@ VertexIndexBuffer& ModelManager::getVertexIndexBuffer(int index)
 	return vertexIndexBuffers[index];
 }
 
-MeshInfo& ModelManager::getMesh(int slot)
+MeshInfo& ModelManager::getMesh(MeshHandle handle)
 {
-	return meshes[slot];
+	return meshes[handle.id];
 }
 
 Model& ModelManager::getModel(ModelHandle handle)
