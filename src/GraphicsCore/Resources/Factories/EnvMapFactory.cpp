@@ -2,6 +2,7 @@
 
 #include "GraphicsCore/Resources/Managers/TextureManager.hpp"
 #include "GraphicsCore/Resources/Managers/DescriptorManager.hpp"
+#include "GraphicsCore/Resources/Factories/TextureFactory.hpp"
 #include "GraphicsCore/Resources/Managers/Bindings.hpp"
 #include "GraphicsCore/Resources/Components/BindlessTextureDSetComponent.hpp"
 #include "GraphicsCore/Managers/PipelineManager.hpp"
@@ -15,15 +16,13 @@ TextureHandle EnvMapFactory::cubemapFromHdr(TextureManager& textureManager, Vulk
                                             BindlessTextureDSetComponent& dSetComponent,
                                             PipelineManager& pipelineManager)
 {
-	TextureHandle cubemapHandle = textureManager.allocateTextureSlot();
+	TextureHandle cubemapHandle = TextureFactory::createTexture(
+	    textureManager,
+	    imagePresets::cubemap(1024, vk::Format::eR32G32B32A32Sfloat,
+	                          vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst |
+	                              vk::ImageUsageFlagBits::eStorage),
+	    samplerPresets::cubemap(), vk::ImageAspectFlagBits::eColor, vk::ImageViewType::eCube);
 	Texture& cubemapTexture = textureManager.getTexture(cubemapHandle);
-	textureManager.createImage(cubemapTexture, imagePresets::cubemap(1024, vk::Format::eR32G32B32A32Sfloat,
-	                                                                 vk::ImageUsageFlagBits::eSampled |
-	                                                                     vk::ImageUsageFlagBits::eTransferDst |
-	                                                                     vk::ImageUsageFlagBits::eStorage));
-	textureManager.createImageView(cubemapTexture, vk::Format::eR32G32B32A32Sfloat, vk::ImageAspectFlagBits::eColor,
-	                               vk::ImageViewType::eCube);
-	textureManager.createSampler(cubemapTexture, samplerPresets::cubemap());
 
 	vk::ImageViewCreateInfo viewInfo;
 	viewInfo.image = cubemapTexture.textureImage;
@@ -77,17 +76,14 @@ TextureHandle EnvMapFactory::prefilteredEnvMap(TextureManager& textureManager, V
 	const uint32_t prefilteredSize = 128;
 	const uint32_t maxMipLevels = 5;
 
-	TextureHandle prefilteredHandle = textureManager.allocateTextureSlot();
+	TextureHandle prefilteredHandle = TextureFactory::createTexture(
+	    textureManager,
+	    imagePresets::cubemap(prefilteredSize, vk::Format::eR32G32B32A32Sfloat,
+	                          vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst |
+	                              vk::ImageUsageFlagBits::eStorage,
+	                          maxMipLevels),
+	    samplerPresets::cubemap(), vk::ImageAspectFlagBits::eColor, vk::ImageViewType::eCube);
 	Texture& prefilteredTexture = textureManager.getTexture(prefilteredHandle);
-	textureManager.createImage(prefilteredTexture,
-	                           imagePresets::cubemap(prefilteredSize, vk::Format::eR32G32B32A32Sfloat,
-	                                                 vk::ImageUsageFlagBits::eSampled |
-	                                                     vk::ImageUsageFlagBits::eTransferDst |
-	                                                     vk::ImageUsageFlagBits::eStorage,
-	                                                 maxMipLevels));
-	textureManager.createImageView(prefilteredTexture, vk::Format::eR32G32B32A32Sfloat, vk::ImageAspectFlagBits::eColor,
-	                               vk::ImageViewType::eCube);
-	textureManager.createSampler(prefilteredTexture, samplerPresets::cubemap());
 
 	auto initCmd = VulkanUtils::beginSingleTimeCommands(vulkanDevice);
 
@@ -157,20 +153,17 @@ TextureHandle EnvMapFactory::brdfLut(TextureManager& textureManager, VulkanDevic
 {
 	const uint32_t brdfLutSize = 512;
 
-	TextureHandle handle = textureManager.allocateTextureSlot();
-	Texture& brdfLutTexture = textureManager.getTexture(handle);
-
 	ImageDesc brdfLutDesc;
 	brdfLutDesc.width = brdfLutSize;
 	brdfLutDesc.height = brdfLutSize;
 	brdfLutDesc.format = vk::Format::eR32G32Sfloat;
 	brdfLutDesc.usage = vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eStorage;
-	textureManager.createImage(brdfLutTexture, brdfLutDesc);
-	textureManager.createImageView(brdfLutTexture, vk::Format::eR32G32Sfloat, vk::ImageAspectFlagBits::eColor);
 
 	SamplerDesc samplerDesc;
 	samplerDesc.addressMode = SamplerAddressMode::ClampToEdge;
-	textureManager.createSampler(brdfLutTexture, samplerDesc);
+
+	TextureHandle handle = TextureFactory::createTexture(textureManager, brdfLutDesc, samplerDesc);
+	Texture& brdfLutTexture = textureManager.getTexture(handle);
 
 	vk::ImageViewCreateInfo viewInfo;
 	viewInfo.image = brdfLutTexture.textureImage;

@@ -8,65 +8,61 @@
 #include <stdexcept>
 #include <string>
 
-TextureHandle TextureFactory::createDepthImage(TextureManager& textureManager, uint32_t width, uint32_t height)
+TextureHandle TextureFactory::createTexture(TextureManager& textureManager, const ImageDesc& desc,
+                                            const SamplerDesc& samplerDesc, vk::ImageAspectFlags aspect,
+                                            vk::ImageViewType viewType)
 {
 	TextureHandle handle = textureManager.allocateTextureSlot();
 	Texture& texture = textureManager.getTexture(handle);
-	vk::Format depthFormat = textureManager.findBestFormat();
 
+	textureManager.createImage(texture, desc);
+	textureManager.createImageView(texture, desc.format, aspect, viewType);
+	textureManager.createSampler(texture, samplerDesc);
+	return handle;
+}
+
+TextureHandle TextureFactory::createDepthImage(TextureManager& textureManager, uint32_t width, uint32_t height)
+{
 	ImageDesc desc;
 	desc.width = width;
 	desc.height = height;
-	desc.format = depthFormat;
+	desc.format = textureManager.findBestFormat();
 	desc.usage = vk::ImageUsageFlagBits::eDepthStencilAttachment | vk::ImageUsageFlagBits::eSampled;
-	textureManager.createImage(texture, desc);
-	textureManager.createImageView(texture, depthFormat, vk::ImageAspectFlagBits::eDepth);
-	textureManager.createSampler(texture, samplerPresets::texture());
-	return handle;
+
+	return createTexture(textureManager, desc, samplerPresets::texture(), vk::ImageAspectFlagBits::eDepth);
 }
 
 TextureHandle TextureFactory::createOffscreenImage(TextureManager& textureManager, uint32_t width, uint32_t height,
                                                    vk::Format format)
 {
-	TextureHandle handle = textureManager.allocateTextureSlot();
-	Texture& texture = textureManager.getTexture(handle);
-
 	ImageDesc desc;
 	desc.width = width;
 	desc.height = height;
 	desc.format = format;
 	desc.usage = vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eSampled;
-	textureManager.createImage(texture, desc);
-	textureManager.createImageView(texture, format, vk::ImageAspectFlagBits::eColor);
 
 	SamplerDesc samplerDesc;
 	samplerDesc.addressMode = SamplerAddressMode::ClampToBorder;
 	samplerDesc.borderColor = SamplerBorderColor::FloatOpaqueBlack;
 	samplerDesc.compareOp = SamplerCompareOp::Greater;
-	textureManager.createSampler(texture, samplerDesc);
-	return handle;
+
+	return createTexture(textureManager, desc, samplerDesc);
 }
 
 TextureHandle TextureFactory::createShadowMap(TextureManager& textureManager, uint32_t width, uint32_t height)
 {
-	TextureHandle handle = textureManager.allocateTextureSlot();
-	Texture& texture = textureManager.getTexture(handle);
-	vk::Format shadowFormat = textureManager.findBestFormat();
-
 	ImageDesc desc;
 	desc.width = width;
 	desc.height = height;
-	desc.format = shadowFormat;
+	desc.format = textureManager.findBestFormat();
 	desc.usage = vk::ImageUsageFlagBits::eDepthStencilAttachment | vk::ImageUsageFlagBits::eSampled;
-	textureManager.createImage(texture, desc);
-	textureManager.createImageView(texture, shadowFormat, vk::ImageAspectFlagBits::eDepth);
 
 	SamplerDesc samplerDesc;
 	samplerDesc.addressMode = SamplerAddressMode::ClampToBorder;
 	samplerDesc.borderColor = SamplerBorderColor::FloatOpaqueBlack;
 	samplerDesc.compareOp = SamplerCompareOp::Greater;
-	textureManager.createSampler(texture, samplerDesc);
-	return handle;
+
+	return createTexture(textureManager, desc, samplerDesc, vk::ImageAspectFlagBits::eDepth);
 }
 
 TextureHandle TextureFactory::createBindlessTexture(TextureManager& textureManager, VulkanDevice& vulkanDevice,

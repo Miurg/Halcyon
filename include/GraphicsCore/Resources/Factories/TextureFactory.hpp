@@ -2,6 +2,8 @@
 
 #include "HalcyonExport.hpp"
 #include "GraphicsCore/Resources/Managers/ResourceHandles.hpp"
+#include "GraphicsCore/ImageDesc.hpp"
+#include "GraphicsCore/SamplerDesc.hpp"
 #include <vulkan/vulkan.hpp>
 #include <vk_mem_alloc.h>
 #include <cstdint>
@@ -16,6 +18,10 @@ struct VulkanDevice;
 class HALCYON_API TextureFactory
 {
 public:
+	static TextureHandle createTexture(TextureManager& textureManager, const ImageDesc& desc,
+	                                   const SamplerDesc& samplerDesc,
+	                                   vk::ImageAspectFlags aspect = vk::ImageAspectFlagBits::eColor,
+	                                   vk::ImageViewType viewType = vk::ImageViewType::e2D);
 	static TextureHandle createDepthImage(TextureManager& textureManager, uint32_t width, uint32_t height);
 	static TextureHandle createOffscreenImage(TextureManager& textureManager, uint32_t width, uint32_t height,
 	                                          vk::Format format);

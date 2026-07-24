@@ -1,5 +1,6 @@
 #include "GraphicsCore/GIBaker/ReflectionProbeBaker.hpp"
 #include "GraphicsCore/Resources/Factories/EnvMapFactory.hpp"
+#include "GraphicsCore/Resources/Factories/TextureFactory.hpp"
 
 #include "GraphicsCore/GraphicsContexts.hpp"
 #include "GraphicsCore/Components/VulkanDeviceComponent.hpp"
@@ -88,15 +89,13 @@ RefBakeContext gather(GeneralManager& gm)
 RefCapture createCapture(const RefBakeContext& ctx)
 {
 	RefCapture cap;
-	cap.cubemap = ctx.textureManager->allocateTextureSlot();
+	cap.cubemap = TextureFactory::createTexture(
+	    *ctx.textureManager,
+	    imagePresets::cubemap(kCaptureSize, kCaptureFormat,
+	                          vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eSampled),
+	    samplerPresets::cubemap(), vk::ImageAspectFlagBits::eColor, vk::ImageViewType::eCube);
 	Texture& tex = ctx.textureManager->getTexture(cap.cubemap);
-	ctx.textureManager->createImage(
-	    tex, imagePresets::cubemap(kCaptureSize, kCaptureFormat,
-	                               vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eSampled));
 	cap.image = tex.textureImage;
-	ctx.textureManager->createImageView(tex, kCaptureFormat, vk::ImageAspectFlagBits::eColor,
-	                                    vk::ImageViewType::eCube);
-	ctx.textureManager->createSampler(tex, samplerPresets::cubemap());
 
 	cap.faceViews.reserve(6);
 	for (uint32_t f = 0; f < 6; ++f)

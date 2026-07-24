@@ -1,4 +1,5 @@
 #include "LightProbeGIBaking.hpp"
+#include "GraphicsCore/Resources/Factories/TextureFactory.hpp"
 
 static BakeContext gatherContext(GeneralManager& gm)
 {
@@ -26,17 +27,14 @@ static TempImages createTempImages(const BakeContext& ctx)
 	TempImages tmp;
 
 	// Temp capture cubemap
-	tmp.captureHandle = ctx.textureManager->allocateTextureSlot();
-	ctx.textureManager->createImage(ctx.textureManager->getTexture(tmp.captureHandle),
-	                                imagePresets::cubemap(kCaptureSize, kCaptureFormat,
-	                                                      vk::ImageUsageFlagBits::eColorAttachment |
-	                                                          vk::ImageUsageFlagBits::eSampled));
+	tmp.captureHandle = TextureFactory::createTexture(
+	    *ctx.textureManager,
+	    imagePresets::cubemap(kCaptureSize, kCaptureFormat,
+	                          vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eSampled),
+	    samplerPresets::cubemap(), vk::ImageAspectFlagBits::eColor, vk::ImageViewType::eCube);
 
 	Texture& captureTex = ctx.textureManager->getTexture(tmp.captureHandle);
 	tmp.captureImage = captureTex.textureImage;
-	ctx.textureManager->createImageView(captureTex, kCaptureFormat, vk::ImageAspectFlagBits::eColor,
-	                                    vk::ImageViewType::eCube);
-	ctx.textureManager->createSampler(captureTex, samplerPresets::cubemap());
 
 	tmp.faceViews.reserve(6);
 	for (uint32_t face = 0; face < 6; ++face)

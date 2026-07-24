@@ -18,6 +18,7 @@
 #include "GraphicsCore/Components/RenderGraphComponent.hpp"
 #include "GraphicsCore/Resources/Components/GlobalDSetComponent.hpp"
 #include "GraphicsCore/Resources/Managers/TextureManager.hpp"
+#include "GraphicsCore/Resources/Factories/TextureFactory.hpp"
 #include "GraphicsCore/Resources/Managers/DescriptorManager.hpp"
 #include "GraphicsCore/Resources/Factories/TextureUploader.hpp"
 #include "GraphicsCore/Managers/PipelineManager.hpp"
@@ -86,22 +87,19 @@ void GTAOPass::onInit(Orhescyon::GeneralManager& gm)
 	});
 
 	// Noise texture (static, 64x64, lives for the entire app — sampled per pixel by gtao.slang)
-	_noiseTexture = textureManager.allocateTextureSlot();
-	Texture& noiseTexture = textureManager.getTexture(_noiseTexture);
 	ImageDesc noiseDesc;
 	noiseDesc.width = 64;
 	noiseDesc.height = 64;
 	noiseDesc.format = vk::Format::eR8G8B8A8Unorm;
 	noiseDesc.usage = vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eTransferDst |
 	                  vk::ImageUsageFlagBits::eSampled;
-	textureManager.createImage(noiseTexture, noiseDesc);
-	textureManager.createImageView(noiseTexture, vk::Format::eR8G8B8A8Unorm, vk::ImageAspectFlagBits::eColor);
 
 	SamplerDesc samplerDesc;
 	samplerDesc.magFilter = SamplerFilter::Nearest;
 	samplerDesc.minFilter = SamplerFilter::Nearest;
 	samplerDesc.mipmapMode = SamplerMipmapMode::Nearest;
-	textureManager.createSampler(noiseTexture, samplerDesc);
+
+	_noiseTexture = TextureFactory::createTexture(textureManager, noiseDesc, samplerDesc);
 
 	TextureUploader::uploadTextureFromBuffer(Halcyon::Graphics::Data::GTAO_NOISE_PIXELS,
 	                                         static_cast<int>(Halcyon::Graphics::Data::GTAO_NOISE_WIDTH),

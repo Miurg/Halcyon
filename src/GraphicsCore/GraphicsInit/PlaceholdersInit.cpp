@@ -218,15 +218,13 @@ void PlaceholdersInit::initPlaceholders(GeneralManager& gm)
 	gm.registerContext<SkyBoxContext>(skyboxEntity);
 	SkyboxComponent* skybox = gm.getContextComponent<SkyBoxContext, SkyboxComponent>();
 
-	TextureHandle whiteCubemapHandle = textureManager->allocateTextureSlot();
+	TextureHandle whiteCubemapHandle = TextureFactory::createTexture(
+	    *textureManager,
+	    imagePresets::cubemap(1, vk::Format::eR32G32B32A32Sfloat,
+	                          vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst |
+	                              vk::ImageUsageFlagBits::eStorage),
+	    samplerPresets::cubemap(), vk::ImageAspectFlagBits::eColor, vk::ImageViewType::eCube);
 	Texture& whiteCubemap = textureManager->getTexture(whiteCubemapHandle);
-	textureManager->createImage(whiteCubemap,
-	                      imagePresets::cubemap(1, vk::Format::eR32G32B32A32Sfloat,
-	                                            vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst |
-	                                                vk::ImageUsageFlagBits::eStorage));
-	textureManager->createImageView(whiteCubemap, vk::Format::eR32G32B32A32Sfloat, vk::ImageAspectFlagBits::eColor,
-	                          vk::ImageViewType::eCube);
-	textureManager->createSampler(whiteCubemap, samplerPresets::cubemap());
 
 	// Transition cubemap to shader-read layout so it's valid for sampling
 	{
