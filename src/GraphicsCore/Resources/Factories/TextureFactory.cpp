@@ -69,11 +69,11 @@ TextureHandle TextureFactory::createShadowMap(TextureManager& textureManager, ui
 	return handle;
 }
 
-TextureHandle TextureFactory::generateTextureData(TextureManager& textureManager, VulkanDevice& vulkanDevice,
-                                                  VmaAllocator allocator, const char* texturePath, int texWidth,
-                                                  int texHeight, const unsigned char* pixels,
-                                                  BindlessTextureDSetComponent& dSetComponent,
-                                                  DescriptorManager& descriptorManager, vk::Format format)
+TextureHandle TextureFactory::createBindlessTexture(TextureManager& textureManager, VulkanDevice& vulkanDevice,
+                                                    VmaAllocator allocator, const char* texturePath, int texWidth,
+                                                    int texHeight, const unsigned char* pixels,
+                                                    BindlessTextureDSetComponent& dSetComponent,
+                                                    DescriptorManager& descriptorManager, vk::Format format)
 {
 	if (!pixels)
 	{
@@ -107,11 +107,11 @@ TextureHandle TextureFactory::generateTextureData(TextureManager& textureManager
 	return handle;
 }
 
-TextureHandle TextureFactory::generateTextureDataFromKtx(TextureManager& textureManager, VulkanDevice& vulkanDevice,
-                                                         VmaAllocator allocator, const char* texturePath,
-                                                         const unsigned char* ktxData, size_t dataSize,
-                                                         BindlessTextureDSetComponent& dSetComponent,
-                                                         DescriptorManager& descriptorManager, bool isSrgb)
+TextureHandle TextureFactory::createBindlessTextureFromKtx(TextureManager& textureManager, VulkanDevice& vulkanDevice,
+                                                           VmaAllocator allocator, const char* texturePath,
+                                                           const unsigned char* ktxData, size_t dataSize,
+                                                           BindlessTextureDSetComponent& dSetComponent,
+                                                           DescriptorManager& descriptorManager, bool isSrgb)
 {
 	TextureHandle handle = textureManager.allocateTextureSlot();
 	Texture& texture = textureManager.getTexture(handle);

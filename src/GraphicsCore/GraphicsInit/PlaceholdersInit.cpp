@@ -208,8 +208,8 @@ void PlaceholdersInit::initPlaceholders(GeneralManager& gm)
 	int texHeight = texturePtr.get()->height;
 	auto data = texturePtr->pixels.data();
 	auto path = texturePtr.get()->name.c_str();
-	TextureFactory::generateTextureData(*textureManager, *vulkanDevice, allocator, path, texWidth, texHeight, data,
-	                                    *bTextureDSetComponent, *descriptorManager);
+	TextureFactory::createBindlessTexture(*textureManager, *vulkanDevice, allocator, path, texWidth, texHeight, data,
+	                                      *bTextureDSetComponent, *descriptorManager);
 
 	// White placeholder Skybox (can be replaced by SkyboxFactory::loadSkybox)
 	Orhescyon::Entity skyboxEntity = gm.createEntity();

@@ -128,7 +128,7 @@ TextureHandle GltfLoader::loadMaterialTexture(tinygltf::Model& model,
 	}
 	if (img.as_is && img.mimeType == "image/ktx2" && !img.image.empty())
 	{
-		TextureHandle handle = TextureFactory::generateTextureDataFromKtx(
+		TextureHandle handle = TextureFactory::createBindlessTextureFromKtx(
 		    textureManager, vulkanDevice, allocator, texName.c_str(), img.image.data(), img.image.size(), dSetComponent,
 		    descriptorManager, isSrgb);
 		ownedTextures.push_back(handle);
@@ -139,7 +139,7 @@ TextureHandle GltfLoader::loadMaterialTexture(tinygltf::Model& model,
 		auto rgbaPixels = ImageConverter::convertToRGBA(img);
 		if (!rgbaPixels.empty())
 		{
-			TextureHandle handle = TextureFactory::generateTextureData(
+			TextureHandle handle = TextureFactory::createBindlessTexture(
 			    textureManager, vulkanDevice, allocator, texName.c_str(), img.width, img.height, rgbaPixels.data(),
 			    dSetComponent, descriptorManager, isSrgb ? vk::Format::eR8G8B8A8Srgb : vk::Format::eR8G8B8A8Unorm);
 			ownedTextures.push_back(handle);
@@ -160,7 +160,7 @@ MaterialMaps GltfLoader::materialsParser(tinygltf::Model& model, TextureManager&
 	TextureHandle whiteTexture =
 	    cachedWhite.id != -1
 	        ? cachedWhite
-	        : TextureFactory::generateTextureData(
+	        : TextureFactory::createBindlessTexture(
 	              textureManager, vulkanDevice, allocator, "sys_default_white", 1, 1,
 	              std::vector<unsigned char>{255, 255, 255, 255}.data(), dSetComponent, descriptorManager);
 	// Default flat normal map: (128,128,255,255) = tangent-space up (0,0,1), loaded as linear
@@ -168,23 +168,23 @@ MaterialMaps GltfLoader::materialsParser(tinygltf::Model& model, TextureManager&
 	TextureHandle defaultNormalTexture =
 	    cachedNormal.id != -1
 	        ? cachedNormal
-	        : TextureFactory::generateTextureData(textureManager, vulkanDevice, allocator, "sys_default_normal", 1, 1,
-	                                              std::vector<unsigned char>{128, 128, 255, 255}.data(), dSetComponent,
-	                                              descriptorManager, vk::Format::eR8G8B8A8Unorm);
+	        : TextureFactory::createBindlessTexture(textureManager, vulkanDevice, allocator, "sys_default_normal", 1, 1,
+	                                               std::vector<unsigned char>{128, 128, 255, 255}.data(), dSetComponent,
+	                                               descriptorManager, vk::Format::eR8G8B8A8Unorm);
 	TextureHandle cachedMR = textureManager.getTextureHandle("sys_default_mr");
 	TextureHandle defaultMRTexture =
 	    cachedMR.id != -1
 	        ? cachedMR
-	        : TextureFactory::generateTextureData(textureManager, vulkanDevice, allocator, "sys_default_mr", 1, 1,
-	                                              std::vector<unsigned char>{255, 255, 0, 255}.data(), dSetComponent,
-	                                              descriptorManager, vk::Format::eR8G8B8A8Unorm);
+	        : TextureFactory::createBindlessTexture(textureManager, vulkanDevice, allocator, "sys_default_mr", 1, 1,
+	                                               std::vector<unsigned char>{255, 255, 0, 255}.data(), dSetComponent,
+	                                               descriptorManager, vk::Format::eR8G8B8A8Unorm);
 	TextureHandle cachedEmissive = textureManager.getTextureHandle("sys_default_emissive");
 	TextureHandle defaultEmissiveTexture =
 	    cachedEmissive.id != -1
 	        ? cachedEmissive
-	        : TextureFactory::generateTextureData(textureManager, vulkanDevice, allocator, "sys_default_emissive", 1, 1,
-	                                              std::vector<unsigned char>{255, 255, 255, 255}.data(), dSetComponent,
-	                                              descriptorManager);
+	        : TextureFactory::createBindlessTexture(textureManager, vulkanDevice, allocator, "sys_default_emissive", 1, 1,
+	                                               std::vector<unsigned char>{255, 255, 255, 255}.data(), dSetComponent,
+	                                               descriptorManager);
 
 	MaterialStructure defaultMaterial{};
 	defaultMaterial.textureIndex = whiteTexture.id;
