@@ -44,7 +44,7 @@ public:
 	                                   vk::FormatFeatureFlags features);
 	void createImage(Texture& texture, const ImageDesc& desc);
 	void destroyTexture(TextureHandle handle);
-	int allocateTextureSlot();
+	TextureHandle allocateTextureSlot();
 	void addTextureRef(TextureHandle handle);
 	bool releaseTextureRef(TextureHandle handle);
 	void freeTexture(TextureHandle handle, uint64_t frameNumber);

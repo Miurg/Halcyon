@@ -10,7 +10,7 @@
 
 TextureHandle TextureFactory::createDepthImage(TextureManager& textureManager, uint32_t width, uint32_t height)
 {
-	TextureHandle handle{textureManager.allocateTextureSlot()};
+	TextureHandle handle = textureManager.allocateTextureSlot();
 	Texture& texture = textureManager.getTexture(handle);
 	vk::Format depthFormat = textureManager.findBestFormat();
 
@@ -28,7 +28,7 @@ TextureHandle TextureFactory::createDepthImage(TextureManager& textureManager, u
 TextureHandle TextureFactory::createOffscreenImage(TextureManager& textureManager, uint32_t width, uint32_t height,
                                                    vk::Format format)
 {
-	TextureHandle handle{textureManager.allocateTextureSlot()};
+	TextureHandle handle = textureManager.allocateTextureSlot();
 	Texture& texture = textureManager.getTexture(handle);
 
 	ImageDesc desc;
@@ -49,7 +49,7 @@ TextureHandle TextureFactory::createOffscreenImage(TextureManager& textureManage
 
 TextureHandle TextureFactory::createShadowMap(TextureManager& textureManager, uint32_t width, uint32_t height)
 {
-	TextureHandle handle{textureManager.allocateTextureSlot()};
+	TextureHandle handle = textureManager.allocateTextureSlot();
 	Texture& texture = textureManager.getTexture(handle);
 	vk::Format shadowFormat = textureManager.findBestFormat();
 
@@ -83,7 +83,7 @@ TextureHandle TextureFactory::generateTextureData(TextureManager& textureManager
 	{
 		throw std::runtime_error("Invalid texture dimensions!");
 	}
-	TextureHandle handle{textureManager.allocateTextureSlot()};
+	TextureHandle handle = textureManager.allocateTextureSlot();
 	Texture& texture = textureManager.getTexture(handle);
 
 	uint32_t mipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(texWidth, texHeight)))) + 1;
@@ -113,7 +113,7 @@ TextureHandle TextureFactory::generateTextureDataFromKtx(TextureManager& texture
                                                          BindlessTextureDSetComponent& dSetComponent,
                                                          DescriptorManager& descriptorManager, bool isSrgb)
 {
-	TextureHandle handle{textureManager.allocateTextureSlot()};
+	TextureHandle handle = textureManager.allocateTextureSlot();
 	Texture& texture = textureManager.getTexture(handle);
 
 	TextureUploader::uploadKtxTextureData(ktxData, dataSize, texture, textureManager, isSrgb, allocator, vulkanDevice);

@@ -26,7 +26,7 @@ static TempImages createTempImages(const BakeContext& ctx)
 	TempImages tmp;
 
 	// Temp capture cubemap
-	tmp.captureHandle = TextureHandle{ctx.textureManager->allocateTextureSlot()};
+	tmp.captureHandle = ctx.textureManager->allocateTextureSlot();
 	ctx.textureManager->createImage(ctx.textureManager->getTexture(tmp.captureHandle),
 	                                imagePresets::cubemap(kCaptureSize, kCaptureFormat,
 	                                                      vk::ImageUsageFlagBits::eColorAttachment |

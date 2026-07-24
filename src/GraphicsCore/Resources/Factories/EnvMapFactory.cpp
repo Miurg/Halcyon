@@ -15,7 +15,7 @@ TextureHandle EnvMapFactory::cubemapFromHdr(TextureManager& textureManager, Vulk
                                             BindlessTextureDSetComponent& dSetComponent,
                                             PipelineManager& pipelineManager)
 {
-	TextureHandle cubemapHandle{textureManager.allocateTextureSlot()};
+	TextureHandle cubemapHandle = textureManager.allocateTextureSlot();
 	Texture& cubemapTexture = textureManager.getTexture(cubemapHandle);
 	textureManager.createImage(cubemapTexture, imagePresets::cubemap(1024, vk::Format::eR32G32B32A32Sfloat,
 	                                                                 vk::ImageUsageFlagBits::eSampled |
@@ -77,7 +77,7 @@ TextureHandle EnvMapFactory::prefilteredEnvMap(TextureManager& textureManager, V
 	const uint32_t prefilteredSize = 128;
 	const uint32_t maxMipLevels = 5;
 
-	TextureHandle prefilteredHandle{textureManager.allocateTextureSlot()};
+	TextureHandle prefilteredHandle = textureManager.allocateTextureSlot();
 	Texture& prefilteredTexture = textureManager.getTexture(prefilteredHandle);
 	textureManager.createImage(prefilteredTexture,
 	                           imagePresets::cubemap(prefilteredSize, vk::Format::eR32G32B32A32Sfloat,
@@ -157,8 +157,8 @@ TextureHandle EnvMapFactory::brdfLut(TextureManager& textureManager, VulkanDevic
 {
 	const uint32_t brdfLutSize = 512;
 
-	int slot = textureManager.allocateTextureSlot();
-	Texture& brdfLutTexture = textureManager.getTexture(TextureHandle{slot});
+	TextureHandle handle = textureManager.allocateTextureSlot();
+	Texture& brdfLutTexture = textureManager.getTexture(handle);
 
 	ImageDesc brdfLutDesc;
 	brdfLutDesc.width = brdfLutSize;
@@ -217,7 +217,7 @@ TextureHandle EnvMapFactory::brdfLut(TextureManager& textureManager, VulkanDevic
 
 	VulkanUtils::endSingleTimeCommands(cmd, vulkanDevice);
 
-	return TextureHandle{slot};
+	return handle;
 }
 
 void EnvMapFactory::bakeSHForProbe(TextureManager& textureManager, VulkanDevice& vulkanDevice, TextureHandle envCubemap,

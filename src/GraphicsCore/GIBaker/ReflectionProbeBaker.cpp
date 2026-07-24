@@ -88,7 +88,7 @@ RefBakeContext gather(GeneralManager& gm)
 RefCapture createCapture(const RefBakeContext& ctx)
 {
 	RefCapture cap;
-	cap.cubemap = TextureHandle{ctx.textureManager->allocateTextureSlot()};
+	cap.cubemap = ctx.textureManager->allocateTextureSlot();
 	Texture& tex = ctx.textureManager->getTexture(cap.cubemap);
 	ctx.textureManager->createImage(
 	    tex, imagePresets::cubemap(kCaptureSize, kCaptureFormat,

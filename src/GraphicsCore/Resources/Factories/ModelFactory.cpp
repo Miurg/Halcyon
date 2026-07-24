@@ -283,7 +283,7 @@ bool ModelFactory::unloadModel(Orhescyon::Entity modelRootEntity, GeneralManager
 	uint32_t frameNumber = gm.getContextComponent<CurrentFrameContext, CurrentFrameComponent>()->frameNumber;
 	modelManager.freeGeometry(model.allocation, frameNumber);
 	for (MeshHandle slot : model.meshes) modelManager.freeMeshSlot(slot);
-	for (int textureId : model.textures) textureManager.freeTexture(TextureHandle{textureId}, frameNumber);
+	for (TextureHandle textureId : model.textures) textureManager.freeTexture(textureId, frameNumber);
 	for (MaterialHandle materialSlot : model.materials) materialManager.freeMaterial(materialSlot, frameNumber);
 	modelManager.unregisterModelPath(modelHandle);
 	modelManager.freeModelSlot(modelHandle);

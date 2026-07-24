@@ -31,7 +31,7 @@ struct HALCYON_API Model
 {
 	GeometryAllocation allocation;
 	std::vector<MeshHandle> meshes;
-	std::vector<int> textures;
+	std::vector<TextureHandle> textures;
 	std::vector<MaterialHandle> materials;
 	int refCount = 0;
 };

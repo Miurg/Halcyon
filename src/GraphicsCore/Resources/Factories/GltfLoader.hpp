@@ -30,7 +30,7 @@ struct LoadedPrimitive
 struct MaterialMaps
 {
 	std::unordered_map<uint32_t, MaterialHandle> materials;
-	std::vector<int> ownedTextures;
+	std::vector<TextureHandle> ownedTextures;
 };
 
 // Parses glTF files — extracts materials, primitives, and mesh hierarchy into engine resources.
@@ -52,9 +52,10 @@ public:
 	static std::shared_ptr<TextureData> createDefaultWhiteTexture();
 
 private:
-	static int loadMaterialTexture(tinygltf::Model& model, const std::map<std::string, tinygltf::Parameter>& params,
-	                               const char* paramName, bool isSrgb, int fallback, const char* filePath,
-	                               std::vector<int>& ownedTextures, TextureManager& textureManager,
+	static TextureHandle loadMaterialTexture(tinygltf::Model& model,
+	                               const std::map<std::string, tinygltf::Parameter>& params,
+	                               const char* paramName, bool isSrgb, TextureHandle fallback, const char* filePath,
+	                               std::vector<TextureHandle>& ownedTextures, TextureManager& textureManager,
 	                               BindlessTextureDSetComponent& dSetComponent, DescriptorManager& descriptorManager,
 	                               VulkanDevice& vulkanDevice, VmaAllocator allocator);
 };

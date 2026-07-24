@@ -33,7 +33,7 @@ void SkyboxFactory::loadSkybox(const std::string& hdrPath, GeneralManager& gm)
 	GlobalDSetComponent& globalDSetComp = *gm.getContextComponent<MainDSetsContext, GlobalDSetComponent>();
 
 	// Upload HDR texture
-	TextureHandle hdrHandle{textureManager.allocateTextureSlot()};
+	TextureHandle hdrHandle = textureManager.allocateTextureSlot();
 	Texture& hdrTexture = textureManager.getTexture(hdrHandle);
 	TextureUploader::uploadHdrTextureFromFile(hdrPath.c_str(), hdrTexture, textureManager, allocator, vulkanDevice);
 	textureManager.registerTexturePath(hdrPath.c_str(), hdrHandle);

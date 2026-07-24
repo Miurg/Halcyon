@@ -59,7 +59,7 @@ void TextureManager::destroyTexture(TextureHandle handle)
 	_freeTextureSlots.push_back(handle.id);
 }
 
-int TextureManager::allocateTextureSlot()
+TextureHandle TextureManager::allocateTextureSlot()
 {
 	if (!_freeTextureSlots.empty())
 	{
@@ -67,11 +67,11 @@ int TextureManager::allocateTextureSlot()
 		_freeTextureSlots.pop_back();
 		textures[slot] = Texture();
 		_textureRefCounts[slot] = 1;
-		return slot;
+		return TextureHandle{slot};
 	}
 	textures.push_back(Texture());
 	_textureRefCounts.push_back(1);
-	return static_cast<int>(textures.size() - 1);
+	return TextureHandle{static_cast<int>(textures.size() - 1)};
 }
 
 void TextureManager::addTextureRef(TextureHandle handle)

@@ -86,8 +86,8 @@ void GTAOPass::onInit(Orhescyon::GeneralManager& gm)
 	});
 
 	// Noise texture (static, 64x64, lives for the entire app — sampled per pixel by gtao.slang)
-	int noiseSlot = textureManager.allocateTextureSlot();
-	Texture& noiseTexture = textureManager.getTexture(TextureHandle{noiseSlot});
+	_noiseTexture = textureManager.allocateTextureSlot();
+	Texture& noiseTexture = textureManager.getTexture(_noiseTexture);
 	ImageDesc noiseDesc;
 	noiseDesc.width = 64;
 	noiseDesc.height = 64;
@@ -103,7 +103,6 @@ void GTAOPass::onInit(Orhescyon::GeneralManager& gm)
 	samplerDesc.mipmapMode = SamplerMipmapMode::Nearest;
 	textureManager.createSampler(noiseTexture, samplerDesc);
 
-	_noiseTexture.id = noiseSlot;
 	TextureUploader::uploadTextureFromBuffer(Halcyon::Graphics::Data::GTAO_NOISE_PIXELS,
 	                                         static_cast<int>(Halcyon::Graphics::Data::GTAO_NOISE_WIDTH),
 	                                         static_cast<int>(Halcyon::Graphics::Data::GTAO_NOISE_HEIGHT),
