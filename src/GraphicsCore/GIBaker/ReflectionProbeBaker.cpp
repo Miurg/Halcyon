@@ -181,18 +181,27 @@ void drawScene(vk::raii::CommandBuffer& cmd, const RefBakeContext& ctx, glm::vec
 		countOffset += sizeof(uint32_t);
 	};
 
-	bindMain("global_illumination_forward");
-	drawSegment(0);
-	drawSegment(1);
-
 	if (ctx.hasSkybox)
 	{
 		auto& sky = ctx.pipelineManager->pipelines["skybox_capture"];
 		cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *sky.pipeline);
+		cmd.bindDescriptorSets(
+		    vk::PipelineBindPoint::eGraphics, *ctx.pipelineManager->pipelines["global_illumination_forward"].layout, 0,
+		    ctx.descriptorManagerComponent->descriptorManager->getSet(ctx.globalDSet->globalDSets, 0), nullptr);
+		cmd.bindDescriptorSets(
+		    vk::PipelineBindPoint::eGraphics, *ctx.pipelineManager->pipelines["global_illumination_forward"].layout, 1,
+		    ctx.descriptorManagerComponent->descriptorManager->getSet(ctx.modelDSet->bakeModelDSet), nullptr);
+	cmd.bindDescriptorSets(
+		    vk::PipelineBindPoint::eGraphics, *ctx.pipelineManager->pipelines["global_illumination_forward"].layout, 2,
+		    ctx.descriptorManagerComponent->descriptorManager->getSet(ctx.bindlessDSet->bindlessTextureSet), nullptr);
 		cmd.pushConstants<BakeFacePush>(*sky.layout, vk::ShaderStageFlagBits::eVertex, 0, push);
 		cmd.setCullMode(vk::CullModeFlagBits::eNone);
 		cmd.draw(3, 1, 0, 0);
 	}
+
+	bindMain("global_illumination_forward");
+	drawSegment(0);
+	drawSegment(1);
 
 	bindMain("global_illumination_forward_alpha");
 	drawSegment(2);

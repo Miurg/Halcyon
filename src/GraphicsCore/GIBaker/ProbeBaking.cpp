@@ -19,9 +19,9 @@ static void drawGeometry(vk::raii::CommandBuffer& cmd, const BakeContext& ctx, g
 	    ctx.modelManager->getVertexIndexBuffer(0).indexBuffer, 0,
 	    vk::IndexType::eUint32);
 
-	// === Opaque ===
-	cmd.bindPipeline(vk::PipelineBindPoint::eGraphics,
-	                 *ctx.pipelineManager->pipelines["global_illumination_forward"].pipeline);
+	
+
+
 	cmd.bindDescriptorSets(
 	    vk::PipelineBindPoint::eGraphics, *ctx.pipelineManager->pipelines["global_illumination_forward"].layout, 0,
 	    ctx.descriptorManagerComponent->descriptorManager->getSet(ctx.globalDSet->globalDSets, 0), nullptr);
@@ -57,9 +57,6 @@ static void drawGeometry(vk::raii::CommandBuffer& cmd, const BakeContext& ctx, g
 		countOffset += sizeof(uint32_t);
 	};
 
-	drawSegment(0);
-	drawSegment(1);
-
 	if (ctx.hasSkybox)
 	{
 		cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *ctx.pipelineManager->pipelines["skybox_capture"].pipeline);
@@ -68,6 +65,13 @@ static void drawGeometry(vk::raii::CommandBuffer& cmd, const BakeContext& ctx, g
 		cmd.setCullMode(vk::CullModeFlagBits::eNone);
 		cmd.draw(3, 1, 0, 0);
 	}
+
+	// === Opaque ===
+	cmd.bindPipeline(vk::PipelineBindPoint::eGraphics,
+	                 *ctx.pipelineManager->pipelines["global_illumination_forward"].pipeline);
+	drawSegment(0);
+	drawSegment(1);
+
 
 	// === Alpha (mask + blend) ===
 	cmd.bindPipeline(vk::PipelineBindPoint::eGraphics,

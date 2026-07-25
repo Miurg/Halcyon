@@ -173,17 +173,17 @@ void MainPass::draw(vk::raii::CommandBuffer& cmd, SwapChain& swapChain, uint32_t
 		currentCountBufferOffset += sizeof(uint32_t);
 	};
 
-	// OPAQUE
-	cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipelineManager.pipelines[opaquePipeline].pipeline);
-	drawSegment(0, true);
-	drawSegment(1, false);
-
 	if (hasSkybox)
 	{
 		cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipelineManager.pipelines["skybox"].pipeline);
 		cmd.setCullMode(vk::CullModeFlagBits::eNone);
 		cmd.draw(3, 1, 0, 0);
 	}
+
+	// OPAQUE
+	cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipelineManager.pipelines[opaquePipeline].pipeline);
+	drawSegment(0, true);
+	drawSegment(1, false);
 
 	// MASK
 	cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipelineManager.pipelines[maskPipeline].pipeline);
