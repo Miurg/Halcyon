@@ -1,5 +1,4 @@
 #include "GraphicsCore/Resources/Managers/DescriptorManager.hpp"
-#include "GraphicsCore/Resources/Managers/BufferManager.hpp"
 #include "GraphicsCore/Resources/Managers/Bindings.hpp"
 
 DescriptorManager::DescriptorManager(VulkanDevice& vulkanDevice)
@@ -228,14 +227,4 @@ void DescriptorManager::updateSingleTextureDSet(DSetHandle dIndex, int binding, 
 {
 	for (uint32_t i = 0; i < getSetCount(dIndex); ++i)
 		update(dIndex, static_cast<uint32_t>(binding), i, vk::DescriptorType::eCombinedImageSampler, imageView, sampler);
-}
-
-void DescriptorManager::updateStorageBufferDescriptors(BufferManager& bufferManager, BufferHandle bNumber,
-                                                       DSetHandle dSet, uint32_t binding)
-{
-	const uint32_t copies = getSetCount(dSet);
-	const bool sharedBuf = (bufferManager.bufferCopyCount(bNumber) == 1);
-
-	for (uint32_t i = 0; i < copies; ++i)
-		update(dSet, binding, i, vk::DescriptorType::eStorageBuffer, bufferManager.getBuffer(bNumber, sharedBuf ? 0 : i));
 }

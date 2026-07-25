@@ -8,8 +8,6 @@
 #include "GraphicsCore/VulkanConst.hpp"
 #include "GraphicsCore/Resources/Managers/DescriptorLayoutRegistry.hpp"
 
-class BufferManager;
-
 // Allocates and updates descriptor sets from a single pool.
 // Also owns the DescriptorLayoutRegistry - all layout work goes through here.
 class HALCYON_API DescriptorManager
@@ -34,8 +32,6 @@ public:
 	            vk::DeviceSize offset = 0, vk::DeviceSize range = VK_WHOLE_SIZE);
 
 	void updateSingleTextureDSet(DSetHandle dIndex, int binding, vk::ImageView imageView, vk::Sampler sampler);
-	void updateStorageBufferDescriptors(BufferManager& bufferManager, BufferHandle bNumber, DSetHandle dSet,
-	                                    uint32_t binding);
 
 	// Returns the set at the given slot index (0 for single-buffered, currentFrame for per-frame).
 	vk::DescriptorSet getSet(DSetHandle handle, uint32_t index = 0) const

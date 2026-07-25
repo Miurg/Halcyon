@@ -1,5 +1,6 @@
 #include "LightProbeGIBaking.hpp"
 #include "GraphicsCore/Resources/Factories/TextureFactory.hpp"
+#include "GraphicsCore/Resources/Factories/BufferFactory.hpp"
 
 static BakeContext gatherContext(GeneralManager& gm)
 {
@@ -104,30 +105,30 @@ static void ensureBakeBuffers(const BakeContext& ctx)
 	BufferManager& bufferManager = *ctx.bufferManager;
 	const auto memoryProps = vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal;
 
-	ctx.modelDSet->bakeIndirectDrawBuffer =
-	    bufferManager.createBuffer(memoryProps, sizeof(IndirectDrawStructure) * kBakeMaxDrawCommands * kBakeRegionCount, 1,
-	                          vk::BufferUsageFlagBits::eStorageBuffer);
-	ctx.modelDSet->bakeVisibleIndicesBuffer =
-	    bufferManager.createBuffer(memoryProps, sizeof(uint32_t) * kBakeMaxDrawCommands * kBakeRegionCount, 1,
-	                          vk::BufferUsageFlagBits::eStorageBuffer);
-	ctx.modelDSet->bakeCompactedDrawBuffer =
-	    bufferManager.createBuffer(memoryProps, sizeof(IndirectDrawStructure) * kBakeMaxDrawCommands * kBakeRegionCount, 1,
-	                          vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eIndirectBuffer);
-	ctx.modelDSet->bakeDrawCountBuffer =
-	    bufferManager.createBuffer(memoryProps, sizeof(uint32_t) * 6 * kBakeRegionCount, 1,
-	                          vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eIndirectBuffer);
-
 	DescriptorManager& descriptorManager = *ctx.descriptorManagerComponent->descriptorManager;
-	descriptorManager.updateStorageBufferDescriptors(bufferManager, ctx.modelDSet->primitiveBuffer, ctx.modelDSet->bakeModelDSet, 0);
-	descriptorManager.updateStorageBufferDescriptors(bufferManager, ctx.modelDSet->transformBuffer, ctx.modelDSet->bakeModelDSet, 1);
-	descriptorManager.updateStorageBufferDescriptors(bufferManager, ctx.modelDSet->bakeIndirectDrawBuffer,
-	                                        ctx.modelDSet->bakeModelDSet, 2);
-	descriptorManager.updateStorageBufferDescriptors(bufferManager, ctx.modelDSet->bakeVisibleIndicesBuffer,
-	                                        ctx.modelDSet->bakeModelDSet, 3);
-	descriptorManager.updateStorageBufferDescriptors(bufferManager, ctx.modelDSet->bakeCompactedDrawBuffer,
-	                                        ctx.modelDSet->bakeModelDSet, 4);
-	descriptorManager.updateStorageBufferDescriptors(bufferManager, ctx.modelDSet->bakeDrawCountBuffer, ctx.modelDSet->bakeModelDSet,
-	                                        5);
+
+	// Shared with the main model set — created elsewhere, only bound here.
+	BufferFactory::bindStorageBuffer(bufferManager, descriptorManager, ctx.modelDSet->primitiveBuffer,
+	                                 ctx.modelDSet->bakeModelDSet, 0);
+	BufferFactory::bindStorageBuffer(bufferManager, descriptorManager, ctx.modelDSet->transformBuffer,
+	                                 ctx.modelDSet->bakeModelDSet, 1);
+
+	ctx.modelDSet->bakeIndirectDrawBuffer = BufferFactory::createStorageBuffer(
+	    bufferManager, descriptorManager, memoryProps,
+	    sizeof(IndirectDrawStructure) * kBakeMaxDrawCommands * kBakeRegionCount, 1,
+	    vk::BufferUsageFlagBits::eStorageBuffer, ctx.modelDSet->bakeModelDSet, 2);
+	ctx.modelDSet->bakeVisibleIndicesBuffer = BufferFactory::createStorageBuffer(
+	    bufferManager, descriptorManager, memoryProps, sizeof(uint32_t) * kBakeMaxDrawCommands * kBakeRegionCount, 1,
+	    vk::BufferUsageFlagBits::eStorageBuffer, ctx.modelDSet->bakeModelDSet, 3);
+	ctx.modelDSet->bakeCompactedDrawBuffer = BufferFactory::createStorageBuffer(
+	    bufferManager, descriptorManager, memoryProps,
+	    sizeof(IndirectDrawStructure) * kBakeMaxDrawCommands * kBakeRegionCount, 1,
+	    vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eIndirectBuffer,
+	    ctx.modelDSet->bakeModelDSet, 4);
+	ctx.modelDSet->bakeDrawCountBuffer = BufferFactory::createStorageBuffer(
+	    bufferManager, descriptorManager, memoryProps, sizeof(uint32_t) * 6 * kBakeRegionCount, 1,
+	    vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eIndirectBuffer,
+	    ctx.modelDSet->bakeModelDSet, 5);
 
 	ctx.modelDSet->bakeBuffersReady = true;
 }
