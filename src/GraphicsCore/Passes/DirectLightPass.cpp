@@ -49,9 +49,8 @@ void DirectLightPass::onInit(Orhescyon::GeneralManager& gm)
 	    .depthFormat = depthFormat,
 	    .rasterizationSamples = vk::SampleCountFlagBits::e1,
 	    .setLayoutNames = mainLayouts,
-	});
+	}, "standard_opaque_shadow");
 
-	// Alpha-tested shadow caster: samples base color and discards below alphaCutoff.
 	pipelineManager.build(
 	    PipelineDescription{
 	        .shaderPath = "shadow.spv",
@@ -67,7 +66,7 @@ void DirectLightPass::onInit(Orhescyon::GeneralManager& gm)
 	        .rasterizationSamples = vk::SampleCountFlagBits::e1,
 	        .setLayoutNames = mainLayouts,
 	    },
-	    "shadow_alpha");
+	    "standard_mask_shadow");
 }
 
 void DirectLightPass::addToGraph(Orhescyon::GeneralManager& gm, RenderGraph& rg, uint32_t frame)

@@ -143,37 +143,18 @@ void BufferUpdateSystem::update(GeneralManager& gm)
 		}
 	};
 
+	constexpr int kCategoryMap[] = {0, 0, 1, 1, 2, 2};
+
+	drawInfo->segments.resize(kDrawVariantCount);
 	uint32_t prevTotal = 0;
 
-	writePrimitivesForPass(0, false); // Opaque Single-Sided
-	uint32_t opaqueSingleCount = globalPrimitiveIndex - prevTotal;
-	prevTotal = globalPrimitiveIndex;
-
-	writePrimitivesForPass(0, true); // Opaque Double-Sided
-	uint32_t opaqueDoubleCount = globalPrimitiveIndex - prevTotal;
-	prevTotal = globalPrimitiveIndex;
-
-	writePrimitivesForPass(1, false); // Mask Single-Sided
-	uint32_t maskSingleCount = globalPrimitiveIndex - prevTotal;
-	prevTotal = globalPrimitiveIndex;
-
-	writePrimitivesForPass(1, true); // Mask Double-Sided
-	uint32_t maskDoubleCount = globalPrimitiveIndex - prevTotal;
-	prevTotal = globalPrimitiveIndex;
-
-	writePrimitivesForPass(2, false); // Blend Single-Sided
-	uint32_t blendSingleCount = globalPrimitiveIndex - prevTotal;
-	prevTotal = globalPrimitiveIndex;
-
-	writePrimitivesForPass(2, true); // Blend Double-Sided
-	uint32_t blendDoubleCount = globalPrimitiveIndex - prevTotal;
-
-	drawInfo->opaqueSingleCount = opaqueSingleCount;
-	drawInfo->opaqueDoubleCount = opaqueDoubleCount;
-	drawInfo->maskSingleCount = maskSingleCount;
-	drawInfo->maskDoubleCount = maskDoubleCount;
-	drawInfo->blendSingleCount = blendSingleCount;
-	drawInfo->blendDoubleCount = blendDoubleCount;
+	for (uint32_t i = 0; i < kDrawVariantCount; ++i)
+	{
+		bool doubleSided = (kDrawVariants[i].cullMode == vk::CullModeFlagBits::eNone);
+		writePrimitivesForPass(kCategoryMap[i], doubleSided);
+		drawInfo->segments[i] = {static_cast<uint32_t>(globalPrimitiveIndex - prevTotal), i};
+		prevTotal = globalPrimitiveIndex;
+	}
 
 	drawInfo->totalDrawCount = globalPrimitiveIndex;
 	drawInfo->totalObjectCount = localPrimitiveIndex;

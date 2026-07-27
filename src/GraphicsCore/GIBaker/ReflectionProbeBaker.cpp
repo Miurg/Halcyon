@@ -1,4 +1,6 @@
 #include "GraphicsCore/GIBaker/ReflectionProbeBaker.hpp"
+#include "GraphicsCore/Passes/PassCommands.hpp"
+#include "GraphicsCore/Passes/DrawVariant.hpp"
 #include "GraphicsCore/Resources/Factories/EnvMapFactory.hpp"
 #include "GraphicsCore/Resources/Factories/TextureFactory.hpp"
 
@@ -148,66 +150,39 @@ void drawScene(vk::raii::CommandBuffer& cmd, const RefBakeContext& ctx, glm::vec
 	cmd.bindVertexBuffers(0, ctx.modelManager->getVertexIndexBuffer(0).vertexBuffer, {0});
 	cmd.bindIndexBuffer(ctx.modelManager->getVertexIndexBuffer(0).indexBuffer, 0, vk::IndexType::eUint32);
 
-	auto bindMain = [&](const char* pipe)
-	{
-		auto& p = ctx.pipelineManager->pipelines[pipe];
-		cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *p.pipeline);
-		cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *p.layout, 0, dm.getSet(ctx.globalDSet->globalDSets, 0),
-		                       nullptr);
-		cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *p.layout, 1,
-		                       dm.getSet(ctx.modelDSet->modelBufferDSet, 0), nullptr);
-		cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *p.layout, 2,
-		                       dm.getSet(ctx.bindlessDSet->bindlessTextureSet), nullptr);
-		cmd.pushConstants<BakeFacePush>(*p.layout, vk::ShaderStageFlagBits::eVertex, 0, push);
-	};
-
-	const uint32_t segCounts[6] = {ctx.drawInfo->opaqueSingleCount, ctx.drawInfo->opaqueDoubleCount,
-	                               ctx.drawInfo->maskSingleCount,   ctx.drawInfo->maskDoubleCount,
-	                               ctx.drawInfo->blendSingleCount,  ctx.drawInfo->blendDoubleCount};
-	uint32_t cmdOffset = 0;
-	uint32_t countOffset = 0;
-	auto drawSegment = [&](uint32_t seg)
-	{
-		uint32_t count = segCounts[seg];
-		if (count > 0)
-		{
-			cmd.setCullMode((seg & 1) ? vk::CullModeFlagBits::eNone : vk::CullModeFlagBits::eBack);
-			cmd.drawIndexedIndirectCount(ctx.bufferManager->getBuffer(ctx.modelDSet->compactedDrawBuffer),
-			                             cmdOffset,
-			                             ctx.bufferManager->getBuffer(ctx.modelDSet->drawCountBuffer),
-			                             countOffset, count, stride);
-			cmdOffset += count * stride;
-		}
-		countOffset += sizeof(uint32_t);
-	};
+	auto& firstLayout = ctx.pipelineManager->pipelines["standard_opaque_gi"].layout;
+	cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *firstLayout, 0, dm.getSet(ctx.globalDSet->globalDSets, 0),
+	                       nullptr);
+	cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *firstLayout, 1,
+	                       dm.getSet(ctx.modelDSet->modelBufferDSet, 0), nullptr);
+	cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *firstLayout, 2,
+	                       dm.getSet(ctx.bindlessDSet->bindlessTextureSet), nullptr);
+	cmd.pushConstants<BakeFacePush>(*firstLayout, vk::ShaderStageFlagBits::eVertex, 0, push);
 
 	if (ctx.hasSkybox)
 	{
 		auto& sky = ctx.pipelineManager->pipelines["skybox_capture"];
 		cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *sky.pipeline);
-		cmd.bindDescriptorSets(
-		    vk::PipelineBindPoint::eGraphics, *ctx.pipelineManager->pipelines["global_illumination_forward"].layout, 0,
-		    ctx.descriptorManagerComponent->descriptorManager->getSet(ctx.globalDSet->globalDSets, 0), nullptr);
-		cmd.bindDescriptorSets(
-		    vk::PipelineBindPoint::eGraphics, *ctx.pipelineManager->pipelines["global_illumination_forward"].layout, 1,
-		    ctx.descriptorManagerComponent->descriptorManager->getSet(ctx.modelDSet->bakeModelDSet), nullptr);
-	cmd.bindDescriptorSets(
-		    vk::PipelineBindPoint::eGraphics, *ctx.pipelineManager->pipelines["global_illumination_forward"].layout, 2,
-		    ctx.descriptorManagerComponent->descriptorManager->getSet(ctx.bindlessDSet->bindlessTextureSet), nullptr);
 		cmd.pushConstants<BakeFacePush>(*sky.layout, vk::ShaderStageFlagBits::eVertex, 0, push);
 		cmd.setCullMode(vk::CullModeFlagBits::eNone);
 		cmd.draw(3, 1, 0, 0);
 	}
 
-	bindMain("global_illumination_forward");
-	drawSegment(0);
-	drawSegment(1);
+	DrawCursor cursor{ctx.bufferManager->getBuffer(ctx.modelDSet->compactedDrawBuffer),
+	                  ctx.bufferManager->getBuffer(ctx.modelDSet->drawCountBuffer)};
 
-	bindMain("global_illumination_forward_alpha");
-	drawSegment(2);
-	drawSegment(3);
-	drawSegment(4);
-	drawSegment(5);
+	std::string_view prevPipeline;
+	for (auto& seg : ctx.drawInfo->segments)
+	{
+		auto& var = kDrawVariants[seg.variantIndex];
+		std::string key = std::string(var.pipeline) + "_gi";
+		if (var.pipeline != prevPipeline)
+		{
+			cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *ctx.pipelineManager->pipelines[key].pipeline);
+			prevPipeline = var.pipeline;
+		}
+		cursor.draw(cmd, seg.maxCount, var.cullMode);
+	}
 
 	const uint32_t lightCount = *ctx.bufferManager->getMapped<uint32_t>(ctx.globalDSet->pointLightCountBuffer);
 	if (lightCount > 0)

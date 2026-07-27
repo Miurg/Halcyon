@@ -1,4 +1,6 @@
 #include "LightProbeGIBaking.hpp"
+#include "GraphicsCore/Passes/PassCommands.hpp"
+#include "GraphicsCore/Passes/DrawVariant.hpp"
 
 struct BakeFacePush
 {
@@ -9,53 +11,25 @@ struct BakeFacePush
 static void drawGeometry(vk::raii::CommandBuffer& cmd, const BakeContext& ctx, glm::vec3 probePos, uint32_t region,
                          int faceIdx)
 {
-	const uint32_t commandStride = sizeof(VkDrawIndexedIndirectCommand);
 	const BakeFacePush facePush{probePos, static_cast<uint32_t>(faceIdx)};
 
-	// Bind vertex + index buffers (shared across both pipelines)
 	cmd.bindVertexBuffers(
 	    0, ctx.modelManager->getVertexIndexBuffer(0).vertexBuffer, {0});
 	cmd.bindIndexBuffer(
 	    ctx.modelManager->getVertexIndexBuffer(0).indexBuffer, 0,
 	    vk::IndexType::eUint32);
 
-	
-
-
+	auto& firstLayout = ctx.pipelineManager->pipelines["standard_opaque_gi"].layout;
 	cmd.bindDescriptorSets(
-	    vk::PipelineBindPoint::eGraphics, *ctx.pipelineManager->pipelines["global_illumination_forward"].layout, 0,
+	    vk::PipelineBindPoint::eGraphics, *firstLayout, 0,
 	    ctx.descriptorManagerComponent->descriptorManager->getSet(ctx.globalDSet->globalDSets, 0), nullptr);
 	cmd.bindDescriptorSets(
-	    vk::PipelineBindPoint::eGraphics, *ctx.pipelineManager->pipelines["global_illumination_forward"].layout, 1,
+	    vk::PipelineBindPoint::eGraphics, *firstLayout, 1,
 	    ctx.descriptorManagerComponent->descriptorManager->getSet(ctx.modelDSet->bakeModelDSet), nullptr);
 	cmd.bindDescriptorSets(
-	    vk::PipelineBindPoint::eGraphics, *ctx.pipelineManager->pipelines["global_illumination_forward"].layout, 2,
+	    vk::PipelineBindPoint::eGraphics, *firstLayout, 2,
 	    ctx.descriptorManagerComponent->descriptorManager->getSet(ctx.bindlessDSet->bindlessTextureSet), nullptr);
-	cmd.pushConstants<BakeFacePush>(*ctx.pipelineManager->pipelines["global_illumination_forward"].layout,
-	                                vk::ShaderStageFlagBits::eVertex, 0, facePush);
-
-	const uint32_t segmentCounts[6] = {ctx.drawInfo->opaqueSingleCount, ctx.drawInfo->opaqueDoubleCount,
-	                                   ctx.drawInfo->maskSingleCount,   ctx.drawInfo->maskDoubleCount,
-	                                   ctx.drawInfo->blendSingleCount,  ctx.drawInfo->blendDoubleCount};
-
-	uint32_t cmdOffset = region * ctx.drawInfo->totalDrawCount * commandStride;
-	uint32_t countOffset = region * 6u * static_cast<uint32_t>(sizeof(uint32_t));
-
-	auto drawSegment = [&](uint32_t seg)
-	{
-		uint32_t count = segmentCounts[seg];
-		if (count > 0)
-		{
-			// Backfaces must rasterize during the bake — sh_projection derives probe validity from them
-			cmd.setCullMode(vk::CullModeFlagBits::eNone);
-			cmd.drawIndexedIndirectCount(
-			    ctx.bufferManager->getBuffer(ctx.modelDSet->bakeCompactedDrawBuffer), cmdOffset,
-			    ctx.bufferManager->getBuffer(ctx.modelDSet->bakeDrawCountBuffer), countOffset, count,
-			    commandStride);
-			cmdOffset += count * commandStride;
-		}
-		countOffset += sizeof(uint32_t);
-	};
+	cmd.pushConstants<BakeFacePush>(*firstLayout, vk::ShaderStageFlagBits::eVertex, 0, facePush);
 
 	if (ctx.hasSkybox)
 	{
@@ -66,32 +40,23 @@ static void drawGeometry(vk::raii::CommandBuffer& cmd, const BakeContext& ctx, g
 		cmd.draw(3, 1, 0, 0);
 	}
 
-	// === Opaque ===
-	cmd.bindPipeline(vk::PipelineBindPoint::eGraphics,
-	                 *ctx.pipelineManager->pipelines["global_illumination_forward"].pipeline);
-	drawSegment(0);
-	drawSegment(1);
+	DrawCursor cursor{ctx.bufferManager->getBuffer(ctx.modelDSet->bakeCompactedDrawBuffer),
+	                  ctx.bufferManager->getBuffer(ctx.modelDSet->bakeDrawCountBuffer)};
+	cursor.commandOffset = region * ctx.drawInfo->totalDrawCount * cursor.commandStride;
+	cursor.countOffset = region * static_cast<uint32_t>(ctx.drawInfo->segments.size()) * sizeof(uint32_t);
 
-
-	// === Alpha (mask + blend) ===
-	cmd.bindPipeline(vk::PipelineBindPoint::eGraphics,
-	                 *ctx.pipelineManager->pipelines["global_illumination_forward_alpha"].pipeline);
-	cmd.bindDescriptorSets(
-	    vk::PipelineBindPoint::eGraphics, *ctx.pipelineManager->pipelines["global_illumination_forward_alpha"].layout, 0,
-	    ctx.descriptorManagerComponent->descriptorManager->getSet(ctx.globalDSet->globalDSets, 0), nullptr);
-	cmd.bindDescriptorSets(
-	    vk::PipelineBindPoint::eGraphics, *ctx.pipelineManager->pipelines["global_illumination_forward_alpha"].layout, 1,
-	    ctx.descriptorManagerComponent->descriptorManager->getSet(ctx.modelDSet->bakeModelDSet), nullptr);
-	cmd.bindDescriptorSets(
-	    vk::PipelineBindPoint::eGraphics, *ctx.pipelineManager->pipelines["global_illumination_forward_alpha"].layout, 2,
-	    ctx.descriptorManagerComponent->descriptorManager->getSet(ctx.bindlessDSet->bindlessTextureSet), nullptr);
-	cmd.pushConstants<BakeFacePush>(*ctx.pipelineManager->pipelines["global_illumination_forward_alpha"].layout,
-	                                vk::ShaderStageFlagBits::eVertex, 0, facePush);
-
-	drawSegment(2);
-	drawSegment(3);
-	drawSegment(4);
-	drawSegment(5);
+	std::string_view prevPipeline;
+	for (auto& seg : ctx.drawInfo->segments)
+	{
+		auto& var = kDrawVariants[seg.variantIndex];
+		std::string key = std::string(var.pipeline) + "_gi";
+		if (var.pipeline != prevPipeline)
+		{
+			cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *ctx.pipelineManager->pipelines[key].pipeline);
+			prevPipeline = var.pipeline;
+		}
+		cursor.draw(cmd, seg.maxCount, vk::CullModeFlagBits::eNone);
+	}
 }
 
 static void drawLightSources(vk::raii::CommandBuffer& cmd, const BakeContext& ctx, glm::vec3 probePos, int faceIdx)

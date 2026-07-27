@@ -211,11 +211,16 @@ static void recordChunkCull(vk::raii::CommandBuffer& cmd, const BakeContext& ctx
 		};
 		CompactionPush push;
 		push.drawCommandCount = drawCount;
-		push.segStart1 = ctx.drawInfo->opaqueSingleCount;
-		push.segStart2 = push.segStart1 + ctx.drawInfo->opaqueDoubleCount;
-		push.segStart3 = push.segStart2 + ctx.drawInfo->maskSingleCount;
-		push.segStart4 = push.segStart3 + ctx.drawInfo->maskDoubleCount;
-		push.segStart5 = push.segStart4 + ctx.drawInfo->blendSingleCount;
+		uint32_t prefixSum = ctx.drawInfo->segments[0].maxCount;
+		push.segStart1 = prefixSum;
+		prefixSum += ctx.drawInfo->segments[1].maxCount;
+		push.segStart2 = prefixSum;
+		prefixSum += ctx.drawInfo->segments[2].maxCount;
+		push.segStart3 = prefixSum;
+		prefixSum += ctx.drawInfo->segments[3].maxCount;
+		push.segStart4 = prefixSum;
+		prefixSum += ctx.drawInfo->segments[4].maxCount;
+		push.segStart5 = prefixSum;
 		cmd.pushConstants<CompactionPush>(*pip.layout, vk::ShaderStageFlagBits::eCompute, 0, push);
 		cmd.dispatch((drawCount + 63) / 64, regions, 1);
 	}

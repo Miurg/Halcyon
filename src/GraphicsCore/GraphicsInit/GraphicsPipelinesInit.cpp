@@ -104,7 +104,7 @@ void GraphicsPipelinesInit::initPipelines(GeneralManager& gm)
 	        .setLayoutNames = mainLayouts,
 	        .pushConstants = {{vk::ShaderStageFlagBits::eVertex, 0, 16u}}, // float3 probePos + uint faceIdx
 	    },
-	    "global_illumination_forward");
+	    "standard_opaque_gi");
 
 	// === Capture alpha  ===
 	pipelineManager->build(
@@ -124,7 +124,26 @@ void GraphicsPipelinesInit::initPipelines(GeneralManager& gm)
 	        .setLayoutNames = mainLayouts,
 	        .pushConstants = {{vk::ShaderStageFlagBits::eVertex, 0, 16u}}, // float3 probePos + uint faceIdx
 	    },
-	    "global_illumination_forward_alpha");
+	    "standard_mask_gi");
+
+	pipelineManager->build(
+	    PipelineDescription{
+	        .shaderPath = "global_illumination_forward.spv",
+	        .specializationValues = {1, 1}, // ALPHA_TEST=1, IBL=1
+	        .vertexBindings = {bindingDesc},
+	        .vertexAttributes = std::vector<vk::VertexInputAttributeDescription>(attrDescs.begin(), attrDescs.end()),
+	        .cullMode = vk::CullModeFlagBits::eBack,
+	        .depthTest = true,
+	        .depthWrite = false,
+	        .depthOp = vk::CompareOp::eGreaterOrEqual,
+	        .colorAttachments = {PipelineFactory::blendedAttachment()},
+	        .colorFormats = {swapChain->hdrFormat},
+	        .depthFormat = depthFormat,
+	        .rasterizationSamples = vk::SampleCountFlagBits::e1,
+	        .setLayoutNames = mainLayouts,
+	        .pushConstants = {{vk::ShaderStageFlagBits::eVertex, 0, 16u}},
+	    },
+	    "standard_blend_gi");
 
 	// === Skybox for baking ===
 	pipelineManager->build(

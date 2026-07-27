@@ -1,4 +1,6 @@
 #include "MainPass.hpp"
+#include "GraphicsCore/Passes/PassCommands.hpp"
+#include "GraphicsCore/Passes/DrawVariant.hpp"
 
 #include <Orhescyon/GeneralManager.hpp>
 
@@ -85,22 +87,22 @@ void MainPass::buildPipelines(Orhescyon::GeneralManager& gm, vk::SampleCountFlag
 
 	if (rebuild)
 	{
-		pipelineManager.rebuild(makeForward(0, 1, false, vk::CompareOp::eEqual), "standard_forward_opaque");
-		pipelineManager.rebuild(makeForward(0, 0, false, vk::CompareOp::eEqual), "standard_forward_opaque_no_ibl");
-		pipelineManager.rebuild(makeForward(1, 1, a2c, vk::CompareOp::eGreaterOrEqual), "standard_forward_mask");
-		pipelineManager.rebuild(makeForward(1, 0, a2c, vk::CompareOp::eGreaterOrEqual), "standard_forward_mask_no_ibl");
-		pipelineManager.rebuild(makeForward(0, 1, false, vk::CompareOp::eGreaterOrEqual), "standard_forward_blend");
-		pipelineManager.rebuild(makeForward(0, 0, false, vk::CompareOp::eGreaterOrEqual), "standard_forward_blend_no_ibl");
+		pipelineManager.rebuild(makeForward(0, 1, false, vk::CompareOp::eEqual), "standard_opaque_forward");
+		pipelineManager.rebuild(makeForward(0, 0, false, vk::CompareOp::eEqual), "standard_opaque_forward_no_ibl");
+		pipelineManager.rebuild(makeForward(1, 1, a2c, vk::CompareOp::eGreaterOrEqual), "standard_mask_forward");
+		pipelineManager.rebuild(makeForward(1, 0, a2c, vk::CompareOp::eGreaterOrEqual), "standard_mask_forward_no_ibl");
+		pipelineManager.rebuild(makeForward(0, 1, false, vk::CompareOp::eGreaterOrEqual), "standard_blend_forward");
+		pipelineManager.rebuild(makeForward(0, 0, false, vk::CompareOp::eGreaterOrEqual), "standard_blend_forward_no_ibl");
 		pipelineManager.rebuild(skyboxDesc, "skybox");
 	}
 	else
 	{
-		pipelineManager.build(makeForward(0, 1, false, vk::CompareOp::eEqual), "standard_forward_opaque");
-		pipelineManager.build(makeForward(0, 0, false, vk::CompareOp::eEqual), "standard_forward_opaque_no_ibl");
-		pipelineManager.build(makeForward(1, 1, a2c, vk::CompareOp::eGreaterOrEqual), "standard_forward_mask");
-		pipelineManager.build(makeForward(1, 0, a2c, vk::CompareOp::eGreaterOrEqual), "standard_forward_mask_no_ibl");
-		pipelineManager.build(makeForward(0, 1, false, vk::CompareOp::eGreaterOrEqual), "standard_forward_blend");
-		pipelineManager.build(makeForward(0, 0, false, vk::CompareOp::eGreaterOrEqual), "standard_forward_blend_no_ibl");
+		pipelineManager.build(makeForward(0, 1, false, vk::CompareOp::eEqual), "standard_opaque_forward");
+		pipelineManager.build(makeForward(0, 0, false, vk::CompareOp::eEqual), "standard_opaque_forward_no_ibl");
+		pipelineManager.build(makeForward(1, 1, a2c, vk::CompareOp::eGreaterOrEqual), "standard_mask_forward");
+		pipelineManager.build(makeForward(1, 0, a2c, vk::CompareOp::eGreaterOrEqual), "standard_mask_forward_no_ibl");
+		pipelineManager.build(makeForward(0, 1, false, vk::CompareOp::eGreaterOrEqual), "standard_blend_forward");
+		pipelineManager.build(makeForward(0, 0, false, vk::CompareOp::eGreaterOrEqual), "standard_blend_forward_no_ibl");
 		pipelineManager.build(skyboxDesc);
 	}
 }
@@ -135,43 +137,19 @@ void MainPass::draw(vk::raii::CommandBuffer& cmd, SwapChain& swapChain, uint32_t
 	                                static_cast<float>(swapChain.swapChainExtent.height), 0.0f, 1.0f));
 	cmd.setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), swapChain.swapChainExtent));
 
-	const std::string opaquePipeline = hasSkybox ? "standard_forward_opaque" : "standard_forward_opaque_no_ibl";
-	const std::string maskPipeline = hasSkybox ? "standard_forward_mask" : "standard_forward_mask_no_ibl";
-	const std::string blendPipeline = hasSkybox ? "standard_forward_blend" : "standard_forward_blend_no_ibl";
+	const std::string_view iblSuffix = hasSkybox ? "_forward" : "_forward_no_ibl";
 
-	cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineManager.pipelines[opaquePipeline].layout, 0,
+	auto& firstLayout = pipelineManager.pipelines["standard_opaque_forward"].layout;
+	cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *firstLayout, 0,
 	                       descriptorManager.descriptorManager->getSet(globalDSetComponent.globalDSets, frame), nullptr);
-	cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineManager.pipelines[opaquePipeline].layout, 1,
+	cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *firstLayout, 1,
 	                       descriptorManager.descriptorManager->getSet(objectDSetComponent.modelBufferDSet, frame), nullptr);
-	cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipelineManager.pipelines[opaquePipeline].layout, 2,
+	cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *firstLayout, 2,
 	                       descriptorManager.descriptorManager->getSet(bindlessTextureDSetComponent.bindlessTextureSet), nullptr);
 
-	const uint32_t commandStride = sizeof(VkDrawIndexedIndirectCommand);
 	cmd.bindVertexBuffers(0, modelManager.getVertexIndexBuffer(0).vertexBuffer, {0});
 	cmd.bindIndexBuffer(modelManager.getVertexIndexBuffer(0).indexBuffer, 0,
 	                    vk::IndexType::eUint32);
-
-	const uint32_t segmentCounts[6] = {drawInfo.opaqueSingleCount, drawInfo.opaqueDoubleCount,
-	                                   drawInfo.maskSingleCount,   drawInfo.maskDoubleCount,
-	                                   drawInfo.blendSingleCount,  drawInfo.blendDoubleCount};
-
-	uint32_t currentCommandOffset = 0;
-	uint32_t currentCountBufferOffset = 0;
-
-	auto drawSegment = [&](uint32_t segment, bool backfaceCulling)
-	{
-		uint32_t count = segmentCounts[segment];
-		if (count > 0)
-		{
-			cmd.setCullMode(backfaceCulling ? vk::CullModeFlagBits::eBack : vk::CullModeFlagBits::eNone);
-			cmd.drawIndexedIndirectCount(bufferManager.getBuffer(objectDSetComponent.compactedDrawBuffer, frame),
-			                             currentCommandOffset,
-			                             bufferManager.getBuffer(objectDSetComponent.drawCountBuffer, frame),
-			                             currentCountBufferOffset, count, commandStride);
-			currentCommandOffset += count * commandStride;
-		}
-		currentCountBufferOffset += sizeof(uint32_t);
-	};
 
 	if (hasSkybox)
 	{
@@ -180,20 +158,21 @@ void MainPass::draw(vk::raii::CommandBuffer& cmd, SwapChain& swapChain, uint32_t
 		cmd.draw(3, 1, 0, 0);
 	}
 
-	// OPAQUE
-	cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipelineManager.pipelines[opaquePipeline].pipeline);
-	drawSegment(0, true);
-	drawSegment(1, false);
+	DrawCursor cursor{bufferManager.getBuffer(objectDSetComponent.compactedDrawBuffer, frame),
+	                  bufferManager.getBuffer(objectDSetComponent.drawCountBuffer, frame)};
 
-	// MASK
-	cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipelineManager.pipelines[maskPipeline].pipeline);
-	drawSegment(2, true);
-	drawSegment(3, false);
-
-	// BLEND
-	cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipelineManager.pipelines[blendPipeline].pipeline);
-	drawSegment(4, true);
-	drawSegment(5, false);
+	std::string_view prevPipeline;
+	for (auto& seg : drawInfo.segments)
+	{
+		auto& var = kDrawVariants[seg.variantIndex];
+		std::string key = std::string(var.pipeline) + std::string(iblSuffix);
+		if (var.pipeline != prevPipeline)
+		{
+			cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipelineManager.pipelines[key].pipeline);
+			prevPipeline = var.pipeline;
+		}
+		cursor.draw(cmd, seg.maxCount, var.cullMode);
+	}
 }
 
 void MainPass::addToGraph(Orhescyon::GeneralManager& gm, RenderGraph& rg, uint32_t frame)

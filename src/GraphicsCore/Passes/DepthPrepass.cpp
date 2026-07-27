@@ -1,4 +1,6 @@
 #include "DepthPrepass.hpp"
+#include "GraphicsCore/Passes/PassCommands.hpp"
+#include "GraphicsCore/Passes/DrawVariant.hpp"
 
 #include <Orhescyon/GeneralManager.hpp>
 
@@ -73,13 +75,13 @@ void DepthPrepass::buildPipelines(Orhescyon::GeneralManager& gm, vk::SampleCount
 
 	if (rebuild)
 	{
-		pipelineManager.rebuild(makeDesc(0, false), "depth_prepass");
-		pipelineManager.rebuild(makeDesc(1, a2c), "depth_prepass_alpha");
+		pipelineManager.rebuild(makeDesc(0, false), "standard_opaque_depth");
+		pipelineManager.rebuild(makeDesc(1, a2c), "standard_mask_depth");
 	}
 	else
 	{
-		pipelineManager.build(makeDesc(0, false));
-		pipelineManager.build(makeDesc(1, a2c), "depth_prepass_alpha");
+		pipelineManager.build(makeDesc(0, false), "standard_opaque_depth");
+		pipelineManager.build(makeDesc(1, a2c), "standard_mask_depth");
 	}
 }
 
@@ -104,53 +106,38 @@ void DepthPrepass::draw(vk::raii::CommandBuffer& cmd, uint32_t frame, SwapChain&
                         BindlessTextureDSetComponent& bindlessTextureDSetComponent, ModelManager& modelManager,
                         const DrawInfoComponent& drawInfo, PipelineManager& pipelineManager)
 {
-	auto& opaquePipe = pipelineManager.pipelines["depth_prepass"];
-	auto& alphaPipe = pipelineManager.pipelines["depth_prepass_alpha"];
-
-	cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *opaquePipe.layout, 0,
+	auto& firstLayout = pipelineManager.pipelines["standard_opaque_depth"].layout;
+	cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *firstLayout, 0,
 	                       descriptorManager.descriptorManager->getSet(globalDSetComponent.globalDSets, frame), nullptr);
-	cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *opaquePipe.layout, 1,
+	cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *firstLayout, 1,
 	                       descriptorManager.descriptorManager->getSet(objectDSetComponent.modelBufferDSet, frame), nullptr);
-	cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *opaquePipe.layout, 2,
+	cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *firstLayout, 2,
 	                       descriptorManager.descriptorManager->getSet(bindlessTextureDSetComponent.bindlessTextureSet), nullptr);
 
 	cmd.setViewport(0, vk::Viewport(0.0f, 0.0f, static_cast<float>(swapChain.swapChainExtent.width),
 	                                static_cast<float>(swapChain.swapChainExtent.height), 0.0f, 1.0f));
 	cmd.setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), swapChain.swapChainExtent));
 
-	const uint32_t commandStride = sizeof(VkDrawIndexedIndirectCommand);
 	cmd.bindVertexBuffers(0, modelManager.getVertexIndexBuffer(0).vertexBuffer, {0});
 	cmd.bindIndexBuffer(modelManager.getVertexIndexBuffer(0).indexBuffer, 0,
 	                    vk::IndexType::eUint32);
-	// Segments 0,1 = opaque, 2,3 = mask
-	const uint32_t segmentCounts[4] = {drawInfo.opaqueSingleCount, drawInfo.opaqueDoubleCount, drawInfo.maskSingleCount,
-	                                   drawInfo.maskDoubleCount};
 
-	uint32_t currentCommandOffset = 0;
-	uint32_t currentCountBufferOffset = 0;
+	DrawCursor cursor{bufferManager.getBuffer(objectDSetComponent.compactedDrawBuffer, frame),
+	                  bufferManager.getBuffer(objectDSetComponent.drawCountBuffer, frame)};
 
-	auto drawSegment = [&](uint32_t seg)
+	std::string_view prevPipeline;
+	for (auto& seg : drawInfo.segments)
 	{
-		uint32_t count = segmentCounts[seg];
-		if (count > 0)
+		auto& var = kDrawVariants[seg.variantIndex];
+		if (var.isTransparent) { cursor.skip(seg.maxCount); continue; }
+		std::string key = std::string(var.pipeline) + "_depth";
+		if (var.pipeline != prevPipeline)
 		{
-			cmd.setCullMode((seg & 1) ? vk::CullModeFlagBits::eNone : vk::CullModeFlagBits::eBack);
-			cmd.drawIndexedIndirectCount(bufferManager.getBuffer(objectDSetComponent.compactedDrawBuffer, frame),
-			                             currentCommandOffset,
-			                             bufferManager.getBuffer(objectDSetComponent.drawCountBuffer, frame),
-			                             currentCountBufferOffset, count, commandStride);
-			currentCommandOffset += count * commandStride;
+			cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipelineManager.pipelines[key].pipeline);
+			prevPipeline = var.pipeline;
 		}
-		currentCountBufferOffset += sizeof(uint32_t);
-	};
-
-	cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *opaquePipe.pipeline);
-	drawSegment(0);
-	drawSegment(1);
-
-	cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *alphaPipe.pipeline);
-	drawSegment(2);
-	drawSegment(3);
+		cursor.draw(cmd, seg.maxCount, var.cullMode);
+	}
 }
 
 void DepthPrepass::addToGraph(Orhescyon::GeneralManager& gm, RenderGraph& rg, uint32_t frame)
