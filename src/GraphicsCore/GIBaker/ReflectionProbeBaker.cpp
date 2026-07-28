@@ -17,7 +17,7 @@
 #include "GraphicsCore/Resources/Components/GlobalDSetComponent.hpp"
 #include "GraphicsCore/Resources/Components/ModelDSetComponent.hpp"
 #include "GraphicsCore/Resources/Components/BindlessTextureDSetComponent.hpp"
-#include "GraphicsCore/Resources/ResourceStructures.hpp"
+#include "Shared/GpuStructs.h"
 #include "GraphicsCore/Resources/Managers/BufferManager.hpp"
 #include "GraphicsCore/Resources/Managers/TextureManager.hpp"
 #include "GraphicsCore/Resources/Managers/DescriptorManager.hpp"
@@ -242,13 +242,13 @@ void ReflectionProbeBaker::bake(GeneralManager& gm, ReflectionProbeComponent& pr
 	gridInfo->giBounceMultiplier = probe.giBounceMultiplier;
 
 	// All-accepting frustum in the main camera buffer so the cull passes the whole scene; save/restore it.
-	CameraStructure savedCam;
-	std::memcpy(&savedCam, ctx.bufferManager->getMapped<CameraStructure>(ctx.globalDSet->cameraBuffers),
-	            sizeof(CameraStructure));
-	CameraStructure infiniteCam{};
+	CameraData savedCam;
+	std::memcpy(&savedCam, ctx.bufferManager->getMapped<CameraData>(ctx.globalDSet->cameraBuffers),
+	            sizeof(CameraData));
+	CameraData infiniteCam{};
 	for (int i = 0; i < 6; ++i) infiniteCam.frustumPlanes[i] = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
-	std::memcpy(ctx.bufferManager->getMapped<CameraStructure>(ctx.globalDSet->cameraBuffers), &infiniteCam,
-	            sizeof(CameraStructure));
+	std::memcpy(ctx.bufferManager->getMapped<CameraData>(ctx.globalDSet->cameraBuffers), &infiniteCam,
+	            sizeof(CameraData));
 
 	RefCapture cap = createCapture(ctx);
 
@@ -335,8 +335,8 @@ void ReflectionProbeBaker::bake(GeneralManager& gm, ReflectionProbeComponent& pr
 	    ctx.bindlessDSet->bindlessTextureSet, Bindings::Textures::CubemapSampler, 0,
 	    vk::DescriptorType::eCombinedImageSampler, skyTex.textureImageView,
 	    ctx.textureManager->getSampler(skyTex.samplerHandle));
-	std::memcpy(ctx.bufferManager->getMapped<CameraStructure>(ctx.globalDSet->cameraBuffers), &savedCam,
-	            sizeof(CameraStructure));
+	std::memcpy(ctx.bufferManager->getMapped<CameraData>(ctx.globalDSet->cameraBuffers), &savedCam,
+	            sizeof(CameraData));
 	gridInfo->captureRange = savedRange;
 	gridInfo->giAmbient = savedAmbient;
 	gridInfo->giBounceMultiplier = savedBounce;

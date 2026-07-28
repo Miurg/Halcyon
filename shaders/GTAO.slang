@@ -1,3 +1,5 @@
+#include "Shared/GpuStructs.h"
+
 [vk::binding(0, 0)]
 Sampler2D depthPyramid; 
 [vk::binding(1, 0)]
@@ -5,15 +7,6 @@ Sampler2D normalsTexture;
 [vk::binding(2, 0)]
 Sampler2D noiseTexture;
 
-struct CameraData
-{
-	float4x4 cameraSpaceMatrix;
-	float4x4 viewMatrix;
-	float4x4 projMatrix;
-	float4x4 invViewProj;
-	float4 cameraPositionAndPadding;
-	float4 frustumPlanes[6];
-};
 [[vk::binding(0, 1)]]
 StructuredBuffer<CameraData> camera;
 

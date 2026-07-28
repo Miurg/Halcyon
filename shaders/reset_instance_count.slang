@@ -1,14 +1,7 @@
-struct VkDrawIndexedIndirectCommand
-{
-	uint indexCount;
-	uint instanceCount;
-	uint firstIndex;
-	int vertexOffset;
-	uint firstInstance;
-};
+#include "Shared/GpuStructs.h"
 
 [[vk::binding(2, 0)]]
-RWStructuredBuffer<VkDrawIndexedIndirectCommand> indirectDrawBuffer;
+RWStructuredBuffer<IndirectDrawIndexedCommand> indirectDrawBuffer;
 
 struct PushConstants
 {

@@ -3,7 +3,7 @@
 #include "GraphicsCore/GraphicsContexts.hpp"
 #include "GraphicsCore/Components/BufferManagerComponent.hpp"
 #include "GraphicsCore/Components/CurrentFrameComponent.hpp"
-#include "GraphicsCore/Resources/ResourceStructures.hpp"
+#include "Shared/GpuStructs.h"
 #include "GraphicsCore/Resources/Components/GlobalDSetComponent.hpp"
 #include "GraphicsCore/GIBaker/ReflectionProbeBaker.hpp"
 #include <iostream>

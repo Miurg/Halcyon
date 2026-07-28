@@ -1,47 +1,20 @@
+#include "Shared/GpuStructs.h"
+
 // === SET 0 ===
 
-struct CameraData
-{
-	float4x4 cameraSpaceMatrix; // View * Projection
-	float4x4 viewMatrix;
-	float4x4 projMatrix;
-	float4x4 invViewProj;
-	float4 cameraPositionAndPadding;
-	float4 frustumPlanes[6];
-};
 [[vk::binding(0, 0)]]
 StructuredBuffer<CameraData> camera;
 
 // === SET 1 ===
 
-struct ModelData
-{
-	float4 AABBMin;
-	float4 AABBMax;
-	uint transformIndex;
-	uint materialIndex;
-	uint drawCommandIndex; // unused
-};
 [[vk::binding(0, 1)]]
 StructuredBuffer<ModelData> objectBuffer;
 
-struct TransformData
-{
-	float4x4 model;
-};
 [[vk::binding(1, 1)]]
 StructuredBuffer<TransformData> transformBuffer;
 
-struct VkDrawIndexedIndirectCommand
-{
-	uint indexCount;
-	uint instanceCount;
-	uint firstIndex;
-	int vertexOffset;
-	uint firstInstance;
-};
 [[vk::binding(2, 1)]]
-RWStructuredBuffer<VkDrawIndexedIndirectCommand> indirectDrawBuffer;
+RWStructuredBuffer<IndirectDrawIndexedCommand> indirectDrawBuffer;
 
 [[vk::binding(3, 1)]]
 RWStructuredBuffer<uint> visibleIndicesBuffer;

@@ -35,14 +35,6 @@ struct alignas(16) ParticlesMetadata
 	alignas(4) uint32_t numberOfEmiters;
 };
 
-struct alignas(16) DrawIndirect
-{
-	alignas(4) uint32_t vertexCount;
-	alignas(4) uint32_t instanceCount;
-	alignas(4) uint32_t firstVertex;
-	alignas(4) uint32_t firstInstance;
-};
-
 struct alignas(16) ParticleProperties
 {
 	alignas(16) glm::vec3 position = {0.0f, 0.0f, 0.0f};
@@ -178,11 +170,11 @@ void ParticleSystemComputePass::onInit(Orhescyon::GeneralManager& gm)
 	                          vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst);
 
 	_dispatchBuffer =
-	    bufferManager.createBuffer(vk::MemoryPropertyFlagBits::eHostVisible, sizeof(DispatchIndirect), 1,
+	    bufferManager.createBuffer(vk::MemoryPropertyFlagBits::eHostVisible, sizeof(IndirectDispatchCommand), 1,
 	                          vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eIndirectBuffer |
 	                              vk::BufferUsageFlagBits::eTransferDst);
 	_indirectBuffer =
-	    bufferManager.createBuffer(vk::MemoryPropertyFlagBits::eDeviceLocal, sizeof(DrawIndirect), MAX_FRAMES_IN_FLIGHT,
+	    bufferManager.createBuffer(vk::MemoryPropertyFlagBits::eDeviceLocal, sizeof(IndirectDrawCommand), MAX_FRAMES_IN_FLIGHT,
 	                          vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eIndirectBuffer |
 	                              vk::BufferUsageFlagBits::eTransferDst);
 	_aliveIndicesBufferA =
@@ -193,12 +185,12 @@ void ParticleSystemComputePass::onInit(Orhescyon::GeneralManager& gm)
 	                          vk::BufferUsageFlagBits::eStorageBuffer);
 
 	_dispatchBufferForEmiterA =
-	    bufferManager.createBuffer(vk::MemoryPropertyFlagBits::eDeviceLocal, sizeof(DispatchIndirect), 1,
+	    bufferManager.createBuffer(vk::MemoryPropertyFlagBits::eDeviceLocal, sizeof(IndirectDispatchCommand), 1,
 	                          vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eIndirectBuffer |
 	                              vk::BufferUsageFlagBits::eTransferDst);
 
 	_dispatchBufferForEmiterB =
-	    bufferManager.createBuffer(vk::MemoryPropertyFlagBits::eDeviceLocal, sizeof(DispatchIndirect), 1,
+	    bufferManager.createBuffer(vk::MemoryPropertyFlagBits::eDeviceLocal, sizeof(IndirectDispatchCommand), 1,
 	                          vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eIndirectBuffer |
 	                              vk::BufferUsageFlagBits::eTransferDst);
 	_particlesMetadata =
@@ -272,29 +264,29 @@ void ParticleSystemComputePass::onInit(Orhescyon::GeneralManager& gm)
 	// something, but copyBuffer works fine
 	// TODO: Find out why updateBuffer is not working for dispatch buffer, maybe we can avoid creating staging buffer for
 	// this
-	DispatchIndirect initialDispatch = {.x = 0, .y = 1, .z = 1, .spawnCount = 0};
-	StagingBuffer stagingDispatch = VulkanUtils::createStagingBuffer(&initialDispatch, sizeof(DispatchIndirect),
+	IndirectDispatchCommand initialDispatch = {.x = 0, .y = 1, .z = 1, .spawnCount = 0};
+	StagingBuffer stagingDispatch = VulkanUtils::createStagingBuffer(&initialDispatch, sizeof(IndirectDispatchCommand),
 	                                                                 allocator, VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
 
 	vk::BufferCopy copyRegionDispatch;
 	copyRegionDispatch.srcOffset = 0;
 	copyRegionDispatch.dstOffset = 0;
-	copyRegionDispatch.size = sizeof(DispatchIndirect);
+	copyRegionDispatch.size = sizeof(IndirectDispatchCommand);
 
 	cmd.copyBuffer(vk::Buffer(stagingDispatch.buffer), bufferManager.getBuffer(_dispatchBuffer),
 	               copyRegionDispatch);
 
 	// Dispatch for emiter
-	DispatchIndirect initialDispatchForEmiter = {.x = 0, .y = 1, .z = 1, .spawnCount = 0};
+	IndirectDispatchCommand initialDispatchForEmiter = {.x = 0, .y = 1, .z = 1, .spawnCount = 0};
 	for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
 	{
 		cmd.updateBuffer(bufferManager.getBuffer(_dispatchBufferForEmiterA), 0,
-		                 vk::ArrayProxy<const DispatchIndirect>(1, &initialDispatchForEmiter));
+		                 vk::ArrayProxy<const IndirectDispatchCommand>(1, &initialDispatchForEmiter));
 	}
 	for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
 	{
 		cmd.updateBuffer(bufferManager.getBuffer(_dispatchBufferForEmiterB), 0,
-		                 vk::ArrayProxy<const DispatchIndirect>(1, &initialDispatchForEmiter));
+		                 vk::ArrayProxy<const IndirectDispatchCommand>(1, &initialDispatchForEmiter));
 	}
 	VulkanUtils::endSingleTimeCommands(cmd, vulkanDevice);
 
@@ -318,11 +310,11 @@ void ParticleSystemComputePass::onInit(Orhescyon::GeneralManager& gm)
 	cmd = VulkanUtils::beginSingleTimeCommands(vulkanDevice);
 
 	// Indirect
-	DrawIndirect initialDraw = {.vertexCount = 6, .instanceCount = 0, .firstVertex = 0, .firstInstance = 0};
+	IndirectDrawCommand initialDraw = {.vertexCount = 6, .instanceCount = 0, .firstVertex = 0, .firstInstance = 0};
 	for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
 	{
 		cmd.updateBuffer(bufferManager.getBuffer(_indirectBuffer, i), 0,
-		                 vk::ArrayProxy<const DrawIndirect>(1, &initialDraw));
+		                 vk::ArrayProxy<const IndirectDrawCommand>(1, &initialDraw));
 	}
 	VulkanUtils::endSingleTimeCommands(cmd, vulkanDevice);
 

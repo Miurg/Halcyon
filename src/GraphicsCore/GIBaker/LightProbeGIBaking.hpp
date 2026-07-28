@@ -16,7 +16,7 @@
 #include "GraphicsCore/Resources/Components/GlobalDSetComponent.hpp"
 #include "GraphicsCore/Resources/Components/ModelDSetComponent.hpp"
 #include "GraphicsCore/Resources/Components/BindlessTextureDSetComponent.hpp"
-#include "GraphicsCore/Resources/ResourceStructures.hpp"
+#include "Shared/GpuStructs.h"
 #include "GraphicsCore/Resources/Managers/BufferManager.hpp"
 #include "GraphicsCore/Resources/Managers/TextureManager.hpp"
 #include "GraphicsCore/Resources/Managers/DescriptorManager.hpp"

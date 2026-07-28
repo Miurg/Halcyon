@@ -2,7 +2,7 @@
 #include "GraphicsCore/Resources/Managers/BufferManager.hpp"
 #include "GraphicsCore/VulkanConst.hpp"
 
-MaterialHandle MaterialManager::emplaceMaterial(BindlessTextureDSetComponent& dSetComponent, MaterialStructure material,
+MaterialHandle MaterialManager::emplaceMaterial(BindlessTextureDSetComponent& dSetComponent, MaterialData material,
                                                 BufferManager& bufferManager)
 {
 	auto cached = _materialCache.find(material);
@@ -69,7 +69,7 @@ void MaterialManager::collectMaterialFrees(uint64_t frameNumber)
 	}
 }
 
-const MaterialStructure& MaterialManager::getMaterial(MaterialHandle handle) const
+const MaterialData& MaterialManager::getMaterial(MaterialHandle handle) const
 {
 	return materials[handle.id];
 }

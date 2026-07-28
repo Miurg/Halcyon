@@ -115,14 +115,14 @@ static void ensureBakeBuffers(const BakeContext& ctx)
 
 	ctx.modelDSet->bakeIndirectDrawBuffer = BufferFactory::createStorageBuffer(
 	    bufferManager, descriptorManager, memoryProps,
-	    sizeof(IndirectDrawStructure) * kBakeMaxDrawCommands * kBakeRegionCount, 1,
+	    sizeof(IndirectDrawIndexedCommand) * kBakeMaxDrawCommands * kBakeRegionCount, 1,
 	    vk::BufferUsageFlagBits::eStorageBuffer, ctx.modelDSet->bakeModelDSet, 2);
 	ctx.modelDSet->bakeVisibleIndicesBuffer = BufferFactory::createStorageBuffer(
 	    bufferManager, descriptorManager, memoryProps, sizeof(uint32_t) * kBakeMaxDrawCommands * kBakeRegionCount, 1,
 	    vk::BufferUsageFlagBits::eStorageBuffer, ctx.modelDSet->bakeModelDSet, 3);
 	ctx.modelDSet->bakeCompactedDrawBuffer = BufferFactory::createStorageBuffer(
 	    bufferManager, descriptorManager, memoryProps,
-	    sizeof(IndirectDrawStructure) * kBakeMaxDrawCommands * kBakeRegionCount, 1,
+	    sizeof(IndirectDrawIndexedCommand) * kBakeMaxDrawCommands * kBakeRegionCount, 1,
 	    vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eIndirectBuffer,
 	    ctx.modelDSet->bakeModelDSet, 4);
 	ctx.modelDSet->bakeDrawCountBuffer = BufferFactory::createStorageBuffer(

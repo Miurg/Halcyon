@@ -13,7 +13,7 @@
 #include "GraphicsCore/Components/CameraComponent.hpp"
 #include "GraphicsCore/Components/GlobalTransformComponent.hpp"
 #include "GraphicsCore/Components/DirectLightComponent.hpp"
-#include "GraphicsCore/Resources/ResourceStructures.hpp"
+#include "Shared/GpuStructs.h"
 
 #ifdef TRACY_ENABLE
 #include <tracy/Tracy.hpp>
@@ -73,7 +73,7 @@ void CameraMatrixSystem::update(GeneralManager& gm)
 		frustumPlanes[i] /= length;
 	}
 
-	CameraStructure cameraUbo;
+	CameraData cameraUbo;
 	cameraUbo.cameraSpaceMatrix = cameraSpaceMatrix;
 	cameraUbo.viewMatrix = view;
 	cameraUbo.projMatrix = proj;
@@ -81,7 +81,7 @@ void CameraMatrixSystem::update(GeneralManager& gm)
 	cameraUbo.cameraPositionAndPadding = glm::vec4(mainCameraTransform->getGlobalPosition(), 0.0f);
 	for (int i = 0; i < 6; ++i) cameraUbo.frustumPlanes[i] = frustumPlanes[i];
 
-	memcpy(bufferManager.getMapped<CameraStructure>(globalDSetComponent->cameraBuffers, currentFrame), &cameraUbo,
+	memcpy(bufferManager.getMapped<CameraData>(globalDSetComponent->cameraBuffers, currentFrame), &cameraUbo,
 	       sizeof(cameraUbo));
 
 	// === Sun (Shadows) ===
@@ -176,7 +176,7 @@ void CameraMatrixSystem::update(GeneralManager& gm)
 		sunFrustumPlanes[i] /= length;
 	}
 
-	DirectLightStructure sunUbo{.lightSpaceMatrix = lightSpaceMatrix,
+	DirectionalLightData sunUbo{.lightSpaceMatrix = lightSpaceMatrix,
 	                    .direction = glm::vec4(-lightDir, 1.0f),
 	                    .color = lightComponent->color,
 	                    .ambient = lightComponent->ambient,
@@ -202,6 +202,6 @@ void CameraMatrixSystem::update(GeneralManager& gm)
 	sunUbo.cameraFrustumLightSpaceBounds =
 	    glm::vec4(lsMin.x - epsilon, lsMax.x + epsilon, lsMin.y - epsilon, lsMax.y + epsilon);
 	
-	memcpy(bufferManager.getMapped<DirectLightStructure>(globalDSetComponent->sunCameraBuffers, currentFrame), &sunUbo,
+	memcpy(bufferManager.getMapped<DirectionalLightData>(globalDSetComponent->sunCameraBuffers, currentFrame), &sunUbo,
 	       sizeof(sunUbo));
 }

@@ -1,34 +1,15 @@
+#include "Shared/GpuStructs.h"
+
 // === SET 0 ===
 
-struct CameraData
-{
-	float4x4 cameraSpaceMatrix;
-	float4x4 viewMatrix;
-	float4x4 projMatrix;
-	float4x4 invViewProj;
-	float4 cameraPositionAndPadding;
-	float4 frustumPlanes[6];
-};
 [[vk::binding(0, 0)]]
 StructuredBuffer<CameraData> camera;
 
 // === SET 1 ===
 
-struct ModelData
-{
-	float4 AABBMin;
-	float4 AABBMax;
-	uint transformIndex;
-	uint materialIndex;
-	uint drawCommandIndex; // unused
-};
 [[vk::binding(0, 1)]]
 StructuredBuffer<ModelData> objectBuffer;
 
-struct TransformData
-{
-	float4x4 model;
-};
 [[vk::binding(1, 1)]]
 StructuredBuffer<TransformData> transformBuffer;
 
@@ -39,24 +20,6 @@ StructuredBuffer<uint> visibleIndicesBuffer;
 [[vk::binding(0, 2)]]
 Sampler2D textureArray[2048];
 
-struct MaterialData
-{
-	uint textureIndex;
-	uint normalMapIndex;
-	uint metallicRoughnessIndex;
-	uint emissiveIndex;
-	float alphaCutoff;
-	uint alphaMode;
-	float emissiveStrength;
-	uint doubleSided;
-	float4 baseColorFactor;
-	float3 emissiveFactor;
-	float emissivePadding;
-	float roughnessFactor;
-	float metallicFactor;
-	float padding1;
-	float padding2;
-};
 [[vk::binding(2, 2)]]
 StructuredBuffer<MaterialData> materialBuffer;
 

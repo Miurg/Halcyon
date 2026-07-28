@@ -14,7 +14,7 @@
 #include "GraphicsCore/Components/ModelManagerComponent.hpp"
 #include "GraphicsCore/Components/TextureManagerComponent.hpp"
 #include "GraphicsCore/Resources/Managers/TextureManager.hpp"
-#include "GraphicsCore/Resources/ResourceStructures.hpp"
+#include "Shared/GpuStructs.h"
 #include "GraphicsCore/Resources/Components/GlobalDSetComponent.hpp"
 
 #ifdef TRACY_ENABLE
@@ -51,7 +51,7 @@ void LightUpdateSystem::update(GeneralManager& gm)
 
 
 	auto* spotLightPtr =
-	    bufferManager.getMapped<PointLightStructure>(globalDSetComponent->pointLightBuffers, currentFrame);
+	    bufferManager.getMapped<PointLightData>(globalDSetComponent->pointLightBuffers, currentFrame);
 	uint32_t lightCount = 0;
 	forEachSubscribedEntity(
 	    gm,

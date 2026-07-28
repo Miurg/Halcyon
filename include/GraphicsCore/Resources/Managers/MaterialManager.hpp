@@ -1,7 +1,7 @@
 #pragma once
 
 #include "HalcyonExport.hpp"
-#include "GraphicsCore/Resources/ResourceStructures.hpp"
+#include "Shared/GpuStructs.h"
 #include "GraphicsCore/Resources/Components/BindlessTextureDSetComponent.hpp"
 #include "GraphicsCore/Resources/Managers/ResourceHandles.hpp"
 #include <vector>
@@ -16,19 +16,19 @@ class BufferManager;
 class HALCYON_API MaterialManager
 {
 public:
-	MaterialHandle emplaceMaterial(BindlessTextureDSetComponent& dSetComponent, MaterialStructure material,
+	MaterialHandle emplaceMaterial(BindlessTextureDSetComponent& dSetComponent, MaterialData material,
 	                               BufferManager& bufferManager);
 	void addMaterialRef(MaterialHandle handle);
 	bool releaseMaterialRef(MaterialHandle handle);
 	void freeMaterial(MaterialHandle handle, uint64_t frameNumber);
 	void collectMaterialFrees(uint64_t frameNumber);
-	const MaterialStructure& getMaterial(MaterialHandle handle) const;
+	const MaterialData& getMaterial(MaterialHandle handle) const;
 	size_t materialCount() const;
 	size_t freeMaterialSlotCount() const;
 	size_t pendingMaterialFreeCount() const;
 
 private:
-	std::vector<MaterialStructure> materials;
+	std::vector<MaterialData> materials;
 
 	struct PendingMaterialFree
 	{
@@ -42,7 +42,7 @@ private:
 	// Content key for deduplication; padding fields are constant and skipped.
 	struct MaterialKeyHash
 	{
-		size_t operator()(const MaterialStructure& material) const noexcept
+		size_t operator()(const MaterialData& material) const noexcept
 		{
 			size_t seed = 0;
 			auto combine = [&seed](size_t value) { seed ^= value + 0x9e3779b9 + (seed << 6) + (seed >> 2); };
@@ -63,7 +63,7 @@ private:
 	};
 	struct MaterialKeyEqual
 	{
-		bool operator()(const MaterialStructure& a, const MaterialStructure& b) const noexcept
+		bool operator()(const MaterialData& a, const MaterialData& b) const noexcept
 		{
 			return a.textureIndex == b.textureIndex && a.normalMapIndex == b.normalMapIndex &&
 			       a.metallicRoughnessIndex == b.metallicRoughnessIndex && a.emissiveIndex == b.emissiveIndex &&
@@ -73,5 +73,5 @@ private:
 			       a.roughnessFactor == b.roughnessFactor && a.metallicFactor == b.metallicFactor;
 		}
 	};
-	std::unordered_map<MaterialStructure, MaterialHandle, MaterialKeyHash, MaterialKeyEqual> _materialCache;
+	std::unordered_map<MaterialData, MaterialHandle, MaterialKeyHash, MaterialKeyEqual> _materialCache;
 };

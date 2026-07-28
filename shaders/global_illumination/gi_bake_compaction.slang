@@ -1,18 +1,11 @@
-struct VkDrawIndexedIndirectCommand
-{
-	uint indexCount;
-	uint instanceCount;
-	uint firstIndex;
-	int vertexOffset;
-	uint firstInstance;
-};
+#include "Shared/GpuStructs.h"
 
 // Set 0 = bake modelSet
 [[vk::binding(2, 0)]]
-RWStructuredBuffer<VkDrawIndexedIndirectCommand> bakeIndirectDrawBuffer;
+RWStructuredBuffer<IndirectDrawIndexedCommand> bakeIndirectDrawBuffer;
 
 [[vk::binding(4, 0)]]
-RWStructuredBuffer<VkDrawIndexedIndirectCommand> bakeCompactedDrawBuffer;
+RWStructuredBuffer<IndirectDrawIndexedCommand> bakeCompactedDrawBuffer;
 
 [[vk::binding(5, 0)]]
 RWStructuredBuffer<uint> bakeDrawCountBuffer;
@@ -37,7 +30,7 @@ void computeMain(uint3 id: SV_DispatchThreadID)
 	uint region = id.y;
 	if (cmdIndex >= push.drawCommandCount) return;
 
-	VkDrawIndexedIndirectCommand cmd = bakeIndirectDrawBuffer[region * push.drawCommandCount + cmdIndex];
+	IndirectDrawIndexedCommand cmd = bakeIndirectDrawBuffer[region * push.drawCommandCount + cmdIndex];
 	if (cmd.instanceCount == 0) return;
 
 	uint segStarts[6] = { 0, push.segStart1, push.segStart2, push.segStart3, push.segStart4, push.segStart5 };

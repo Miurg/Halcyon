@@ -1,3 +1,5 @@
+#include "Shared/GpuStructs.h"
+
 // === Set 0: particleEmiterSet ===
 struct Particle
 {
@@ -30,26 +32,12 @@ struct EmiterData
 [vk::binding(2, 0)]
 RWStructuredBuffer<EmiterData> emitersDataBuffer;
 
-struct VkDispatchIndirectCommand
-{
-    uint x;
-    uint y;
-    uint z;
-    uint spawnCount;
-};
 
 [vk::binding(3, 0)]
-RWStructuredBuffer<VkDispatchIndirectCommand> indirectBuffer;
+RWStructuredBuffer<IndirectDispatchCommand> indirectBuffer;
 
-struct VkDrawIndexedIndirectCommand
-{
-    uint vertexCount;
-    uint instanceCount;
-    uint firstVertex;
-    uint firstInstance;
-};
 [[vk::binding(4, 0)]]
-RWStructuredBuffer<VkDrawIndexedIndirectCommand> indirectDrawBuffer;
+RWStructuredBuffer<IndirectDrawCommand> indirectDrawBuffer;
 
 [vk::binding(5, 0)]
 RWStructuredBuffer<uint> aliveIndicesBufferA;
@@ -58,10 +46,10 @@ RWStructuredBuffer<uint> aliveIndicesBufferA;
 RWStructuredBuffer<uint> aliveIndicesBufferB;
 
 [vk::binding(7, 0)]
-RWStructuredBuffer<VkDispatchIndirectCommand> _dispatchBufferForEmiterA;
+RWStructuredBuffer<IndirectDispatchCommand> _dispatchBufferForEmiterA;
 
 [vk::binding(8, 0)]
-RWStructuredBuffer<VkDispatchIndirectCommand> _dispatchBufferForEmiterB;
+RWStructuredBuffer<IndirectDispatchCommand> _dispatchBufferForEmiterB;
 
 struct ParticlesMetadata
 {

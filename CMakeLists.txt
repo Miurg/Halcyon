@@ -177,7 +177,7 @@ function(add_slang_shader_target TARGET_NAME)
                 -emit-spirv-directly
                 -fvk-use-entrypoint-name
                 -capability SPV_KHR_non_semantic_info+SPV_GOOGLE_user_type+spvDerivativeControl+spvImageQuery+spvImageGatherExtended+spvSparseResidency+spvMinLod+spvFragmentFullyCoveredEXT+spvShaderNonUniformEXT
-                -I "${CMAKE_CURRENT_LIST_DIR}"
+                -I "${CMAKE_CURRENT_LIST_DIR}/include"
                 ${ENTRY_FLAGS}
                 -depfile "${DEP_FILE}"
                 -o "${OUT_FILE}"

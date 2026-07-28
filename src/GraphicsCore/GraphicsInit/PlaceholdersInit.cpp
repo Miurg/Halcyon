@@ -27,7 +27,7 @@
 #include "GraphicsCore/Resources/Managers/DescriptorManager.hpp"
 #include "GraphicsCore/VulkanUtils.hpp"
 #include "GraphicsCore/GraphicsContexts.hpp"
-#include "GraphicsCore/Resources/ResourceStructures.hpp"
+#include "Shared/GpuStructs.h"
 #include "GraphicsCore/Resources/Managers/Bindings.hpp"
 #include "GraphicsCore/Components/PipelineManagerComponent.hpp"
 #include "../Resources/Factories/GltfLoader.hpp"
@@ -114,7 +114,7 @@ void PlaceholdersInit::initPlaceholders(GeneralManager& gm)
 	// Camera buffer
 	globalDSetComponent->cameraBuffers = BufferFactory::createStorageBuffer(
 	    *bufferManager, *descriptorManager,
-	    (vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal), sizeof(CameraStructure),
+	    (vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal), sizeof(CameraData),
 	    MAX_FRAMES_IN_FLIGHT, vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst,
 	    globalDSetComponent->globalDSets, Bindings::Global::Camera);
 
@@ -122,13 +122,13 @@ void PlaceholdersInit::initPlaceholders(GeneralManager& gm)
 	globalDSetComponent->sunCameraBuffers = BufferFactory::createStorageBuffer(
 	    *bufferManager, *descriptorManager,
 	    (vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal),
-	    sizeof(DirectLightStructure), MAX_FRAMES_IN_FLIGHT, vk::BufferUsageFlagBits::eStorageBuffer,
+	    sizeof(DirectionalLightData), MAX_FRAMES_IN_FLIGHT, vk::BufferUsageFlagBits::eStorageBuffer,
 	    globalDSetComponent->globalDSets, Bindings::Global::Sun);
 	// Point light buffer
 	globalDSetComponent->pointLightBuffers = BufferFactory::createStorageBuffer(
 	    *bufferManager, *descriptorManager,
 	    (vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal),
-	    sizeof(PointLightStructure) * 100, MAX_FRAMES_IN_FLIGHT, vk::BufferUsageFlagBits::eStorageBuffer,
+	    sizeof(PointLightData) * 100, MAX_FRAMES_IN_FLIGHT, vk::BufferUsageFlagBits::eStorageBuffer,
 	    globalDSetComponent->globalDSets, Bindings::Global::PointLights);
 	globalDSetComponent->pointLightCountBuffer = BufferFactory::createStorageBuffer(
 	    *bufferManager, *descriptorManager,
@@ -191,7 +191,7 @@ void PlaceholdersInit::initPlaceholders(GeneralManager& gm)
 	// Material Buffer
 	bTextureDSetComponent->materialBuffer = BufferFactory::createStorageBuffer(
 	    *bufferManager, *descriptorManager, (vk::MemoryPropertyFlagBits::eHostVisible),
-	    10240 * sizeof(MaterialStructure), 1, vk::BufferUsageFlagBits::eStorageBuffer,
+	    10240 * sizeof(MaterialData), 1, vk::BufferUsageFlagBits::eStorageBuffer,
 	    bTextureDSetComponent->bindlessTextureSet, 2);
 
 	// Shadow Map Texture Set (binding 1)
@@ -265,18 +265,18 @@ void PlaceholdersInit::initPlaceholders(GeneralManager& gm)
 
 	objectDSetComponent->primitiveBuffer = BufferFactory::createStorageBuffer(
 	    *bufferManager, *descriptorManager, (vk::MemoryPropertyFlagBits::eHostVisible),
-	    10240 * sizeof(PrimitiveSctructure), MAX_FRAMES_IN_FLIGHT, vk::BufferUsageFlagBits::eStorageBuffer,
+	    10240 * sizeof(ModelData), MAX_FRAMES_IN_FLIGHT, vk::BufferUsageFlagBits::eStorageBuffer,
 	    objectDSetComponent->modelBufferDSet, 0);
 
 	objectDSetComponent->transformBuffer = BufferFactory::createStorageBuffer(
 	    *bufferManager, *descriptorManager, (vk::MemoryPropertyFlagBits::eHostVisible),
-	    10240 * sizeof(TransformStructure), MAX_FRAMES_IN_FLIGHT, vk::BufferUsageFlagBits::eStorageBuffer,
+	    10240 * sizeof(TransformData), MAX_FRAMES_IN_FLIGHT, vk::BufferUsageFlagBits::eStorageBuffer,
 	    objectDSetComponent->modelBufferDSet, 1);
 
 	objectDSetComponent->indirectDrawBuffer = BufferFactory::createStorageBuffer(
 	    *bufferManager, *descriptorManager,
 	    (vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal),
-	    sizeof(IndirectDrawStructure) * 10240, MAX_FRAMES_IN_FLIGHT,
+	    sizeof(IndirectDrawIndexedCommand) * 10240, MAX_FRAMES_IN_FLIGHT,
 	    vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eIndirectBuffer |
 	        vk::BufferUsageFlagBits::eTransferDst,
 	    objectDSetComponent->modelBufferDSet, 2);
@@ -290,7 +290,7 @@ void PlaceholdersInit::initPlaceholders(GeneralManager& gm)
 	objectDSetComponent->compactedDrawBuffer = BufferFactory::createStorageBuffer(
 	    *bufferManager, *descriptorManager,
 	    (vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal),
-	    sizeof(IndirectDrawStructure) * 10240, MAX_FRAMES_IN_FLIGHT,
+	    sizeof(IndirectDrawIndexedCommand) * 10240, MAX_FRAMES_IN_FLIGHT,
 	    vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eIndirectBuffer |
 	        vk::BufferUsageFlagBits::eTransferDst,
 	    objectDSetComponent->modelBufferDSet, 4);

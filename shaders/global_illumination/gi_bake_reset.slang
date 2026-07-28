@@ -1,18 +1,11 @@
-struct VkDrawIndexedIndirectCommand
-{
-	uint indexCount;
-	uint instanceCount;
-	uint firstIndex;
-	int vertexOffset;
-	uint firstInstance;
-};
+#include "Shared/GpuStructs.h"
 
 // Set 0 = main modelSet (draw command templates), set 1 = bake modelSet (per-region outputs)
 [[vk::binding(2, 0)]]
-StructuredBuffer<VkDrawIndexedIndirectCommand> templateDrawBuffer;
+StructuredBuffer<IndirectDrawIndexedCommand> templateDrawBuffer;
 
 [[vk::binding(2, 1)]]
-RWStructuredBuffer<VkDrawIndexedIndirectCommand> bakeIndirectDrawBuffer;
+RWStructuredBuffer<IndirectDrawIndexedCommand> bakeIndirectDrawBuffer;
 
 [[vk::binding(5, 1)]]
 RWStructuredBuffer<uint> bakeDrawCountBuffer;
@@ -35,7 +28,7 @@ void computeMain(uint3 id: SV_DispatchThreadID)
 	if (cmdIndex < 6) bakeDrawCountBuffer[region * 6 + cmdIndex] = 0;
 	if (cmdIndex >= push.drawCommandCount) return;
 
-	VkDrawIndexedIndirectCommand cmd = templateDrawBuffer[cmdIndex];
+	IndirectDrawIndexedCommand cmd = templateDrawBuffer[cmdIndex];
 	cmd.instanceCount = 0;
 	cmd.firstInstance += region * push.visibleCapacity;
 	bakeIndirectDrawBuffer[region * push.drawCommandCount + cmdIndex] = cmd;

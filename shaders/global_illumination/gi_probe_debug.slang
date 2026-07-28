@@ -1,21 +1,4 @@
-struct CameraData
-{
-    float4x4 cameraSpaceMatrix;
-    float4x4 viewMatrix;
-    float4x4 projMatrix;
-    float4x4 invViewProj;
-    float4   cameraPositionAndPadding;
-    float4   frustumPlanes[6];
-};
-
-struct SHProbeEntry
-{
-    float3 position;      float influenceRadius;
-    float3 sh0; float _p0;
-    float3 sh1; float _p1;
-    float3 sh2; float _p2;
-    float3 sh3; float _p3;
-};
+#include "Shared/GpuStructs.h"
 
 [[vk::binding(0, 0)]] StructuredBuffer<CameraData>   camera;
 [[vk::binding(4, 0)]] StructuredBuffer<SHProbeEntry> shProbes;

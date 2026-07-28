@@ -1,43 +1,18 @@
+#include "Shared/GpuStructs.h"
+
 // === SET 0 (globalSet) ===
-struct SHGridInfo
-{
-    float3 origin; float spacing;
-    int3 count;    uint probeCount;
-    float captureRange; float3 giAmbient;
-    float giBounceMultiplier;
-};
 [[vk::binding(5, 0)]]
 StructuredBuffer<SHGridInfo> shGridInfo;
 
 // === SET 1 (bake modelSet) ===
-struct ModelData
-{
-	float4 AABBMin;
-	float4 AABBMax;
-	uint transformIndex;
-	uint materialIndex;
-	uint drawCommandIndex;
-};
 [[vk::binding(0, 1)]]
 StructuredBuffer<ModelData> objectBuffer;
 
-struct TransformData
-{
-	float4x4 model;
-};
 [[vk::binding(1, 1)]]
 StructuredBuffer<TransformData> transformBuffer;
 
-struct VkDrawIndexedIndirectCommand
-{
-	uint indexCount;
-	uint instanceCount;
-	uint firstIndex;
-	int vertexOffset;
-	uint firstInstance;
-};
 [[vk::binding(2, 1)]]
-RWStructuredBuffer<VkDrawIndexedIndirectCommand> bakeIndirectDrawBuffer;
+RWStructuredBuffer<IndirectDrawIndexedCommand> bakeIndirectDrawBuffer;
 
 [[vk::binding(3, 1)]]
 RWStructuredBuffer<uint> bakeVisibleIndicesBuffer;

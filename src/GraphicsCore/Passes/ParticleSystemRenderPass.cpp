@@ -42,14 +42,6 @@ struct ParticleMetada
 	float velocityMin;
 };
 
-struct drawIndirect
-{
-	uint32_t vertexCount;
-	uint32_t instanceCount;
-	uint32_t firstVertex;
-	uint32_t firstInstance;
-};
-
 void ParticleSystemRenderPass::drawParticlRender(vk::raii::CommandBuffer& cmd, uint32_t frame,
                                                  DescriptorManagerComponent& descriptorManager, BufferManager& bufferManager,
                                                  PipelineManager& pipelineManager, GlobalDSetComponent& globalDSetComponent,
@@ -65,7 +57,7 @@ void ParticleSystemRenderPass::drawParticlRender(vk::raii::CommandBuffer& cmd, u
 	cmd.pushConstants<uint32_t>(*pipelineManager.pipelines["system_render"].layout, vk::ShaderStageFlagBits::eVertex, 0,
 	                            totalFrames);
 
-	cmd.drawIndirect(bufferManager.getBuffer(indirectBuffer, frame), 0, 1, sizeof(drawIndirect));
+	cmd.drawIndirect(bufferManager.getBuffer(indirectBuffer, frame), 0, 1, sizeof(IndirectDrawCommand));
 }
 
 void ParticleSystemRenderPass::onInit(Orhescyon::GeneralManager& gm)

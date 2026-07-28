@@ -1,17 +1,10 @@
-struct VkDrawIndexedIndirectCommand
-{
-	uint indexCount;
-	uint instanceCount;
-	uint firstIndex;
-	int vertexOffset;
-	uint firstInstance;
-};
+#include "Shared/GpuStructs.h"
 
 [[vk::binding(2, 0)]]
-RWStructuredBuffer<VkDrawIndexedIndirectCommand> indirectDrawBuffer;
+RWStructuredBuffer<IndirectDrawIndexedCommand> indirectDrawBuffer;
 
 [[vk::binding(4, 0)]]
-RWStructuredBuffer<VkDrawIndexedIndirectCommand> compactedDrawBuffer;
+RWStructuredBuffer<IndirectDrawIndexedCommand> compactedDrawBuffer;
 
 [[vk::binding(5, 0)]]
 RWStructuredBuffer<uint> drawCountBuffer;
@@ -33,7 +26,7 @@ void computeMain(uint3 id: SV_DispatchThreadID)
 	uint drawIndex = id.x;
 	if (drawIndex >= push.drawCommandCount) return;
 
-	VkDrawIndexedIndirectCommand cmd = indirectDrawBuffer[drawIndex + push.inputOffset];
+	IndirectDrawIndexedCommand cmd = indirectDrawBuffer[drawIndex + push.inputOffset];
 
 	if (cmd.instanceCount > 0)
 	{

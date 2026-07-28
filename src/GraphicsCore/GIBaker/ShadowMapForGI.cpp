@@ -4,8 +4,8 @@
 void LightProbeGIBaking::bakeShadowMap(const BakeContext& ctx)
 {
 	// 1. Read current sun direction from the GPU side sun buffer
-	const DirectLightStructure* existingDirectLight =
-	    ctx.bufferManager->getMapped<DirectLightStructure>(ctx.globalDSet->sunCameraBuffers);
+	const DirectionalLightData* existingDirectLight =
+	    ctx.bufferManager->getMapped<DirectionalLightData>(ctx.globalDSet->sunCameraBuffers);
 	const glm::vec3 lightDirection = glm::normalize(-glm::vec3(existingDirectLight->direction));
 
 	// 2. Compute probe grid bounding sphere
@@ -48,19 +48,19 @@ void LightProbeGIBaking::bakeShadowMap(const BakeContext& ctx)
 	}
 
 	// 5. Upload new sun buffer (keep color/ambient/direction)
-	DirectLightStructure directLightToReplace = *existingDirectLight;
+	DirectionalLightData directLightToReplace = *existingDirectLight;
 	directLightToReplace.lightSpaceMatrix = lightSpaceMatrix;
 	for (int i = 0; i < 6; ++i) directLightToReplace.frustumPlanes[i] = lightFrustumPlanes[i];
 	// Cover the full shadow map in NDC (no camera-frustum tightening)
 	directLightToReplace.cameraFrustumLightSpaceBounds = glm::vec4(-1.0f, 1.0f, -1.0f, 1.0f);
-	std::memcpy(ctx.bufferManager->getMapped<DirectLightStructure>(ctx.globalDSet->sunCameraBuffers),
-	            &directLightToReplace, sizeof(DirectLightStructure));
+	std::memcpy(ctx.bufferManager->getMapped<DirectionalLightData>(ctx.globalDSet->sunCameraBuffers),
+	            &directLightToReplace, sizeof(DirectionalLightData));
 
 	// 6. Upload an all-accepting camera frustum.
-	CameraStructure infiniteCam{};
+	CameraData infiniteCam{};
 	for (int i = 0; i < 6; ++i) infiniteCam.frustumPlanes[i] = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
-	std::memcpy(ctx.bufferManager->getMapped<CameraStructure>(ctx.globalDSet->cameraBuffers), &infiniteCam,
-	            sizeof(CameraStructure));
+	std::memcpy(ctx.bufferManager->getMapped<CameraData>(ctx.globalDSet->cameraBuffers), &infiniteCam,
+	            sizeof(CameraData));
 
 	// 7. GPU work: reset -> shadow cull -> shadow render.
 	auto cmd = VulkanUtils::beginSingleTimeCommands(*ctx.device);

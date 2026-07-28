@@ -1,3 +1,5 @@
+#include "Shared/GpuStructs.h"
+
 // === Set 0: particleEmiterSet ===
 struct Particle
 {
@@ -18,15 +20,6 @@ StructuredBuffer<uint> aliveIndicesBufferA;
 [vk::binding(6, 0)]
 StructuredBuffer<uint> aliveIndicesBufferB;
 
-struct CameraData
-{
-    float4x4 cameraSpaceMatrix;
-    float4x4 viewMatrix;
-    float4x4 projMatrix;
-    float4x4 invViewProj;
-    float4 cameraPositionAndPadding;
-    float4 frustumPlanes[6];
-};
 [[vk::binding(0, 1)]]
 StructuredBuffer<CameraData> camera;
 

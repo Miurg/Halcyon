@@ -1,43 +1,12 @@
+#include "Shared/GpuStructs.h"
+
 // === SET 0 ===
-struct CameraData
-{
-	float4x4 cameraSpaceMatrix;
-	float4x4 viewMatrix;
-	float4x4 projMatrix;
-	float4x4 invViewProj;
-	float4 cameraPositionAndPadding;
-	float4 frustumPlanes[6];
-};
 [[vk::binding(0, 0)]]
 StructuredBuffer<CameraData> camera;
 
-struct DirectionalLightData
-{
-	float4x4 lightSpaceMatrix;
-	float4 direction;
-	float4 color;
-	float4 ambient;
-	float4 shadowMapSize; // x: width, y: height, z: 1.0/width, w: 1.0/height
-	float4 frustumPlanes[6];
-	float shadowCasterRange;
-	float3 _pad;
-	float4 cameraFrustumLightSpaceBounds;
-};
 [[vk::binding(1, 0)]]
 StructuredBuffer<DirectionalLightData> directionalLight;
 
-struct PointLightData
-{
-	float3 position;
-	float radius;
-	float3 color;
-	float intensity;
-	float3 direction; // for spot = normalized direction, for point ignored
-	float innerConeAngle; // for point = -1.0
-	float outerConeAngle; // for point = -1.0
-	uint type;            // 0 = point, 1 = spot
-	float2 _pad;
-};
 
 [[vk::binding(2, 0)]]
 StructuredBuffer<PointLightData> lights;
@@ -45,43 +14,16 @@ StructuredBuffer<PointLightData> lights;
 [[vk::binding(3, 0)]]
 StructuredBuffer<uint> lightCount;
 
-struct SHProbeEntry
-{
-    float3 position;     float influenceRadius;
-    float3 sh0; float _p0;
-    float3 sh1; float _p1;
-    float3 sh2; float _p2;
-    float3 sh3; float _p3;
-};
 [[vk::binding(4, 0)]]
 StructuredBuffer<SHProbeEntry> shProbes;
 
-struct SHGridInfo
-{
-    float3 origin; float spacing;
-    int3 count;    uint probeCount;
-    float captureRange; float3 giAmbient;
-    float giBounceMultiplier;
-};
 [[vk::binding(5, 0)]]
 StructuredBuffer<SHGridInfo> shGridInfo;
 
 // === SET 1 ===
-struct ModelData
-{
-	float4 AABBMin;
-	float4 AABBMax;
-	uint transformIndex;
-	uint materialIndex;
-	uint drawCommandIndex;
-};
 [[vk::binding(0, 1)]]
 StructuredBuffer<ModelData> objectBuffer;
 
-struct TransformData
-{
-	float4x4 model;
-};
 [[vk::binding(1, 1)]]
 StructuredBuffer<TransformData> transformBuffer;
 
@@ -94,24 +36,6 @@ Sampler2D textureArray[2048];
 [[vk::binding(1, 2)]]
 Sampler2DShadow shadowMap;
 
-struct MaterialData
-{
-	uint textureIndex;
-	uint normalMapIndex;
-	uint metallicRoughnessIndex;
-	uint emissiveIndex;
-	float alphaCutoff;
-	uint alphaMode;
-	float emissiveStrength;
-	uint doubleSided;
-	float4 baseColorFactor;  // offset 32 — matches alignas(16) glm::vec4 in C++ struct
-	float3 emissiveFactor;
-	float emissivePadding;
-	float roughnessFactor;
-	float metallicFactor;
-	float padding1;
-	float padding2;
-};
 [[vk::binding(2, 2)]]
 StructuredBuffer<MaterialData> materialBuffer;
 

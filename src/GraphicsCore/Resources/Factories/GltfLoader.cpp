@@ -186,7 +186,7 @@ MaterialMaps GltfLoader::materialsParser(tinygltf::Model& model, TextureManager&
 	                                               std::vector<unsigned char>{255, 255, 255, 255}.data(), dSetComponent,
 	                                               descriptorManager);
 
-	MaterialStructure defaultMaterial{};
+	MaterialData defaultMaterial{};
 	defaultMaterial.textureIndex = whiteTexture.id;
 	defaultMaterial.normalMapIndex = defaultNormalTexture.id;
 	defaultMaterial.metallicRoughnessIndex = defaultMRTexture.id;
@@ -197,7 +197,7 @@ MaterialMaps GltfLoader::materialsParser(tinygltf::Model& model, TextureManager&
 
 	for (size_t i = 0; i < model.materials.size(); i++)
 	{
-		MaterialStructure material{};
+		MaterialData material{};
 		// Base color factor
 		auto colorIt = model.materials[i].values.find("baseColorFactor");
 		if (colorIt != model.materials[i].values.end())

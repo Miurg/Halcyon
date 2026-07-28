@@ -1,19 +1,12 @@
 #pragma once
 #include "GraphicsCore/Passes/IPass.hpp"
 #include "GraphicsCore/Resources/Managers/ResourceHandles.hpp"
+#include "Shared/GpuStructs.h"
 #include <glm/glm.hpp>
 
 class DescriptorManagerComponent;
 class BufferManager;
 class PipelineManager;
-
-struct alignas(16) DispatchIndirect
-{
-	alignas(4) uint32_t x;
-	alignas(4) uint32_t y;
-	alignas(4) uint32_t z;
-	alignas(4) uint32_t spawnCount;
-};
 
 struct alignas(16) EmiterData
 {

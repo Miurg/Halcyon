@@ -1,14 +1,7 @@
+#include "Shared/GpuStructs.h"
+
 static const float F_PI = 3.14159265358979f;
 static const uint THREAD_COUNT = 256;
-
-struct SHProbeEntry
-{
-    float3 position;     float influenceRadius;
-    float3 sh0; float _p0;
-    float3 sh1; float _p1;
-    float3 sh2; float _p2;
-    float3 sh3; float _p3;
-};
 
 // Set 0 = globalSet
 [[vk::binding(4, 0)]] RWStructuredBuffer<SHProbeEntry> probeArray;

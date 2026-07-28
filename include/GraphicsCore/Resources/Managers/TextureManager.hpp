@@ -14,7 +14,7 @@
 #include "GraphicsCore/Resources/Components/BindlessTextureDSetComponent.hpp"
 #include "GraphicsCore/VulkanDevice.hpp"
 #include "GraphicsCore/Resources/Managers/ResourceHandles.hpp"
-#include "GraphicsCore/Resources/ResourceStructures.hpp"
+#include "Shared/GpuStructs.h"
 
 class BufferManager;
 class DescriptorManager;

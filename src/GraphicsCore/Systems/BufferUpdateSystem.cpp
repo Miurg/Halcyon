@@ -16,7 +16,7 @@
 #include "GraphicsCore/Resources/Managers/TextureManager.hpp"
 #include "GraphicsCore/Components/MaterialManagerComponent.hpp"
 #include "GraphicsCore/Resources/Managers/MaterialManager.hpp"
-#include "GraphicsCore/Resources/ResourceStructures.hpp"
+#include "Shared/GpuStructs.h"
 
 #ifdef TRACY_ENABLE
 #include <tracy/Tracy.hpp>
@@ -69,11 +69,11 @@ void BufferUpdateSystem::update(GeneralManager& gm)
 		}
 	}
 
-	auto* primitivePtr = bufferManager.getMapped<PrimitiveSctructure>(objectDSetComponent->primitiveBuffer, currentFrame);
+	auto* primitivePtr = bufferManager.getMapped<ModelData>(objectDSetComponent->primitiveBuffer, currentFrame);
 	auto* transfromMeshPtr =
-	    bufferManager.getMapped<TransformStructure>(objectDSetComponent->transformBuffer, currentFrame);
+	    bufferManager.getMapped<TransformData>(objectDSetComponent->transformBuffer, currentFrame);
 	auto* indirectBufferPtr =
-	    bufferManager.getMapped<IndirectDrawStructure>(objectDSetComponent->indirectDrawBuffer, currentFrame);
+	    bufferManager.getMapped<IndirectDrawIndexedCommand>(objectDSetComponent->indirectDrawBuffer, currentFrame);
 
 	// same for both passes
 	int globalTransformIndex = 0;
@@ -92,7 +92,7 @@ void BufferUpdateSystem::update(GeneralManager& gm)
 	int globalPrimitiveIndex = 0;
 	int localPrimitiveIndex = 0;
 	int globalCullIndex = 0;
-	IndirectDrawStructure currentDraw{};
+	IndirectDrawIndexedCommand currentDraw{};
 
 	auto writePrimitivesForPass = [&](int categoryPass, bool isDoubleSidedPass)
 	{

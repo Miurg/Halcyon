@@ -1,34 +1,9 @@
-struct CameraData
-{
-    float4x4 cameraSpaceMatrix;
-    float4x4 viewMatrix;
-    float4x4 projMatrix;
-    float4x4 invViewProj;
-    float4   cameraPositionAndPadding;
-    float4   frustumPlanes[6];
-};
+#include "Shared/GpuStructs.h"
 
-struct PointLightData
-{
-    float3 position;      float radius;
-    float3 color;         float intensity;
-    float3 direction;     float innerConeAngle;
-    float  outerConeAngle;
-    uint   type;
-    uint   _p1;
-    uint   _p2;
-};
 
 [[vk::binding(0, 0)]] StructuredBuffer<CameraData>     camera;
 [[vk::binding(2, 0)]] StructuredBuffer<PointLightData> pointLights;
 
-struct SHGridInfo
-{
-    float3 origin; float spacing;
-    int3 count;    uint probeCount;
-    float captureRange; float3 giAmbient;
-    float giBounceMultiplier;
-};
 [[vk::binding(5, 0)]] StructuredBuffer<SHGridInfo> shGridInfo;
 
 struct PushConstants

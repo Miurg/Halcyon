@@ -1,27 +1,8 @@
-struct CameraData
-{
-	float4x4 cameraSpaceMatrix;
-	float4x4 viewMatrix;
-	float4x4 projMatrix;
-	float4x4 invViewProj;
-	float4 cameraPositionAndPadding;
-	float4 frustumPlanes[6];
-};
+#include "Shared/GpuStructs.h"
+
 [[vk::binding(0, 0)]]
 StructuredBuffer<CameraData> camera;
 
-struct DirectionalLightData
-{
-    float4x4 lightSpaceMatrix;
-    float4 direction;
-    float4 color;
-    float4 ambient;
-    float4 shadowMapSize;
-    float4 frustumPlanes[6];
-    float shadowCasterRange;
-    float3 _pad;
-    float4 cameraFrustumLightSpaceBounds;
-};
 [[vk::binding(1, 0)]]
 StructuredBuffer<DirectionalLightData> directionalLight;
 

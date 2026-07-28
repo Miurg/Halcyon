@@ -11,7 +11,7 @@
 #include "GraphicsCore/Resources/Components/BindlessTextureDSetComponent.hpp"
 #include "GraphicsCore/VulkanDevice.hpp"
 #include "GraphicsCore/Resources/Managers/ResourceHandles.hpp"
-#include "GraphicsCore/Resources/ResourceStructures.hpp"
+#include "Shared/GpuStructs.h"
 
 // Manages GPU buffers — creates and tracks allocations via VMA.
 class HALCYON_API BufferManager
