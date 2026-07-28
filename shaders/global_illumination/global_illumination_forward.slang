@@ -1,42 +1,43 @@
 #include "Shared/GpuStructs.h"
+#include "Shared/Bindings.h"
 
 // === SET 0 ===
-[[vk::binding(0, 0)]]
+[[vk::binding(BIND_GLOBAL_CAMERA, 0)]]
 StructuredBuffer<CameraData> camera;
 
-[[vk::binding(1, 0)]]
+[[vk::binding(BIND_GLOBAL_SUN, 0)]]
 StructuredBuffer<DirectionalLightData> directionalLight;
 
 
-[[vk::binding(2, 0)]]
+[[vk::binding(BIND_GLOBAL_POINT_LIGHTS, 0)]]
 StructuredBuffer<PointLightData> lights;
 
-[[vk::binding(3, 0)]]
+[[vk::binding(BIND_GLOBAL_POINT_LIGHT_COUNT, 0)]]
 StructuredBuffer<uint> lightCount;
 
-[[vk::binding(4, 0)]]
+[[vk::binding(BIND_GLOBAL_SH_PROBES, 0)]]
 StructuredBuffer<SHProbeEntry> shProbes;
 
-[[vk::binding(5, 0)]]
+[[vk::binding(BIND_GLOBAL_SH_GRID_INFO, 0)]]
 StructuredBuffer<SHGridInfo> shGridInfo;
 
 // === SET 1 ===
-[[vk::binding(0, 1)]]
+[[vk::binding(BIND_MODEL_PRIMITIVES, 1)]]
 StructuredBuffer<ModelData> objectBuffer;
 
-[[vk::binding(1, 1)]]
+[[vk::binding(BIND_MODEL_TRANSFORMS, 1)]]
 StructuredBuffer<TransformData> transformBuffer;
 
-[[vk::binding(3, 1)]]
+[[vk::binding(BIND_MODEL_VISIBLE_INDICES, 1)]]
 StructuredBuffer<uint> visibleIndicesBuffer;
 
 // === SET 2 ===
-[[vk::binding(0, 2)]]
-Sampler2D textureArray[2048];
-[[vk::binding(1, 2)]]
+[[vk::binding(BIND_TEXTURES_ARRAY, 2)]]
+Sampler2D textureArray[MAX_BINDLESS_TEXTURES];
+[[vk::binding(BIND_TEXTURES_SHADOW_MAP, 2)]]
 Sampler2DShadow shadowMap;
 
-[[vk::binding(2, 2)]]
+[[vk::binding(BIND_TEXTURES_MATERIALS, 2)]]
 StructuredBuffer<MaterialData> materialBuffer;
 
 // === CONST ===

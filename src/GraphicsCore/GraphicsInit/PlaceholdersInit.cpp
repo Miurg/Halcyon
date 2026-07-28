@@ -28,7 +28,7 @@
 #include "GraphicsCore/VulkanUtils.hpp"
 #include "GraphicsCore/GraphicsContexts.hpp"
 #include "Shared/GpuStructs.h"
-#include "GraphicsCore/Resources/Managers/Bindings.hpp"
+#include "Shared/Bindings.h"
 #include "GraphicsCore/Components/PipelineManagerComponent.hpp"
 #include "../Resources/Factories/GltfLoader.hpp"
 #include "GraphicsCore/Resources/Factories/EnvMapFactory.hpp"
@@ -116,25 +116,25 @@ void PlaceholdersInit::initPlaceholders(GeneralManager& gm)
 	    *bufferManager, *descriptorManager,
 	    (vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal), sizeof(CameraData),
 	    MAX_FRAMES_IN_FLIGHT, vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst,
-	    globalDSetComponent->globalDSets, Bindings::Global::Camera);
+	    globalDSetComponent->globalDSets, BIND_GLOBAL_CAMERA);
 
 	// Sun buffer
 	globalDSetComponent->sunCameraBuffers = BufferFactory::createStorageBuffer(
 	    *bufferManager, *descriptorManager,
 	    (vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal),
 	    sizeof(DirectionalLightData), MAX_FRAMES_IN_FLIGHT, vk::BufferUsageFlagBits::eStorageBuffer,
-	    globalDSetComponent->globalDSets, Bindings::Global::Sun);
+	    globalDSetComponent->globalDSets, BIND_GLOBAL_SUN);
 	// Point light buffer
 	globalDSetComponent->pointLightBuffers = BufferFactory::createStorageBuffer(
 	    *bufferManager, *descriptorManager,
 	    (vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal),
 	    sizeof(PointLightData) * 100, MAX_FRAMES_IN_FLIGHT, vk::BufferUsageFlagBits::eStorageBuffer,
-	    globalDSetComponent->globalDSets, Bindings::Global::PointLights);
+	    globalDSetComponent->globalDSets, BIND_GLOBAL_POINT_LIGHTS);
 	globalDSetComponent->pointLightCountBuffer = BufferFactory::createStorageBuffer(
 	    *bufferManager, *descriptorManager,
 	    (vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal), sizeof(uint32_t),
 	    MAX_FRAMES_IN_FLIGHT, vk::BufferUsageFlagBits::eStorageBuffer, globalDSetComponent->globalDSets,
-	    Bindings::Global::PointLightCount);
+	    BIND_GLOBAL_POINT_LIGHT_COUNT);
 
 	// SH Probe buffer.
 	globalDSetComponent->shProbeBuffer = BufferFactory::createStorageBuffer(
@@ -142,7 +142,7 @@ void PlaceholdersInit::initPlaceholders(GeneralManager& gm)
 	    (vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal),
 	    sizeof(SHProbeEntry) * MAX_SH_PROBES, 1,
 	    vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst,
-	    globalDSetComponent->globalDSets, Bindings::Global::SHProbes);
+	    globalDSetComponent->globalDSets, BIND_GLOBAL_SH_PROBES);
 	{
 		SHProbeEntry skyboxSlot{};
 		skyboxSlot.position = glm::vec3(0.0f);
@@ -158,7 +158,7 @@ void PlaceholdersInit::initPlaceholders(GeneralManager& gm)
 	    *bufferManager, *descriptorManager,
 	    (vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal), sizeof(SHGridInfo), 1,
 	    vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst,
-	    globalDSetComponent->globalDSets, Bindings::Global::SHGridInfo);
+	    globalDSetComponent->globalDSets, BIND_GLOBAL_SH_GRID_INFO);
 	{
 		SHGridInfo initialGridInfo{};
 		initialGridInfo.probeCount = 1u;
@@ -174,13 +174,13 @@ void PlaceholdersInit::initPlaceholders(GeneralManager& gm)
 	    *bufferManager, *descriptorManager,
 	    (vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal),
 	    sizeof(ReflectionProbeData) * MAX_REFLECTION_PROBES, MAX_FRAMES_IN_FLIGHT,
-	    vk::BufferUsageFlagBits::eStorageBuffer, globalDSetComponent->globalDSets, Bindings::Global::ReflectionProbes);
+	    vk::BufferUsageFlagBits::eStorageBuffer, globalDSetComponent->globalDSets, BIND_GLOBAL_REFLECTION_PROBES);
 
 	globalDSetComponent->reflectionProbeCountBuffer = BufferFactory::createStorageBuffer(
 	    *bufferManager, *descriptorManager,
 	    (vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eDeviceLocal), sizeof(uint32_t),
 	    MAX_FRAMES_IN_FLIGHT, vk::BufferUsageFlagBits::eStorageBuffer, globalDSetComponent->globalDSets,
-	    Bindings::Global::ReflectionProbeCount);
+	    BIND_GLOBAL_REFLECTION_PROBE_COUNT);
 	for (uint32_t frame = 0; frame < MAX_FRAMES_IN_FLIGHT; ++frame)
 		*bufferManager->getMapped<uint32_t>(globalDSetComponent->reflectionProbeCountBuffer, frame) = 0u;
 #pragma endregion
@@ -234,17 +234,17 @@ void PlaceholdersInit::initPlaceholders(GeneralManager& gm)
 		VulkanUtils::endSingleTimeCommands(cmd, *vulkanDevice);
 	}
 
-	descriptorManager->update(bTextureDSetComponent->bindlessTextureSet, Bindings::Textures::CubemapSampler, 0,
+	descriptorManager->update(bTextureDSetComponent->bindlessTextureSet, BIND_TEXTURES_CUBEMAP_SAMPLER, 0,
 	                 vk::DescriptorType::eCombinedImageSampler, whiteCubemap.textureImageView,
 	                 textureManager->getSampler(whiteCubemap.samplerHandle));
-	descriptorManager->update(bTextureDSetComponent->bindlessTextureSet, Bindings::Textures::CubemapStorage, 0,
+	descriptorManager->update(bTextureDSetComponent->bindlessTextureSet, BIND_TEXTURES_CUBEMAP_STORAGE, 0,
 	                 vk::DescriptorType::eStorageImage, whiteCubemap.textureImageView, nullptr,
 	                 vk::ImageLayout::eGeneral);
 
-	descriptorManager->update(bTextureDSetComponent->bindlessTextureSet, Bindings::Textures::PrefilteredMap, 0,
+	descriptorManager->update(bTextureDSetComponent->bindlessTextureSet, BIND_TEXTURES_PREFILTERED_MAP, 0,
 	                 vk::DescriptorType::eCombinedImageSampler, whiteCubemap.textureImageView,
 	                 textureManager->getSampler(whiteCubemap.samplerHandle));
-	descriptorManager->update(bTextureDSetComponent->bindlessTextureSet, Bindings::Textures::BrdfLut, 0,
+	descriptorManager->update(bTextureDSetComponent->bindlessTextureSet, BIND_TEXTURES_BRDF_LUT, 0,
 	                 vk::DescriptorType::eCombinedImageSampler, whiteCubemap.textureImageView,
 	                 textureManager->getSampler(whiteCubemap.samplerHandle));
 

@@ -1,4 +1,5 @@
 #include "Shared/GpuStructs.h"
+#include "Shared/Bindings.h"
 
 // === Set 0: particleEmiterSet ===
 struct Particle
@@ -20,7 +21,7 @@ StructuredBuffer<uint> aliveIndicesBufferA;
 [vk::binding(6, 0)]
 StructuredBuffer<uint> aliveIndicesBufferB;
 
-[[vk::binding(0, 1)]]
+[[vk::binding(BIND_GLOBAL_CAMERA, 1)]]
 StructuredBuffer<CameraData> camera;
 
 struct PushConstants

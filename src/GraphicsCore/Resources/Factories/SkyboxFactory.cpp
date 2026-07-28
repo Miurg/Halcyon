@@ -2,7 +2,7 @@
 
 #include "GraphicsCore/Resources/Managers/TextureManager.hpp"
 #include "GraphicsCore/Resources/Managers/DescriptorManager.hpp"
-#include "GraphicsCore/Resources/Managers/Bindings.hpp"
+#include "Shared/Bindings.h"
 #include "GraphicsCore/Resources/Factories/TextureUploader.hpp"
 #include "GraphicsCore/Resources/Factories/EnvMapFactory.hpp"
 #include "GraphicsCore/Components/TextureManagerComponent.hpp"
@@ -38,7 +38,7 @@ void SkyboxFactory::loadSkybox(const std::string& hdrPath, GeneralManager& gm)
 	TextureUploader::uploadHdrTextureFromFile(hdrPath.c_str(), hdrTexture, textureManager, allocator, vulkanDevice);
 	textureManager.registerTexturePath(hdrPath.c_str(), hdrHandle);
 
-	descriptorManager.update(bTextureDSetComponent.bindlessTextureSet, Bindings::Textures::Array, 0,
+	descriptorManager.update(bTextureDSetComponent.bindlessTextureSet, BIND_TEXTURES_ARRAY, 0,
 	                         vk::DescriptorType::eCombinedImageSampler, hdrTexture.textureImageView,
 	                         textureManager.getSampler(hdrTexture.samplerHandle),
 	                         vk::ImageLayout::eShaderReadOnlyOptimal, static_cast<uint32_t>(hdrHandle.id));
@@ -52,11 +52,11 @@ void SkyboxFactory::loadSkybox(const std::string& hdrPath, GeneralManager& gm)
 
 	TextureHandle prefilteredHandle = EnvMapFactory::prefilteredEnvMap(
 	    textureManager, vulkanDevice, cubemapHandle, descriptorManager, bTextureDSetComponent, pipelineManager);
-	descriptorManager.update(bTextureDSetComponent.bindlessTextureSet, Bindings::Textures::PrefilteredMap, 0,
+	descriptorManager.update(bTextureDSetComponent.bindlessTextureSet, BIND_TEXTURES_PREFILTERED_MAP, 0,
 	                         vk::DescriptorType::eCombinedImageSampler,
 	                         textureManager.getTexture(prefilteredHandle).textureImageView,
 	                         textureManager.getSampler(textureManager.getTexture(prefilteredHandle).samplerHandle));
-	descriptorManager.update(bTextureDSetComponent.bindlessTextureSet, Bindings::Textures::BrdfLut, 0,
+	descriptorManager.update(bTextureDSetComponent.bindlessTextureSet, BIND_TEXTURES_BRDF_LUT, 0,
 	                         vk::DescriptorType::eCombinedImageSampler,
 	                         textureManager.getTexture(skybox.brdfLut).textureImageView,
 	                         textureManager.getSampler(textureManager.getTexture(skybox.brdfLut).samplerHandle));

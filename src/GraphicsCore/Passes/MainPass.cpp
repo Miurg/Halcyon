@@ -22,7 +22,7 @@
 #include "GraphicsCore/Resources/Managers/BufferManager.hpp"
 #include "GraphicsCore/Resources/Managers/ModelManager.hpp"
 #include "GraphicsCore/Resources/Managers/TextureManager.hpp"
-#include "GraphicsCore/Resources/Managers/Bindings.hpp"
+#include "Shared/Bindings.h"
 #include "GraphicsCore/Resources/Managers/DescriptorManager.hpp"
 #include "GraphicsCore/Resources/Managers/Vertex.hpp"
 #include "GraphicsCore/Managers/PipelineManager.hpp"
@@ -231,7 +231,7 @@ void MainPass::addToGraph(Orhescyon::GeneralManager& gm, RenderGraph& rg, uint32
 		    if (!graphicsSettings.enableGtao) return;
 		    auto h = pass.getPhysicalRead("GTAOTexture");
 		    descriptorManager.descriptorManager->updateSingleTextureDSet(globalDSetComponent.globalDSets,
-		                                                        Bindings::Global::GtaoTexture, graph.getImageView(h),
+		                                                        BIND_GLOBAL_GTAO_TEXTURE, graph.getImageView(h),
 		                                                        graph.getSampler(h));
 	    });
 }

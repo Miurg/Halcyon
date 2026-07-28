@@ -1,4 +1,5 @@
 #include "Shared/GpuStructs.h"
+#include "Shared/Bindings.h"
 
 [[vk::binding(0, 0)]]
 Sampler2D<float> srcTex;
@@ -7,7 +8,7 @@ Sampler2D<float> srcTex;
 [format("r32f")]
 RWTexture2D<float> dstMip;
 
-[[vk::binding(0, 1)]]
+[[vk::binding(BIND_GLOBAL_CAMERA, 1)]]
 StructuredBuffer<CameraData> camera;
 
 struct PushConstants

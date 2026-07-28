@@ -1,22 +1,23 @@
 #include "Shared/GpuStructs.h"
+#include "Shared/Bindings.h"
 
 // === SET 0 ===
 
-[[vk::binding(0, 0)]]
+[[vk::binding(BIND_GLOBAL_CAMERA, 0)]]
 StructuredBuffer<CameraData> camera;
 
 // === SET 1 ===
 
-[[vk::binding(0, 1)]]
+[[vk::binding(BIND_MODEL_PRIMITIVES, 1)]]
 StructuredBuffer<ModelData> objectBuffer;
 
-[[vk::binding(1, 1)]]
+[[vk::binding(BIND_MODEL_TRANSFORMS, 1)]]
 StructuredBuffer<TransformData> transformBuffer;
 
-[[vk::binding(2, 1)]]
+[[vk::binding(BIND_MODEL_INDIRECT_DRAW, 1)]]
 RWStructuredBuffer<IndirectDrawIndexedCommand> indirectDrawBuffer;
 
-[[vk::binding(3, 1)]]
+[[vk::binding(BIND_MODEL_VISIBLE_INDICES, 1)]]
 RWStructuredBuffer<uint> visibleIndicesBuffer;
 
 struct PushConstants

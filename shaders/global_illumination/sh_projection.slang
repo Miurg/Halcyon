@@ -1,13 +1,14 @@
 #include "Shared/GpuStructs.h"
+#include "Shared/Bindings.h"
 
 static const float F_PI = 3.14159265358979f;
 static const uint THREAD_COUNT = 256;
 
 // Set 0 = globalSet
-[[vk::binding(4, 0)]] RWStructuredBuffer<SHProbeEntry> probeArray;
+[[vk::binding(BIND_GLOBAL_SH_PROBES, 0)]] RWStructuredBuffer<SHProbeEntry> probeArray;
 
 // Set 1 = textureSet
-[[vk::binding(5, 1)]] SamplerCube cubemap;
+[[vk::binding(BIND_TEXTURES_GI_CAPTURE_CUBEMAP, 1)]] SamplerCube cubemap;
 
 [[vk::push_constant]]
 cbuffer PushConstants

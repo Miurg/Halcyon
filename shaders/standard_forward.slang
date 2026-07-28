@@ -1,58 +1,59 @@
 #include "Shared/GpuStructs.h"
+#include "Shared/Bindings.h"
 
 // === SET 0 ===
-[[vk::binding(0, 0)]]
+[[vk::binding(BIND_GLOBAL_CAMERA, 0)]]
 StructuredBuffer<CameraData> camera;
 
-[[vk::binding(1, 0)]]
+[[vk::binding(BIND_GLOBAL_SUN, 0)]]
 StructuredBuffer<DirectionalLightData> directionalLight;
 
 
-[[vk::binding(2, 0)]]
+[[vk::binding(BIND_GLOBAL_POINT_LIGHTS, 0)]]
 StructuredBuffer<PointLightData> lights;
 
-[[vk::binding(3, 0)]]
+[[vk::binding(BIND_GLOBAL_POINT_LIGHT_COUNT, 0)]]
 StructuredBuffer<uint> lightCount;
 
-[[vk::binding(4, 0)]]
+[[vk::binding(BIND_GLOBAL_SH_PROBES, 0)]]
 StructuredBuffer<SHProbeEntry> shProbes;
 
-[[vk::binding(5, 0)]]
+[[vk::binding(BIND_GLOBAL_SH_GRID_INFO, 0)]]
 StructuredBuffer<SHGridInfo> shGridInfo;
 
-[[vk::binding(6, 0)]]
+[[vk::binding(BIND_GLOBAL_GTAO_TEXTURE, 0)]]
 Sampler2D gtaoTexture;
 
-[[vk::binding(7, 0)]]
+[[vk::binding(BIND_GLOBAL_REFLECTION_PROBES, 0)]]
 StructuredBuffer<ReflectionProbeData> reflectionProbes;
-[[vk::binding(8, 0)]]
+[[vk::binding(BIND_GLOBAL_REFLECTION_PROBE_COUNT, 0)]]
 StructuredBuffer<uint> reflectionProbeCount;
 
 // === SET 1 ===
-[[vk::binding(0, 1)]]
+[[vk::binding(BIND_MODEL_PRIMITIVES, 1)]]
 StructuredBuffer<ModelData> objectBuffer;
 
-[[vk::binding(1, 1)]]
+[[vk::binding(BIND_MODEL_TRANSFORMS, 1)]]
 StructuredBuffer<TransformData> transformBuffer;
 
-[[vk::binding(3, 1)]]
+[[vk::binding(BIND_MODEL_VISIBLE_INDICES, 1)]]
 StructuredBuffer<uint> visibleIndicesBuffer;
 
 // === SET 2 ===
-[[vk::binding(0, 2)]]
-Sampler2D textureArray[2048];
-[[vk::binding(1, 2)]]
+[[vk::binding(BIND_TEXTURES_ARRAY, 2)]]
+Sampler2D textureArray[MAX_BINDLESS_TEXTURES];
+[[vk::binding(BIND_TEXTURES_SHADOW_MAP, 2)]]
 Sampler2DShadow shadowMap;
 
-[[vk::binding(2, 2)]]
+[[vk::binding(BIND_TEXTURES_MATERIALS, 2)]]
 StructuredBuffer<MaterialData> materialBuffer;
 
-[[vk::binding(6, 2)]]
+[[vk::binding(BIND_TEXTURES_PREFILTERED_MAP, 2)]]
 SamplerCube prefilteredMap;
-[[vk::binding(7, 2)]]
+[[vk::binding(BIND_TEXTURES_BRDF_LUT, 2)]]
 Sampler2D brdfLutMap;
-[[vk::binding(8, 2)]]
-SamplerCube reflectionProbeMaps[32];
+[[vk::binding(BIND_TEXTURES_REFLECTION_CUBEMAPS, 2)]]
+SamplerCube reflectionProbeMaps[MAX_REFLECTION_PROBES];
 
 // === CONST ===
 static const float PI = 3.14159265359f;
@@ -516,7 +517,7 @@ float sampleReflectionProbes(float3 worldPos, float3 R, float roughness, out flo
 {
     color = float3(0.0, 0.0, 0.0);
     float totalW = 0.0;
-    uint count = min(reflectionProbeCount[0], 32u);
+    uint count = min(reflectionProbeCount[0], MAX_REFLECTION_PROBES);
 
     for (uint i = 0; i < count; ++i)
     {

@@ -1,6 +1,7 @@
 #include "Shared/GpuStructs.h"
+#include "Shared/Bindings.h"
 
-[[vk::binding(0, 0)]]
+[[vk::binding(BIND_GLOBAL_CAMERA, 0)]]
 StructuredBuffer<CameraData> camera;
 
 struct PushConstants

@@ -1,10 +1,11 @@
 #include "Shared/GpuStructs.h"
+#include "Shared/Bindings.h"
 
 
-[[vk::binding(0, 0)]] StructuredBuffer<CameraData>     camera;
-[[vk::binding(2, 0)]] StructuredBuffer<PointLightData> pointLights;
+[[vk::binding(BIND_GLOBAL_CAMERA, 0)]] StructuredBuffer<CameraData>     camera;
+[[vk::binding(BIND_GLOBAL_POINT_LIGHTS, 0)]] StructuredBuffer<PointLightData> pointLights;
 
-[[vk::binding(5, 0)]] StructuredBuffer<SHGridInfo> shGridInfo;
+[[vk::binding(BIND_GLOBAL_SH_GRID_INFO, 0)]] StructuredBuffer<SHGridInfo> shGridInfo;
 
 struct PushConstants
 {

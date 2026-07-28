@@ -1,6 +1,8 @@
-[[vk::binding(3, 0)]]
+#include "Shared/Bindings.h"
+
+[[vk::binding(BIND_TEXTURES_CUBEMAP_SAMPLER, 0)]]
 SamplerCube environmentMap;
-[[vk::binding(4, 0)]]
+[[vk::binding(BIND_TEXTURES_CUBEMAP_STORAGE, 0)]]
 RWTexture2DArray<float4> outPrefiltered;
 
 static const float PI = 3.14159265359f;

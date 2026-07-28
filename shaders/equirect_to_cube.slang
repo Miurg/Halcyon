@@ -1,6 +1,8 @@
-[[vk::binding(0, 0)]]
+#include "Shared/Bindings.h"
+
+[[vk::binding(BIND_TEXTURES_ARRAY, 0)]]
 Sampler2D textureArray[];
-[[vk::binding(4, 0)]]
+[[vk::binding(BIND_TEXTURES_CUBEMAP_STORAGE, 0)]]
 RWTexture2DArray<float4> outCubemap;
 
 struct PushConstants

@@ -1,6 +1,7 @@
 #include "Shared/GpuStructs.h"
+#include "Shared/Bindings.h"
 
-[[vk::binding(2, 0)]]
+[[vk::binding(BIND_MODEL_INDIRECT_DRAW, 0)]]
 RWStructuredBuffer<IndirectDrawIndexedCommand> indirectDrawBuffer;
 
 struct PushConstants

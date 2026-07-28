@@ -1,4 +1,5 @@
 #include "Shared/GpuStructs.h"
+#include "Shared/Bindings.h"
 
 [vk::binding(0, 0)]
 Sampler2D depthPyramid; 
@@ -7,7 +8,7 @@ Sampler2D normalsTexture;
 [vk::binding(2, 0)]
 Sampler2D noiseTexture;
 
-[[vk::binding(0, 1)]]
+[[vk::binding(BIND_GLOBAL_CAMERA, 1)]]
 StructuredBuffer<CameraData> camera;
 
 struct PushConstants

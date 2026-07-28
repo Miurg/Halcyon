@@ -2,7 +2,7 @@
 #include "GraphicsCore/Resources/Managers/TextureManager.hpp"
 #include "GraphicsCore/Resources/Managers/DescriptorManager.hpp"
 #include "GraphicsCore/Resources/Factories/TextureUploader.hpp"
-#include "GraphicsCore/Resources/Managers/Bindings.hpp"
+#include "Shared/Bindings.h"
 #include <algorithm>
 #include <cmath>
 #include <stdexcept>
@@ -96,7 +96,7 @@ TextureHandle TextureFactory::createBindlessTexture(TextureManager& textureManag
 	textureManager.createSampler(texture, samplerPresets::texture());
 
 	textureManager.registerTexturePath(texturePath, handle);
-	descriptorManager.update(dSetComponent.bindlessTextureSet, Bindings::Textures::Array, 0,
+	descriptorManager.update(dSetComponent.bindlessTextureSet, BIND_TEXTURES_ARRAY, 0,
 	                         vk::DescriptorType::eCombinedImageSampler, texture.textureImageView,
 	                         textureManager.getSampler(texture.samplerHandle), vk::ImageLayout::eShaderReadOnlyOptimal,
 	                         static_cast<uint32_t>(handle.id));
@@ -117,7 +117,7 @@ TextureHandle TextureFactory::createBindlessTextureFromKtx(TextureManager& textu
 	textureManager.createSampler(texture, samplerPresets::texture());
 
 	textureManager.registerTexturePath(texturePath, handle);
-	descriptorManager.update(dSetComponent.bindlessTextureSet, Bindings::Textures::Array, 0,
+	descriptorManager.update(dSetComponent.bindlessTextureSet, BIND_TEXTURES_ARRAY, 0,
 	                         vk::DescriptorType::eCombinedImageSampler, texture.textureImageView,
 	                         textureManager.getSampler(texture.samplerHandle), vk::ImageLayout::eShaderReadOnlyOptimal,
 	                         static_cast<uint32_t>(handle.id));

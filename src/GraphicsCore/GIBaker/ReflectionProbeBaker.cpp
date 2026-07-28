@@ -21,7 +21,7 @@
 #include "GraphicsCore/Resources/Managers/BufferManager.hpp"
 #include "GraphicsCore/Resources/Managers/TextureManager.hpp"
 #include "GraphicsCore/Resources/Managers/DescriptorManager.hpp"
-#include "GraphicsCore/Resources/Managers/Bindings.hpp"
+#include "Shared/Bindings.h"
 #include "GraphicsCore/Resources/Managers/ModelManager.hpp"
 #include "GraphicsCore/Managers/PipelineManager.hpp"
 #include "GraphicsCore/Passes/PassCommands.hpp"
@@ -317,7 +317,7 @@ void ReflectionProbeBaker::bake(GeneralManager& gm, ReflectionProbeComponent& pr
 	    *ctx.bindlessDSet, *ctx.pipelineManager);
 
 	ctx.descriptorManagerComponent->descriptorManager->update(
-	    ctx.bindlessDSet->bindlessTextureSet, Bindings::Textures::ReflectionCubemaps, 0,
+	    ctx.bindlessDSet->bindlessTextureSet, BIND_TEXTURES_REFLECTION_CUBEMAPS, 0,
 	    vk::DescriptorType::eCombinedImageSampler, ctx.textureManager->getTexture(prefiltered).textureImageView,
 	    ctx.textureManager->getSampler(ctx.textureManager->getTexture(prefiltered).samplerHandle),
 	    vk::ImageLayout::eShaderReadOnlyOptimal, static_cast<uint32_t>(cubemapSlot));
@@ -332,7 +332,7 @@ void ReflectionProbeBaker::bake(GeneralManager& gm, ReflectionProbeComponent& pr
 	// and the main camera buffer / grid capture range.
 	Texture& skyTex = ctx.textureManager->getTexture(ctx.skybox->cubemapTexture);
 	ctx.descriptorManagerComponent->descriptorManager->update(
-	    ctx.bindlessDSet->bindlessTextureSet, Bindings::Textures::CubemapSampler, 0,
+	    ctx.bindlessDSet->bindlessTextureSet, BIND_TEXTURES_CUBEMAP_SAMPLER, 0,
 	    vk::DescriptorType::eCombinedImageSampler, skyTex.textureImageView,
 	    ctx.textureManager->getSampler(skyTex.samplerHandle));
 	std::memcpy(ctx.bufferManager->getMapped<CameraData>(ctx.globalDSet->cameraBuffers), &savedCam,

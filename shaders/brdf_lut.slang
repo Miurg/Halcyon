@@ -1,4 +1,6 @@
-[[vk::binding(4, 0)]]
+#include "Shared/Bindings.h"
+
+[[vk::binding(BIND_TEXTURES_CUBEMAP_STORAGE, 0)]]
 [format("rg16f")]
 RWTexture2D<float2> outBrdfLut;
 

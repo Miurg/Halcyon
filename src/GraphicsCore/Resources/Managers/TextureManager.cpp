@@ -3,7 +3,7 @@
 #include "GraphicsCore/Resources/Managers/BufferManager.hpp"
 #include "GraphicsCore/Resources/Factories/TextureUploader.hpp"
 #include "GraphicsCore/VulkanUtils.hpp"
-#include "GraphicsCore/Resources/Managers/Bindings.hpp"
+#include "Shared/Bindings.h"
 #include <random>
 #include <cmath>
 

@@ -3,7 +3,7 @@
 #include "GraphicsCore/Resources/Managers/TextureManager.hpp"
 #include "GraphicsCore/Resources/Managers/DescriptorManager.hpp"
 #include "GraphicsCore/Resources/Factories/TextureFactory.hpp"
-#include "GraphicsCore/Resources/Managers/Bindings.hpp"
+#include "Shared/Bindings.h"
 #include "GraphicsCore/Resources/Components/BindlessTextureDSetComponent.hpp"
 #include "GraphicsCore/Managers/PipelineManager.hpp"
 #include "GraphicsCore/Passes/PassCommands.hpp"
@@ -35,10 +35,10 @@ TextureHandle EnvMapFactory::cubemapFromHdr(TextureManager& textureManager, Vulk
 	viewInfo.subresourceRange.layerCount = 6;
 	vk::raii::ImageView storageImageView(vulkanDevice.device, viewInfo);
 
-	descriptorManager.update(dSetComponent.bindlessTextureSet, Bindings::Textures::CubemapSampler, 0,
+	descriptorManager.update(dSetComponent.bindlessTextureSet, BIND_TEXTURES_CUBEMAP_SAMPLER, 0,
 	                         vk::DescriptorType::eCombinedImageSampler, cubemapTexture.textureImageView,
 	                         textureManager.getSampler(cubemapTexture.samplerHandle));
-	descriptorManager.update(dSetComponent.bindlessTextureSet, Bindings::Textures::CubemapStorage, 0,
+	descriptorManager.update(dSetComponent.bindlessTextureSet, BIND_TEXTURES_CUBEMAP_STORAGE, 0,
 	                         vk::DescriptorType::eStorageImage, *storageImageView, nullptr, vk::ImageLayout::eGeneral);
 
 	auto cmd = VulkanUtils::beginSingleTimeCommands(vulkanDevice);
@@ -111,11 +111,11 @@ TextureHandle EnvMapFactory::prefilteredEnvMap(TextureManager& textureManager, V
 		viewInfo.subresourceRange.layerCount = 6;
 		vk::raii::ImageView mipStorageView(vulkanDevice.device, viewInfo);
 
-		descriptorManager.update(dSetComponent.bindlessTextureSet, Bindings::Textures::CubemapSampler, 0,
+		descriptorManager.update(dSetComponent.bindlessTextureSet, BIND_TEXTURES_CUBEMAP_SAMPLER, 0,
 		                         vk::DescriptorType::eCombinedImageSampler,
 		                         textureManager.getTexture(envCubemap).textureImageView,
 		                         textureManager.getSampler(textureManager.getTexture(envCubemap).samplerHandle));
-		descriptorManager.update(dSetComponent.bindlessTextureSet, Bindings::Textures::CubemapStorage, 0,
+		descriptorManager.update(dSetComponent.bindlessTextureSet, BIND_TEXTURES_CUBEMAP_STORAGE, 0,
 		                         vk::DescriptorType::eStorageImage, *mipStorageView, nullptr, vk::ImageLayout::eGeneral);
 
 		auto cmd = VulkanUtils::beginSingleTimeCommands(vulkanDevice);
@@ -183,7 +183,7 @@ TextureHandle EnvMapFactory::brdfLut(TextureManager& textureManager, VulkanDevic
 
 	vk::WriteDescriptorSet storageWrite;
 	storageWrite.dstSet = descriptorManager.getSet(dSetComponent.bindlessTextureSet);
-	storageWrite.dstBinding = Bindings::Textures::CubemapStorage;
+	storageWrite.dstBinding = BIND_TEXTURES_CUBEMAP_STORAGE;
 	storageWrite.dstArrayElement = 0;
 	storageWrite.descriptorType = vk::DescriptorType::eStorageImage;
 	storageWrite.descriptorCount = 1;
@@ -219,7 +219,7 @@ void EnvMapFactory::bakeSHForProbe(TextureManager& textureManager, VulkanDevice&
                                    PipelineManager& pipelineManager)
 {
 	Texture& envTex = textureManager.getTexture(envCubemap);
-	descriptorManager.update(dSetComponent.bindlessTextureSet, Bindings::Textures::GICaptureCubemap, 0,
+	descriptorManager.update(dSetComponent.bindlessTextureSet, BIND_TEXTURES_GI_CAPTURE_CUBEMAP, 0,
 	                         vk::DescriptorType::eCombinedImageSampler, envTex.textureImageView,
 	                         textureManager.getSampler(envTex.samplerHandle));
 

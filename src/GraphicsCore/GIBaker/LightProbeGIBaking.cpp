@@ -276,7 +276,7 @@ void LightProbeGIBaking::bakeAll(GeneralManager& gm)
 	// Point sh_projection at the capture cubemap once for the whole bake.
 	Texture& captureTex = ctx.textureManager->getTexture(tempImages.captureHandle);
 	ctx.descriptorManagerComponent->descriptorManager->update(
-	    ctx.bindlessDSet->bindlessTextureSet, Bindings::Textures::GICaptureCubemap, 0,
+	    ctx.bindlessDSet->bindlessTextureSet, BIND_TEXTURES_GI_CAPTURE_CUBEMAP, 0,
 	    vk::DescriptorType::eCombinedImageSampler, captureTex.textureImageView,
 	    ctx.textureManager->getSampler(captureTex.samplerHandle));
 
@@ -306,7 +306,7 @@ void LightProbeGIBaking::bakeAll(GeneralManager& gm)
 	// Re-point the capture binding at the skybox before the capture cubemap is destroyed.
 	Texture& skyboxTex = ctx.textureManager->getTexture(ctx.skybox->cubemapTexture);
 	ctx.descriptorManagerComponent->descriptorManager->update(
-	    ctx.bindlessDSet->bindlessTextureSet, Bindings::Textures::GICaptureCubemap, 0,
+	    ctx.bindlessDSet->bindlessTextureSet, BIND_TEXTURES_GI_CAPTURE_CUBEMAP, 0,
 	    vk::DescriptorType::eCombinedImageSampler, skyboxTex.textureImageView,
 	    ctx.textureManager->getSampler(skyboxTex.samplerHandle));
 

@@ -20,7 +20,7 @@
 #include "GraphicsCore/SwapChain.hpp"
 #include "GraphicsCore/Resources/Managers/TextureManager.hpp"
 #include "GraphicsCore/Resources/Managers/DescriptorManager.hpp"
-#include "GraphicsCore/Resources/Managers/Bindings.hpp"
+#include "Shared/Bindings.h"
 #include "GraphicsCore/Managers/PipelineManager.hpp"
 #include "GraphicsCore/VulkanUtils.hpp"
 #include "GraphicsCore/GraphicsContexts.hpp"

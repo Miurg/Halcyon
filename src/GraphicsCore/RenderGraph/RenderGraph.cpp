@@ -3,7 +3,7 @@
 #include "GraphicsCore/VulkanUtils.hpp"
 #include "GraphicsCore/Resources/Managers/DescriptorManager.hpp"
 #include "GraphicsCore/Resources/Components/GlobalDSetComponent.hpp"
-#include "GraphicsCore/Resources/Managers/Bindings.hpp"
+#include "Shared/Bindings.h"
 #include "GraphicsCore/Components/GraphicsSettingsComponent.hpp"
 #include "GraphicsCore/Components/TracyContextComponent.hpp"
 

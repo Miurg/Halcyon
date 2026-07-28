@@ -1,7 +1,8 @@
 #include "Shared/GpuStructs.h"
+#include "Shared/Bindings.h"
 
-[[vk::binding(0, 0)]] StructuredBuffer<CameraData>   camera;
-[[vk::binding(4, 0)]] StructuredBuffer<SHProbeEntry> shProbes;
+[[vk::binding(BIND_GLOBAL_CAMERA, 0)]] StructuredBuffer<CameraData>   camera;
+[[vk::binding(BIND_GLOBAL_SH_PROBES, 0)]] StructuredBuffer<SHProbeEntry> shProbes;
 
 // Push constants carry live grid parameters so positions update without rebaking.
 // SH coloring still reads from the baked probe buffer (slot = iid + 1).

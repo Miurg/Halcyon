@@ -1,13 +1,14 @@
 #include "Shared/GpuStructs.h"
+#include "Shared/Bindings.h"
 
 // Set 0 = bake modelSet
-[[vk::binding(2, 0)]]
+[[vk::binding(BIND_MODEL_INDIRECT_DRAW, 0)]]
 RWStructuredBuffer<IndirectDrawIndexedCommand> bakeIndirectDrawBuffer;
 
-[[vk::binding(4, 0)]]
+[[vk::binding(BIND_MODEL_COMPACTED_DRAW, 0)]]
 RWStructuredBuffer<IndirectDrawIndexedCommand> bakeCompactedDrawBuffer;
 
-[[vk::binding(5, 0)]]
+[[vk::binding(BIND_MODEL_DRAW_COUNT, 0)]]
 RWStructuredBuffer<uint> bakeDrawCountBuffer;
 
 struct PushConstants

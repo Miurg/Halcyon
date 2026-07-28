@@ -1,5 +1,5 @@
 #include "GraphicsCore/Resources/Managers/DescriptorManager.hpp"
-#include "GraphicsCore/Resources/Managers/Bindings.hpp"
+#include "Shared/Bindings.h"
 
 DescriptorManager::DescriptorManager(VulkanDevice& vulkanDevice)
     : vulkanDevice(vulkanDevice), layoutRegistry(vulkanDevice.device)
@@ -23,20 +23,20 @@ DescriptorManager::DescriptorManager(VulkanDevice& vulkanDevice)
 		using S = vk::ShaderStageFlagBits;
 		constexpr auto kAllStages = S::eVertex | S::eFragment | S::eCompute;
 		std::array globalBindings = {
-		    vk::DescriptorSetLayoutBinding(Bindings::Global::Camera, vk::DescriptorType::eStorageBuffer, 1, kAllStages),
-		    vk::DescriptorSetLayoutBinding(Bindings::Global::Sun, vk::DescriptorType::eStorageBuffer, 1, kAllStages),
-		    vk::DescriptorSetLayoutBinding(Bindings::Global::PointLights, vk::DescriptorType::eStorageBuffer, 1,
+		    vk::DescriptorSetLayoutBinding(BIND_GLOBAL_CAMERA, vk::DescriptorType::eStorageBuffer, 1, kAllStages),
+		    vk::DescriptorSetLayoutBinding(BIND_GLOBAL_SUN, vk::DescriptorType::eStorageBuffer, 1, kAllStages),
+		    vk::DescriptorSetLayoutBinding(BIND_GLOBAL_POINT_LIGHTS, vk::DescriptorType::eStorageBuffer, 1,
 		                                   kAllStages),
-		    vk::DescriptorSetLayoutBinding(Bindings::Global::PointLightCount, vk::DescriptorType::eStorageBuffer, 1,
+		    vk::DescriptorSetLayoutBinding(BIND_GLOBAL_POINT_LIGHT_COUNT, vk::DescriptorType::eStorageBuffer, 1,
 		                                   kAllStages),
-		    vk::DescriptorSetLayoutBinding(Bindings::Global::SHProbes, vk::DescriptorType::eStorageBuffer, 1, kAllStages),
-		    vk::DescriptorSetLayoutBinding(Bindings::Global::SHGridInfo, vk::DescriptorType::eStorageBuffer, 1,
+		    vk::DescriptorSetLayoutBinding(BIND_GLOBAL_SH_PROBES, vk::DescriptorType::eStorageBuffer, 1, kAllStages),
+		    vk::DescriptorSetLayoutBinding(BIND_GLOBAL_SH_GRID_INFO, vk::DescriptorType::eStorageBuffer, 1,
 		                                   kAllStages),
-		    vk::DescriptorSetLayoutBinding(Bindings::Global::GtaoTexture, vk::DescriptorType::eCombinedImageSampler, 1,
+		    vk::DescriptorSetLayoutBinding(BIND_GLOBAL_GTAO_TEXTURE, vk::DescriptorType::eCombinedImageSampler, 1,
 		                                   S::eFragment),
-		    vk::DescriptorSetLayoutBinding(Bindings::Global::ReflectionProbes, vk::DescriptorType::eStorageBuffer, 1,
+		    vk::DescriptorSetLayoutBinding(BIND_GLOBAL_REFLECTION_PROBES, vk::DescriptorType::eStorageBuffer, 1,
 		                                   kAllStages),
-		    vk::DescriptorSetLayoutBinding(Bindings::Global::ReflectionProbeCount, vk::DescriptorType::eStorageBuffer, 1,
+		    vk::DescriptorSetLayoutBinding(BIND_GLOBAL_REFLECTION_PROBE_COUNT, vk::DescriptorType::eStorageBuffer, 1,
 		                                   kAllStages),
 		};
 		registerLayout("globalSet", globalBindings);
@@ -46,17 +46,17 @@ DescriptorManager::DescriptorManager(VulkanDevice& vulkanDevice)
 	{
 		using S = vk::ShaderStageFlagBits;
 		std::array modelBindings = {
-		    vk::DescriptorSetLayoutBinding(Bindings::Model::Primitives, vk::DescriptorType::eStorageBuffer, 1,
+		    vk::DescriptorSetLayoutBinding(BIND_MODEL_PRIMITIVES, vk::DescriptorType::eStorageBuffer, 1,
 		                                   S::eVertex | S::eCompute),
-		    vk::DescriptorSetLayoutBinding(Bindings::Model::Transforms, vk::DescriptorType::eStorageBuffer, 1,
+		    vk::DescriptorSetLayoutBinding(BIND_MODEL_TRANSFORMS, vk::DescriptorType::eStorageBuffer, 1,
 		                                   S::eVertex | S::eCompute),
-		    vk::DescriptorSetLayoutBinding(Bindings::Model::IndirectDraw, vk::DescriptorType::eStorageBuffer, 1,
+		    vk::DescriptorSetLayoutBinding(BIND_MODEL_INDIRECT_DRAW, vk::DescriptorType::eStorageBuffer, 1,
 		                                   S::eCompute),
-		    vk::DescriptorSetLayoutBinding(Bindings::Model::VisibleIndices, vk::DescriptorType::eStorageBuffer, 1,
+		    vk::DescriptorSetLayoutBinding(BIND_MODEL_VISIBLE_INDICES, vk::DescriptorType::eStorageBuffer, 1,
 		                                   S::eCompute | S::eVertex),
-		    vk::DescriptorSetLayoutBinding(Bindings::Model::CompactedDraw, vk::DescriptorType::eStorageBuffer, 1,
+		    vk::DescriptorSetLayoutBinding(BIND_MODEL_COMPACTED_DRAW, vk::DescriptorType::eStorageBuffer, 1,
 		                                   S::eCompute),
-		    vk::DescriptorSetLayoutBinding(Bindings::Model::DrawCount, vk::DescriptorType::eStorageBuffer, 1,
+		    vk::DescriptorSetLayoutBinding(BIND_MODEL_DRAW_COUNT, vk::DescriptorType::eStorageBuffer, 1,
 		                                   S::eCompute | S::eVertex),
 		};
 		registerLayout("modelSet", modelBindings);
@@ -66,23 +66,23 @@ DescriptorManager::DescriptorManager(VulkanDevice& vulkanDevice)
 	{
 		using S = vk::ShaderStageFlagBits;
 		std::array textureBindings = {
-		    vk::DescriptorSetLayoutBinding(Bindings::Textures::Array, vk::DescriptorType::eCombinedImageSampler,
+		    vk::DescriptorSetLayoutBinding(BIND_TEXTURES_ARRAY, vk::DescriptorType::eCombinedImageSampler,
 		                                   MAX_BINDLESS_TEXTURES, S::eFragment | S::eCompute),
-		    vk::DescriptorSetLayoutBinding(Bindings::Textures::ShadowMap, vk::DescriptorType::eCombinedImageSampler, 1,
+		    vk::DescriptorSetLayoutBinding(BIND_TEXTURES_SHADOW_MAP, vk::DescriptorType::eCombinedImageSampler, 1,
 		                                   S::eFragment),
-		    vk::DescriptorSetLayoutBinding(Bindings::Textures::Materials, vk::DescriptorType::eStorageBuffer, 1,
+		    vk::DescriptorSetLayoutBinding(BIND_TEXTURES_MATERIALS, vk::DescriptorType::eStorageBuffer, 1,
 		                                   S::eVertex | S::eFragment),
-		    vk::DescriptorSetLayoutBinding(Bindings::Textures::CubemapSampler, vk::DescriptorType::eCombinedImageSampler,
+		    vk::DescriptorSetLayoutBinding(BIND_TEXTURES_CUBEMAP_SAMPLER, vk::DescriptorType::eCombinedImageSampler,
 		                                   1, S::eFragment | S::eCompute),
-		    vk::DescriptorSetLayoutBinding(Bindings::Textures::CubemapStorage, vk::DescriptorType::eStorageImage, 1,
+		    vk::DescriptorSetLayoutBinding(BIND_TEXTURES_CUBEMAP_STORAGE, vk::DescriptorType::eStorageImage, 1,
 		                                   S::eCompute),
-		    vk::DescriptorSetLayoutBinding(Bindings::Textures::GICaptureCubemap,
+		    vk::DescriptorSetLayoutBinding(BIND_TEXTURES_GI_CAPTURE_CUBEMAP,
 		                                   vk::DescriptorType::eCombinedImageSampler, 1, S::eCompute),
-		    vk::DescriptorSetLayoutBinding(Bindings::Textures::PrefilteredMap, vk::DescriptorType::eCombinedImageSampler,
+		    vk::DescriptorSetLayoutBinding(BIND_TEXTURES_PREFILTERED_MAP, vk::DescriptorType::eCombinedImageSampler,
 		                                   1, S::eFragment),
-		    vk::DescriptorSetLayoutBinding(Bindings::Textures::BrdfLut, vk::DescriptorType::eCombinedImageSampler, 1,
+		    vk::DescriptorSetLayoutBinding(BIND_TEXTURES_BRDF_LUT, vk::DescriptorType::eCombinedImageSampler, 1,
 		                                   S::eFragment),
-		    vk::DescriptorSetLayoutBinding(Bindings::Textures::ReflectionCubemaps,
+		    vk::DescriptorSetLayoutBinding(BIND_TEXTURES_REFLECTION_CUBEMAPS,
 		                                   vk::DescriptorType::eCombinedImageSampler, MAX_REFLECTION_PROBES,
 		                                   S::eFragment),
 		};
