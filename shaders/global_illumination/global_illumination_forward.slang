@@ -1,13 +1,17 @@
 #include "Shared/GpuStructs.h"
 #include "Shared/Bindings.h"
 
+import Common.GI;
+import Common.Constants;
+import Common.Shadow;
+import Common.SH;
+
 // === SET 0 ===
 [[vk::binding(BIND_GLOBAL_CAMERA, 0)]]
 StructuredBuffer<CameraData> camera;
 
 [[vk::binding(BIND_GLOBAL_SUN, 0)]]
 StructuredBuffer<DirectionalLightData> directionalLight;
-
 
 [[vk::binding(BIND_GLOBAL_POINT_LIGHTS, 0)]]
 StructuredBuffer<PointLightData> lights;
@@ -41,11 +45,6 @@ Sampler2DShadow shadowMap;
 StructuredBuffer<MaterialData> materialBuffer;
 
 // === CONST ===
-static const float PI = 3.14159265359f;
-static const float MIN_ROUGHNESS = 0.04f;
-static const float MAX_REFLECTION_LOD = 4.0f;
-static const float PROBE_NORMAL_BIAS = 0.5f;
-static const float PROBE_BACKFACE_THRESHOLD = 0.25f;
 
 [[vk::constant_id(0)]]
 const int ALPHA_TEST_ENABLED = 0;
@@ -61,31 +60,6 @@ struct BakePush
 };
 [[vk::push_constant]]
 BakePush bakePush;
-
-// Must match faceFrustumPlanes() in gi_bake_cull.slang and faceDirection() in sh_projection.slang
-static const float3 kFaceForward[6] = {
-	float3(1, 0, 0), float3(-1, 0, 0), float3(0, 1, 0), float3(0, -1, 0), float3(0, 0, 1), float3(0, 0, -1),
-};
-static const float3 kFaceUp[6] = {
-	float3(0, 1, 0), float3(0, 1, 0), float3(0, 0, -1), float3(0, 0, 1), float3(0, 1, 0), float3(0, 1, 0),
-};
-// Reversed-Z: near/far swapped — perspectiveRH_ZO(90, 1, captureRange, 0.01) with Vulkan Y-flip, in analytic form
-static const float kBakeFar = 0.01f;
-
-float4 bakeFaceClip(float3 worldPos)
-{
-	float3 f = kFaceForward[bakePush.faceIdx];
-	float3 s = normalize(cross(f, kFaceUp[bakePush.faceIdx]));
-	float3 u = cross(s, f);
-	float3 rel = worldPos - bakePush.probePos;
-	float3 view = float3(dot(s, rel), dot(u, rel), -dot(f, rel));
-
-	// b = -(zFar*zNear)/(zFar-zNear), glm sign convention: positive with swapped reversed-Z near/far
-	const float range = shGridInfo[0].captureRange;
-	const float a = kBakeFar / (range - kBakeFar);
-	const float b = (kBakeFar * range) / (range - kBakeFar);
-	return float4(view.x, -view.y, a * view.z + b, -view.z);
-}
 
 // === Vertex I/O ===
 struct VSInput
@@ -145,7 +119,7 @@ VSOutput vertMain(VSInput input, uint instanceID: SV_InstanceID, uint baseInstan
 	}
 
 	VSOutput output;
-	output.pos = bakeFaceClip(worldPos.xyz);
+	output.pos = bakeFaceClip(worldPos.xyz, bakePush.probePos, bakePush.faceIdx, shGridInfo[0].captureRange);
 	output.shadowCoord = mul(directionalLight[0].lightSpaceMatrix, worldPos);
 	output.fragColor = input.inColor;
 	output.fragTexCoord = input.inTexCoord;
@@ -158,67 +132,10 @@ VSOutput vertMain(VSInput input, uint instanceID: SV_InstanceID, uint baseInstan
 	return output;
 }
 
-float ComputeShadow(float4 shadowCoord, float2 texelSize, float3 surfaceNormal, float3 lightDir)
-{
-    float3 projCoords = shadowCoord.xyz / shadowCoord.w;
-    projCoords.xy = projCoords.xy * 0.5 + 0.5;
-
-    if (any(projCoords.xy < 0.0) || any(projCoords.xy > 1.0) || projCoords.z <= 0.0 || projCoords.z >= 1.0) return 1.0;
-
-    float bias = max(0.0005 * (1.0 - dot(surfaceNormal, lightDir)), 0.00005);
-
-    float shadow = 0.0;
-    [unroll]
-    for (int x = -1; x <= 1; ++x)
-    {
-        [unroll]
-        for (int y = -1; y <= 1; ++y)
-        {
-            float2 offset = float2(x, y) * texelSize;
-            shadow += shadowMap.SampleCmpLevelZero(projCoords.xy + offset, projCoords.z + bias);
-        }
-    }
-
-    return shadow / 9.0;
-}
-
 float3 SampleNormalMap(uint mapIndex, float2 uv, float2 dx, float2 dy)
 {
     float3 raw = textureArray[NonUniformResourceIndex(mapIndex)].SampleGrad(uv, dx, dy).rgb;
     return normalize(raw * 2.0 - 1.0);
-}
-
-float3 computeIrradiance(float3 n, float3 sh[4])
-{
-    const float f0 = 0.28209479f;
-    const float f1 = 0.48860251f;
-    const float f3 = 0.31539156f;
-
-    float3 color = sh[0] * f0;
-    color += sh[1] * (-f1 * n.y);
-    color += sh[2] * (f1 * n.z);
-    color += sh[3] * (-f1 * n.x);
-
-    float3 vx = -sh[3];
-    float3 vy = -sh[1];
-    float3 vz = sh[2];
-
-    const float3 lum = float3(0.2126f, 0.7152f, 0.0722f);
-    float3 axis = float3(dot(vx, lum), dot(vy, lum), dot(vz, lum));
-    float axisLen = length(axis);
-    if (axisLen > 1e-6f)
-    {
-        axis /= axisLen;
-        float3 proj = abs(float3(dot(float3(vx.r, vy.r, vz.r), axis),
-                                 dot(float3(vx.g, vy.g, vz.g), axis),
-                                 dot(float3(vx.b, vy.b, vz.b), axis)));
-        float3 ratio = 1.5f * proj / max(sh[0], float3(1e-4f));
-        float3 zonal = 0.25f * sh[0] * (0.08f * ratio + 0.6f * ratio * ratio);
-        float fZ = dot(axis, n);
-        color += zonal * (f3 * (3.0f * fZ * fZ - 1.0f));
-    }
-
-    return max(color, float3(0.0));
 }
 
 float3 getProbeCoeff(uint idx, uint band)
@@ -343,7 +260,7 @@ FragOutput fragMain(VSOutput input, bool isFrontFace: SV_IsFrontFace)
     float3 L = normalize(directionalLight[0].direction.xyz);
 
     float NdotL = max(dot(finalNormal, L), 0.0);
-    float shadow = ComputeShadow(input.shadowCoord, directionalLight[0].shadowMapSize.zw, finalNormal, L);
+    float shadow = ComputeShadow(shadowMap, input.shadowCoord, directionalLight[0].shadowMapSize.zw, finalNormal, L);
     float3 directionalLightRadiance = directionalLight[0].color.rgb * directionalLight[0].color.a;
 
     float3 radiance = albedo.rgb / PI * NdotL * shadow * directionalLightRadiance

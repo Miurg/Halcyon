@@ -1,6 +1,10 @@
 #include "Shared/GpuStructs.h"
 #include "Shared/Bindings.h"
 
+import Common.Sphere;
+import Common.Constants;
+import Common.SH;
+
 [[vk::binding(BIND_GLOBAL_CAMERA, 0)]] StructuredBuffer<CameraData>   camera;
 [[vk::binding(BIND_GLOBAL_SH_PROBES, 0)]] StructuredBuffer<SHProbeEntry> shProbes;
 
@@ -16,17 +20,6 @@ struct PushConstants
     float  spacing;  // meters between probes
 };
 [[vk::push_constant]] ConstantBuffer<PushConstants> pc;
-
-// UV sphere: N_LAT rings × N_LON segments, 2 triangles per quad = 6 verts per quad
-static const int N_LAT = 8;
-static const int N_LON = 8;
-
-static const float PI = 3.14159265f;
-
-float3 spherePoint(float phi, float theta)
-{
-    return float3(sin(phi) * cos(theta), cos(phi), sin(phi) * sin(theta));
-}
 
 struct VSOut
 {
@@ -78,45 +71,15 @@ VSOut vertMain(uint vid : SV_VertexID, uint iid : SV_InstanceID)
     return o;
 }
 
-// Must match computeIrradiance() in global_illumination_forward.slang.
-float3 computeIrradiance(float3 n, SHProbeEntry p)
-{
-    const float f0 = 0.28209479f;
-    const float f1 = 0.48860251f;
-    const float f3 = 0.31539156f;
-
-    float3 c = p.sh0 * f0;
-    c += p.sh1 * (-f1 * n.y);
-    c += p.sh2 * ( f1 * n.z);
-    c += p.sh3 * (-f1 * n.x);
-
-    float3 vx = -p.sh3;
-    float3 vy = -p.sh1;
-    float3 vz = p.sh2;
-
-    const float3 lum = float3(0.2126f, 0.7152f, 0.0722f);
-    float3 axis = float3(dot(vx, lum), dot(vy, lum), dot(vz, lum));
-    float axisLen = length(axis);
-    if (axisLen > 1e-6f)
-    {
-        axis /= axisLen;
-        float3 proj = abs(float3(dot(float3(vx.r, vy.r, vz.r), axis),
-                                 dot(float3(vx.g, vy.g, vz.g), axis),
-                                 dot(float3(vx.b, vy.b, vz.b), axis)));
-        float3 ratio = 1.5f * proj / max(p.sh0, float3(1e-4f));
-        float3 zonal = 0.25f * p.sh0 * (0.08f * ratio + 0.6f * ratio * ratio);
-        float fZ = dot(axis, n);
-        c += zonal * (f3 * (3.0f * fZ * fZ - 1.0f));
-    }
-
-    return max(c, float3(0.0f, 0.0f, 0.0f));
-}
-
 [shader("fragment")]
 float4 fragMain(float3 normal : TEXCOORD0, nointerpolation uint probeIdx : TEXCOORD1) : SV_Target
 {
-    float3 n   = normalize(normal);
-    float3 irr = computeIrradiance(n, shProbes[probeIdx]);
+    float3 n = normalize(normal);
+
+    SHProbeEntry p = shProbes[probeIdx];
+    float3 sh[4] = {p.sh0, p.sh1, p.sh2, p.sh3};
+
+    float3 irr = computeIrradiance(n, sh);
     // Reinhard with white point = PI
     irr = irr / (irr + float3(PI, PI, PI));
     return float4(irr, 1.0f);

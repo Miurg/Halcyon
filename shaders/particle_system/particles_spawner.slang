@@ -32,7 +32,6 @@ struct EmiterData
 [vk::binding(2, 0)]
 RWStructuredBuffer<EmiterData> emitersDataBuffer;
 
-
 [vk::binding(3, 0)]
 RWStructuredBuffer<IndirectDispatchCommand> indirectBuffer;
 

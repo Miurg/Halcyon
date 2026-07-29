@@ -1,6 +1,9 @@
 #include "Shared/GpuStructs.h"
 #include "Shared/Bindings.h"
 
+import Common.Sphere;
+import Common.GI;
+import Common.Constants;
 
 [[vk::binding(BIND_GLOBAL_CAMERA, 0)]] StructuredBuffer<CameraData>     camera;
 [[vk::binding(BIND_GLOBAL_POINT_LIGHTS, 0)]] StructuredBuffer<PointLightData> pointLights;
@@ -14,40 +17,6 @@ struct PushConstants
     uint   faceIdx;
 };
 [[vk::push_constant]] ConstantBuffer<PushConstants> pc;
-
-// Must match the face tables in global_illumination_forward.slang
-static const float3 kFaceForward[6] = {
-    float3(1, 0, 0), float3(-1, 0, 0), float3(0, 1, 0), float3(0, -1, 0), float3(0, 0, 1), float3(0, 0, -1),
-};
-static const float3 kFaceUp[6] = {
-    float3(0, 1, 0), float3(0, 1, 0), float3(0, 0, -1), float3(0, 0, 1), float3(0, 1, 0), float3(0, 1, 0),
-};
-static const float kBakeFar = 0.01f; // reversed-Z, matches global_illumination_forward.slang
-
-float4 bakeFaceClip(float3 worldPos)
-{
-    float3 f = kFaceForward[pc.faceIdx];
-    float3 s = normalize(cross(f, kFaceUp[pc.faceIdx]));
-    float3 u = cross(s, f);
-    float3 rel = worldPos - pc.probePos;
-    float3 view = float3(dot(s, rel), dot(u, rel), -dot(f, rel));
-
-    // b = -(zFar*zNear)/(zFar-zNear), glm sign convention: positive with swapped reversed-Z near/far
-    const float range = shGridInfo[0].captureRange;
-    const float a = kBakeFar / (range - kBakeFar);
-    const float b = (kBakeFar * range) / (range - kBakeFar);
-    return float4(view.x, -view.y, a * view.z + b, -view.z);
-}
-
-// UV sphere: N_LAT rings x N_LON segments, 6 verts per quad (same as gi_probe_debug)
-static const int   N_LAT = 8;
-static const int   N_LON = 8;
-static const float PI    = 3.14159265f;
-
-float3 spherePoint(float phi, float theta)
-{
-    return float3(sin(phi) * cos(theta), cos(phi), sin(phi) * sin(theta));
-}
 
 struct VSOut
 {
@@ -79,7 +48,7 @@ VSOut vertMain(uint vid : SV_VertexID, uint iid : SV_InstanceID)
     float3 worldPos    = pointLights[iid].position + localNormal * pc.scale;
 
     VSOut o;
-    o.pos      = bakeFaceClip(worldPos);
+    o.pos      = bakeFaceClip(worldPos, pc.probePos, pc.faceIdx, shGridInfo[0].captureRange);
     o.color    = pointLights[iid].color;
     o.intensity = pointLights[iid].intensity;
     return o;

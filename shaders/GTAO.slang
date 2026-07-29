@@ -1,6 +1,8 @@
 #include "Shared/GpuStructs.h"
 #include "Shared/Bindings.h"
 
+import Common.Constants;
+
 [vk::binding(0, 0)]
 Sampler2D depthPyramid; 
 [vk::binding(1, 0)]
@@ -51,7 +53,6 @@ float3 reconstructViewPos(float2 uv, float linZ, float invP00, float invP11)
 	return float3(ndc.x * linZ * invP00, ndc.y * linZ * invP11, -linZ);
 }
 
-static const float PI = 3.14159265;
 static const float HALF_PI = 1.5707963;
 
 // Jimenez 2016 multi-bounce: cubic-by-albedo that lifts single-bounce over-darkening.

@@ -1,6 +1,8 @@
 #include "Shared/GpuStructs.h"
 #include "Shared/Bindings.h"
 
+import Common.GI;
+
 [[vk::binding(BIND_GLOBAL_CAMERA, 0)]]
 StructuredBuffer<CameraData> camera;
 
@@ -17,14 +19,6 @@ struct BakePush
 };
 [[vk::push_constant]]
 BakePush bakePush;
-
-// Must match the face tables in global_illumination_forward.slang
-static const float3 kFaceForward[6] = {
-	float3(1, 0, 0), float3(-1, 0, 0), float3(0, 1, 0), float3(0, -1, 0), float3(0, 0, 1), float3(0, 0, -1),
-};
-static const float3 kFaceUp[6] = {
-	float3(0, 1, 0), float3(0, 1, 0), float3(0, 0, -1), float3(0, 0, 1), float3(0, 1, 0), float3(0, 1, 0),
-};
 
 struct VSOutput
 {

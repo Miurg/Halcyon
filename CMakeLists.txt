@@ -178,6 +178,7 @@ function(add_slang_shader_target TARGET_NAME)
                 -fvk-use-entrypoint-name
                 -capability SPV_KHR_non_semantic_info+SPV_GOOGLE_user_type+spvDerivativeControl+spvImageQuery+spvImageGatherExtended+spvSparseResidency+spvMinLod+spvFragmentFullyCoveredEXT+spvShaderNonUniformEXT
                 -I "${CMAKE_CURRENT_LIST_DIR}/include"
+                -I "${CMAKE_CURRENT_LIST_DIR}/shaders"
                 ${ENTRY_FLAGS}
                 -depfile "${DEP_FILE}"
                 -o "${OUT_FILE}"

@@ -1,9 +1,9 @@
+import Common.Constants;
+
 [[vk::binding(3, 0)]]
 SamplerCube environmentMap;
 [[vk::binding(4, 0)]]
 RWTexture2DArray<float4> outIrradiance;
-
-static const float PI = 3.14159265359f;
 
 struct PushConstants
 {

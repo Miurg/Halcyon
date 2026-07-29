@@ -1,6 +1,8 @@
 #include "Shared/GpuStructs.h"
 #include "Shared/Bindings.h"
 
+import Common.GI;
+
 // === SET 0 (globalSet) ===
 [[vk::binding(BIND_GLOBAL_SH_GRID_INFO, 0)]]
 StructuredBuffer<SHGridInfo> shGridInfo;
@@ -26,16 +28,6 @@ struct PushConstants
 };
 [[vk::push_constant]]
 PushConstants push;
-
-// Must match the face tables in the bake render shaders and faceDirection() in sh_projection.slang
-static const float3 kFaceForward[6] = {
-	float3(1, 0, 0), float3(-1, 0, 0), float3(0, 1, 0), float3(0, -1, 0), float3(0, 0, 1), float3(0, 0, -1),
-};
-static const float3 kFaceUp[6] = {
-	float3(0, 1, 0), float3(0, 1, 0), float3(0, 0, -1), float3(0, 0, 1), float3(0, 1, 0), float3(0, 1, 0),
-};
-// Reversed-Z: near/far swapped, must match bakeFaceClip() in the bake render shaders
-static const float kBakeFar = 0.01f;
 
 void faceFrustumPlanes(float3 probePos, int face, out float4 planes[6])
 {

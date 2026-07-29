@@ -1,7 +1,8 @@
 #include "Shared/GpuStructs.h"
 #include "Shared/Bindings.h"
 
-static const float F_PI = 3.14159265358979f;
+import Common.Constants;
+
 static const uint THREAD_COUNT = 256;
 
 // Set 0 = globalSet
@@ -36,11 +37,10 @@ float3 faceDirection(int face, float u, float v)
 float[4] computeShBasis(float3 dir)
 {
     float outBasis[4];
-    const float pi = 3.14159265359f;
 
     // Normalization coefficients
-    const float f0 = 0.5f * sqrt(1.0f / pi);
-    const float f1 = sqrt(3.0f / (4.0f * pi));
+    const float f0 = 0.5f * sqrt(1.0f / PI);
+    const float f1 = sqrt(3.0f / (4.0f * PI));
 
     outBasis[0] = f0;
     outBasis[1] = -f1 * dir.y;
@@ -51,8 +51,8 @@ float[4] computeShBasis(float3 dir)
 
 // Ramamoorthi cosine-lobe convolution: A0=pi, A1=2pi/3
 static const float cosineLobe[4] = {
-    F_PI,
-    2.0f * F_PI / 3.0f, 2.0f * F_PI / 3.0f, 2.0f * F_PI / 3.0f,
+    PI,
+    2.0f * PI / 3.0f, 2.0f * PI / 3.0f, 2.0f * PI / 3.0f,
 };
 
 void writeCoeff(int band, float3 value)
@@ -111,7 +111,7 @@ void computeMain(uint3 groupThreadID : SV_GroupThreadID)
         GroupMemoryBarrierWithGroupSync();
     }
     float totalWeight = gsWeight[0];
-    float normFactor = (4.0f * F_PI) / totalWeight;
+    float normFactor = (4.0f * PI) / totalWeight;
 
     GroupMemoryBarrierWithGroupSync();
     gsWeight[tid] = backfaceWeight;

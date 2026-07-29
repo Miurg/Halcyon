@@ -251,18 +251,6 @@ struct PushConstants
 [[vk::push_constant]]
 ConstantBuffer<PushConstants> pushConsts;
 
-// --- Tone Mapping ---
-// ACES Filmic (Narkowicz 2015)
-float3 ACESFilm(float3 x)
-{
-	float a = 2.51f;
-	float b = 0.03f;
-	float c = 2.43f;
-	float d = 0.59f;
-	float e = 0.14f;
-	return saturate((x * (a * x + b)) / (x * (c * x + d) + e));
-}
-
 [shader("fragment")]
 float4 fragMain(VSOutput input) : SV_Target
 {

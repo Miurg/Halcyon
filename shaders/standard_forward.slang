@@ -1,13 +1,18 @@
 #include "Shared/GpuStructs.h"
 #include "Shared/Bindings.h"
 
+import Common.GI;
+import Common.Constants;
+import Common.BRDF;
+import Common.Shadow;
+import Common.SH;
+
 // === SET 0 ===
 [[vk::binding(BIND_GLOBAL_CAMERA, 0)]]
 StructuredBuffer<CameraData> camera;
 
 [[vk::binding(BIND_GLOBAL_SUN, 0)]]
 StructuredBuffer<DirectionalLightData> directionalLight;
-
 
 [[vk::binding(BIND_GLOBAL_POINT_LIGHTS, 0)]]
 StructuredBuffer<PointLightData> lights;
@@ -56,11 +61,6 @@ Sampler2D brdfLutMap;
 SamplerCube reflectionProbeMaps[MAX_REFLECTION_PROBES];
 
 // === CONST ===
-static const float PI = 3.14159265359f;
-static const float MIN_ROUGHNESS = 0.04f;
-static const float MAX_REFLECTION_LOD = 4.0f;
-static const float PROBE_BACKFACE_THRESHOLD = 0.5f; // _p0 above this = probe inside geometry
-static const float PROBE_NORMAL_BIAS = 0.25f;        // sample offset along N, in probe-spacing units
 static const float REFLECTION_BLEND_MARGIN = 1.0f;   // world-space width of the probe-to-probe/sky transition
 
 [[vk::constant_id(0)]]
@@ -182,263 +182,7 @@ SampledMaterial SampleMaterial(MaterialData mat, float2 uv, float2 dx, float2 dy
 	return m;
 }
 
-// === BRDF primitives (specular: D, V, F) ===
-
-// GGX normal distribution function (Trowbridge & Reitz, 1975 / Walter et al., 2007).
-// Describes the statistical distribution of microfacet orientations on a surface.
-// Preferred over Beckmann due to longer specular tail matching real-world materials.
-//        a^2
-// ──────────────────────────
-// PI * ((NdotH^2 * (a^2 - 1) + 1)^2)
-float D_GGX(float NdotH, float a)
-{
-	float a2 = a * a;
-	float d = NdotH * NdotH * (a2 - 1.0) + 1.0;
-	return a2 / (PI * d * d);
-}
-
-// Correlated Smith visibility function for GGX distribution (Heitz, 2014).
-// Models mutual masking-shadowing between microfacets more accurately
-// than the uncorrelated separable form used in earlier formulations.
-//                    0.5
-// ──────────────────────────────────────────────
-// NdotL*(NdotV*(1-a)+a) + NdotV*(NdotL*(1-a)+a)
-float V_SmithGGXCorrelated(float NdotV, float NdotL, float a)
-{
-	float ggxV = NdotL * (NdotV * (1.0 - a) + a);
-	float ggxL = NdotV * (NdotL * (1.0 - a) + a);
-	return 0.5 / (ggxV + ggxL + 1e-5);
-}
-
-// Schlick approximation of the Fresnel term (Schlick, 1994).
-// Approximates the fraction of light reflected vs refracted at a surface.
-// Uses fast exp2 form instead of pow for performance.
-// F0 + (1 - F0) * 2^((-5.55473 * HdotV - 6.98316) * HdotV)
-float3 F_Schlick(float HdotV, float3 F0)
-{
-    return F0 + (1.0 - F0) * exp2((-5.55473 * HdotV - 6.98316) * HdotV);
-}
-
-// Roughness-aware Fresnel for IBL — uses max(F0, 1 - roughness) as the F90 ceiling
-// so grazing-angle reflections wash out on rough surfaces.
-// (Lazarov, 2013 / Lagarde & de Rousiers, 2014.)
-float3 F_SchlickRoughness(float NdotV, float3 F0, float roughness)
-{
-    return F0 + (max(float3(1.0 - roughness, 1.0 - roughness, 1.0 - roughness), F0) - F0) * pow(1.0 - NdotV, 5.0);
-}
-
-// === Diffuse BRDFs ===
-
-// Diffuse BRDF that models rough surface scattering using microfacet theory.
-// Based on "Generalization of Lambert's Reflectance Model" (Oren & Nayar, 1994).
-float3 DiffuseOrenNayar(float3 albedo, float NdotL, float NdotV, float roughness,
-                        float3 L, float3 V, float3 N)
-{
-	float sigma2 = roughness * roughness;
-	float A = 1.0 - 0.5 * sigma2 / (sigma2 + 0.57);
-	float B = 0.45 * sigma2 / (sigma2 + 0.09);
-
-	float3 Lperp = L - N * NdotL;
-	float3 Vperp = V - N * NdotV;
-	float LperpLen = length(Lperp);
-	float VperpLen = length(Vperp);
-
-	float cosPhiDiff = (LperpLen > 1e-4 && VperpLen > 1e-4)
-		? saturate(dot(Lperp / LperpLen, Vperp / VperpLen))
-		: 0.0;
-
-	float sinThetaI = sqrt(max(1.0 - NdotL * NdotL, 0.0));
-	float sinThetaR = sqrt(max(1.0 - NdotV * NdotV, 0.0));
-	float s = sinThetaI * sinThetaR / max(max(NdotL, NdotV), 1e-4);
-
-	return albedo / PI * (A + B * cosPhiDiff * s);
-}
-
-float3 DiffuseOrenNayarIBL(float3 albedo, float NdotV, float roughness)
-{
-    float sigma2 = roughness * roughness;
-    float A = 1.0 - 0.5 * sigma2 / (sigma2 + 0.57);
-    // Without B, we dont have L in ambient
-    return albedo / PI * A;
-}
-
-// === Filtering / AA ===
-
-// Increases roughness based on normal map variance to reduce specular aliasing.
-// Based on "Stable Specular Highlights" (Tokuyoshi & Kaplanyan, 2019).
-// Uses screen-space ddx/ddy of the world normal to estimate high-frequency detail.
-float GeometricSpecularAA(float3 worldNormal, float roughness)
-{
-	float3 dndu = ddx(worldNormal);
-	float3 dndv = ddy(worldNormal);
-
-	float variance = 0.5 * (dot(dndu, dndu) + dot(dndv, dndv));
-
-	float roughness2 = roughness * roughness;
-	float kernelRoughness2 = min(2.0 * variance, 0.18);
-	return sqrt(saturate(roughness2 + kernelRoughness2));
-}
-
-// === Light primitives ===
-
-// Computes physically-based point light attenuation using inverse-square falloff
-// with a smooth windowing function (Karis, UE4) to avoid singularity at dist=0
-// and ensure zero contribution at the light radius boundary.
-float PointLightAttenuation(float dist, float radius)
-{
-	float x = saturate(1.0 - pow(dist / radius, 4.0));
-	return x * x / (dist * dist + 1.0);
-}
-
-struct LightingVectors
-{
-	float NdotL;
-	float NdotH;
-	float HdotV;
-};
-
-// Computes per-light half-vector and dot products (NdotL, NdotH, HdotV)
-// from a given light direction L, view vector V and surface normal N.
-// Call once per light source before EvaluateBRDF.
-LightingVectors ComputeLightingVectors(float3 L, float3 V, float3 N)
-{
-    LightingVectors lv;
-    float3 H     = normalize(L + V);
-	lv.NdotL = max(dot(N, L), 0.0);
-	lv.NdotH = max(dot(N, H), 0.0);
-	lv.HdotV = max(dot(H, V), 0.0);
-	return lv;
-}
-
-// === Surface / BRDF evaluation ===
-
-struct BRDFResult
-{
-	float3 diffuse;
-	float3 specular;
-};
-
-// View-invariant per-fragment surface data — bundled to avoid passing
-// 7+ arguments through every BRDF / light evaluation.
-struct Surface
-{
-	float3 albedo;
-	float3 F0;
-	float  metallic;
-	float  roughness;
-	float3 N;
-	float3 V;
-	float  NdotV;
-};
-
-// Evaluates the Cook-Torrance BRDF for a single light source.
-// Returns diffuse (Oren-Nayar) and specular (GGX/Smith) components separately.
-BRDFResult EvaluateBRDF(Surface s, LightingVectors lv, float3 L)
-{
-	float a = s.roughness * s.roughness;
-
-	float  D   = D_GGX(lv.NdotH, a);
-	float  Vis = V_SmithGGXCorrelated(s.NdotV, lv.NdotL, a);
-	float3 F   = F_Schlick(lv.HdotV, s.F0);
-
-	float3 kD = (1.0 - F) * (1.0 - s.metallic);
-
-	BRDFResult result;
-	result.specular = D * Vis * F;
-	result.diffuse  = kD * DiffuseOrenNayar(s.albedo, lv.NdotL, s.NdotV, s.roughness, L, s.V, s.N);
-	return result;
-}
-
-// Evaluates a single point / spot light against the surface.
-// Returns zero contribution for fragments outside the light's radius or spot cone.
-float3 EvaluatePunctualLight(PointLightData light, Surface s, float3 worldPos)
-{
-	float3 Lp   = light.position - worldPos;
-	float  dist = length(Lp);
-	if (dist >= light.radius) return float3(0.0);
-
-	float3 Ldir = Lp / dist;
-
-	float spotAttenuation = 1.0;
-	if (light.type == 1)
-	{
-		float cosAngle = dot(-Ldir, light.direction);
-		spotAttenuation = smoothstep(light.outerConeAngle, light.innerConeAngle, cosAngle);
-		if (spotAttenuation <= 0.0) return float3(0.0);
-	}
-
-	float attenuation = PointLightAttenuation(dist, light.radius);
-
-	LightingVectors lv   = ComputeLightingVectors(Ldir, s.V, s.N);
-	BRDFResult      brdf = EvaluateBRDF(s, lv, Ldir);
-
-	float3 radiance = light.color * light.intensity;
-	return (brdf.diffuse + brdf.specular) * radiance * lv.NdotL * attenuation * spotAttenuation;
-}
-
-// === Shadows ===
-
-// Computes PCF shadow factor with a 3x3 kernel using hardware comparison sampler.
-// Applies normal-based bias to reduce shadow acne on surfaces at grazing angles.
-// Returns 1.0 (fully lit) for fragments outside the shadow map bounds.
-float ComputeShadow(float4 shadowCoord, float2 texelSize, float3 surfaceNormal, float3 lightDir)
-{
-	float3 projCoords = shadowCoord.xyz / shadowCoord.w;
-	projCoords.xy = projCoords.xy * 0.5 + 0.5;
-
-	if (any(projCoords.xy < 0.0) || any(projCoords.xy > 1.0) || projCoords.z <= 0.0 || projCoords.z >= 1.0) return 1.0;
-
-	float bias = max(0.0005 * (1.0 - dot(surfaceNormal, lightDir)), 0.00005);
-
-	float shadow = 0.0;
-	[unroll]
-	for (int x = -1; x <= 1; ++x)
-	{
-		[unroll]
-		for (int y = -1; y <= 1; ++y)
-		{
-			float2 offset = float2(x, y) * texelSize;
-			shadow += shadowMap.SampleCmpLevelZero(projCoords.xy + offset, projCoords.z + bias);
-		}
-	}
-
-	return shadow / 9.0;
-}
-
 // === IBL / Ambient ===
-
-float3 computeIrradiance(float3 n, float3 sh[4])
-{
-    const float f0 = 0.28209479f;
-    const float f1 = 0.48860251f;
-    const float f3 = 0.31539156f;
-
-    float3 color = sh[0] * f0;
-    color += sh[1] * (-f1 * n.y);
-    color += sh[2] * (f1 * n.z);
-    color += sh[3] * (-f1 * n.x);
-
-    float3 vx = -sh[3];
-    float3 vy = -sh[1];
-    float3 vz = sh[2];
-
-    const float3 lum = float3(0.2126f, 0.7152f, 0.0722f);
-    float3 axis = float3(dot(vx, lum), dot(vy, lum), dot(vz, lum));
-    float axisLen = length(axis);
-    if (axisLen > 1e-6f)
-    {
-        axis /= axisLen;
-        float3 proj = abs(float3(dot(float3(vx.r, vy.r, vz.r), axis),
-                                 dot(float3(vx.g, vy.g, vz.g), axis),
-                                 dot(float3(vx.b, vy.b, vz.b), axis)));
-        float3 ratio = 1.5f * proj / max(sh[0], float3(1e-4f));
-        float3 zonal = 0.25f * sh[0] * (0.08f * ratio + 0.6f * ratio * ratio);
-        float fZ = dot(axis, n);
-        color += zonal * (f3 * (3.0f * fZ * fZ - 1.0f));
-    }
-
-    return max(color, float3(0.0));
-}
 
 float3 getProbeCoeff(uint idx, uint band)
 {
@@ -638,7 +382,7 @@ FragOutput fragMain(VSOutput input, bool isFrontFace: SV_IsFrontFace)
 	Surface s = { m.albedo.rgb, F0, m.metallic, m.roughness, finalNormal, V, NdotV };
 
 	// === SHADOW (PCF 3x3) ===
-	float shadow = ComputeShadow(input.shadowCoord, directionalLight[0].shadowMapSize.zw, finalNormal, L);
+	float shadow = ComputeShadow(shadowMap, input.shadowCoord, directionalLight[0].shadowMapSize.zw, finalNormal, L);
 
 	// === DIRECTIONAL LIGHT ===
 	float3 directionalLightRadiance = directionalLight[0].color.rgb * directionalLight[0].color.a;
@@ -651,7 +395,12 @@ FragOutput fragMain(VSOutput input, bool isFrontFace: SV_IsFrontFace)
 	// === POINT / SPOT LIGHTS ===
 	float3 litColorFromLights = float3(0.0, 0.0, 0.0);
 	for (uint i = 0; i < lightCount[0]; i++)
-		litColorFromLights += EvaluatePunctualLight(lights[i], s, input.fragWorldPos);
+	{
+		PointLightData light = lights[i];
+		litColorFromLights += EvaluatePunctualLight(s, input.fragWorldPos, light.position, light.radius, light.color,
+		                                            light.intensity, light.direction, light.innerConeAngle,
+		                                            light.outerConeAngle, light.type);
+	}
 
 	float ao = 1.0;
 	if (GTAO_ENABLED == 1 && mat.alphaMode != 2)
