@@ -1,0 +1,6 @@
+{
+    "slang.additionalSearchPaths": [
+        "include/",
+        "shaders/"
+    ]
+}
