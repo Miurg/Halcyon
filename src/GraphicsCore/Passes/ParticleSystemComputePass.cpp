@@ -23,27 +23,11 @@
 #include "GraphicsCore/Components/CurrentFrameComponent.hpp"
 #include "GraphicsCore/Components/VMAllocatorComponent.hpp"
 #include "GraphicsCore/Components/ParticlesBufferComponent.hpp"
+#include "Shared/ParticlesStructs.h"
 
 const int MAX_NUMBER_PARTICLES = 1000000;
 const int MAX_NUMBER_EMITERS = 1000;
 const int TEST_SPAWN_COUNT = 1000;
-
-struct alignas(16) ParticlesMetadata
-{
-	alignas(4) uint32_t bottomOfStack;
-	alignas(4) uint32_t maxNumberOfPatricles;
-	alignas(4) uint32_t numberOfEmiters;
-};
-
-struct alignas(16) ParticleProperties
-{
-	alignas(16) glm::vec3 position = {0.0f, 0.0f, 0.0f};
-	alignas(4) uint32_t seed = 0;
-	alignas(16) glm::vec3 scale = {1.0f, 1.0f, 1.0f};
-	alignas(4) float liveTime = -1.0f;
-	alignas(16) glm::vec3 rotation = {1.0f, 1.0f, 1.0f};
-	alignas(4) uint32_t emiterIndex = 0;
-};
 
 struct alignas(16) EmitorPushConst
 {
@@ -157,8 +141,7 @@ void ParticleSystemComputePass::onInit(Orhescyon::GeneralManager& gm)
 
 	_dSetParticles = descriptorManager.allocate("particleSystemSet", MAX_FRAMES_IN_FLIGHT);
 
-	_particlesBuffer = bufferManager.createBuffer(
-	    vk::MemoryPropertyFlagBits::eDeviceLocal, sizeof(ParticleProperties) * MAX_NUMBER_PARTICLES, 1,
+	_particlesBuffer = bufferManager.createBuffer(vk::MemoryPropertyFlagBits::eDeviceLocal, sizeof(Particle) * MAX_NUMBER_PARTICLES, 1,
 	    vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst);
 
 	_particlesStack =
@@ -232,13 +215,13 @@ void ParticleSystemComputePass::onInit(Orhescyon::GeneralManager& gm)
 	StagingBuffer staging = VulkanUtils::createStagingBuffer(
 	    sequenceData.data(), sizeof(uint32_t) * MAX_NUMBER_PARTICLES, allocator, VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
 
-	std::vector<ParticleProperties> sequenceDataParticles(MAX_NUMBER_PARTICLES);
+	std::vector<Particle> sequenceDataParticles(MAX_NUMBER_PARTICLES);
 	for (uint32_t i = 0; i < MAX_NUMBER_PARTICLES; ++i)
 	{
 		sequenceDataParticles[i].liveTime = -1.0;
 	}
 	StagingBuffer stagingParticles =
-	    VulkanUtils::createStagingBuffer(sequenceDataParticles.data(), sizeof(ParticleProperties) * MAX_NUMBER_PARTICLES,
+	    VulkanUtils::createStagingBuffer(sequenceDataParticles.data(), sizeof(Particle) * MAX_NUMBER_PARTICLES,
 	                                     allocator, VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
 
 	auto cmd = VulkanUtils::beginSingleTimeCommands(vulkanDevice);
@@ -255,7 +238,7 @@ void ParticleSystemComputePass::onInit(Orhescyon::GeneralManager& gm)
 	vk::BufferCopy copyRegionParticles;
 	copyRegionParticles.srcOffset = 0;
 	copyRegionParticles.dstOffset = 0;
-	copyRegionParticles.size = sizeof(ParticleProperties) * MAX_NUMBER_PARTICLES;
+	copyRegionParticles.size = sizeof(Particle) * MAX_NUMBER_PARTICLES;
 
 	cmd.copyBuffer(vk::Buffer(stagingParticles.buffer), bufferManager.getBuffer(_particlesBuffer),
 	               copyRegionParticles);

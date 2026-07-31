@@ -6,6 +6,7 @@
 #include "GraphicsCore/Resources/Managers/BufferManager.hpp"
 #include "GraphicsCore/Components/BufferManagerComponent.hpp"
 #include "../Passes/ParticleSystemComputePass.hpp"
+#include "Shared/ParticlesStructs.h"
 
 #ifdef TRACY_ENABLE
 #include <tracy/Tracy.hpp>

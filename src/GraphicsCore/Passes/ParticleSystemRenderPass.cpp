@@ -28,20 +28,6 @@
 
 const int MAX_NUMBER_PARTICLES = 100000;
 
-struct ParticleMetada
-{
-	glm::vec3 directionalVector;
-	float numberOfParticles;
-	uint32_t bottomOfStack;
-	uint32_t maxNumberOfPatricles;
-	float spawnRadiusMax;
-	float spawnRadiusMin;
-	float timeToLiveMax;
-	float timeToLiveMin;
-	float velocityMax;
-	float velocityMin;
-};
-
 void ParticleSystemRenderPass::drawParticlRender(vk::raii::CommandBuffer& cmd, uint32_t frame,
                                                  DescriptorManagerComponent& descriptorManager, BufferManager& bufferManager,
                                                  PipelineManager& pipelineManager, GlobalDSetComponent& globalDSetComponent,

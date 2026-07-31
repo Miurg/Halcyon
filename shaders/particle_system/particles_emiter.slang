@@ -1,33 +1,12 @@
 #include "Shared/GpuStructs.h"
+#include "Shared/ParticlesStructs.h"
 
 // === Set 0: particleEmiterSet ===
-struct Particle
-{
-	float3 position;
-	uint seed;
-	float3 scale;
-    float liveTime;
-    float3 rotation;
-    uint emiterIndex;
-};
-
 [vk::binding(0, 0)]
 RWStructuredBuffer<Particle> particlesBuffer;
 
 [vk::binding(1, 0)]
 RWStructuredBuffer<int> particlesStackBuffer;
-
-struct EmiterData
-{
-    bool active;
-    uint spawnCount;
-    float3 initialPosition;
-    float3 directionalVector;
-	float2 spawnRadius;
-	float2 timeToLive;
-	float2 velocity;
-	float2 scale;
-};
 
 [vk::binding(2, 0)]
 RWStructuredBuffer<EmiterData> emitersDataBuffer;
@@ -50,12 +29,6 @@ RWStructuredBuffer<IndirectDispatchCommand> _dispatchBufferForEmiterA;
 [vk::binding(8, 0)]
 RWStructuredBuffer<IndirectDispatchCommand> _dispatchBufferForEmiterB;
 
-struct ParticlesMetadata
-{
-    uint bottomOfStack;
-    uint maxNumberOfPatricles;
-    uint numberOfEmiters;
-};
 [vk::binding(9, 0)]
 RWStructuredBuffer<ParticlesMetadata> _particlesMetadata;
 

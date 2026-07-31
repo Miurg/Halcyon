@@ -1,17 +1,8 @@
 #include "Shared/GpuStructs.h"
 #include "Shared/Bindings.h"
+#include "Shared/ParticlesStructs.h"
 
 // === Set 0: particleEmiterSet ===
-struct Particle
-{
-    float3 position;
-    uint seed;
-    float3 scale;
-    float liveTime;
-    float3 rotation;
-    uint metadataIndex;
-};
-
 [vk::binding(0, 0)]
 StructuredBuffer<Particle> particlesBuffer;
 

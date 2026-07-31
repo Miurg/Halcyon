@@ -8,18 +8,6 @@ class DescriptorManagerComponent;
 class BufferManager;
 class PipelineManager;
 
-struct alignas(16) EmiterData
-{
-	alignas(4) bool active;
-	alignas(4) uint32_t spawnCount;
-	alignas(16) glm::vec3 initialPosition;
-	alignas(16) glm::vec3 directionalVector;
-	alignas(8) glm::vec2 spawnRadius; // 1-min, 2-max
-	alignas(8) glm::vec2 timeToLive;  // 1-min, 2-max
-	alignas(8) glm::vec2 velocity;    // 1-min, 2-max
-	alignas(8) glm::vec2 scale;       // 1-min, 2-max
-};
-
 class ParticleSystemComputePass : public IPass
 {
 public:
