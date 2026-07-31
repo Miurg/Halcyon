@@ -10,6 +10,7 @@ struct HALCYON_API GPU_ALIGN(16) Particle
 	GPU_ALIGN(4) float liveTime;
 	GPU_ALIGN(16) float3 rotation;
 	GPU_ALIGN(4) uint emiterIndex;
+	GPU_ALIGN(16) float4 color;
 }; // optimise to hold less storage
 
 struct HALCYON_API GPU_ALIGN(16) EmiterData
@@ -22,6 +23,8 @@ struct HALCYON_API GPU_ALIGN(16) EmiterData
 	GPU_ALIGN(8) float2 timeToLive; // 1-min, 2-max
 	GPU_ALIGN(8) float2 velocity; // 1-min, 2-max
 	GPU_ALIGN(8) float2 scale; // 1-min, 2-max
+	GPU_ALIGN(16) float4 colorStart;
+	GPU_ALIGN(16) float4 colorEnd;
 };
 
 struct HALCYON_API GPU_ALIGN(16) ParticlesMetadata

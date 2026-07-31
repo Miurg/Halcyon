@@ -102,6 +102,7 @@ void computeMain(uint3 dispatchThreadID: SV_DispatchThreadID)
     particlesBuffer[index].scale = float3(1.0, 1.0, 1.0);
     particlesBuffer[index].seed = localSeed;
     particlesBuffer[index].emiterIndex = currentEmitorIndex;
+    particlesBuffer[index].color = currentEmitor.colorStart;
 
     uint indexDispatch;
     if (pushConstants.totalFrame % 2 == 0)

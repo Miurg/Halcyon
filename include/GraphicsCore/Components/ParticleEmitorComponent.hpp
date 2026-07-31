@@ -13,4 +13,6 @@ struct HALCYON_API ParticleEmitorComponent
 	glm::vec2 timeToLive = {1.0f, 1.0f};  // 1-min, 2-max
 	glm::vec2 velocity = {0.0f, 0.0f};    // 1-min, 2-max
 	glm::vec2 scale = {1.0f, 1.0f};       // 1-min, 2-max
+	glm::vec4 colorStart = {1.0f, 1.0f, 1.0f, 1.0f};
+	glm::vec4 colorEnd = {1.0f, 1.0f, 1.0f, 1.0f};
 };

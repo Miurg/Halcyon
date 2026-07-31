@@ -60,6 +60,8 @@ void GPUParticlesSystem::update(GeneralManager& gm)
 			    emitersDataBufferPtr[i].spawnCount = spawnCountParticle;
 			    emitersDataBufferPtr[i].timeToLive = particleEmitor.timeToLive;
 			    emitersDataBufferPtr[i].velocity = particleEmitor.velocity;
+			    emitersDataBufferPtr[i].colorStart = particleEmitor.colorStart;
+			    emitersDataBufferPtr[i].colorEnd = particleEmitor.colorEnd;
 		    }
 	    });
 	dispatchSpawnBufferPtr->x = (spawnCountAll + 63) / 64;

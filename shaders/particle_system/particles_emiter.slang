@@ -109,15 +109,16 @@ void computeMain(uint3 dispatchThreadID: SV_DispatchThreadID)
 	{
         float velocity =
 		    lerp(emiterBuffer.velocity[0], emiterBuffer.velocity[1], random_float(localSeed));
-
         particlesBuffer[index].position =
             particlesBuffer[index].position +
 		    emiterBuffer.directionalVector * velocity * pushConstants.deltaTime;
 
         float scale =
 		    lerp(emiterBuffer.scale[0], emiterBuffer.scale[1], random_float(localSeed));
-
         particlesBuffer[index].scale = float3(scale, scale, scale);
+
+        float4 color = lerp(emiterBuffer.colorStart, emiterBuffer.colorEnd, particlesBuffer[index].liveTime / timeToDie);
+        particlesBuffer[index].color = color;
 
         InterlockedAdd(indirectDrawBuffer[0].instanceCount, 1);
 

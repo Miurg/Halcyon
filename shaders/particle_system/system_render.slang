@@ -27,6 +27,7 @@ struct VSOutput
 {
     float4 pos : SV_Position;
     float2 uv : TEXCOORD0;
+    float4 color;
 };
 
 static const float2 quadPositions[6] = {
@@ -61,12 +62,12 @@ VSOutput vertMain(uint vertexID: SV_VertexID, uint instanceID: SV_InstanceID, ui
     VSOutput output;
     output.pos = mul(camera[0].projMatrix, viewPos);
     output.uv = localPos + 0.5;
-
+    output.color = particle.color;
     return output;
 }
 
 [shader("fragment")]
 float4 fragMain(VSOutput input) : SV_Target
 {
-    return float4(1.0, 1.0, 1.0, 1.0);
+    return input.color;
 }
