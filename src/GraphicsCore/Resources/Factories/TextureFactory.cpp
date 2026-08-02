@@ -61,6 +61,8 @@ TextureHandle TextureFactory::createShadowMap(TextureManager& textureManager, ui
 	samplerDesc.addressMode = SamplerAddressMode::ClampToBorder;
 	samplerDesc.borderColor = SamplerBorderColor::FloatOpaqueBlack;
 	samplerDesc.compareOp = SamplerCompareOp::Greater;
+	samplerDesc.minFilter = SamplerFilter::Linear;
+	samplerDesc.magFilter = SamplerFilter::Linear;
 
 	return createTexture(textureManager, desc, samplerDesc, vk::ImageAspectFlagBits::eDepth);
 }
