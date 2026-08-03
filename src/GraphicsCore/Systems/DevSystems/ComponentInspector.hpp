@@ -150,6 +150,11 @@ inline void inspectCamera(GeneralManager&, Entity, CameraComponent& camera)
 
 inline void inspectGtaoSettings(GeneralManager&, Entity, GtaoSettingsComponent& gtao)
 {
+	const char* resolutionItems[] = {"Full", "Half", "Quarter"};
+	int resolution = static_cast<int>(gtao.resolution);
+	if (ImGui::Combo("Resolution", &resolution, resolutionItems, IM_ARRAYSIZE(resolutionItems)))
+		gtao.resolution = static_cast<GtaoResolution>(resolution);
+
 	ImGui::SliderInt("Kernel Size", &gtao.kernelSize, 1, 32);
 	ImGui::DragFloat("Radius", &gtao.radius, 0.1f, 0.1f, 50.0f);
 	ImGui::DragFloat("Bias", &gtao.bias, 0.01f, 0.0f, 1.0f);

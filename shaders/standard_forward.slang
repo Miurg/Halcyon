@@ -88,6 +88,7 @@ struct VSInput
 struct VSOutput
 {
     float4 pos : SV_Position;
+	noperspective float2 screenUV;
     float3 fragColor;
     float3 fragNormal;
     float3 fragTangent;
@@ -134,6 +135,7 @@ VSOutput vertMain(VSInput input, uint instanceID: SV_InstanceID, uint baseInstan
 
 	VSOutput output;
 	output.pos = mul(camera[0].cameraSpaceMatrix, worldPos);
+	output.screenUV = output.pos.xy / output.pos.w * 0.5 + 0.5;
 	output.shadowCoord = mul(directionalLight[0].lightSpaceMatrix, worldPos);
 	output.fragColor = input.inColor;
 	output.fragTexCoord = input.inTexCoord;
@@ -405,10 +407,7 @@ FragOutput fragMain(VSOutput input, bool isFrontFace: SV_IsFrontFace)
 	float ao = 1.0;
 	if (GTAO_ENABLED == 1 && mat.alphaMode != 2)
 	{
-		uint2 dims;
-		gtaoTexture.GetDimensions(dims.x, dims.y);
-		float2 gtaoUV = input.pos.xy / float2(dims);
-		ao = gtaoTexture.SampleLevel(gtaoUV, 0).r;
+		ao = gtaoTexture.SampleLevel(input.screenUV, 0).r;
 	}
 
 	// === IBL / Ambient ===

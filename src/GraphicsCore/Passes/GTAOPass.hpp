@@ -16,10 +16,12 @@ public:
 	bool isEnabled(Orhescyon::GeneralManager& gm) const override;
 
 private:
-	void drawGtao(vk::raii::CommandBuffer& cmd, SwapChain& swapChain, DescriptorManagerComponent& descriptorManager,
+	void drawGtao(vk::raii::CommandBuffer& cmd, SwapChain& swapChain, const vk::Extent2D& gtaoExtent,
+	              DescriptorManagerComponent& descriptorManager,
 	              DSetHandle gtaoDSet, DSetHandle globalDSet, const GtaoSettingsComponent& gtaoSettings,
 	              PipelineManager& pipelineManager);
-	void drawBlur(vk::raii::CommandBuffer& cmd, SwapChain& swapChain, DescriptorManagerComponent& descriptorManager,
+	void drawBlur(vk::raii::CommandBuffer& cmd, const vk::Extent2D& gtaoExtent,
+	              DescriptorManagerComponent& descriptorManager,
 	              DSetHandle blurDSet, float dirX, float dirY, const GtaoSettingsComponent& gtaoSettings,
 	              PipelineManager& pipelineManager);
 
@@ -27,4 +29,5 @@ private:
 	DSetHandle _blurHDset;
 	DSetHandle _blurVDset;
 	TextureHandle _noiseTexture;
+	uint32_t _appliedResolutionDivisor = 1;
 };

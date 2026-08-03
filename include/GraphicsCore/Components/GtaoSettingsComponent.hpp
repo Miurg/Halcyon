@@ -1,9 +1,18 @@
 #pragma once
 
 #include "HalcyonExport.hpp"
+
+enum class GtaoResolution
+{
+	Full,
+	Half,
+	Quarter,
+};
+
 struct HALCYON_API GtaoSettingsComponent
 {
-	int kernelSize = 4;
+	GtaoResolution resolution = GtaoResolution::Half;
+	int kernelSize = 8;
 	float radius = 2.0f;
 	float bias = 0.3f;
 	float power = 1.0f;
