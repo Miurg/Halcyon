@@ -55,6 +55,7 @@
 #include "GraphicsCore/Systems/RenderSystem.hpp"
 #include "GraphicsCore/Systems/FrameEndSystem.hpp"
 #include "GraphicsCore/Components/DeltaTimeComponent.hpp"
+#include "GraphicsCore/Components/GodRaysSettingsComponent.hpp"
 #include "GraphicsCore/Systems/GPUParticlesSystem.hpp"
 
 #ifdef TRACY_ENABLE
@@ -115,7 +116,7 @@ void GraphicsInit::coreInit(GeneralManager& gm)
 	    .reads<NameComponent, RelationshipComponent, CameraComponent, GraphicsSettingsComponent, DeltaTimeComponent,
 	           PhysBodyComponent>()
 	    .writes<GlobalTransformComponent, LocalTransformComponent, DirectLightComponent, PointLightComponent,
-	            GtaoSettingsComponent, LightProbeGridComponent>();
+	            GtaoSettingsComponent, GodRaysSettingsComponent, LightProbeGridComponent>();
 #endif
 	gm.registerSystem<CameraMatrixSystem>()
 	    .after<FrameBeginSystem>()

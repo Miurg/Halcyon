@@ -10,6 +10,7 @@
 #include "GraphicsCore/Resources/Components/GlobalDSetComponent.hpp"
 #include "GraphicsCore/Resources/Components/ModelDSetComponent.hpp"
 #include "GraphicsCore/Components/GtaoSettingsComponent.hpp"
+#include "GraphicsCore/Components/GodRaysSettingsComponent.hpp"
 #include "GraphicsCore/Components/AutoExposureSettingsComponent.hpp"
 #include "GraphicsCore/Components/NameComponent.hpp"
 #include "GraphicsCore/Components/CameraComponent.hpp"
@@ -309,6 +310,13 @@ void PlaceholdersInit::initPlaceholders(GeneralManager& gm)
 	gm.addComponent<NameComponent>(gtaoSettingsEntity, "GTAO Settings");
 	gm.registerContext<GtaoSettingsContext>(gtaoSettingsEntity);
 	gm.addComponent<GtaoSettingsComponent>(gtaoSettingsEntity);
+#pragma endregion
+
+#pragma region God Rays Settings
+	Orhescyon::Entity godRaysSettingsEntity = gm.createEntity();
+	gm.addComponent<NameComponent>(godRaysSettingsEntity, "God Rays Settings");
+	gm.registerContext<GodRaysSettingsContext>(godRaysSettingsEntity);
+	gm.addComponent<GodRaysSettingsComponent>(godRaysSettingsEntity);
 #pragma endregion
 
 #pragma region Light Probe Grid

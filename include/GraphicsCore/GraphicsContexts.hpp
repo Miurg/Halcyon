@@ -58,6 +58,9 @@ class HALCYON_API FrameManagerContext
 class HALCYON_API GtaoSettingsContext
 {
 };
+class HALCYON_API GodRaysSettingsContext
+{
+};
 class HALCYON_API SkyBoxContext
 {
 };

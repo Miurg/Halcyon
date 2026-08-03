@@ -15,6 +15,7 @@
 #include "GraphicsCore/Components/RelationshipComponent.hpp"
 #include "GraphicsCore/Components/DirectLightComponent.hpp"
 #include "GraphicsCore/Components/GtaoSettingsComponent.hpp"
+#include "GraphicsCore/Components/GodRaysSettingsComponent.hpp"
 #include "GraphicsCore/Components/GraphicsSettingsComponent.hpp"
 #include "GraphicsCore/Components/AutoExposureSettingsComponent.hpp"
 #include "GraphicsCore/Components/VulkanDeviceComponent.hpp"
@@ -164,6 +165,14 @@ inline void inspectGtaoSettings(GeneralManager&, Entity, GtaoSettingsComponent& 
 	ImGui::SliderFloat("Thickness Scale", &gtao.thicknessScale, 0.1f, 5.0f);
 }
 
+inline void inspectGodRaysSettings(GeneralManager&, Entity, GodRaysSettingsComponent& godRays)
+{
+    ImGui::SliderInt("Raymarch Steps", &godRays.raymarchStepCount, 1, 128);
+    ImGui::DragFloat("Extinction Coefficient", &godRays.extinctionCoefficient, 0.001f, 0.0001f, 1.0f);
+    ImGui::DragFloat("Scattering Coefficient", &godRays.scatteringCoefficient, 0.001f, 0.0f, 1.0f);
+    ImGui::DragFloat("Fog Density", &godRays.fogDensity, 0.001f, 0.0f, 100.0f);
+}
+
 inline int msaaSamplesToIndex(vk::SampleCountFlagBits samples)
 {
 	switch (samples)
@@ -217,6 +226,7 @@ inline void drawMsaaSelector(GeneralManager& gm, GraphicsSettingsComponent& sett
 inline void inspectGraphicsSettings(GeneralManager& gm, Entity, GraphicsSettingsComponent& settings)
 {
 	ImGui::Checkbox("Enable GTAO", &settings.enableGtao);
+ImGui::Checkbox("Enable God Rays", &settings.enableGodRays);
 	ImGui::Checkbox("Enable FXAA", &settings.enableFxaa);
 	ImGui::Checkbox("Enable Bloom", &settings.enableBloom);
 	ImGui::Checkbox("Enable Vignette", &settings.enableVignette);
@@ -328,6 +338,7 @@ inline InspectorRegistry buildInspectorRegistry()
 	registry.add<DirectLightComponent>("Light Component", &inspectDirectLight);
 	registry.add<CameraComponent>("Camera Component", &inspectCamera);
 	registry.add<GtaoSettingsComponent>("GTAO Settings", &inspectGtaoSettings);
+registry.add<GodRaysSettingsComponent>("God Rays Settings", &inspectGodRaysSettings);
 	registry.add<GraphicsSettingsComponent>("Graphics Settings", &inspectGraphicsSettings);
 	registry.add<AutoExposureSettingsComponent>("Auto Exposure Settings", &inspectAutoExposure);
 	registry.add<PointLightComponent>("Point Light Component", &inspectPointLight);

@@ -12,6 +12,7 @@
 #include "GraphicsCore/Components/DirectLightComponent.hpp"
 #include "GraphicsCore/Components/PointLightComponent.hpp"
 #include "GraphicsCore/Components/GtaoSettingsComponent.hpp"
+#include "GraphicsCore/Components/GodRaysSettingsComponent.hpp"
 #include "GraphicsCore/Components/GraphicsSettingsComponent.hpp"
 #include "GraphicsCore/Components/LightProbeGridComponent.hpp"
 #include "GraphicsCore/Components/DeltaTimeComponent.hpp"

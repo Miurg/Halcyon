@@ -10,6 +10,7 @@ struct HALCYON_API GraphicsSettingsComponent
 	//bool enableShadowCulling = true;
 	bool enableGtao = true;
 	bool appliedGtao = true;
+	bool enableGodRays = true;
 	bool enableAutoExposure = true;
 	bool appliedAutoExposure = true;
 	bool enableFxaa = true;
