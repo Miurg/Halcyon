@@ -1,9 +1,12 @@
 #pragma once
 
-#include <string>
-#include <vector>
+#include <chrono>
 #include <filesystem>
+#include <string>
 #include <unordered_map>
+#include <unordered_set>
+#include <vector>
+
 #include "GraphicsCore/Managers/PipelineManager.hpp"
 #include "GraphicsCore/VulkanDevice.hpp"
 
@@ -16,15 +19,22 @@ public:
 private:
 	struct ShaderInfo
 	{
-		std::filesystem::file_time_type lastWriteTime;
-		std::string name; // filename without extension
+		std::filesystem::path sourcePath;
+		std::string outputName;
+		std::vector<std::string> entryPoints;
 	};
 
 	std::string shadersDir;
 	std::string outDir;
-	std::unordered_map<std::string, ShaderInfo> trackedShaders;
+	std::unordered_map<std::string, std::filesystem::file_time_type> trackedFiles;
+	std::unordered_map<std::string, ShaderInfo> entryShaders;
+	std::unordered_map<std::string, std::unordered_set<std::string>> dependentShaders;
+	std::chrono::steady_clock::time_point nextPollTime{};
 
-	bool compileShader(const std::string& slangPath, const std::string& slangContent, const std::string& outSpvPath);
+	bool compileShader(const ShaderInfo& shader, const std::string& outSpvPath);
 	void scanDirectory();
-	std::string readFileContent(const std::string& filepath);
+	void collectDependencies(const std::filesystem::path& sourcePath,
+	                         std::unordered_set<std::string>& dependencies,
+	                         std::unordered_set<std::string>& visited) const;
+	std::string readFileContent(const std::string& filepath) const;
 };
