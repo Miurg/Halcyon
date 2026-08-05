@@ -93,7 +93,6 @@ struct VSOutput
 	float3 fragTangent;
 	float3 fragBitangent;
 	float2 fragTexCoord;
-	float4 shadowCoord;
 	float3 fragWorldPos;
 
 	nointerpolation uint materialIndex;
@@ -133,7 +132,6 @@ VSOutput vertMain(VSInput input, uint instanceID: SV_InstanceID, uint baseInstan
 
 	VSOutput output;
 	output.pos = mul(camera[0].cameraSpaceMatrix, worldPos);
-	output.shadowCoord = mul(directionalLight[0].lightSpaceMatrix, worldPos);
 	output.fragColor = input.inColor;
 	output.fragTexCoord = input.inTexCoord;
 	output.fragNormal = worldNormal;
@@ -402,8 +400,8 @@ float3 SolveLight(SurfaceContext surface, VSOutput input)
 
 	Surface s = { surface.albedo, F0, surface.metallic, surface.roughness, surface.normal, V, NdotV };
 
-	// === SHADOW (PCF 3x3) ===
-	float shadow = ComputeShadow(shadowMap, input.shadowCoord, directionalLight[0].shadowMapSize.zw, surface.normal, L);
+    // === SHADOW (PCF 3x3) ===
+    float shadow = ComputeShadow(shadowMap, mul(directionalLight[0].lightSpaceMatrix, float4(input.fragWorldPos,1.0)), directionalLight[0].shadowMapSize.zw, surface.normal, L);
 
 	// === DIRECTIONAL LIGHT ===
 	float3 directionalLightRadiance = directionalLight[0].color.rgb * directionalLight[0].color.a;
