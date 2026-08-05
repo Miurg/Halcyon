@@ -149,21 +149,6 @@ VSOutput vertMain(VSInput input, uint instanceID: SV_InstanceID, uint baseInstan
 
 // === Texture sampling helpers ===
 
-// Samples a normal map and unpacks from [0,1] to [-1,1] tangent-space range.
-float3 SampleNormalMap(uint mapIndex, float2 uv, float2 dx, float2 dy)
-{
-	if (ALPHA_TEST_ENABLED == 1)
-	{
-		float3 raw = textureArray[NonUniformResourceIndex(mapIndex)].SampleGrad(uv, dx, dy).rgb;
-		return normalize(raw * 2.0 - 1.0);
-	}
-	else
-	{
-		float3 raw = textureArray[NonUniformResourceIndex(mapIndex)].Sample(uv).rgb;
-		return normalize(raw * 2.0 - 1.0);
-	}
-}
-
 // === IBL / Ambient ===
 
 float3 getProbeCoeff(uint idx, uint band)
@@ -340,16 +325,13 @@ SurfaceContext SetupSurface(VSOutput input, bool isFrontFace)
 
 	surface.mat = materialBuffer[input.materialIndex];
 
-	float2 dx = ddx(input.fragTexCoord);
-	float2 dy = ddy(input.fragTexCoord);
+    float4 albedoFull = textureArray[NonUniformResourceIndex(surface.mat.textureIndex)].Sample(input.fragTexCoord) *
+                        surface.mat.baseColorFactor * float4(input.fragColor, 1.0);
+    surface.albedo = albedoFull.rgb;
+    surface.alpha = albedoFull.a;
 
 	if (ALPHA_TEST_ENABLED == 1)
 	{
-		float4 albedoFull =
-		    textureArray[NonUniformResourceIndex(surface.mat.textureIndex)].SampleGrad(input.fragTexCoord, dx, dy) *
-		    surface.mat.baseColorFactor * float4(input.fragColor, 1.0);
-		surface.albedo = albedoFull.rgb;
-		surface.alpha = albedoFull.a;
 		if (ALPHA_TO_COVERAGE == 0)
 		{
 			if (surface.mat.alphaMode == 1)
@@ -363,7 +345,11 @@ SurfaceContext SetupSurface(VSOutput input, bool isFrontFace)
 			// Wyman & McGuire, "Anti-Aliased Alpha Test", JCGT 2017.
 			surface.alpha = saturate((surface.alpha - surface.mat.alphaCutoff) / max(fwidth(surface.alpha), 1e-5) + 0.5);
 			if (surface.alpha <= 0.0) discard; // skip lighting + ROP for fully-transparent texels
-		}
+        }
+
+        float2 dx = ddx(input.fragTexCoord);
+        float2 dy = ddy(input.fragTexCoord);
+
 		surface.emissive =
 		    textureArray[NonUniformResourceIndex(surface.mat.emissiveIndex)].SampleGrad(input.fragTexCoord, dx, dy).rgb *
 		    surface.mat.emissiveFactor * surface.mat.emissiveStrength;
@@ -371,13 +357,18 @@ SurfaceContext SetupSurface(VSOutput input, bool isFrontFace)
 		    input.fragTexCoord, dx, dy);
 		surface.roughness = max(mrSample.g * surface.mat.roughnessFactor, MIN_ROUGHNESS);
 		surface.metallic = saturate(mrSample.b * surface.mat.metallicFactor);
+
+        float3 N = normalize(input.fragNormal);
+        if (!isFrontFace) N = -N;
+        float3 T = normalize(input.fragTangent);
+        float3 B = normalize(input.fragBitangent);
+
+        float3 raw = textureArray[NonUniformResourceIndex(surface.mat.normalMapIndex)] .SampleGrad(input.fragTexCoord, dx, dy) .rgb;
+        float3 mapNormal = raw * 2.0 - 1.0;
+        surface.normal = normalize(mapNormal.x * T + mapNormal.y * B + mapNormal.z * N);
 	}
 	else
 	{
-		float4 albedoFull = textureArray[NonUniformResourceIndex(surface.mat.textureIndex)].Sample(input.fragTexCoord) *
-		                    surface.mat.baseColorFactor * float4(input.fragColor, 1.0);
-		surface.albedo = albedoFull.rgb;
-		surface.alpha = albedoFull.a;
 		surface.emissive =
 		    textureArray[NonUniformResourceIndex(surface.mat.emissiveIndex)].Sample(input.fragTexCoord).rgb *
 		    surface.mat.emissiveFactor * surface.mat.emissiveStrength;
@@ -385,15 +376,16 @@ SurfaceContext SetupSurface(VSOutput input, bool isFrontFace)
 		    textureArray[NonUniformResourceIndex(surface.mat.metallicRoughnessIndex)].Sample(input.fragTexCoord);
 		surface.roughness = max(mrSample.g * surface.mat.roughnessFactor, MIN_ROUGHNESS);
 		surface.metallic = saturate(mrSample.b * surface.mat.metallicFactor);
+
+        float3 N = normalize(input.fragNormal);
+        if (!isFrontFace) N = -N;
+        float3 T = normalize(input.fragTangent);
+        float3 B = normalize(input.fragBitangent);
+
+        float3 raw = textureArray[NonUniformResourceIndex(surface.mat.normalMapIndex)].Sample(input.fragTexCoord) .rgb;
+        float3 mapNormal = raw * 2.0 - 1.0;
+        surface.normal = normalize(mapNormal.x * T + mapNormal.y * B + mapNormal.z * N);
 	}
-
-	float3 N = normalize(input.fragNormal);
-	if (!isFrontFace) N = -N;
-	float3 T = normalize(input.fragTangent);
-	float3 B = normalize(input.fragBitangent);
-
-	float3 mapNormal = SampleNormalMap(surface.mat.normalMapIndex, input.fragTexCoord, dx, dy);
-	surface.normal = normalize(mapNormal.x * T + mapNormal.y * B + mapNormal.z * N);
 
 	surface.roughness = GeometricSpecularAA(surface.normal, surface.roughness);
 
