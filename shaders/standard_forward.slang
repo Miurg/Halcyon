@@ -321,13 +321,13 @@ SurfaceContext SetupSurface(VSOutput input, bool isFrontFace)
 
 	surface.mat = materialBuffer[input.materialIndex];
 
-    float4 albedoFull = textureArray[NonUniformResourceIndex(surface.mat.textureIndex)].Sample(input.fragTexCoord) *
-                        surface.mat.baseColorFactor * float4(input.fragColor, 1.0);
-    surface.albedo = albedoFull.rgb;
-    surface.alpha = albedoFull.a;
-
 	if (ALPHA_TEST_ENABLED == 1)
-	{
+    {
+        float4 albedoFull = textureArray[NonUniformResourceIndex(surface.mat.textureIndex)].Sample(input.fragTexCoord) *
+                            surface.mat.baseColorFactor * float4(input.fragColor, 1.0);
+        surface.albedo = albedoFull.rgb;
+        surface.alpha = albedoFull.a;
+
 		if (ALPHA_TO_COVERAGE == 0)
 		{
 			if (surface.mat.alphaMode == 1)
@@ -364,7 +364,12 @@ SurfaceContext SetupSurface(VSOutput input, bool isFrontFace)
         surface.normal = normalize(mapNormal.x * T + mapNormal.y * B + mapNormal.z * N);
 	}
 	else
-	{
+    {
+        float4 albedoFull = textureArray[NonUniformResourceIndex(surface.mat.textureIndex)].Sample(input.fragTexCoord) *
+                            surface.mat.baseColorFactor * float4(input.fragColor, 1.0);
+        surface.albedo = albedoFull.rgb;
+        surface.alpha = 1.0;
+
 		surface.emissive =
 		    textureArray[NonUniformResourceIndex(surface.mat.emissiveIndex)].Sample(input.fragTexCoord).rgb *
 		    surface.mat.emissiveFactor * surface.mat.emissiveStrength;

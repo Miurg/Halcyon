@@ -52,7 +52,7 @@ void MainPass::buildPipelines(Orhescyon::GeneralManager& gm, vk::SampleCountFlag
 
 	const bool a2c = samples != vk::SampleCountFlagBits::e1;
 
-	auto makeForward = [&](int alphaTest, int ibl, bool useA2C, vk::CompareOp depthOp)
+	auto makeForward = [&](int alphaTest, int ibl, bool useA2C, bool blending, vk::CompareOp depthOp)
 	{
 		return PipelineDescription{
 		    .shaderPath = "standard_forward.spv",
@@ -63,7 +63,7 @@ void MainPass::buildPipelines(Orhescyon::GeneralManager& gm, vk::SampleCountFlag
 		    .depthTest = true,
 		    .depthWrite = false,
 		    .depthOp = depthOp,
-		    .colorAttachments = {useA2C ? PipelineFactory::opaqueAttachment() : PipelineFactory::blendedAttachment()},
+		    .colorAttachments = {blending ? PipelineFactory::blendedAttachment() : PipelineFactory::opaqueAttachment()},
 		    .colorFormats = {swapChain.hdrFormat},
 		    .depthFormat = depthFormat,
 		    .rasterizationSamples = samples,
@@ -78,7 +78,7 @@ void MainPass::buildPipelines(Orhescyon::GeneralManager& gm, vk::SampleCountFlag
 	    .depthTest = true,
 	    .depthWrite = false,
 	    .depthOp = vk::CompareOp::eEqual,
-	    .colorAttachments = {PipelineFactory::blendedAttachment()},
+	    .colorAttachments = {PipelineFactory::opaqueAttachment()},
 	    .colorFormats = {swapChain.hdrFormat},
 	    .depthFormat = depthFormat,
 	    .rasterizationSamples = samples,
@@ -87,22 +87,26 @@ void MainPass::buildPipelines(Orhescyon::GeneralManager& gm, vk::SampleCountFlag
 
 	if (rebuild)
 	{
-		pipelineManager.rebuild(makeForward(0, 1, false, vk::CompareOp::eEqual), "standard_opaque_forward");
-		pipelineManager.rebuild(makeForward(0, 0, false, vk::CompareOp::eEqual), "standard_opaque_forward_no_ibl");
-		pipelineManager.rebuild(makeForward(1, 1, a2c, vk::CompareOp::eGreaterOrEqual), "standard_mask_forward");
-		pipelineManager.rebuild(makeForward(1, 0, a2c, vk::CompareOp::eGreaterOrEqual), "standard_mask_forward_no_ibl");
-		pipelineManager.rebuild(makeForward(0, 1, false, vk::CompareOp::eGreaterOrEqual), "standard_blend_forward");
-		pipelineManager.rebuild(makeForward(0, 0, false, vk::CompareOp::eGreaterOrEqual), "standard_blend_forward_no_ibl");
+		pipelineManager.rebuild(makeForward(0, 1, false, false, vk::CompareOp::eEqual), "standard_opaque_forward");
+		pipelineManager.rebuild(makeForward(0, 0, false, false, vk::CompareOp::eEqual), "standard_opaque_forward_no_ibl");
+		pipelineManager.rebuild(makeForward(1, 1, a2c, false, vk::CompareOp::eGreaterOrEqual), "standard_mask_forward");
+		pipelineManager.rebuild(makeForward(1, 0, a2c, false, vk::CompareOp::eGreaterOrEqual),
+		                        "standard_mask_forward_no_ibl");
+		pipelineManager.rebuild(makeForward(0, 1, false, true, vk::CompareOp::eGreaterOrEqual), "standard_blend_forward");
+		pipelineManager.rebuild(makeForward(0, 0, false, true, vk::CompareOp::eGreaterOrEqual),
+		                        "standard_blend_forward_no_ibl");
 		pipelineManager.rebuild(skyboxDesc, "skybox");
 	}
 	else
 	{
-		pipelineManager.build(makeForward(0, 1, false, vk::CompareOp::eEqual), "standard_opaque_forward");
-		pipelineManager.build(makeForward(0, 0, false, vk::CompareOp::eEqual), "standard_opaque_forward_no_ibl");
-		pipelineManager.build(makeForward(1, 1, a2c, vk::CompareOp::eGreaterOrEqual), "standard_mask_forward");
-		pipelineManager.build(makeForward(1, 0, a2c, vk::CompareOp::eGreaterOrEqual), "standard_mask_forward_no_ibl");
-		pipelineManager.build(makeForward(0, 1, false, vk::CompareOp::eGreaterOrEqual), "standard_blend_forward");
-		pipelineManager.build(makeForward(0, 0, false, vk::CompareOp::eGreaterOrEqual), "standard_blend_forward_no_ibl");
+		pipelineManager.build(makeForward(0, 1, false, false, vk::CompareOp::eEqual), "standard_opaque_forward");
+		pipelineManager.build(makeForward(0, 0, false, false, vk::CompareOp::eEqual), "standard_opaque_forward_no_ibl");
+		pipelineManager.build(makeForward(1, 1, a2c, false, vk::CompareOp::eGreaterOrEqual), "standard_mask_forward");
+		pipelineManager.build(makeForward(1, 0, a2c, false, vk::CompareOp::eGreaterOrEqual),
+		                      "standard_mask_forward_no_ibl");
+		pipelineManager.build(makeForward(0, 1, false, true, vk::CompareOp::eGreaterOrEqual), "standard_blend_forward");
+		pipelineManager.build(makeForward(0, 0, false, true, vk::CompareOp::eGreaterOrEqual),
+		                      "standard_blend_forward_no_ibl");
 		pipelineManager.build(skyboxDesc);
 	}
 }
