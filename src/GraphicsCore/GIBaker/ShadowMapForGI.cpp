@@ -59,6 +59,7 @@ void LightProbeGIBaking::bakeShadowMap(const BakeContext& ctx)
 	// 6. Upload an all-accepting camera frustum.
 	CameraData infiniteCam{};
 	for (int i = 0; i < 6; ++i) infiniteCam.frustumPlanes[i] = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
+	infiniteCam.screenSize = glm::vec2(ctx.lightComponent->sizeX, ctx.lightComponent->sizeY);
 	std::memcpy(ctx.bufferManager->getMapped<CameraData>(ctx.globalDSet->cameraBuffers), &infiniteCam,
 	            sizeof(CameraData));
 

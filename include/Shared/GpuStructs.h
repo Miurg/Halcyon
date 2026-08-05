@@ -10,6 +10,7 @@ struct HALCYON_API CameraData
 	float4x4 invViewProj;
 	float4 cameraPositionAndPadding;
 	float4 frustumPlanes[6];
+	GPU_ALIGN(16) float2 screenSize;
 };
 
 struct HALCYON_API IndirectDrawIndexedCommand
@@ -138,7 +139,7 @@ struct HALCYON_API MaterialData
 };
 
 #ifdef __cplusplus
-static_assert(sizeof(CameraData) == 368);
+static_assert(sizeof(CameraData) == 384);
 static_assert(sizeof(IndirectDrawIndexedCommand) == 20);
 static_assert(sizeof(IndirectDrawCommand) == 16);
 static_assert(sizeof(IndirectDispatchCommand) == 16);

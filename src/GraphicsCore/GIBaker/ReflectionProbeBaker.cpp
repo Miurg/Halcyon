@@ -247,6 +247,7 @@ void ReflectionProbeBaker::bake(GeneralManager& gm, ReflectionProbeComponent& pr
 	            sizeof(CameraData));
 	CameraData infiniteCam{};
 	for (int i = 0; i < 6; ++i) infiniteCam.frustumPlanes[i] = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
+	infiniteCam.screenSize = glm::vec2(kCaptureSize, kCaptureSize);
 	std::memcpy(ctx.bufferManager->getMapped<CameraData>(ctx.globalDSet->cameraBuffers), &infiniteCam,
 	            sizeof(CameraData));
 

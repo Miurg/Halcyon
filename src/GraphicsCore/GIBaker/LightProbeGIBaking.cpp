@@ -267,6 +267,8 @@ void LightProbeGIBaking::bakeAll(GeneralManager& gm)
 
 	// Render the shadow map once for the full grid.
 	bakeShadowMap(ctx);
+	ctx.bufferManager->getMapped<CameraData>(ctx.globalDSet->cameraBuffers)->screenSize =
+	    glm::vec2(kCaptureSize, kCaptureSize);
 
 	ensureBakeBuffers(ctx);
 

@@ -80,6 +80,7 @@ void CameraMatrixSystem::update(GeneralManager& gm)
 	cameraUbo.invViewProj = glm::inverse(cameraSpaceMatrix);
 	cameraUbo.cameraPositionAndPadding = glm::vec4(mainCameraTransform->getGlobalPosition(), 0.0f);
 	for (int i = 0; i < 6; ++i) cameraUbo.frustumPlanes[i] = frustumPlanes[i];
+	cameraUbo.screenSize = glm::vec2(swapChain.swapChainExtent.width, swapChain.swapChainExtent.height);
 
 	memcpy(bufferManager.getMapped<CameraData>(globalDSetComponent->cameraBuffers, currentFrame), &cameraUbo,
 	       sizeof(cameraUbo));
