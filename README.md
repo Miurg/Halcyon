@@ -16,13 +16,14 @@
 
 ### Rendering
 - **Forward rendering** pipeline
-- **PBR (Cook-Torrance BRDF)** - metallic-roughness workflow with GGX distribution, correlated Smith-GGX visibility, Schlick Fresnel
-- **Image Based Lighting (IBL)** - irradiance maps, prefiltered environment maps, BRDF LUT (split-sum)
-- **GPU Driven Rendering** with bindless textures
+- **PBR (Cook-Torrance BRDF)** 
+- **GPU Driven Rendering**
 - **Render Graph**
 - **GTAO**
-- **FXAA** with **MSAA**
-- **Directional shadows** with PCF 3×3 filtering
+- **FXAA** and **MSAA**
+- **Directional shadows**
+- **Point and spot lights**
+- **God Rays**
 
 ### Architecture
 - **ECS core** - POD components, explicit system subscriptions, zero overhead
