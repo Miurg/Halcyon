@@ -196,81 +196,75 @@ VSOutput vertMain(VSInput input, uint instanceID: SV_InstanceID, uint baseInstan
 
 float3 sampleSHProbes(float3 worldPos, float3 N)
 {
-    SHGridInfo grid = shGridInfo[0];
+	SHGridInfo grid = shGridInfo[0];
 
-    var skyProbe = shProbes[0];
+	var skyProbe = shProbes[0];
 
-    if (grid.probeCount <= 1)
-    {
-        float3 skySh[4] = { skyProbe.sh0, skyProbe.sh1, skyProbe.sh2, skyProbe.sh3 };
-        return computeIrradiance(N, skySh);
-    }
+	if (grid.probeCount <= 1)
+	{
+		float3 skySh[4] = { skyProbe.sh0, skyProbe.sh1, skyProbe.sh2, skyProbe.sh3 };
+		return computeIrradiance(N, skySh);
+	}
 
-    float3 biasedPos = worldPos + N * (grid.spacing * PROBE_NORMAL_BIAS);
+	float3 biasedPos = worldPos + N * (grid.spacing * PROBE_NORMAL_BIAS);
 
-    float3 local = (biasedPos - grid.origin) / grid.spacing;
+	float3 local = (biasedPos - grid.origin) / grid.spacing;
 
-    float3 gridMax = float3(grid.count - 1);
-    float3 clamped = clamp(local, 0.0, gridMax);
-    float skyW = saturate(length(local - clamped));
+	float3 gridMax = float3(grid.count - 1);
+	float3 clamped = clamp(local, 0.0, gridMax);
+	float skyW = saturate(length(local - clamped));
 
-    int3 base = min(int3(clamped), max(grid.count - 2, 0));
-    float3 f = clamped - float3(base);
+	int3 base = min(int3(clamped), max(grid.count - 2, 0));
+	float3 f = clamped - float3(base);
 
-    float3 w0 = 1.0 - f;
-    float3 w1 = f;
+	float3 w0 = 1.0 - f;
+	float3 w1 = f;
 
-    float weights[8] = {
-		w0.x * w0.y * w0.z, w1.x * w0.y * w0.z,
-		w0.x * w1.y * w0.z, w1.x * w1.y * w0.z,
-                         w0.x * w0.y * w1.z, w1.x * w0.y * w1.z,
-		w0.x * w1.y * w1.z, w1.x * w1.y * w1.z
-	};
+	float weights[8] = { w0.x * w0.y * w0.z, w1.x * w0.y * w0.z, w0.x * w1.y * w0.z, w1.x * w1.y * w0.z,
+		                  w0.x * w0.y * w1.z, w1.x * w0.y * w1.z, w0.x * w1.y * w1.z, w1.x * w1.y * w1.z };
 
-    uint sy = grid.count.x;
-    uint sz = grid.count.x * grid.count.y;
+	uint sy = grid.count.x;
+	uint sz = grid.count.x * grid.count.y;
 
-    uint baseSlot = 1u + uint(base.x) + uint(base.y) * sy + uint(base.z) * sz;
+	uint baseSlot = 1u + uint(base.x) + uint(base.y) * sy + uint(base.z) * sz;
 
-    uint offsets[8] = {
-		0, 1, sy, sy + 1, sz, sz + 1, sy + sz, sy + sz + 1
-	};
+	uint offsets[8] = { 0, 1, sy, sy + 1, sz, sz + 1, sy + sz, sy + sz + 1 };
 
-    float3 sh0 = 0.0, sh1 = 0.0, sh2 = 0.0, sh3 = 0.0;
-    float totalW = 0.0;
+	float3 sh0 = 0.0, sh1 = 0.0, sh2 = 0.0, sh3 = 0.0;
+	float totalW = 0.0;
 
-    [unroll]
-    for (int i = 0; i < 8; ++i)
-    {
-        uint slot = baseSlot + offsets[i];
-        var probe = shProbes[slot];
+	[unroll]
+	for (int i = 0; i < 8; ++i)
+	{
+		uint slot = baseSlot + offsets[i];
+		var probe = shProbes[slot];
 
-        float valid = probe._p0 > PROBE_BACKFACE_THRESHOLD ? 0.0 : 1.0;
-        float actualW = weights[i] * valid;
+		float valid = probe._p0 > PROBE_BACKFACE_THRESHOLD ? 0.0 : 1.0;
+		float actualW = weights[i] * valid;
 
-        sh0 += probe.sh0 * actualW;
-        sh1 += probe.sh1 * actualW;
-        sh2 += probe.sh2 * actualW;
-        sh3 += probe.sh3 * actualW;
-        totalW += actualW;
-    }
+		sh0 += probe.sh0 * actualW;
+		sh1 += probe.sh1 * actualW;
+		sh2 += probe.sh2 * actualW;
+		sh3 += probe.sh3 * actualW;
+		totalW += actualW;
+	}
 
-    float invW = totalW > 0.00001 ? (1.0 / totalW) : 0.0;
-    sh0 *= invW;
-    sh1 *= invW;
-    sh2 *= invW;
-    sh3 *= invW;
+	float invW = totalW > 0.00001 ? (1.0 / totalW) : 0.0;
+	sh0 *= invW;
+	sh1 *= invW;
+	sh2 *= invW;
+	sh3 *= invW;
 
-    if (skyW > 0.0)
-    {
-        sh0 = lerp(sh0, skyProbe.sh0, skyW);
-        sh1 = lerp(sh1, skyProbe.sh1, skyW);
-        sh2 = lerp(sh2, skyProbe.sh2, skyW);
-        sh3 = lerp(sh3, skyProbe.sh3, skyW);
-    }
+	if (skyW > 0.0)
+	{
+		sh0 = lerp(sh0, skyProbe.sh0, skyW);
+		sh1 = lerp(sh1, skyProbe.sh1, skyW);
+		sh2 = lerp(sh2, skyProbe.sh2, skyW);
+		sh3 = lerp(sh3, skyProbe.sh3, skyW);
+	}
 
-    float3 finalSH[4] = { sh0, sh1, sh2, sh3 };
-    return computeIrradiance(N, finalSH);
+	float3 finalSH[4] = { sh0, sh1, sh2, sh3 };
+	return computeIrradiance(N, finalSH);
 }
 
 // Box-projected local reflection blended across every covering probe: each probe's weight
@@ -322,32 +316,30 @@ float sampleReflectionProbes(float3 worldPos, float3 R, float roughness, out flo
 // the skybox specialization constant is disabled.
 float3 ComputeAmbient(SurfaceContext surface, GpuMaterialData mat, float3 worldPos, float4 dirLightAmbient, float ao)
 {
-    float3 F_ibl = F_SchlickRoughness(surface.NdotV, surface.F0, surface.roughness);
+	float3 F_ibl = F_SchlickRoughness(surface.NdotV, surface.F0, surface.roughness);
 	float3 startAmbient = dirLightAmbient.a * dirLightAmbient.rgb;
 
 	if (SKYBOX_ENABLED == 1)
-    {
-        float3 irradiance = sampleSHProbes(worldPos, surface.normal);
-        float3 iblDiffuse =
-            (1.0 - F_ibl) * (1.0 - surface.metallic) *
-                            DiffuseOrenNayarIBL(surface.albedo, surface.NdotV, surface.roughness) *
-		    irradiance;
+	{
+		float3 irradiance = sampleSHProbes(worldPos, surface.normal);
+		float3 iblDiffuse = (1.0 - F_ibl) * (1.0 - surface.metallic) *
+		                    DiffuseOrenNayarIBL(surface.albedo, surface.NdotV, surface.roughness) * irradiance;
 
 		float3 iblSpecular = float3(0.0, 0.0, 0.0);
 		if (mat.alphaMode != 1 && mat.doubleSided != 1)
-        {
-            float3 R = reflect(-surface.viewVector, surface.normal);
-            float3 probeColor;
-            float coverage = sampleReflectionProbes(worldPos, R, surface.roughness, probeColor);
+		{
+			float3 R = reflect(-surface.viewVector, surface.normal);
+			float3 probeColor;
+			float coverage = sampleReflectionProbes(worldPos, R, surface.roughness, probeColor);
 			float3 prefiltColor = probeColor;
 			[branch]
 			if (coverage < 1.0)
-            {
-                float3 skyColor = prefilteredMap.SampleLevel(R, surface.roughness * MAX_REFLECTION_LOD).rgb;
+			{
+				float3 skyColor = prefilteredMap.SampleLevel(R, surface.roughness * MAX_REFLECTION_LOD).rgb;
 
 				prefiltColor += skyColor * (1.0 - coverage);
-            }
-            float2 brdfLut = brdfLutMap.SampleLevel(float2(surface.NdotV, surface.roughness), 0).rg;
+			}
+			float2 brdfLut = brdfLutMap.SampleLevel(float2(surface.NdotV, surface.roughness), 0).rg;
 			iblSpecular = prefiltColor * (F_ibl * brdfLut.x + brdfLut.y);
 		}
 
@@ -355,10 +347,9 @@ float3 ComputeAmbient(SurfaceContext surface, GpuMaterialData mat, float3 worldP
 	}
 	else
 	{
-        // Fallback without skybox: ambient * Oren-Nayar lambertian only.
-        return (1.0 - F_ibl) * (1.0 - surface.metallic) *
-                   DiffuseOrenNayarIBL(surface.albedo, surface.NdotV, surface.roughness) *
-		           ao +
+		// Fallback without skybox: ambient * Oren-Nayar lambertian only.
+		return (1.0 - F_ibl) * (1.0 - surface.metallic) *
+		           DiffuseOrenNayarIBL(surface.albedo, surface.NdotV, surface.roughness) * ao +
 		       startAmbient;
 	}
 }
@@ -412,127 +403,63 @@ SurfaceContext SetupSurface(VSOutput input, bool isFrontFace)
 {
 	SurfaceContext surface;
 
-    MaterialData mat = materialBuffer[input.materialIndex];
+	MaterialData mat = materialBuffer[input.materialIndex];
 
-	float4 albedoFull = mat.baseColorFactor * float4(input.fragColor, 1.0);
-	if (mat.materialFlags & MaterialFlags.HasBaseColorTexture)
-	{
-		albedoFull *= textureArray[NonUniformResourceIndex(mat.textureIndex)].Sample(input.fragTexCoord) *
-		              mat.baseColorFactor * float4(input.fragColor, 1.0);
-	}
-	surface.albedo = albedoFull.rgb;
-	surface.alpha = albedoFull.a;
+    float3 rawNormal;
+    float4 rawMetalRough;
+    float3 rawEmission;
+    float4 rawAlbedo;
 
-	if (ALPHA_TEST_ENABLED == 1)
-	{
-		if (ALPHA_TO_COVERAGE == 0)
-		{
-			if (mat.alphaMode == 1)
-			{
-				if (surface.alpha < mat.alphaCutoff) discard;
-			}
-		}
-		else if (mat.alphaMode == 1)
-		{
-			// Wyman & McGuire, "Anti-Aliased Alpha Test", JCGT 2017.
-			surface.alpha = saturate((surface.alpha - mat.alphaCutoff) / max(fwidth(surface.alpha), 1e-5) + 0.5);
-			if (surface.alpha <= 0.0) discard; // skip lighting + ROP for fully-transparent texels
-		}
-
-		float2 dx = ddx(input.fragTexCoord);
-		float2 dy = ddy(input.fragTexCoord);
-
-        if (mat.materialFlags & MaterialFlags.HasNormalTexture)
-        {
-
-            float3 raw = textureArray[NonUniformResourceIndex(mat.normalMapIndex)]
-                             .SampleGrad(input.fragTexCoord, dx, dy)
-                             .rgb;
-            float3 N;
-            float3 T;
-            float3 B;
-            UnpackQuaternionToTBN(input.fragTBNQuaternion, T, N);
-            if (!isFrontFace) N = -N;
-            B = cross(N, T) * input.bitangentSign;
-            N = normalize(N);
-            T = normalize(T);
-
-            float3 mapNormal = raw * 2.0 - 1.0;
-            surface.normal = normalize(mapNormal.x * T + mapNormal.y * B + mapNormal.z * N);
-        }
-        else
-        {
-            surface.normal = UnpackQuaternionToNormal(input.fragTBNQuaternion);
-        }
-
-		surface.emissive = mat.emissiveFactor * mat.emissiveStrength;
-		bool hasEmissiveContribution = any(surface.emissive > float3(0.0));
-		if (hasEmissiveContribution && (mat.materialFlags & MaterialFlags.HasEmissiveTexture))
-		{
-			surface.emissive *= textureArray[NonUniformResourceIndex(mat.emissiveIndex)]
-			                        .SampleGrad(input.fragTexCoord, dx, dy)
-			                        .rgb;
-		}
-
-		surface.roughness = mat.roughnessFactor;
-		surface.metallic = mat.metallicFactor;
-		if (mat.materialFlags & MaterialFlags.HasMetallicRoughnessTexture)
-		{
-			float4 mr = textureArray[NonUniformResourceIndex(mat.metallicRoughnessIndex)].SampleGrad(
-			    input.fragTexCoord, dx, dy);
-
-			surface.roughness *= mr.g;
-			surface.metallic *= mr.b;
-		}
-		surface.roughness = max(surface.roughness, MIN_ROUGHNESS);
-		surface.metallic = saturate(surface.metallic);
-	}
-	else
+    if (ALPHA_TEST_ENABLED == 1)
     {
-        if (mat.materialFlags & MaterialFlags.HasNormalTexture)
+        rawAlbedo = mat.baseColorFactor * float4(input.fragColor, 1.0);
+        if (mat.materialFlags & MaterialFlags.HasBaseColorTexture)
         {
-            float3 raw = textureArray[NonUniformResourceIndex(mat.normalMapIndex)].Sample(input.fragTexCoord).rgb;
-
-            float3 N;
-            float3 T;
-            float3 B;
-            UnpackQuaternionToTBN(input.fragTBNQuaternion, T, N);
-            if (!isFrontFace) N = -N;
-            B = cross(N, T) * input.bitangentSign;
-            N = normalize(N);
-            T = normalize(T);
-
-            float3 mapNormal = raw * 2.0 - 1.0;
-            surface.normal = normalize(mapNormal.x * T + mapNormal.y * B + mapNormal.z * N);
-        }
-        else
-        {
-            surface.normal = UnpackQuaternionToNormal(input.fragTBNQuaternion);
+            rawAlbedo *= textureArray[NonUniformResourceIndex(mat.textureIndex)].Sample(input.fragTexCoord);
         }
 
+        float2 dx = ddx(input.fragTexCoord);
+        float2 dy = ddy(input.fragTexCoord);
+
+        if (ALPHA_TO_COVERAGE == 0)
+        {
+            if (mat.alphaMode == 1)
+            {
+                if (rawAlbedo.a < mat.alphaCutoff) discard;
+            }
+        }
+        else if (mat.alphaMode == 1)
+        {
+            // Wyman & McGuire, "Anti-Aliased Alpha Test", JCGT 2017.
+            rawAlbedo.a = saturate((rawAlbedo.a - mat.alphaCutoff) / max(fwidth(rawAlbedo.a), 1e-5) + 0.5);
+            if (rawAlbedo.a <= 0.0) discard; // skip lighting + ROP for fully-transparent texels
+        }
+
+        rawNormal = textureArray[NonUniformResourceIndex(mat.normalMapIndex)].SampleGrad(input.fragTexCoord, dx, dy).rgb;
+        rawMetalRough = textureArray[NonUniformResourceIndex(mat.metallicRoughnessIndex)].SampleGrad(input.fragTexCoord, dx, dy);
+        
 		surface.emissive = mat.emissiveFactor * mat.emissiveStrength;
-		bool hasEmissiveContribution = any(surface.emissive > float3(0.0));
+        bool hasEmissiveContribution = any(surface.emissive > float3(0.0));
 		if (hasEmissiveContribution && (mat.materialFlags & MaterialFlags.HasEmissiveTexture))
-		{
-			surface.emissive *=
-			    textureArray[NonUniformResourceIndex(mat.emissiveIndex)].Sample(input.fragTexCoord).rgb;
-		}
-
-		surface.roughness = mat.roughnessFactor;
-		surface.metallic = mat.metallicFactor;
-		if (mat.materialFlags & MaterialFlags.HasMetallicRoughnessTexture)
-		{
-			float4 mr =
-			    textureArray[NonUniformResourceIndex(mat.metallicRoughnessIndex)].Sample(input.fragTexCoord);
-
-			surface.roughness *= mr.g;
-			surface.metallic *= mr.b;
-		}
-		surface.roughness = max(surface.roughness, MIN_ROUGHNESS);
-		surface.metallic = saturate(surface.metallic);
+        {
+            rawEmission =
+                textureArray[NonUniformResourceIndex(mat.emissiveIndex)].SampleGrad(input.fragTexCoord, dx, dy).rgb;
+        }
     }
-
-	surface.roughness = GeometricSpecularAA(surface.normal, surface.roughness);
+    else
+    {
+        rawAlbedo = textureArray[NonUniformResourceIndex(mat.textureIndex)].Sample(input.fragTexCoord);
+        rawNormal = textureArray[NonUniformResourceIndex(mat.normalMapIndex)].Sample(input.fragTexCoord).rgb;
+        rawMetalRough = textureArray[NonUniformResourceIndex(mat.metallicRoughnessIndex)].Sample(input.fragTexCoord);
+        
+		surface.emissive = mat.emissiveFactor * mat.emissiveStrength;
+        bool hasEmissiveContribution = any(surface.emissive > float3(0.0));
+        if (hasEmissiveContribution && (mat.materialFlags & MaterialFlags.HasEmissiveTexture))
+        {
+            rawEmission =
+                textureArray[NonUniformResourceIndex(mat.emissiveIndex)].Sample(input.fragTexCoord).rgb;
+        }
+    }
 
     GpuMaterialData gpuMat;
     gpuMat.alphaCutoff = mat.alphaCutoff;
@@ -546,8 +473,42 @@ SurfaceContext SetupSurface(VSOutput input, bool isFrontFace)
     float3 worldPosition = worldPosUnscaled.xyz / worldPosUnscaled.w;
 
     surface.viewVector = normalize(camera[0].cameraPositionAndPadding.xyz - worldPosition);
+
+    float3 N;
+    float3 T;
+    float3 B;
+    UnpackQuaternionToTBN(input.fragTBNQuaternion, T, N);
+    if (!isFrontFace) N = -N;
+    B = cross(N, T) * input.bitangentSign;
+    N = normalize(N);
+    T = normalize(T);
+    float3 mapNormal = rawNormal * 2.0 - 1.0;
+    surface.normal = normalize(mapNormal.x * T + mapNormal.y * B + mapNormal.z * N);
     surface.NdotV = max(dot(surface.normal, surface.viewVector), 1e-4);
+
+    surface.roughness = mat.roughnessFactor;
+    surface.metallic = mat.metallicFactor;
+    surface.roughness *= rawMetalRough.g;
+    surface.metallic *= rawMetalRough.b;
+    surface.roughness = max(surface.roughness, MIN_ROUGHNESS);
+    surface.metallic = saturate(surface.metallic);
+    surface.roughness = GeometricSpecularAA(surface.normal, surface.roughness);
+
+    if (ALPHA_TEST_ENABLED == 1)
+    {
+        surface.albedo = rawAlbedo.rgb;
+        surface.alpha = rawAlbedo.a;
+    }
+    else
+    {
+        float4 albedoFull = mat.baseColorFactor * float4(input.fragColor, 1.0) * rawAlbedo;
+        surface.albedo = albedoFull.rgb;
+        surface.alpha = albedoFull.a;
+    }
+
     surface.F0 = lerp(float3(0.04, 0.04, 0.04), surface.albedo, surface.metallic);
+
+    surface.emissive *= rawEmission;
 
 	return surface;
 }
@@ -555,22 +516,22 @@ SurfaceContext SetupSurface(VSOutput input, bool isFrontFace)
 float3 SolveLight(SurfaceContext surface, VSOutput input)
 {
 	// === LIGHTING SETUP ===
-    float3 L = normalize(directionalLight[0].direction.xyz);
+	float3 L = normalize(directionalLight[0].direction.xyz);
 
-    float2 ndcXY = (input.pos.xy / camera[0].screenSize) * 2.0 - 1.0;
-    float4 clipPos = float4(ndcXY, input.pos.z, 1.0);
-    float4 worldPosUnscaled = mul(camera[0].invViewProj, clipPos);
-    float3 worldPosition = worldPosUnscaled.xyz / worldPosUnscaled.w;
+	float2 ndcXY = (input.pos.xy / camera[0].screenSize) * 2.0 - 1.0;
+	float4 clipPos = float4(ndcXY, input.pos.z, 1.0);
+	float4 worldPosUnscaled = mul(camera[0].invViewProj, clipPos);
+	float3 worldPosition = worldPosUnscaled.xyz / worldPosUnscaled.w;
 
-    // === SHADOW (PCF 3x3) ===
-    float shadow = ComputeShadow(shadowMap, mul(directionalLight[0].lightSpaceMatrix, float4(worldPosition, 1.0)),
+	// === SHADOW (PCF 3x3) ===
+	float shadow = ComputeShadow(shadowMap, mul(directionalLight[0].lightSpaceMatrix, float4(worldPosition, 1.0)),
 	                             directionalLight[0].shadowMapSize.zw, surface.normal, L);
 
 	// === DIRECTIONAL LIGHT ===
 	float3 directionalLightRadiance = directionalLight[0].color.rgb * directionalLight[0].color.a;
 
-    LightingVectors lv = ComputeLightingVectors(L, surface.viewVector, surface.normal);
-    BRDFResult brdf = EvaluateBRDF(surface, lv, L);
+	LightingVectors lv = ComputeLightingVectors(L, surface.viewVector, surface.normal);
+	BRDFResult brdf = EvaluateBRDF(surface, lv, L);
 
 	float3 directLight = (brdf.diffuse + brdf.specular) * directionalLightRadiance * lv.NdotL * shadow;
 
@@ -578,10 +539,10 @@ float3 SolveLight(SurfaceContext surface, VSOutput input)
 	float3 litColorFromLights = float3(0.0, 0.0, 0.0);
 	for (uint i = 0; i < lightCount[0]; i++)
 	{
-        PointLightData light = lights[i];
-        litColorFromLights += EvaluatePunctualLight(surface, worldPosition, light.position, light.radius,
-		                                            light.color, light.intensity, light.direction, light.innerConeAngle,
-		                                            light.outerConeAngle, light.type);
+		PointLightData light = lights[i];
+		litColorFromLights +=
+		    EvaluatePunctualLight(surface, worldPosition, light.position, light.radius, light.color, light.intensity,
+		                          light.direction, light.innerConeAngle, light.outerConeAngle, light.type);
 	}
 
 	float ao = 1.0;
@@ -591,8 +552,8 @@ float3 SolveLight(SurfaceContext surface, VSOutput input)
 		ao = gtaoTexture.SampleLevel(screenUV, 0).r;
 	}
 
-    // === IBL / Ambient ===
-    float3 ambient = ComputeAmbient(surface, surface.mat, worldPosition, directionalLight[0].ambient, ao);
+	// === IBL / Ambient ===
+	float3 ambient = ComputeAmbient(surface, surface.mat, worldPosition, directionalLight[0].ambient, ao);
 
 	float3 litColor = directLight + litColorFromLights + ambient + surface.emissive;
 	return litColor;
