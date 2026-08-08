@@ -146,7 +146,6 @@ void PlaceholdersInit::initPlaceholders(GeneralManager& gm)
 	    globalDSetComponent->globalDSets, BIND_GLOBAL_SH_PROBES);
 	{
 		SHProbeEntry skyboxSlot{};
-		skyboxSlot.position = glm::vec3(0.0f);
 		skyboxSlot.influenceRadius = std::numeric_limits<float>::max();
 		auto cmd = VulkanUtils::beginSingleTimeCommands(*vulkanDevice);
 		cmd.updateBuffer(bufferManager->getBuffer(globalDSetComponent->shProbeBuffer), 0,

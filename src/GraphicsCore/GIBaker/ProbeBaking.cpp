@@ -123,7 +123,6 @@ static void writeProbeMetadata(const BakeContext& ctx, int slot, glm::vec3 pos, 
 {
 	auto* probes = ctx.bufferManager->getMapped<SHProbeEntry>(ctx.globalDSet->shProbeBuffer);
 
-	probes[slot].position = pos;
 	probes[slot].influenceRadius = radius;
 }
 

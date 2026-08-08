@@ -74,7 +74,7 @@ struct HALCYON_API GPU_ALIGN(16) ModelData
 	float3 AABBMax;
 	float padding1;
 	uint transformIndex;
-	uint materialIndex;
+	uint16_t materialIndex;
 	uint drawCommandIndex;
 };
 
@@ -97,16 +97,14 @@ struct HALCYON_API GPU_ALIGN(16) SHGridInfo
 // Slot 0 = skybox fallback (influenceRadius = FLT_MAX, position ignored).
 struct HALCYON_API SHProbeEntry
 {
-	float3 position;
-	float influenceRadius;
 	float3 sh0;
-	float _p0; // backface fraction — probe validity
+	float influenceRadius; 
 	float3 sh1;
-	float _p1;
+	float _p0; // backface fraction — probe validity
 	float3 sh2;
-	float _p2;
+	float _p1;
 	float3 sh3;
-	float _p3;
+	float _p2;
 };
 
 struct HALCYON_API ReflectionProbeData
@@ -117,6 +115,14 @@ struct HALCYON_API ReflectionProbeData
 	float _pad0;
 	float3 captureOrigin;
 	float _pad1;
+};
+
+enum MaterialFlags : uint32_t
+{
+	HasBaseColorTexture = 1u << 0,
+	HasNormalTexture = 1u << 1,
+	HasMetallicRoughnessTexture = 1u << 2,
+	HasEmissiveTexture = 1u << 3
 };
 
 struct HALCYON_API MaterialData
@@ -134,7 +140,7 @@ struct HALCYON_API MaterialData
 	float emissivePadding GPU_DEFAULT(0.0f);
 	float roughnessFactor GPU_DEFAULT(1.0f);
 	float metallicFactor GPU_DEFAULT(1.0f);
-	float padding1 GPU_DEFAULT(0.0f);
+	uint materialFlags GPU_DEFAULT(0);
 	float padding2 GPU_DEFAULT(0.0f);
 };
 
@@ -148,7 +154,7 @@ static_assert(sizeof(PointLightData) == 64);
 static_assert(sizeof(ModelData) == 48);
 static_assert(sizeof(TransformData) == 64);
 static_assert(sizeof(SHGridInfo) == 64);
-static_assert(sizeof(SHProbeEntry) == 80);
+static_assert(sizeof(SHProbeEntry) == 64);
 static_assert(sizeof(ReflectionProbeData) == 48);
 static_assert(sizeof(MaterialData) == 80);
 #endif

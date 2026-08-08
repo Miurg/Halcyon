@@ -43,8 +43,8 @@ struct VSInput
 
 struct VSOutput
 {
-	float4 pos : SV_Position;
-	float2 fragTexCoord;
+    float4 pos : SV_Position;
+    half2 fragTexCoord;
 	nointerpolation uint materialIndex;
 };
 
@@ -59,7 +59,7 @@ VSOutput vertMain(VSInput input, uint instanceID: SV_InstanceID, uint baseInstan
 
     VSOutput output;
     output.pos = mul(directionalLight[0].lightSpaceMatrix, worldPos);
-	output.fragTexCoord = input.inTexCoord;
+    output.fragTexCoord = (half2)input.inTexCoord;
 	output.materialIndex = model.materialIndex;
 	return output;
 }

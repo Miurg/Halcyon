@@ -175,6 +175,7 @@ function(add_slang_shader_target TARGET_NAME)
                 -target spirv
                 -profile spirv_1_6
                 -emit-spirv-directly
+                "$<$<CONFIG:Debug>:-g3;-O0>"
                 -fvk-use-entrypoint-name
                 -capability SPV_KHR_non_semantic_info+SPV_GOOGLE_user_type+spvDerivativeControl+spvImageQuery+spvImageGatherExtended+spvSparseResidency+spvMinLod+spvFragmentFullyCoveredEXT+spvShaderNonUniformEXT
                 -I "${CMAKE_CURRENT_LIST_DIR}/include"
@@ -186,6 +187,7 @@ function(add_slang_shader_target TARGET_NAME)
         DEPENDS "${ARG_SOURCES}"
         DEPFILE "${DEP_FILE}"
         COMMENT "Compiling Slang shader: ${ARG_OUTPUT_NAME}"
+        COMMAND_EXPAND_LISTS
         VERBATIM
     )
 

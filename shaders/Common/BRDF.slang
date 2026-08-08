@@ -1,6 +1,7 @@
 module BRDF;
 
 import Common.Constants;
+import Common.SharedStructs;
 
 // GGX normal distribution function (Trowbridge & Reitz, 1975 / Walter et al., 2007).
 //        a^2
@@ -116,39 +117,26 @@ public struct BRDFResult
 	public float3 specular;
 };
 
-// View-invariant per-fragment surface data — bundled to avoid passing
-// 7+ arguments through every BRDF / light evaluation.
-public struct Surface
-{
-	public float3 albedo;
-	public float3 F0;
-	public float  metallic;
-	public float  roughness;
-	public float3 N;
-	public float3 V;
-	public float  NdotV;
-};
-
 // Cook-Torrance for a single light: diffuse (Oren-Nayar) and specular (GGX/Smith) kept apart.
-public BRDFResult EvaluateBRDF(Surface s, LightingVectors lv, float3 L)
+public BRDFResult EvaluateBRDF(SurfaceContext surface, LightingVectors lv, float3 L)
 {
-	float a = s.roughness * s.roughness;
+    float a = surface.roughness * surface.roughness;
 
-	float  D   = D_GGX(lv.NdotH, a);
-	float  Vis = V_SmithGGXCorrelated(s.NdotV, lv.NdotL, a);
-	float3 F   = F_Schlick(lv.HdotV, s.F0);
+    float D = D_GGX(lv.NdotH, a);
+    float Vis = V_SmithGGXCorrelated(surface.NdotV, lv.NdotL, a);
+    float3 F = F_Schlick(lv.HdotV, surface.F0);
 
-	float3 kD = (1.0 - F) * (1.0 - s.metallic);
+    float3 kD = (1.0 - F) * (1.0 - surface.metallic);
 
 	BRDFResult result;
-	result.specular = D * Vis * F;
-	result.diffuse  = kD * DiffuseOrenNayar(s.albedo, lv.NdotL, s.NdotV, s.roughness, L, s.V, s.N);
+    result.specular = D * Vis * F;
+    result.diffuse = kD * DiffuseOrenNayar(surface.albedo, lv.NdotL, surface.NdotV, surface.roughness, L, surface.viewVector, surface.normal);
 	return result;
 }
 
 // Returns zero contribution outside the light's radius or spot cone.
 // Light parameters are passed field by field so this module stays free of GPU struct definitions.
-public float3 EvaluatePunctualLight(Surface s, float3 worldPos, float3 lightPos, float radius, float3 lightColor,
+public float3 EvaluatePunctualLight(SurfaceContext surface, float3 worldPos, float3 lightPos, float radius, float3 lightColor,
                                     float intensity, float3 spotDir, float innerConeAngle, float outerConeAngle,
                                     uint type)
 {
@@ -168,8 +156,8 @@ public float3 EvaluatePunctualLight(Surface s, float3 worldPos, float3 lightPos,
 
 	float attenuation = PointLightAttenuation(dist, radius);
 
-	LightingVectors lv   = ComputeLightingVectors(Ldir, s.V, s.N);
-	BRDFResult      brdf = EvaluateBRDF(s, lv, Ldir);
+    LightingVectors lv = ComputeLightingVectors(Ldir, surface.viewVector, surface.normal);
+    BRDFResult brdf = EvaluateBRDF(surface, lv, Ldir);
 
 	float3 radiance = lightColor * intensity;
 	return (brdf.diffuse + brdf.specular) * radiance * lv.NdotL * attenuation * spotAttenuation;

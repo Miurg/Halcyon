@@ -67,8 +67,7 @@ ModelHandle GltfLoader::loadModelFromFile(const char path[MAX_PATH_LEN], int ver
 
 	std::vector<MaterialHandle> ownedMaterials;
 	ownedMaterials.reserve(materialMaps.materials.size());
-	for (const auto& [gltfIndex, materialSlot] : materialMaps.materials)
-		ownedMaterials.push_back(materialSlot);
+	for (const auto& [gltfIndex, materialSlot] : materialMaps.materials) ownedMaterials.push_back(materialSlot);
 
 	ModelHandle modelHandle = modelManager.allocateModelSlot();
 	modelManager.getModel(modelHandle).allocation = allocation;
@@ -80,12 +79,12 @@ ModelHandle GltfLoader::loadModelFromFile(const char path[MAX_PATH_LEN], int ver
 	return modelHandle;
 }
 
-TextureHandle GltfLoader::loadMaterialTexture(tinygltf::Model& model,
-                                    const std::map<std::string, tinygltf::Parameter>& params,
-                                    const char* paramName, bool isSrgb, TextureHandle fallback, const char* filePath,
-                                    std::vector<TextureHandle>& ownedTextures, TextureManager& textureManager,
-                                    BindlessTextureDSetComponent& dSetComponent, DescriptorManager& descriptorManager,
-                                    VulkanDevice& vulkanDevice, VmaAllocator allocator)
+TextureHandle
+GltfLoader::loadMaterialTexture(tinygltf::Model& model, const std::map<std::string, tinygltf::Parameter>& params,
+                                const char* paramName, bool isSrgb, TextureHandle fallback, const char* filePath,
+                                std::vector<TextureHandle>& ownedTextures, TextureManager& textureManager,
+                                BindlessTextureDSetComponent& dSetComponent, DescriptorManager& descriptorManager,
+                                VulkanDevice& vulkanDevice, VmaAllocator allocator)
 {
 	auto paramIt = params.find(paramName);
 	if (paramIt == params.end()) return fallback;
@@ -160,31 +159,31 @@ MaterialMaps GltfLoader::materialsParser(tinygltf::Model& model, TextureManager&
 	TextureHandle whiteTexture =
 	    cachedWhite.id != -1
 	        ? cachedWhite
-	        : TextureFactory::createBindlessTexture(
-	              textureManager, vulkanDevice, allocator, "sys_default_white", 1, 1,
-	              std::vector<unsigned char>{255, 255, 255, 255}.data(), dSetComponent, descriptorManager);
+	        : TextureFactory::createBindlessTexture(textureManager, vulkanDevice, allocator, "sys_default_white", 1, 1,
+	                                                std::vector<unsigned char>{255, 255, 255, 255}.data(), dSetComponent,
+	                                                descriptorManager);
 	// Default flat normal map: (128,128,255,255) = tangent-space up (0,0,1), loaded as linear
 	TextureHandle cachedNormal = textureManager.getTextureHandle("sys_default_normal");
 	TextureHandle defaultNormalTexture =
 	    cachedNormal.id != -1
 	        ? cachedNormal
 	        : TextureFactory::createBindlessTexture(textureManager, vulkanDevice, allocator, "sys_default_normal", 1, 1,
-	                                               std::vector<unsigned char>{128, 128, 255, 255}.data(), dSetComponent,
-	                                               descriptorManager, vk::Format::eR8G8B8A8Unorm);
+	                                                std::vector<unsigned char>{128, 128, 255, 255}.data(), dSetComponent,
+	                                                descriptorManager, vk::Format::eR8G8B8A8Unorm);
 	TextureHandle cachedMR = textureManager.getTextureHandle("sys_default_mr");
 	TextureHandle defaultMRTexture =
 	    cachedMR.id != -1
 	        ? cachedMR
 	        : TextureFactory::createBindlessTexture(textureManager, vulkanDevice, allocator, "sys_default_mr", 1, 1,
-	                                               std::vector<unsigned char>{255, 255, 0, 255}.data(), dSetComponent,
-	                                               descriptorManager, vk::Format::eR8G8B8A8Unorm);
+	                                                std::vector<unsigned char>{255, 255, 255, 255}.data(), dSetComponent,
+	                                                descriptorManager, vk::Format::eR8G8B8A8Unorm);
 	TextureHandle cachedEmissive = textureManager.getTextureHandle("sys_default_emissive");
 	TextureHandle defaultEmissiveTexture =
 	    cachedEmissive.id != -1
 	        ? cachedEmissive
-	        : TextureFactory::createBindlessTexture(textureManager, vulkanDevice, allocator, "sys_default_emissive", 1, 1,
-	                                               std::vector<unsigned char>{255, 255, 255, 255}.data(), dSetComponent,
-	                                               descriptorManager);
+	        : TextureFactory::createBindlessTexture(textureManager, vulkanDevice, allocator, "sys_default_emissive", 1,
+	                                                1, std::vector<unsigned char>{255, 255, 255, 255}.data(),
+	                                                dSetComponent, descriptorManager);
 
 	MaterialData defaultMaterial{};
 	defaultMaterial.textureIndex = whiteTexture.id;
@@ -212,16 +211,29 @@ MaterialMaps GltfLoader::materialsParser(tinygltf::Model& model, TextureManager&
 		                                            whiteTexture, filePath, maps.ownedTextures, textureManager,
 		                                            dSetComponent, descriptorManager, vulkanDevice, allocator)
 		                            .id;
-		material.normalMapIndex = loadMaterialTexture(
-		    model, model.materials[i].additionalValues, "normalTexture", /*isSrgb*/ false, defaultNormalTexture, filePath,
-		    maps.ownedTextures, textureManager, dSetComponent, descriptorManager, vulkanDevice, allocator)
-		                              .id;
+		if (material.textureIndex != ~0u)
+		{
+			material.materialFlags |= MaterialFlags::HasBaseColorTexture;
+		}
+		material.normalMapIndex =
+		    loadMaterialTexture(model, model.materials[i].additionalValues, "normalTexture", /*isSrgb*/ false,
+		                        defaultNormalTexture, filePath, maps.ownedTextures, textureManager, dSetComponent,
+		                        descriptorManager, vulkanDevice, allocator)
+		        .id;
+		if (material.normalMapIndex != ~0u)
+		{
+			material.materialFlags |= MaterialFlags::HasNormalTexture;
+		}
 		// Metallic-Roughness texture (packed: G=Roughness, B=Metallic);
-		material.metallicRoughnessIndex = loadMaterialTexture(
-		    model, model.materials[i].values, "metallicRoughnessTexture", /*isSrgb*/ false, defaultMRTexture, filePath,
-		    maps.ownedTextures, textureManager, dSetComponent, descriptorManager, vulkanDevice, allocator)
-		                                      .id;
-
+		material.metallicRoughnessIndex =
+		    loadMaterialTexture(model, model.materials[i].values, "metallicRoughnessTexture", /*isSrgb*/ false,
+		                        defaultMRTexture, filePath, maps.ownedTextures, textureManager, dSetComponent,
+		                        descriptorManager, vulkanDevice, allocator)
+		        .id;
+		if (material.metallicRoughnessIndex != ~0u)
+		{
+			material.materialFlags |= MaterialFlags::HasMetallicRoughnessTexture;
+		}
 		// Metallic-Roughness factors (defaults are 1.0 as per GLTF spec)
 		auto roughnessFactorIt = model.materials[i].values.find("roughnessFactor");
 		if (roughnessFactorIt != model.materials[i].values.end())
@@ -235,10 +247,15 @@ MaterialMaps GltfLoader::materialsParser(tinygltf::Model& model, TextureManager&
 			material.metallicFactor = static_cast<float>(metallicFactorIt->second.number_value);
 		}
 
-		material.emissiveIndex = loadMaterialTexture(
-		    model, model.materials[i].additionalValues, "emissiveTexture", /*isSrgb*/ true, defaultEmissiveTexture,
-		    filePath, maps.ownedTextures, textureManager, dSetComponent, descriptorManager, vulkanDevice, allocator)
-		                             .id;
+		material.emissiveIndex =
+		    loadMaterialTexture(model, model.materials[i].additionalValues, "emissiveTexture", /*isSrgb*/ true,
+		                        defaultEmissiveTexture, filePath, maps.ownedTextures, textureManager, dSetComponent,
+		                        descriptorManager, vulkanDevice, allocator)
+		        .id;
+		if (material.emissiveIndex != ~0u)
+		{
+			material.materialFlags |= MaterialFlags::HasEmissiveTexture;
+		}
 		// Emissive Factor
 		bool hasEmissiveTexture = (material.emissiveIndex != static_cast<uint32_t>(defaultEmissiveTexture.id));
 		auto emissiveFactorIt = model.materials[i].additionalValues.find("emissiveFactor");
