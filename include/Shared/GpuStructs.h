@@ -74,7 +74,7 @@ struct HALCYON_API GPU_ALIGN(16) ModelData
 	float3 AABBMax;
 	float padding1;
 	uint transformIndex;
-	uint16_t materialIndex;
+	uint materialIndex;
 	uint drawCommandIndex;
 };
 

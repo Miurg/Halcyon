@@ -46,7 +46,7 @@ struct VSOutput
 {
 	float4 pos : SV_Position;
     float3 viewNormal;
-    half2 fragTexCoord;
+    float2 fragTexCoord;
 	nointerpolation uint materialIndex;
 };
 
@@ -69,7 +69,7 @@ VSOutput vertMain(VSInput input, uint instanceID: SV_InstanceID, uint baseInstan
 	VSOutput output;
 	output.pos = mul(camera[0].cameraSpaceMatrix, worldPos);
     output.viewNormal = mul((float3x3)camera[0].viewMatrix, worldNormal);
-    output.fragTexCoord = (half2)input.inTexCoord;
+    output.fragTexCoord = input.inTexCoord;
 	output.materialIndex = model.materialIndex;
 	return output;
 }

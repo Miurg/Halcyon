@@ -141,10 +141,10 @@ float4 PackTBNToQuaternion(float3 T, float3 N, float bitangentSign)
 struct VSOutput
 {
 	float4 pos : SV_Position;
-	half3 fragColor;
-	half4 fragTBNQuaternion;
-	half bitangentSign;
-	half2 fragTexCoord;
+    float3 fragColor;
+    float4 fragTBNQuaternion;
+    float bitangentSign;
+    float2 fragTexCoord;
 
 	nointerpolation uint materialIndex;
 };
@@ -181,10 +181,10 @@ VSOutput vertMain(VSInput input, uint instanceID: SV_InstanceID, uint baseInstan
 
 	VSOutput output;
 	output.pos = mul(camera[0].cameraSpaceMatrix, worldPos);
-	output.fragColor = (half3)input.inColor;
-	output.fragTexCoord = (half2)input.inTexCoord;
-	output.fragTBNQuaternion = (half4)PackTBNToQuaternion(worldTangent, worldNormal, input.inTangent.w);
-	output.bitangentSign = (half)input.inTangent.w;
+	output.fragColor = input.inColor;
+	output.fragTexCoord = input.inTexCoord;
+	output.fragTBNQuaternion = PackTBNToQuaternion(worldTangent, worldNormal, input.inTangent.w);
+	output.bitangentSign = input.inTangent.w;
 	output.materialIndex = model.materialIndex;
 
 	return output;
@@ -418,8 +418,8 @@ SurfaceContext SetupSurface(VSOutput input, bool isFrontFace)
             rawAlbedo *= textureArray[NonUniformResourceIndex(mat.textureIndex)].Sample(input.fragTexCoord);
         }
 
-        float2 dx = ddx(input.fragTexCoord);
-        float2 dy = ddy(input.fragTexCoord);
+        float2 dx = ddx((float2)input.fragTexCoord);
+        float2 dy = ddy((float2)input.fragTexCoord);
 
         if (ALPHA_TO_COVERAGE == 0)
         {
