@@ -10,6 +10,7 @@
 
 #include "DeletionQueueComponent.hpp"
 #include "DeletionQueueContext.hpp"
+#include "AudioCore/AudioInit.hpp"
 
 App::App() : deletionQueue(&gm)
 {
@@ -22,6 +23,7 @@ App::App() : deletionQueue(&gm)
 		PhysicsInit::Run(gm);
 		PlatformInit::Run(gm);
 		GraphicsInit::Run(gm);
+		AudioInit::Run(gm);
 	}
 	catch (const std::exception& e)
 	{
