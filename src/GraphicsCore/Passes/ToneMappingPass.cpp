@@ -27,6 +27,7 @@ enum Binding : uint32_t
 struct ColorGradingPush
 {
 	int space;
+	int toneMapper;
 	float exposure;
 	float contrast;
 	float saturation;
@@ -96,6 +97,7 @@ void ToneMappingPass::addToGraph(Orhescyon::GeneralManager& gm, RenderGraph& rg,
 
 	ColorGradingPush grading{
 	    .space = settings.gradingSpace,
+	    .toneMapper = settings.toneMapper,
 	    .exposure = settings.colorExposure,
 	    .contrast = settings.contrast,
 	    .saturation = settings.saturation,

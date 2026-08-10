@@ -243,6 +243,10 @@ ImGui::Checkbox("Enable God Rays", &settings.enableGodRays);
 		ImGui::DragFloat("Bloom Intensity", &settings.bloomIntensity, 0.001f, 0.0f, 1.0f);
 	}
 
+	ImGui::SeparatorText("Tone Mapping");
+	const char* toneMappers[] = {"AgX", "ACES Filmic", "Gran Turismo 7"};
+	ImGui::Combo("Tone Mapper", &settings.toneMapper, toneMappers, IM_ARRAYSIZE(toneMappers));
+
 	ImGui::SeparatorText("Color Grading");
 	const char* gradingSpaces[] = {"Display (post-tonemap)", "Linear (HDR)", "Log"};
 	ImGui::Combo("Grading Space", &settings.gradingSpace, gradingSpaces, IM_ARRAYSIZE(gradingSpaces));
