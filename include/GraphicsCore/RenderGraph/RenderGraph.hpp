@@ -108,8 +108,8 @@ private:
 
 	static vk::ImageLayout usageToLayout(RGResourceUsage usage);
 	static vk::AccessFlags2 usageToAccessMask(RGResourceUsage usage);
-	static vk::PipelineStageFlags2 usageToDstStageMask(RGResourceUsage usage);
-	static vk::PipelineStageFlags2 usageToCompleteStageMask(RGResourceUsage usage);
+	static vk::PipelineStageFlags2 usageToDstStageMask(RGResourceUsage usage, const RGPass& pass);
+	static vk::PipelineStageFlags2 usageToCompleteStageMask(RGResourceUsage usage, const RGPass& pass);
 
 	VulkanDevice& vulkanDevice;
 	VmaAllocator allocator;

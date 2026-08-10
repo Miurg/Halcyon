@@ -382,7 +382,7 @@ void RenderGraph::compile()
 
 			vk::ImageLayout requiredLayout = usageToLayout(usage);
 			vk::AccessFlags2 requiredAccess = usageToAccessMask(usage);
-			vk::PipelineStageFlags2 dstStage = usageToDstStageMask(usage);
+			vk::PipelineStageFlags2 dstStage = usageToDstStageMask(usage, pass);
 
 			for (uint32_t mip = baseMip; mip < baseMip + count; ++mip)
 			{
@@ -408,7 +408,7 @@ void RenderGraph::compile()
 
 				state.layout = requiredLayout;
 				state.accessMask = requiredAccess;
-				state.stageMask = usageToCompleteStageMask(usage);
+				state.stageMask = usageToCompleteStageMask(usage, pass);
 			}
 		};
 
@@ -823,7 +823,7 @@ vk::AccessFlags2 RenderGraph::usageToAccessMask(RGResourceUsage usage)
 	}
 }
 
-vk::PipelineStageFlags2 RenderGraph::usageToDstStageMask(RGResourceUsage usage)
+vk::PipelineStageFlags2 RenderGraph::usageToDstStageMask(RGResourceUsage usage, const RGPass& pass)
 {
 	switch (usage)
 	{
@@ -834,7 +834,8 @@ vk::PipelineStageFlags2 RenderGraph::usageToDstStageMask(RGResourceUsage usage)
 	case RGResourceUsage::DepthAttachmentRead:
 		return vk::PipelineStageFlagBits2::eEarlyFragmentTests;
 	case RGResourceUsage::ShaderRead:
-		return vk::PipelineStageFlagBits2::eFragmentShader;
+		return pass.desc.isCompute ? vk::PipelineStageFlagBits2::eComputeShader
+		                           : vk::PipelineStageFlagBits2::eFragmentShader;
 	case RGResourceUsage::StorageReadWrite:
 		return vk::PipelineStageFlagBits2::eComputeShader;
 	case RGResourceUsage::Present:
@@ -844,7 +845,7 @@ vk::PipelineStageFlags2 RenderGraph::usageToDstStageMask(RGResourceUsage usage)
 	}
 }
 
-vk::PipelineStageFlags2 RenderGraph::usageToCompleteStageMask(RGResourceUsage usage)
+vk::PipelineStageFlags2 RenderGraph::usageToCompleteStageMask(RGResourceUsage usage, const RGPass& pass)
 {
 	switch (usage)
 	{
@@ -855,7 +856,8 @@ vk::PipelineStageFlags2 RenderGraph::usageToCompleteStageMask(RGResourceUsage us
 	case RGResourceUsage::DepthAttachmentRead:
 		return vk::PipelineStageFlagBits2::eLateFragmentTests;
 	case RGResourceUsage::ShaderRead:
-		return vk::PipelineStageFlagBits2::eFragmentShader;
+		return pass.desc.isCompute ? vk::PipelineStageFlagBits2::eComputeShader
+		                           : vk::PipelineStageFlagBits2::eFragmentShader;
 	case RGResourceUsage::StorageReadWrite:
 		return vk::PipelineStageFlagBits2::eComputeShader;
 	case RGResourceUsage::Present:
