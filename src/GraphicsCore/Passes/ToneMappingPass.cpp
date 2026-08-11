@@ -43,9 +43,14 @@ void ToneMappingPass::onInit(Orhescyon::GeneralManager& gm)
 	auto& swapChain = *gm.getContextComponent<MainSwapChainContext, SwapChainComponent>()->swapChainInstance;
 	auto& rg = *gm.getContextComponent<RenderGraphContext, RenderGraphComponent>()->renderGraph;
 
+	SamplerDesc postProcessSampler;
+	postProcessSampler.addressMode = SamplerAddressMode::ClampToEdge;
+
 	// PostProcessColor is the shared post-process target
-	rg.declareLogicalStream("PostProcessColor",
-	                        {swapChain.swapChainImageFormat, RGSizeMode::FullExtent, vk::ImageAspectFlagBits::eColor});
+	rg.declareLogicalStream("PostProcessColor", {.format = swapChain.swapChainImageFormat,
+	                                             .sizeMode = RGSizeMode::FullExtent,
+	                                             .aspectFlags = vk::ImageAspectFlagBits::eColor,
+	                                             .samplerOverride = postProcessSampler});
 	rg.setTerminalOutput("PostProcessColor", "swapChainImage");
 
 	_dSetMainColor = descriptorManager.allocate("screenSpaceSet");

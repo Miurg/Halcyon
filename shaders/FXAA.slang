@@ -1,3 +1,21 @@
+/*
+ * NVIDIA FXAA 3.11 by Timothy Lottes
+ *
+ * This software contains source code provided by NVIDIA Corporation.
+ * This file is a modified Slang port of the original FXAA 3.11 implementation.
+ *
+ * Copyright (C) 2010, 2011 NVIDIA Corporation. All rights reserved.
+ *
+ * TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, THIS SOFTWARE IS
+ * PROVIDED "AS IS" AND NVIDIA AND ITS SUPPLIERS DISCLAIM ALL WARRANTIES,
+ * EITHER EXPRESS OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. IN NO
+ * EVENT SHALL NVIDIA OR ITS SUPPLIERS BE LIABLE FOR ANY SPECIAL, INCIDENTAL,
+ * INDIRECT, OR CONSEQUENTIAL DAMAGES WHATSOEVER ARISING OUT OF THE USE OF OR
+ * INABILITY TO USE THIS SOFTWARE, EVEN IF NVIDIA HAS BEEN ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGES.
+ */
+
 struct FxaaConfig
 {
 	// The amount of sub-pixel aliasing removal.
@@ -160,18 +178,17 @@ float4 FxaaPixelShader(float2 pos,      // Normalized UV coordinates of the curr
 	bool doneN = abs(lumaEndN) >= gradientScaled;
 	bool doneP = abs(lumaEndP) >= gradientScaled;
 
-	if (!doneN) posN.x -= offNP.x * 1.5; // 1.5 is P1
-	if (!doneN) posN.y -= offNP.y * 1.5;
+	if (!doneN) posN.x -= offNP.x * 1.0; // P1
+	if (!doneN) posN.y -= offNP.y * 1.0;
 	bool doneNP = (!doneN) || (!doneP);
-	if (!doneP) posP.x += offNP.x * 1.5;
-	if (!doneP) posP.y += offNP.y * 1.5;
+	if (!doneP) posP.x += offNP.x * 1.0;
+	if (!doneP) posP.y += offNP.y * 1.0;
 
-	// 3. Iterative End-of-Edge Search (Quality 39 Steps)
-	// --------------------------------------------------
-	// Steps: 1.0, 1.5, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 4.0, 8.0
-	// We already did P0(1.0) and P1(1.5).
+	// Preset 39 uses closely spaced initial samples to avoid dithering along short edges.
+	// Steps: 1.0, 1.0, 1.0, 1.0, 1.0, 1.5, 2.0, 2.0, 2.0, 2.0, 4.0, 8.0
+	// We already did P0(1.0) and P1(1.0).
 	// Remaining steps array for the loop:
-	float steps[10] = { 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 4.0, 8.0 };
+	float steps[10] = { 1.0, 1.0, 1.0, 1.5, 2.0, 2.0, 2.0, 2.0, 4.0, 8.0 };
 
 	if (doneNP)
 	{
@@ -254,8 +271,5 @@ ConstantBuffer<PushConstants> pushConsts;
 [shader("fragment")]
 float4 fragMain(VSOutput input) : SV_Target
 {
-    FxaaConfig FxaaConfig = { 0.75, 0.063, 0.0312 };
-    float4 result = FxaaPixelShader(input.uv, pushConsts.rcpFrame, sourceTexture, FxaaConfig);
-
-    return result;
+    return FxaaPixelShader(input.uv, pushConsts.rcpFrame, sourceTexture);
 }
