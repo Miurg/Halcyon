@@ -6,12 +6,11 @@ static const uint CLUSTER_PLANE_COUNT  = 6u;
 
 // forwardClusteredInfo layout:
 // [0] - number of occupied payload elements
-// [1] - number of clusters discarded due to overflow
+// [1] - global payload overflow bit plus number of clusters using the local fallback
 // [2...] - lights indices, then reflectionProbes indices
 static const uint INFO_HEADER_WORDS = 2u;
 
 static const float CULL_EPSILON = 1e-4f;
-
 
 // === INPUT ===
 
@@ -265,7 +264,7 @@ void computeMain(
 		if (groupIndex == 0u)
 		{
 			ForwardCluster emptyCluster;
-			emptyCluster.offset = 0u;
+			emptyCluster.offset = INVALID_FORWARD_CLUSTER_OFFSET;
 			emptyCluster.countLights = 0u;
 			emptyCluster.countReflectProbes = 0u;
 			forwardClusteredGrid[clusterIndex] = emptyCluster;
@@ -354,7 +353,12 @@ void computeMain(
 			sharedLightCount +
 			sharedProbeCount;
 
-		if (totalCount != 0u)
+		if (totalCount > MAX_FORWARD_CLUSTER_REFERENCES)
+		{
+			sharedWriteAccepted = 0u;
+			InterlockedAdd(forwardClusteredInfo[1], 1u);
+		}
+		else if (totalCount != 0u)
 		{
 			uint reservation;
 			InterlockedAdd(
@@ -378,9 +382,9 @@ void computeMain(
 			else
 			{
 				sharedWriteAccepted = 0u;
-
-                // This is a count of lost clusters
-				InterlockedAdd(forwardClusteredInfo[1], 1u);
+				InterlockedOr(
+					forwardClusteredInfo[1],
+					FORWARD_CLUSTER_GLOBAL_OVERFLOW_BIT);
 			}
 		}
 	}
@@ -434,11 +438,10 @@ void computeMain(
 				sharedProbeCount;
 		}
 		else
-        {
-            // When overflowing - forward pass will see an empty cluster and not a corrupted index range
-			cluster.offset = 0u;
-			cluster.countLights = 0u;
-			cluster.countReflectProbes = 0u;
+		{
+			cluster.offset = INVALID_FORWARD_CLUSTER_OFFSET;
+			cluster.countLights = sharedLightCount;
+			cluster.countReflectProbes = sharedProbeCount;
 		}
 
 		forwardClusteredGrid[clusterIndex] = cluster;

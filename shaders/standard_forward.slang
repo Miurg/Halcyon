@@ -281,13 +281,27 @@ float sampleReflectionProbes(float3 worldPos, float3 R, float roughness, out flo
 {
 	color = float3(0.0, 0.0, 0.0);
 	float totalW = 0.0;
-    uint count = min(reflectionProbeCount[0], MAX_REFLECTION_PROBES);
+	bool useClusterFallback =
+		cluster.offset == INVALID_FORWARD_CLUSTER_OFFSET ||
+		(forwardClusteredInfo[1] & FORWARD_CLUSTER_GLOBAL_OVERFLOW_BIT) != 0u;
+	uint count = cluster.countReflectProbes;
 
-    for (uint i = 0; i < cluster.countReflectProbes; ++i)
-    {
-        uint probeIndex = forwardClusteredInfo[cluster.offset + cluster.countLights + i];
+	if (useClusterFallback)
+	{
+		uint probeBufferCapacity;
+		uint probeBufferStride;
+		reflectionProbes.GetDimensions(probeBufferCapacity, probeBufferStride);
+		count = min(reflectionProbeCount[0], min(probeBufferCapacity, MAX_REFLECTION_PROBES));
+	}
 
-        ReflectionProbeData p = reflectionProbes[probeIndex];
+	for (uint i = 0; i < count; ++i)
+	{
+		uint probeIndex = i;
+		[branch]
+		if (!useClusterFallback)
+			probeIndex = forwardClusteredInfo[cluster.offset + cluster.countLights + i];
+
+		ReflectionProbeData p = reflectionProbes[probeIndex];
 		float3 center = (p.boxMin + p.boxMax) * 0.5;
 		float3 halfExtent = (p.boxMax - p.boxMin) * 0.5;
 
@@ -523,6 +537,14 @@ SurfaceContext SetupSurface(VSOutput input, bool isFrontFace)
 
 float3 SolveLight(SurfaceContext surface, VSOutput input)
 {
+
+    float ao = 1.0;
+    if (GTAO_ENABLED == 1 && surface.mat.alphaMode != 2)
+    {
+        float2 screenUV = input.pos.xy / camera[0].screenSize;
+        ao = gtaoTexture.SampleLevel(screenUV, 0).r;
+    }
+
 	// === LIGHTING SETUP ===
 	float3 L = normalize(directionalLight[0].direction.xyz);
 
@@ -561,21 +583,30 @@ float3 SolveLight(SurfaceContext surface, VSOutput input)
 
 	// === POINT / SPOT LIGHTS ===
 	float3 litColorFromLights = float3(0.0, 0.0, 0.0);
-	
-	for (uint i = 0; i < cluster.countLights; i++)
-    {
-        uint lightIndex = forwardClusteredInfo[cluster.offset + i];
-        PointLightData light = lights[lightIndex];
+	bool useClusterFallback =
+		cluster.offset == INVALID_FORWARD_CLUSTER_OFFSET ||
+		(forwardClusteredInfo[1] & FORWARD_CLUSTER_GLOBAL_OVERFLOW_BIT) != 0u;
+	uint currentLightCount = cluster.countLights;
+
+	if (useClusterFallback)
+	{
+		uint lightBufferCapacity;
+		uint lightBufferStride;
+		lights.GetDimensions(lightBufferCapacity, lightBufferStride);
+		currentLightCount = min(lightCount[0], min(lightBufferCapacity, MAX_POINT_LIGHTS));
+	}
+
+	for (uint i = 0; i < currentLightCount; i++)
+	{
+		uint lightIndex = i;
+		[branch]
+		if (!useClusterFallback)
+			lightIndex = forwardClusteredInfo[cluster.offset + i];
+
+		PointLightData light = lights[lightIndex];
 		litColorFromLights +=
 		    EvaluatePunctualLight(surface, worldPosition, light.position, light.radius, light.color, light.intensity,
 		                          light.direction, light.innerConeAngle, light.outerConeAngle, light.type);
-	}
-
-	float ao = 1.0;
-	if (GTAO_ENABLED == 1 && surface.mat.alphaMode != 2)
-	{
-		float2 screenUV = input.pos.xy / camera[0].screenSize;
-		ao = gtaoTexture.SampleLevel(screenUV, 0).r;
 	}
 
     // === IBL / Ambient ===
