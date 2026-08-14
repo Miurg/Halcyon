@@ -20,7 +20,7 @@ struct HALCYON_API GraphicsSettingsComponent
 	float bloomKnee = 0.3f;
 	float bloomIntensity = 0.08f;
 	// Color grading (tone mapping)
-	int toneMapper = 0;
+	int toneMapper = 2;
 	int gradingSpace = 2; // 0 = Display (post-tonemap), 1 = Linear (HDR), 2 = Log (pre-tonemap)
 	float colorExposure = 0.0f; // EV compensation
 	float contrast = 1.0f;

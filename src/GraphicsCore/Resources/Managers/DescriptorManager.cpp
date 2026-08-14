@@ -38,6 +38,10 @@ DescriptorManager::DescriptorManager(VulkanDevice& vulkanDevice)
 		                                   kAllStages),
 		    vk::DescriptorSetLayoutBinding(BIND_GLOBAL_REFLECTION_PROBE_COUNT, vk::DescriptorType::eStorageBuffer, 1,
 		                                   kAllStages),
+		    vk::DescriptorSetLayoutBinding(BIND_GLOBAL_FORWARD_CLUSTERED_GRID, vk::DescriptorType::eStorageBuffer, 1,
+		                                   kAllStages),
+		    vk::DescriptorSetLayoutBinding(BIND_GLOBAL_FORWARD_CLUSTERED_INFO, vk::DescriptorType::eStorageBuffer, 1,
+		                                   kAllStages),
 		};
 		registerLayout("globalSet", globalBindings);
 	}

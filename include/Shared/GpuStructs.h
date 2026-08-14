@@ -144,6 +144,13 @@ struct HALCYON_API MaterialData
 	float padding2 GPU_DEFAULT(0.0f);
 };
 
+struct HALCYON_API ForwardCluster
+{
+	uint offset;
+	uint countLights;
+	uint countReflectProbes;
+};
+
 #ifdef __cplusplus
 static_assert(sizeof(CameraData) == 384);
 static_assert(sizeof(IndirectDrawIndexedCommand) == 20);
@@ -157,4 +164,5 @@ static_assert(sizeof(SHGridInfo) == 64);
 static_assert(sizeof(SHProbeEntry) == 64);
 static_assert(sizeof(ReflectionProbeData) == 48);
 static_assert(sizeof(MaterialData) == 80);
+static_assert(sizeof(ForwardCluster) == 12);
 #endif

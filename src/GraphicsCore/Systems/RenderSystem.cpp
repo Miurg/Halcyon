@@ -38,6 +38,7 @@
 #include "../Passes/ExposurePass.hpp"
 #include "../Passes/ParticleSystemComputePass.hpp"
 #include "../Passes/GodRaysPass.hpp"
+#include "../Passes/ClusteredComputePass.hpp"
 
 #ifdef TRACY_ENABLE
 #include <tracy/Tracy.hpp>
@@ -59,6 +60,7 @@ void RenderSystem::onRegistered(GeneralManager& gm)
 	add(std::make_unique<DepthPrepass>());
 	add(std::make_unique<DepthPyramidPass>());
 	add(std::make_unique<GTAOPass>());
+	add(std::make_unique<ClusteredComputePass>());
 	add(std::make_unique<MainPass>());
 	add(std::make_unique<ParticleSystemRenderPass>());
 	add(std::make_unique<GodRaysPass>());
