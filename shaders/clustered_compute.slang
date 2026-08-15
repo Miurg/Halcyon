@@ -23,6 +23,9 @@ StructuredBuffer<PointLightData> pointLights;
 [[vk::binding(BIND_GLOBAL_POINT_LIGHT_COUNT, 0)]]
 StructuredBuffer<uint> pointLightCountBuffer;
 
+[[vk::binding(BIND_GLOBAL_VISIBLE_POINT_LIGHTS, 0)]]
+StructuredBuffer<uint> visiblePointLightIndices;
+
 [[vk::binding(BIND_GLOBAL_REFLECTION_PROBES, 0)]]
 StructuredBuffer<ReflectionProbeData> reflectionProbes;
 
@@ -279,15 +282,27 @@ void computeMain(
 		lightBufferCapacity,
 		lightBufferStride);
 
+	uint visibleLightBufferCapacity;
+	uint visibleLightBufferStride;
+	visiblePointLightIndices.GetDimensions(
+		visibleLightBufferCapacity,
+		visibleLightBufferStride);
+
 	uint probeBufferCapacity;
 	uint probeBufferStride;
 	reflectionProbes.GetDimensions(
 		probeBufferCapacity,
 		probeBufferStride);
 
-	uint lightCount = min(
-		pointLightCountBuffer[0],
-		min(lightBufferCapacity, MAX_POINT_LIGHTS));
+	uint lightCount = 0u;
+	if (visibleLightBufferCapacity > 0u)
+	{
+		lightCount = min(
+			visiblePointLightIndices[0],
+			min(
+				visibleLightBufferCapacity - 1u,
+				min(lightBufferCapacity, MAX_POINT_LIGHTS)));
+	}
 
 	uint probeCount = min(
 		reflectionProbeCountBuffer[0],
@@ -309,8 +324,12 @@ void computeMain(
 	     i < lightCount;
 	     i += CLUSTER_THREAD_COUNT)
 	{
-		PointLightData light = pointLights[i];
+		uint lightIndex =
+			visiblePointLightIndices[1u + i];
+		PointLightData light =
+			pointLights[lightIndex];
 
+		sharedLightIndices[i] = lightIndex;
 		sharedLightHits[i] =
 			light.radius > 0.0f &&
 			sphereIntersectsCluster(light.position, light.radius)
@@ -340,7 +359,10 @@ void computeMain(
 		for (uint i = 0u; i < lightCount; ++i)
 		{
 			if (sharedLightHits[i] != 0u)
-				sharedLightIndices[sharedLightCount++] = i;
+			{
+				sharedLightIndices[sharedLightCount++] =
+					sharedLightIndices[i];
+			}
 		}
 
 		for (uint i = 0u; i < probeCount; ++i)

@@ -186,6 +186,12 @@ void PlaceholdersInit::initPlaceholders(GeneralManager& gm)
 	for (uint32_t frame = 0; frame < MAX_FRAMES_IN_FLIGHT; ++frame)
 		*bufferManager->getMapped<uint32_t>(globalDSetComponent->reflectionProbeCountBuffer, frame) = 0u;
 
+	globalDSetComponent->visiblePointLightIndicesBuffer = BufferFactory::createStorageBuffer(
+	    *bufferManager, *descriptorManager, (vk::MemoryPropertyFlagBits::eDeviceLocal),
+	    sizeof(uint32_t) * (MAX_POINT_LIGHTS + 1u), MAX_FRAMES_IN_FLIGHT,
+	    vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst,
+	    globalDSetComponent->globalDSets, BIND_GLOBAL_VISIBLE_POINT_LIGHTS);
+
 	globalDSetComponent->forwardClusteredGridBuffer = BufferFactory::createStorageBuffer(
 	    *bufferManager, *descriptorManager, (vk::MemoryPropertyFlagBits::eDeviceLocal),
 	    sizeof(ForwardCluster) * ((3840 / TILE_SIZE) * (2160 / TILE_SIZE) * Z_SLICES), MAX_FRAMES_IN_FLIGHT,

@@ -41,6 +41,9 @@ StructuredBuffer<ForwardCluster> forwardClusteredGrid;
 [[vk::binding(BIND_GLOBAL_FORWARD_CLUSTERED_INFO, 0)]]
 StructuredBuffer<uint> forwardClusteredInfo;
 
+[[vk::binding(BIND_GLOBAL_VISIBLE_POINT_LIGHTS, 0)]]
+StructuredBuffer<uint> visiblePointLightIndices;
+
 // === SET 1 ===
 [[vk::binding(BIND_MODEL_PRIMITIVES, 1)]]
 StructuredBuffer<ModelData> objectBuffer;
@@ -592,16 +595,41 @@ float3 SolveLight(SurfaceContext surface, VSOutput input)
 	{
 		uint lightBufferCapacity;
 		uint lightBufferStride;
-		lights.GetDimensions(lightBufferCapacity, lightBufferStride);
-		currentLightCount = min(lightCount[0], min(lightBufferCapacity, MAX_POINT_LIGHTS));
+		lights.GetDimensions(
+			lightBufferCapacity,
+			lightBufferStride);
+
+		uint visibleLightBufferCapacity;
+		uint visibleLightBufferStride;
+		visiblePointLightIndices.GetDimensions(
+			visibleLightBufferCapacity,
+			visibleLightBufferStride);
+
+		currentLightCount = 0u;
+		if (visibleLightBufferCapacity > 0u)
+		{
+			currentLightCount = min(
+				visiblePointLightIndices[0],
+				min(
+					visibleLightBufferCapacity - 1u,
+					min(lightBufferCapacity, MAX_POINT_LIGHTS)));
+		}
 	}
 
 	for (uint i = 0; i < currentLightCount; i++)
 	{
-		uint lightIndex = i;
+		uint lightIndex;
 		[branch]
-		if (!useClusterFallback)
-			lightIndex = forwardClusteredInfo[cluster.offset + i];
+		if (useClusterFallback)
+		{
+			lightIndex =
+				visiblePointLightIndices[1u + i];
+		}
+		else
+		{
+			lightIndex =
+				forwardClusteredInfo[cluster.offset + i];
+		}
 
 		PointLightData light = lights[lightIndex];
 		litColorFromLights +=

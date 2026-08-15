@@ -16,5 +16,6 @@ private:
 	void computeClustered(vk::raii::CommandBuffer& cmd, uint32_t frame,
 	                      DescriptorManagerComponent& descriptorManager, DSetHandle globalDSet,
 	                      PipelineManager& pipelineManager, uint32_t widthScreen, uint32_t heightScreen,
-	                      vk::Buffer clusteredGridBuffer, vk::Buffer clusteredInfoBuffer);
+	                      vk::Buffer clusteredGridBuffer, vk::Buffer clusteredInfoBuffer,
+	                      vk::Buffer visiblePointLightIndicesBuffer);
 };

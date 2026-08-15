@@ -42,6 +42,8 @@ DescriptorManager::DescriptorManager(VulkanDevice& vulkanDevice)
 		                                   kAllStages),
 		    vk::DescriptorSetLayoutBinding(BIND_GLOBAL_FORWARD_CLUSTERED_INFO, vk::DescriptorType::eStorageBuffer, 1,
 		                                   kAllStages),
+		    vk::DescriptorSetLayoutBinding(BIND_GLOBAL_VISIBLE_POINT_LIGHTS, vk::DescriptorType::eStorageBuffer, 1,
+		                                   S::eCompute | S::eFragment),
 		};
 		registerLayout("globalSet", globalBindings);
 	}
