@@ -60,46 +60,36 @@ groupshared uint sharedProbeHits[MAX_REFLECTION_PROBES];
 groupshared uint sharedLightIndices[MAX_POINT_LIGHTS];
 groupshared uint sharedProbeIndices[MAX_REFLECTION_PROBES];
 
+// Ping-pong storage for a stable, group-wide inclusive scan.
+// x contains light counts, y contains reflection-probe counts.
+groupshared uint2 sharedPrefixCounts[CLUSTER_THREAD_COUNT * 2u];
+
 groupshared uint sharedLightCount;
 groupshared uint sharedProbeCount;
 groupshared uint sharedBaseOffset;
 groupshared uint sharedWriteAccepted;
 
-float getCameraNear()
+float getSliceDepth(
+	uint boundary,
+	float cameraNear,
+	float depthRatio)
 {
-	float p22 = camera[0].projMatrix[2][2];
-	float p32 = camera[0].projMatrix[3][2];
-
-	return abs(p32) / max(abs(1.0f + p22), 1e-7f);
-}
-
-float getCameraFar()
-{
-	float p22 = camera[0].projMatrix[2][2];
-	float p32 = camera[0].projMatrix[3][2];
-
-	return abs(p32) / max(abs(p22), 1e-7f);
-}
-
-float getSliceDepth(uint boundary)
-{
-	float zNear = max(getCameraNear(), 1e-4f);
-	float zFar  = max(getCameraFar(), zNear + 1e-3f);
-
 	float t = float(boundary) / float(Z_SLICES);
-	return zNear * pow(zFar / zNear, t);
+	return cameraNear * pow(depthRatio, t);
 }
 
 // TODO: checkup with depth_pyramid and maybe fix p32
-float3 unprojectAtLinearDepth(float2 ndcXY, float linearDepth)
+float3 unprojectAtLinearDepth(
+	float2 ndcXY,
+	float linearDepth,
+	float p22,
+	float absP32,
+	float4x4 invViewProj)
 {
-	float p22 = camera[0].projMatrix[2][2];
-	float p32 = camera[0].projMatrix[3][2];
-
-    float deviceDepth = saturate(abs(p32) / linearDepth - p22);
+	float deviceDepth = saturate(absP32 / linearDepth - p22);
 
 	float4 worldH = mul(
-		camera[0].invViewProj,
+		invViewProj,
 		float4(ndcXY, deviceDepth, 1.0f));
 
 	return worldH.xyz / worldH.w;
@@ -125,6 +115,18 @@ float4 makeInwardPlane(
 
 void buildClusterPlanes(uint3 clusterCoord)
 {
+	float p22 = camera[0].projMatrix[2][2];
+	float absP32 = abs(camera[0].projMatrix[3][2]);
+	float4x4 invViewProj = camera[0].invViewProj;
+
+	float cameraNear = max(
+		absP32 / max(abs(1.0f + p22), 1e-7f),
+		1e-4f);
+	float cameraFar = max(
+		absP32 / max(abs(p22), 1e-7f),
+		cameraNear + 1e-3f);
+	float depthRatio = cameraFar / cameraNear;
+
 	float2 screenSize = float2(
 		push.widthScreen,
 		push.heightScreen);
@@ -137,29 +139,67 @@ void buildClusterPlanes(uint3 clusterCoord)
 	float2 ndcMin = tileMinPx / screenSize * 2.0f - 1.0f;
 	float2 ndcMax = tileMaxPx / screenSize * 2.0f - 1.0f;
 
-	float sliceNear = getSliceDepth(clusterCoord.z);
-	float sliceFar  = getSliceDepth(clusterCoord.z + 1u);
+	float sliceNear = getSliceDepth(
+		clusterCoord.z,
+		cameraNear,
+		depthRatio);
+	float sliceFar = getSliceDepth(
+		clusterCoord.z + 1u,
+		cameraNear,
+		depthRatio);
 
 	// 0/1/2/3 — near; 4/5/6/7 — far.
 	float3 corners[8];
 
 	corners[0] = unprojectAtLinearDepth(
-		float2(ndcMin.x, ndcMin.y), sliceNear);
+		float2(ndcMin.x, ndcMin.y),
+		sliceNear,
+		p22,
+		absP32,
+		invViewProj);
 	corners[1] = unprojectAtLinearDepth(
-		float2(ndcMax.x, ndcMin.y), sliceNear);
+		float2(ndcMax.x, ndcMin.y),
+		sliceNear,
+		p22,
+		absP32,
+		invViewProj);
 	corners[2] = unprojectAtLinearDepth(
-		float2(ndcMin.x, ndcMax.y), sliceNear);
+		float2(ndcMin.x, ndcMax.y),
+		sliceNear,
+		p22,
+		absP32,
+		invViewProj);
 	corners[3] = unprojectAtLinearDepth(
-		float2(ndcMax.x, ndcMax.y), sliceNear);
+		float2(ndcMax.x, ndcMax.y),
+		sliceNear,
+		p22,
+		absP32,
+		invViewProj);
 
 	corners[4] = unprojectAtLinearDepth(
-		float2(ndcMin.x, ndcMin.y), sliceFar);
+		float2(ndcMin.x, ndcMin.y),
+		sliceFar,
+		p22,
+		absP32,
+		invViewProj);
 	corners[5] = unprojectAtLinearDepth(
-		float2(ndcMax.x, ndcMin.y), sliceFar);
+		float2(ndcMax.x, ndcMin.y),
+		sliceFar,
+		p22,
+		absP32,
+		invViewProj);
 	corners[6] = unprojectAtLinearDepth(
-		float2(ndcMin.x, ndcMax.y), sliceFar);
+		float2(ndcMin.x, ndcMax.y),
+		sliceFar,
+		p22,
+		absP32,
+		invViewProj);
 	corners[7] = unprojectAtLinearDepth(
-		float2(ndcMax.x, ndcMax.y), sliceFar);
+		float2(ndcMax.x, ndcMax.y),
+		sliceFar,
+		p22,
+		absP32,
+		invViewProj);
 
 	float3 insidePoint = float3(0.0f);
 	[unroll]
@@ -312,8 +352,6 @@ void computeMain(
 	{
 		buildClusterPlanes(groupID);
 
-		sharedLightCount = 0u;
-		sharedProbeCount = 0u;
 		sharedBaseOffset = 0u;
 		sharedWriteAccepted = 1u;
 	}
@@ -354,23 +392,111 @@ void computeMain(
 
 	GroupMemoryBarrierWithGroupSync();
 
+	// Split each input into ordered, contiguous ranges
+	uint lightItemsPerThread = lightCount / CLUSTER_THREAD_COUNT;
+	uint lightRemainder =
+		lightCount - lightItemsPerThread * CLUSTER_THREAD_COUNT;
+	uint lightRangeBegin =
+		groupIndex * lightItemsPerThread +
+		min(groupIndex, lightRemainder);
+	uint lightRangeEnd =
+		lightRangeBegin +
+		lightItemsPerThread +
+		(groupIndex < lightRemainder ? 1u : 0u);
+
+	uint probeItemsPerThread = probeCount / CLUSTER_THREAD_COUNT;
+	uint probeRemainder =
+		probeCount - probeItemsPerThread * CLUSTER_THREAD_COUNT;
+	uint probeRangeBegin =
+		groupIndex * probeItemsPerThread +
+		min(groupIndex, probeRemainder);
+	uint probeRangeEnd =
+		probeRangeBegin +
+		probeItemsPerThread +
+		(groupIndex < probeRemainder ? 1u : 0u);
+
+	uint localLightCount = 0u;
+	for (uint i = lightRangeBegin; i < lightRangeEnd; ++i)
+	{
+		if (sharedLightHits[i] != 0u)
+		{
+			sharedLightHits[lightRangeBegin + localLightCount] =
+				sharedLightIndices[i];
+			++localLightCount;
+		}
+	}
+
+	uint localProbeCount = 0u;
+	for (uint i = probeRangeBegin; i < probeRangeEnd; ++i)
+	{
+		if (sharedProbeHits[i] != 0u)
+		{
+			sharedProbeHits[probeRangeBegin + localProbeCount] = i;
+			++localProbeCount;
+		}
+	}
+
+	// Stable inclusive scan of the per-lane hit counts.
+	sharedPrefixCounts[groupIndex] =
+		uint2(localLightCount, localProbeCount);
+	GroupMemoryBarrierWithGroupSync();
+
+	uint prefixReadOffset = 0u;
+	uint prefixWriteOffset = CLUSTER_THREAD_COUNT;
+
+	[unroll]
+	for (uint offset = 1u;
+	     offset < CLUSTER_THREAD_COUNT;
+	     offset <<= 1u)
+	{
+		uint2 prefix =
+			sharedPrefixCounts[prefixReadOffset + groupIndex];
+
+		if (groupIndex >= offset)
+		{
+			prefix += sharedPrefixCounts[
+				prefixReadOffset + groupIndex - offset];
+		}
+
+		sharedPrefixCounts[prefixWriteOffset + groupIndex] =
+			prefix;
+
+		GroupMemoryBarrierWithGroupSync();
+
+		uint oldReadOffset = prefixReadOffset;
+		prefixReadOffset = prefixWriteOffset;
+		prefixWriteOffset = oldReadOffset;
+	}
+
+	uint2 inclusiveCounts =
+		sharedPrefixCounts[prefixReadOffset + groupIndex];
+	uint2 localOffsets =
+		inclusiveCounts - uint2(localLightCount, localProbeCount);
+	uint2 totalCounts = sharedPrefixCounts[
+		prefixReadOffset + CLUSTER_THREAD_COUNT - 1u];
+
+	for (uint i = 0u; i < localLightCount; ++i)
+	{
+		sharedLightIndices[localOffsets.x + i] =
+			sharedLightHits[lightRangeBegin + i];
+	}
+
+	for (uint i = 0u; i < localProbeCount; ++i)
+	{
+		sharedProbeIndices[localOffsets.y + i] =
+			sharedProbeHits[probeRangeBegin + i];
+	}
+
 	if (groupIndex == 0u)
 	{
-		for (uint i = 0u; i < lightCount; ++i)
-		{
-			if (sharedLightHits[i] != 0u)
-			{
-				sharedLightIndices[sharedLightCount++] =
-					sharedLightIndices[i];
-			}
-		}
+		sharedLightCount = totalCounts.x;
+		sharedProbeCount = totalCounts.y;
+	}
 
-		for (uint i = 0u; i < probeCount; ++i)
-		{
-			if (sharedProbeHits[i] != 0u)
-				sharedProbeIndices[sharedProbeCount++] = i;
-		}
+	GroupMemoryBarrierWithGroupSync();
 
+	if (groupIndex == 0u)
+	{
 		uint totalCount =
 			sharedLightCount +
 			sharedProbeCount;
@@ -415,24 +541,21 @@ void computeMain(
 
 	if (sharedWriteAccepted != 0u)
 	{
-		for (uint i = groupIndex;
-		     i < sharedLightCount;
-		     i += CLUSTER_THREAD_COUNT)
-		{
-			forwardClusteredInfo[
-				sharedBaseOffset + i] =
-				sharedLightIndices[i];
-		}
+		uint totalCount =
+			sharedLightCount +
+			sharedProbeCount;
 
 		for (uint i = groupIndex;
-		     i < sharedProbeCount;
+		     i < totalCount;
 		     i += CLUSTER_THREAD_COUNT)
 		{
-			forwardClusteredInfo[
-				sharedBaseOffset +
-				sharedLightCount +
-				i] =
-				sharedProbeIndices[i];
+			uint referenceIndex =
+				i < sharedLightCount
+					? sharedLightIndices[i]
+					: sharedProbeIndices[i - sharedLightCount];
+
+			forwardClusteredInfo[sharedBaseOffset + i] =
+				referenceIndex;
 		}
 	}
 
