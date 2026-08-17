@@ -549,22 +549,25 @@ float3 SolveLight(SurfaceContext surface, VSOutput input)
     }
 
 	// === LIGHTING SETUP ===
-	float3 L = normalize(directionalLight[0].direction.xyz);
+	float3 lightVector = normalize(directionalLight[0].direction.xyz);
 
 	float2 ndcXY = (input.pos.xy / camera[0].screenSize) * 2.0 - 1.0;
 	float4 clipPos = float4(ndcXY, input.pos.z, 1.0);
 	float4 worldPosUnscaled = mul(camera[0].invViewProj, clipPos);
 	float3 worldPosition = worldPosUnscaled.xyz / worldPosUnscaled.w;
 
-	// === SHADOW (PCF 3x3) ===
-	float shadow = ComputeShadow(shadowMap, mul(directionalLight[0].lightSpaceMatrix, float4(worldPosition, 1.0)),
-	                             directionalLight[0].shadowMapSize.zw, surface.normal, L);
+    // === SHADOW (PCF 3x3) ===
+    float NdotL = dot(surface.normal, lightVector);
+    float shadow = 1.0;
+	if (NdotL > 0.0)
+        shadow = ComputeShadow(shadowMap, mul(directionalLight[0].lightSpaceMatrix, float4(worldPosition, 1.0)),
+                               directionalLight[0].shadowMapSize.zw, surface.normal, lightVector);
 
 	// === DIRECTIONAL LIGHT ===
 	float3 directionalLightRadiance = directionalLight[0].color.rgb * directionalLight[0].color.a;
 
-	LightingVectors lv = ComputeLightingVectors(L, surface.viewVector, surface.normal);
-	BRDFResult brdf = EvaluateBRDF(surface, lv, L);
+    LightingVectors lv = ComputeLightingVectors(lightVector, surface.viewVector, surface.normal);
+    BRDFResult brdf = EvaluateBRDF(surface, lv, lightVector);
 
 	float3 directLight = (brdf.diffuse + brdf.specular) * directionalLightRadiance * lv.NdotL * shadow;
 
