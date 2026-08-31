@@ -30,7 +30,7 @@ void GameInit::Run(GeneralManager& gm)
 	    .before<FrameBeginSystem>()
 	    .reads<DeltaTimeComponent, KeyboardStateComponent, CameraComponent, ControlComponent>()
 	    .writes<GlobalTransformComponent, CursorPositionComponent>();
-	gm.addComponent<ControlComponent>(gm.getContext<MainCameraContext>());
+	gm.addComponentImmediate<ControlComponent>(gm.getContext<MainCameraContext>());
 
 	// Managers the model loader needs.
 	BufferManager* bufferManager = gm.getContextComponent<BufferManagerContext, BufferManagerComponent>()->bufferManager;
@@ -47,8 +47,8 @@ void GameInit::Run(GeneralManager& gm)
 	MaterialManager* materialManager =
 	    gm.getContextComponent<MaterialManagerContext, MaterialManagerComponent>()->materialManager;
 
-	Orhescyon::Entity cube = gm.createEntity();
-	gm.addComponent<NameComponent>(cube, "Cube");
+	Orhescyon::Entity cube = gm.createEntityImmediate();
+	gm.addComponentImmediate<NameComponent>(cube, "Cube");
 	Smith::Renderables::forgeTransform(gm, cube, glm::vec3(0.0f, 0.0f, -5.0f), glm::quat{1.0f, 0.0f, 0.0f, 0.0f});
 
 	Orhescyon::Entity mesh = ModelFactory::loadModel("assets/models/cube.gltf", 0, *bufferManager, *dSetComponent,

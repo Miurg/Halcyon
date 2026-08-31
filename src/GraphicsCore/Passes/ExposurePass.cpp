@@ -169,9 +169,9 @@ void ExposurePass::onInit(Orhescyon::GeneralManager& gm)
 	    .pushConstants = {{vk::ShaderStageFlagBits::eCompute, 0, sizeof(ExposurePush)}},
 	});
 
-	Orhescyon::Entity e = gm.createEntity();
+	Orhescyon::Entity e = gm.createEntityImmediate();
 	gm.registerContext<ExposureBufferContext>(e);
-	gm.addComponent<ExposureBufferComponent>(e, _exposureBuffer);
+	gm.addComponentImmediate<ExposureBufferComponent>(e, _exposureBuffer);
 }
 
 bool ExposurePass::isEnabled(Orhescyon::GeneralManager& gm) const

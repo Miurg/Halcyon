@@ -9,22 +9,22 @@ void Smith::Renderables::forgeTransform(Orhescyon::GeneralManager& gm, Orhescyon
 {
 	if (!gm.hasComponent<LocalTransformComponent>(e))
 	{
-		gm.addComponent<LocalTransformComponent>(e);
+		gm.addComponentImmediate<LocalTransformComponent>(e);
 	}
 
 	if (!gm.hasComponent<GlobalTransformComponent>(e))
 	{
-		gm.addComponent<GlobalTransformComponent>(e, pos, rot);
+		gm.addComponentImmediate<GlobalTransformComponent>(e, pos, rot);
 	}
 
 	if (!gm.hasComponent<RelationshipComponent>(e))
 	{
-		gm.addComponent<RelationshipComponent>(e);
+		gm.addComponentImmediate<RelationshipComponent>(e);
 	}
 
 	if (!gm.isSubscribedTo<TransformSystem>(e))
 	{
-		gm.subscribeEntity<TransformSystem>(e);
+		gm.subscribeEntityImmediate<TransformSystem>(e);
 	}
 
 	// Raise the dirty flag so TransformSystem applies pos/rot; construction alone does not.

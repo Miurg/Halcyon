@@ -315,9 +315,9 @@ void ParticleSystemComputePass::onInit(Orhescyon::GeneralManager& gm)
 	    .pushConstants = {{vk::ShaderStageFlagBits::eCompute, 0, sizeof(EmitorPushConst)}},
 	});
 
-	Orhescyon::Entity e = gm.createEntity();
+	Orhescyon::Entity e = gm.createEntityImmediate();
 	gm.registerContext<ParticlesBufferContext>(e);
-	gm.addComponent<ParticlesBufferComponent>(e, _particlesBuffer, _indirectBuffer, _aliveIndicesBufferA,
+	gm.addComponentImmediate<ParticlesBufferComponent>(e, _particlesBuffer, _indirectBuffer, _aliveIndicesBufferA,
 	                                          _aliveIndicesBufferB, _dispatchBuffer, _emitersData);
 }
 

@@ -54,29 +54,29 @@ void GraphicsPipelinesInit::initPipelines(GeneralManager& gm)
 
 #pragma region RenderGraph
 
-	Orhescyon::Entity rgEntity = gm.createEntity();
+	Orhescyon::Entity rgEntity = gm.createEntityImmediate();
 	RenderGraph* rg = new RenderGraph(*vulkanDevice, vmaAlloc, &gm);
 	gm.registerContext<RenderGraphContext>(rgEntity);
-	gm.addComponent<RenderGraphComponent>(rgEntity, rg);
-	gm.addComponent<NameComponent>(rgEntity, "SYSTEM Render Graph");
+	gm.addComponentImmediate<RenderGraphComponent>(rgEntity, rg);
+	gm.addComponentImmediate<NameComponent>(rgEntity, "SYSTEM Render Graph");
 	dq->push_function([rg]() { delete rg; });
 
 #pragma endregion
 
 #ifdef HALCYON_DEV_TOOLS
 	ShaderReloader* shaderReloader = new ShaderReloader(HALCYON_SHADER_SRC_DIR, VulkanUtils::resolveShaderDir());
-	Orhescyon::Entity shaderReloaderEntity = gm.createEntity();
+	Orhescyon::Entity shaderReloaderEntity = gm.createEntityImmediate();
 	gm.registerContext<ShaderReloaderContext>(shaderReloaderEntity);
-	gm.addComponent<ShaderReloaderComponent>(shaderReloaderEntity, shaderReloader);
-	gm.addComponent<NameComponent>(shaderReloaderEntity, "SYSTEM Shader Reloader");
+	gm.addComponentImmediate<ShaderReloaderComponent>(shaderReloaderEntity, shaderReloader);
+	gm.addComponentImmediate<NameComponent>(shaderReloaderEntity, "SYSTEM Shader Reloader");
 #endif
 
 #pragma region Pipelines
-	Orhescyon::Entity pManagerEntity = gm.createEntity();
+	Orhescyon::Entity pManagerEntity = gm.createEntityImmediate();
 	gm.registerContext<PipelineManagerContext>(pManagerEntity);
 	PipelineManager* pipelineManager = new PipelineManager(*vulkanDevice, *descriptorManager);
-	gm.addComponent<PipelineManagerComponent>(pManagerEntity, pipelineManager);
-	gm.addComponent<NameComponent>(pManagerEntity, "SYSTEM Pipeline Manager");
+	gm.addComponentImmediate<PipelineManagerComponent>(pManagerEntity, pipelineManager);
+	gm.addComponentImmediate<NameComponent>(pManagerEntity, "SYSTEM Pipeline Manager");
 	dq->push_function([pipelineManager]() { delete pipelineManager; });
 
 	auto bindingDesc = Vertex::getBindingDescription();

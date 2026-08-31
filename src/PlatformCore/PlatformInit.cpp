@@ -48,20 +48,20 @@ void PlatformInit::initPlatform(Orhescyon::GeneralManager& gm)
 {
 	DeletionQueue* dq = gm.getContextComponent<DeletionQueueContext, DeletionQueueComponent>()->queue;
 
-	Orhescyon::Entity windowAndInputEntity = gm.createEntity();
+	Orhescyon::Entity windowAndInputEntity = gm.createEntityImmediate();
 	gm.registerContext<InputDataContext>(windowAndInputEntity);
 	gm.registerContext<MainWindowContext>(windowAndInputEntity);
 	Window* window = new Window("Halcyon");
-	gm.addComponent<WindowComponent>(windowAndInputEntity, window);
+	gm.addComponentImmediate<WindowComponent>(windowAndInputEntity, window);
 	dq->push_function([window]() { delete window; });
-	gm.addComponent<KeyboardStateComponent>(windowAndInputEntity);
-	gm.addComponent<MouseStateComponent>(windowAndInputEntity);
-	gm.addComponent<CursorPositionComponent>(windowAndInputEntity);
-	gm.addComponent<NameComponent>(windowAndInputEntity, "SYSTEM::PLATFORM Window and Input");
+	gm.addComponentImmediate<KeyboardStateComponent>(windowAndInputEntity);
+	gm.addComponentImmediate<MouseStateComponent>(windowAndInputEntity);
+	gm.addComponentImmediate<CursorPositionComponent>(windowAndInputEntity);
+	gm.addComponentImmediate<NameComponent>(windowAndInputEntity, "SYSTEM::PLATFORM Window and Input");
 	unsigned int ScreenWidth = 1920;
 	unsigned int ScreenHeight = 1080;
-	gm.addComponent<WindowSizeComponent>(windowAndInputEntity, ScreenWidth, ScreenHeight);
-	gm.addComponent<ScrollDeltaComponent>(windowAndInputEntity);
-	gm.subscribeEntity<InputSolverSystem>(windowAndInputEntity);
+	gm.addComponentImmediate<WindowSizeComponent>(windowAndInputEntity, ScreenWidth, ScreenHeight);
+	gm.addComponentImmediate<ScrollDeltaComponent>(windowAndInputEntity);
+	gm.subscribeEntityImmediate<InputSolverSystem>(windowAndInputEntity);
 }
 #pragma endregion

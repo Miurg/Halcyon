@@ -60,28 +60,28 @@ void PlaceholdersInit::initPlaceholders(GeneralManager& gm)
 
 #pragma region Scene Entities (Camera, DirectLight, Skybox)
 	// === Camera ===
-	Orhescyon::Entity cameraEntity = gm.createEntity();
-	gm.addComponent<NameComponent>(cameraEntity, "Main Camera");
-	gm.addComponent<CameraComponent>(cameraEntity);
-	gm.addComponent<GlobalTransformComponent>(cameraEntity, glm::vec3(0.0f, 0.0f, 0.0f));
-	gm.addComponent<LocalTransformComponent>(cameraEntity, glm::vec3(0.0f, 0.0f, 0.0f));
-	gm.addComponent<RelationshipComponent>(cameraEntity);
+	Orhescyon::Entity cameraEntity = gm.createEntityImmediate();
+	gm.addComponentImmediate<NameComponent>(cameraEntity, "Main Camera");
+	gm.addComponentImmediate<CameraComponent>(cameraEntity);
+	gm.addComponentImmediate<GlobalTransformComponent>(cameraEntity, glm::vec3(0.0f, 0.0f, 0.0f));
+	gm.addComponentImmediate<LocalTransformComponent>(cameraEntity, glm::vec3(0.0f, 0.0f, 0.0f));
+	gm.addComponentImmediate<RelationshipComponent>(cameraEntity);
 	gm.registerContext<MainCameraContext>(cameraEntity);
 	CameraComponent* camera = gm.getContextComponent<MainCameraContext, CameraComponent>();
 
 	// === DirectLight ===
-	Orhescyon::Entity directLightEntity = gm.createEntity();
-	gm.addComponent<NameComponent>(directLightEntity, "Directional Light (Sun)");
-	gm.addComponent<CameraComponent>(directLightEntity);
+	Orhescyon::Entity directLightEntity = gm.createEntityImmediate();
+	gm.addComponentImmediate<NameComponent>(directLightEntity, "Directional Light (Sun)");
+	gm.addComponentImmediate<CameraComponent>(directLightEntity);
 	glm::vec3 directLightPos = glm::vec3(10.0f, 20.0f, 10.0f);
 	glm::quat directLightRot = glm::quatLookAt(glm::vec3(0.577f, -0.816f, 0.005f), glm::vec3(0.0f, 1.0f, 0.0f));
-	glm::vec4 directLightColor = glm::vec4(0.984f, 1.0f, 0.808f, 50.0f); // Slightly warm white light with high intensity
+	glm::vec4 directLightColor = glm::vec4(0.984f, 1.0f, 0.808f, 20.0f); // Slightly warm white light with high intensity
 	glm::vec4 directLightAmbient = directLightColor;
 	directLightAmbient.w *= 0.0f;
-	gm.addComponent<GlobalTransformComponent>(directLightEntity, directLightPos, directLightRot);
-	gm.addComponent<LocalTransformComponent>(directLightEntity, directLightPos, directLightRot);
-	gm.addComponent<RelationshipComponent>(directLightEntity);
-	gm.addComponent<DirectLightComponent>(directLightEntity, 4000, 4000, directLightColor, directLightAmbient);
+	gm.addComponentImmediate<GlobalTransformComponent>(directLightEntity, directLightPos, directLightRot);
+	gm.addComponentImmediate<LocalTransformComponent>(directLightEntity, directLightPos, directLightRot);
+	gm.addComponentImmediate<RelationshipComponent>(directLightEntity);
+	gm.addComponentImmediate<DirectLightComponent>(directLightEntity, 4000, 4000, directLightColor, directLightAmbient);
 	gm.registerContext<SunContext>(directLightEntity);
 	CameraComponent* directLightCamera = gm.getContextComponent<SunContext, CameraComponent>();
 	DirectLightComponent* directLight = gm.getContextComponent<SunContext, DirectLightComponent>();
@@ -90,10 +90,10 @@ void PlaceholdersInit::initPlaceholders(GeneralManager& gm)
 
 #pragma endregion
 	// === Graphics Settings ===
-	Orhescyon::Entity settingsEntity = gm.createEntity();
-	gm.addComponent<NameComponent>(settingsEntity, "Graphics Settings");
-	gm.addComponent<GraphicsSettingsComponent>(settingsEntity);
-	gm.addComponent<AutoExposureSettingsComponent>(settingsEntity);
+	Orhescyon::Entity settingsEntity = gm.createEntityImmediate();
+	gm.addComponentImmediate<NameComponent>(settingsEntity, "Graphics Settings");
+	gm.addComponentImmediate<GraphicsSettingsComponent>(settingsEntity);
+	gm.addComponentImmediate<AutoExposureSettingsComponent>(settingsEntity);
 	gm.registerContext<GraphicsSettingsContext>(settingsEntity);
 
 	GraphicsSettingsComponent* settings = gm.getContextComponent<GraphicsSettingsContext, GraphicsSettingsComponent>();
@@ -230,9 +230,9 @@ void PlaceholdersInit::initPlaceholders(GeneralManager& gm)
 	                                      *bTextureDSetComponent, *descriptorManager);
 
 	// White placeholder Skybox (can be replaced by SkyboxFactory::loadSkybox)
-	Orhescyon::Entity skyboxEntity = gm.createEntity();
-	gm.addComponent<NameComponent>(skyboxEntity, "Skybox");
-	gm.addComponent<SkyboxComponent>(skyboxEntity);
+	Orhescyon::Entity skyboxEntity = gm.createEntityImmediate();
+	gm.addComponentImmediate<NameComponent>(skyboxEntity, "Skybox");
+	gm.addComponentImmediate<SkyboxComponent>(skyboxEntity);
 	gm.registerContext<SkyBoxContext>(skyboxEntity);
 	SkyboxComponent* skybox = gm.getContextComponent<SkyBoxContext, SkyboxComponent>();
 
@@ -322,31 +322,31 @@ void PlaceholdersInit::initPlaceholders(GeneralManager& gm)
 #pragma endregion
 
 #pragma region GTAO Settings
-	Orhescyon::Entity gtaoSettingsEntity = gm.createEntity();
-	gm.addComponent<NameComponent>(gtaoSettingsEntity, "GTAO Settings");
+	Orhescyon::Entity gtaoSettingsEntity = gm.createEntityImmediate();
+	gm.addComponentImmediate<NameComponent>(gtaoSettingsEntity, "GTAO Settings");
 	gm.registerContext<GtaoSettingsContext>(gtaoSettingsEntity);
-	gm.addComponent<GtaoSettingsComponent>(gtaoSettingsEntity);
+	gm.addComponentImmediate<GtaoSettingsComponent>(gtaoSettingsEntity);
 #pragma endregion
 
 #pragma region God Rays Settings
-	Orhescyon::Entity godRaysSettingsEntity = gm.createEntity();
-	gm.addComponent<NameComponent>(godRaysSettingsEntity, "God Rays Settings");
+	Orhescyon::Entity godRaysSettingsEntity = gm.createEntityImmediate();
+	gm.addComponentImmediate<NameComponent>(godRaysSettingsEntity, "God Rays Settings");
 	gm.registerContext<GodRaysSettingsContext>(godRaysSettingsEntity);
-	gm.addComponent<GodRaysSettingsComponent>(godRaysSettingsEntity);
+	gm.addComponentImmediate<GodRaysSettingsComponent>(godRaysSettingsEntity);
 #pragma endregion
 
 #pragma region Light Probe Grid
-	Orhescyon::Entity probeGridEntity = gm.createEntity();
+	Orhescyon::Entity probeGridEntity = gm.createEntityImmediate();
 	gm.registerContext<LightProbeGridContext>(probeGridEntity);
-	gm.addComponent<LightProbeGridComponent>(
+	gm.addComponentImmediate<LightProbeGridComponent>(
 	    probeGridEntity, LightProbeGridComponent{.origin = glm::vec3(0.0f), .count = glm::ivec3(0), .spacing = 0.0f});
-	gm.addComponent<NameComponent>(probeGridEntity, "SYSTEM Light Probe Grid");
+	gm.addComponentImmediate<NameComponent>(probeGridEntity, "SYSTEM Light Probe Grid");
 #pragma endregion
 
-	Orhescyon::Entity deltaTimeEntity = gm.createEntity();
+	Orhescyon::Entity deltaTimeEntity = gm.createEntityImmediate();
 	gm.registerContext<DeltaTimeContext>(deltaTimeEntity);
-	gm.addComponent<DeltaTimeComponent>(deltaTimeEntity);
-	gm.addComponent<NameComponent>(deltaTimeEntity, "SYSTEM::GRAPHICS Delta Time");
+	gm.addComponentImmediate<DeltaTimeComponent>(deltaTimeEntity);
+	gm.addComponentImmediate<NameComponent>(deltaTimeEntity, "SYSTEM::GRAPHICS Delta Time");
 
 #ifdef _DEBUG
 	std::cout << "GRAPHICSINIT::PLACEHOLDERENTITYS::Succes!" << std::endl;
@@ -355,6 +355,6 @@ void PlaceholdersInit::initPlaceholders(GeneralManager& gm)
 
 void PlaceholdersInit::initAfterCorePlaceholders(GeneralManager& gm)
 {
-	gm.subscribeEntity<TransformSystem>(gm.getContext<MainCameraContext>());
-	gm.subscribeEntity<TransformSystem>(gm.getContext<SunContext>());
+	gm.subscribeEntityImmediate<TransformSystem>(gm.getContext<MainCameraContext>());
+	gm.subscribeEntityImmediate<TransformSystem>(gm.getContext<SunContext>());
 }

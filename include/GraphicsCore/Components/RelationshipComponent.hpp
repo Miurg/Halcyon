@@ -17,7 +17,7 @@ struct HALCYON_API RelationshipComponent
 		auto* childRel = gm.getComponent<RelationshipComponent>(childEntity);
 		if (childRel == nullptr)
 		{
-			childRel = gm.addComponent<RelationshipComponent>(
+			childRel = gm.addComponentImmediate<RelationshipComponent>(
 			    childEntity); // If the child entity does not have a RelationshipComponent, add one
 		}
 		childRel->parent = myEntity;

@@ -68,19 +68,19 @@ Orhescyon::Entity createEntityHierarchy(Orhescyon::Entity parentEntity, tinygltf
 		}
 	}
 
-	Orhescyon::Entity entity = gm.createEntity();
+	Orhescyon::Entity entity = gm.createEntityImmediate();
 	std::string nodeName = node.name.empty() ? "Node " + std::to_string(nodeIndex) : node.name;
-	gm.addComponent<NameComponent>(entity, nodeName);
-	gm.addComponent<GlobalTransformComponent>(entity);
-	gm.addComponent<LocalTransformComponent>(entity, localPosition, localRotation, localScale);
-	gm.addComponent<RelationshipComponent>(entity);
+	gm.addComponentImmediate<NameComponent>(entity, nodeName);
+	gm.addComponentImmediate<GlobalTransformComponent>(entity);
+	gm.addComponentImmediate<LocalTransformComponent>(entity, localPosition, localRotation, localScale);
+	gm.addComponentImmediate<RelationshipComponent>(entity);
 	if (node.mesh != -1)
 	{
-		gm.addComponent<MeshInfoComponent>(entity, meshSlots[node.mesh]);
-		gm.subscribeEntity<RenderSystem>(entity);
-		gm.subscribeEntity<BufferUpdateSystem>(entity);
+		gm.addComponentImmediate<MeshInfoComponent>(entity, meshSlots[node.mesh]);
+		gm.subscribeEntityImmediate<RenderSystem>(entity);
+		gm.subscribeEntityImmediate<BufferUpdateSystem>(entity);
 	}
-	gm.subscribeEntity<TransformSystem>(entity);
+	gm.subscribeEntityImmediate<TransformSystem>(entity);
 
 	// Establish parent-child relationship
 	if (parentEntity != Orhescyon::Entity::invalid())
@@ -101,8 +101,8 @@ Orhescyon::Entity createEntityHierarchy(Orhescyon::Entity parentEntity, tinygltf
 			if (lightIndex >= 0 && lightIndex < (int)lightsArr.ArrayLen())
 			{
 				auto& lightDef = lightsArr.Get(lightIndex);
-				auto* comp = gm.addComponent<PointLightComponent>(entity);
-				gm.subscribeEntity<LightUpdateSystem>(entity);
+				auto* comp = gm.addComponentImmediate<PointLightComponent>(entity);
+				gm.subscribeEntityImmediate<LightUpdateSystem>(entity);
 
 				comp->intensity = (lightDef.Has("intensity") ? (float)lightDef.Get("intensity").GetNumberAsDouble()
 				                                             : 1.0f); // cd (candela), as per KHR_lights_punctual spec
@@ -219,16 +219,16 @@ Orhescyon::Entity ModelFactory::loadModel(const char path[MAX_PATH_LEN], int ver
 	}
 
 	// Create root entity for the model
-	Orhescyon::Entity modelRootEntity = gm.createEntity();
+	Orhescyon::Entity modelRootEntity = gm.createEntityImmediate();
 	std::string pathString = path;
 	size_t lastSlash = pathString.find_last_of("/\\");
 	std::string filename = (lastSlash == std::string::npos) ? pathString : pathString.substr(lastSlash + 1);
-	gm.addComponent<NameComponent>(modelRootEntity, filename);
-	gm.addComponent<GlobalTransformComponent>(modelRootEntity);
-	gm.addComponent<LocalTransformComponent>(modelRootEntity);
-	gm.addComponent<RelationshipComponent>(modelRootEntity);
-	gm.addComponent<ModelComponent>(modelRootEntity, modelHandle);
-	gm.subscribeEntity<TransformSystem>(modelRootEntity);
+	gm.addComponentImmediate<NameComponent>(modelRootEntity, filename);
+	gm.addComponentImmediate<GlobalTransformComponent>(modelRootEntity);
+	gm.addComponentImmediate<LocalTransformComponent>(modelRootEntity);
+	gm.addComponentImmediate<RelationshipComponent>(modelRootEntity);
+	gm.addComponentImmediate<ModelComponent>(modelRootEntity, modelHandle);
+	gm.subscribeEntityImmediate<TransformSystem>(modelRootEntity);
 
 	const int sceneIndex = model.defaultScene > -1 ? model.defaultScene : 0;
 	const tinygltf::Scene& scene = model.scenes[sceneIndex];
@@ -260,7 +260,7 @@ bool ModelFactory::unloadModel(Orhescyon::Entity modelRootEntity, GeneralManager
 	if (!gm.hasComponent<ModelComponent>(modelRootEntity)) return false;
 	ModelHandle modelHandle = gm.getComponent<ModelComponent>(modelRootEntity)->modelIndex;
 
-	// destroyEntity does not repair neighbours — unlink the root from its parent's child list first.
+	// Entity destruction does not repair neighbours — unlink the root from its parent's child list first.
 	RelationshipComponent* rootRel = gm.getComponent<RelationshipComponent>(modelRootEntity);
 	if (rootRel->parent != NULL_ENTITY)
 	{
@@ -272,10 +272,10 @@ bool ModelFactory::unloadModel(Orhescyon::Entity modelRootEntity, GeneralManager
 			gm.getComponent<RelationshipComponent>(rootRel->nextSibling)->prevSibling = rootRel->prevSibling;
 	}
 
-	// Snapshot the subtree before destroying — destroyEntity erases RelationshipComponent.
+	// Snapshot the subtree before destroying — entity destruction erases RelationshipComponent.
 	std::vector<Orhescyon::Entity> toDestroy;
 	collectSubtree(modelRootEntity, gm, toDestroy);
-	for (Orhescyon::Entity entity : toDestroy) gm.destroyEntity(entity);
+	for (Orhescyon::Entity entity : toDestroy) gm.destroyEntityImmediate(entity);
 
 	if (!modelManager.releaseModelRef(modelHandle)) return true;
 	Model& model = modelManager.getModel(modelHandle);
