@@ -21,17 +21,17 @@ void TransformSystem::onShutdown(GeneralManager& gm)
 
 void TransformSystem::applyPendingToLocal(LocalTransformComponent* local)
 {
-	local->_localPosition += local->_pendingPositionDelta;
-	local->_localRotation = glm::normalize(local->_localRotation * local->_pendingRotationDelta);
-	if (local->_hasPendingScale) local->_localScale = local->_pendingScale;
+	local->prs.position += local->_pendingPositionDelta;
+	local->prs.rotation = glm::normalize(local->prs.rotation * local->_pendingRotationDelta);
+	if (local->_hasPendingScale) local->prs.scale = local->_pendingScale;
 	local->_updateDirectionVectors();
 }
 
 void TransformSystem::applyPendingToGlobal(GlobalTransformComponent* global)
 {
-	global->_globalPosition += global->_pendingPositionDelta;
-	global->_globalRotation = glm::normalize(global->_globalRotation * global->_pendingRotationDelta);
-	if (global->_hasPendingScale) global->_globalScale = global->_pendingScale;
+	global->prs.position += global->_pendingPositionDelta;
+	global->prs.rotation = glm::normalize(global->prs.rotation * global->_pendingRotationDelta);
+	if (global->_hasPendingScale) global->prs.scale = global->_pendingScale;
 	global->_updateDirectionVectors();
 }
 
@@ -66,9 +66,9 @@ void TransformSystem::update(GeneralManager& gm)
 		    {
 			    applyPendingToGlobal(&global);
 			    // Root: local == global in world space
-			    local._localPosition = global._globalPosition;
-			    local._localRotation = global._globalRotation;
-			    local._localScale = global._globalScale;
+			    local.prs.position = global.prs.position;
+			    local.prs.rotation = global.prs.rotation;
+			    local.prs.scale = global.prs.scale;
 			    local._updateDirectionVectors();
 			    global._clearPending();
 			    local._isModelDirty = true; // ensure phase 2 runs
@@ -79,9 +79,9 @@ void TransformSystem::update(GeneralManager& gm)
 		    if (local._isModelDirty)
 		    {
 			    applyPendingToLocal(&local);
-			    global._globalPosition = local._localPosition;
-			    global._globalRotation = local._localRotation;
-			    global._globalScale = local._localScale;
+			    global.prs.position = local.prs.position;
+			    global.prs.rotation = local.prs.rotation;
+			    global.prs.scale = local.prs.scale;
 			    global._updateDirectionVectors();
 			    global._isModelDirty = true;
 			    global._isViewDirty = true;
@@ -110,10 +110,10 @@ void TransformSystem::update(GeneralManager& gm)
 		if (global->_wasExternallyModified)
 		{
 			applyPendingToGlobal(global);
-			local->_localScale = global->_globalScale / pg->_globalScale;
-			local->_localRotation = glm::normalize(glm::inverse(pg->_globalRotation) * global->_globalRotation);
-			local->_localPosition =
-			    glm::inverse(pg->_globalRotation) * ((global->_globalPosition - pg->_globalPosition) / pg->_globalScale);
+			local->prs.scale = global->prs.scale / pg->prs.scale;
+			local->prs.rotation = glm::normalize(glm::inverse(pg->prs.rotation) * global->prs.rotation);
+			local->prs.position =
+			    glm::inverse(pg->prs.rotation) * ((global->prs.position - pg->prs.position) / pg->prs.scale);
 			local->_updateDirectionVectors();
 			global->_clearPending();
 			local->_isModelDirty = true;
@@ -127,10 +127,9 @@ void TransformSystem::update(GeneralManager& gm)
 		{
 			if (local->_isModelDirty) applyPendingToLocal(local);
 
-			global->_globalScale = pg->_globalScale * local->_localScale;
-			global->_globalRotation = glm::normalize(pg->_globalRotation * local->_localRotation);
-			global->_globalPosition =
-			    pg->_globalPosition + (pg->_globalRotation * (pg->_globalScale * local->_localPosition));
+			global->prs.scale = pg->prs.scale * local->prs.scale;
+			global->prs.rotation = glm::normalize(pg->prs.rotation * local->prs.rotation);
+			global->prs.position = pg->prs.position + (pg->prs.rotation * (pg->prs.scale * local->prs.position));
 			global->_updateDirectionVectors();
 			global->_isModelDirty = true;
 			global->_isViewDirty = true;

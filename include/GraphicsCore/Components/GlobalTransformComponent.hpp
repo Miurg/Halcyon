@@ -5,7 +5,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtc/quaternion.hpp>
-#include <glm/gtx/quaternion.hpp>
+#include "PRSStructure.hpp"
 
 class TransformSystem;
 
@@ -14,56 +14,51 @@ struct HALCYON_API GlobalTransformComponent
 public:
 	GlobalTransformComponent() = default;
 
-	GlobalTransformComponent(glm::vec3 pos) : _globalPosition(pos)
+	GlobalTransformComponent(glm::vec3 pos) : prs{pos}
 	{
 		_updateDirectionVectors();
 	}
 
 	// Eulers
-	GlobalTransformComponent(glm::vec3 pos, glm::vec3 rotEuler)
-	    : _globalPosition(pos), _globalRotation(glm::quat(glm::radians(rotEuler)))
+	GlobalTransformComponent(glm::vec3 pos, glm::vec3 rotEuler) : prs{pos, glm::quat(glm::radians(rotEuler))}
 	{
 		_updateDirectionVectors();
 	}
 
-	GlobalTransformComponent(glm::vec3 pos, glm::quat rot) : _globalPosition(pos), _globalRotation(rot)
+	GlobalTransformComponent(glm::vec3 pos, glm::quat rot) : prs{pos, rot}
 	{
 		_updateDirectionVectors();
 	}
 
 	GlobalTransformComponent(glm::vec3 pos, glm::vec3 rotEuler, glm::vec3 scl)
-	    : _globalPosition(pos), _globalRotation(glm::quat(glm::radians(rotEuler))), _globalScale(scl)
+	    : prs{pos, glm::quat(glm::radians(rotEuler)), scl}
 	{
 		_updateDirectionVectors();
 	}
 
-	GlobalTransformComponent(glm::vec3 pos, glm::quat rot, glm::vec3 scl)
-	    : _globalPosition(pos), _globalRotation(rot), _globalScale(scl)
+	GlobalTransformComponent(glm::vec3 pos, glm::quat rot, glm::vec3 scl) : prs{pos, rot, scl}
 	{
 		_updateDirectionVectors();
 	}
 
-	GlobalTransformComponent(float x, float y, float z) : _globalPosition(glm::vec3(x, y, z))
+	GlobalTransformComponent(float x, float y, float z) : prs{glm::vec3(x, y, z)}
 	{
 		_updateDirectionVectors();
 	}
 
 	GlobalTransformComponent(float px, float py, float pz, float rx, float ry, float rz)
-	    : _globalPosition(glm::vec3(px, py, pz)), _globalRotation(glm::quat(glm::radians(glm::vec3(rx, ry, rz))))
+	    : prs{glm::vec3(px, py, pz), glm::quat(glm::radians(glm::vec3(rx, ry, rz)))}
 	{
 		_updateDirectionVectors();
 	}
 
 	GlobalTransformComponent(float px, float py, float pz, float rx, float ry, float rz, float sx, float sy, float sz)
-	    : _globalPosition(glm::vec3(px, py, pz)), _globalRotation(glm::quat(glm::radians(glm::vec3(rx, ry, rz)))),
-	      _globalScale(glm::vec3(sx, sy, sz))
+	    : prs{glm::vec3(px, py, pz), glm::quat(glm::radians(glm::vec3(rx, ry, rz))), glm::vec3(sx, sy, sz)}
 	{
 		_updateDirectionVectors();
 	}
 
-	GlobalTransformComponent(const GlobalTransformComponent& other)
-	    : _globalPosition(other._globalPosition), _globalRotation(other._globalRotation),
-	      _globalScale(other._globalScale)
+	GlobalTransformComponent(const GlobalTransformComponent& other) : prs(other.prs)
 	{
 		_updateDirectionVectors();
 	}
@@ -72,15 +67,15 @@ public:
 
 	const glm::vec3& getGlobalPosition() const
 	{
-		return _globalPosition;
+		return prs.position;
 	}
 	const glm::quat& getGlobalRotation() const
 	{
-		return _globalRotation;
+		return prs.rotation;
 	}
 	const glm::vec3& getGlobalScale() const
 	{
-		return _globalScale;
+		return prs.scale;
 	}
 	const glm::vec3& getFront() const
 	{
@@ -99,11 +94,11 @@ public:
 	{
 		if (_isModelDirty)
 		{
-			const glm::mat3 R = glm::mat3_cast(_globalRotation);
-			_globalModel[0] = glm::vec4(R[0] * _globalScale.x, 0.0f);
-			_globalModel[1] = glm::vec4(R[1] * _globalScale.y, 0.0f);
-			_globalModel[2] = glm::vec4(R[2] * _globalScale.z, 0.0f);
-			_globalModel[3] = glm::vec4(_globalPosition, 1.0f);
+			const glm::mat3 R = glm::mat3_cast(prs.rotation);
+			_globalModel[0] = glm::vec4(R[0] * prs.scale.x, 0.0f);
+			_globalModel[1] = glm::vec4(R[1] * prs.scale.y, 0.0f);
+			_globalModel[2] = glm::vec4(R[2] * prs.scale.z, 0.0f);
+			_globalModel[3] = glm::vec4(prs.position, 1.0f);
 			_isModelDirty = false;
 		}
 		return _globalModel;
@@ -113,10 +108,10 @@ public:
 	{
 		if (_isViewDirty)
 		{
-			glm::mat3 R = glm::mat3_cast(_globalRotation);
+			glm::mat3 R = glm::mat3_cast(prs.rotation);
 			glm::mat3 R_view = glm::transpose(R);
 			_view = glm::mat4(R_view);
-			_view[3] = glm::vec4(R_view * (-_globalPosition), 1.0f);
+			_view[3] = glm::vec4(R_view * (-prs.position), 1.0f);
 			_isViewDirty = false;
 		}
 		return _view;
@@ -126,7 +121,7 @@ public:
 
 	void setGlobalPosition(const glm::vec3& pos)
 	{
-		_pendingPositionDelta = pos - _globalPosition;
+		_pendingPositionDelta = pos - prs.position;
 		_wasExternallyModified = true;
 	}
 
@@ -138,7 +133,7 @@ public:
 
 	void setGlobalRotation(const glm::quat& rot)
 	{
-		_pendingRotationDelta = glm::normalize(glm::inverse(_globalRotation) * rot);
+		_pendingRotationDelta = glm::normalize(glm::inverse(prs.rotation) * rot);
 		_wasExternallyModified = true;
 	}
 
@@ -159,7 +154,7 @@ public:
 	void rotateGlobal(float angle, const glm::vec3& axis)
 	{
 		glm::quat q = glm::angleAxis(angle, glm::normalize(axis));
-		glm::quat lq = glm::normalize(glm::inverse(_globalRotation) * q * _globalRotation);
+		glm::quat lq = glm::normalize(glm::inverse(prs.rotation) * q * prs.rotation);
 		_pendingRotationDelta = glm::normalize(_pendingRotationDelta * lq);
 		_wasExternallyModified = true;
 	}
@@ -173,9 +168,7 @@ public:
 
 private:
 
-	glm::vec3 _globalPosition = {0.0f, 0.0f, 0.0f};
-	glm::quat _globalRotation = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
-	glm::vec3 _globalScale = {1.0f, 1.0f, 1.0f};
+	PRS prs;
 
 	glm::vec3 _front = {1.0f, 0.0f, 0.0f};
 	glm::vec3 _up = {0.0f, 1.0f, 0.0f};
@@ -196,18 +189,18 @@ private:
 
 	void _updateDirectionVectors()
 	{
-		_front = glm::rotate(_globalRotation, glm::vec3(0.0f, 0.0f, -1.0f));
-		_up = glm::rotate(_globalRotation, glm::vec3(0.0f, 1.0f, 0.0f));
-		_right = glm::rotate(_globalRotation, glm::vec3(1.0f, 0.0f, 0.0f));
+		_front = prs.rotation * glm::vec3(0.0f, 0.0f, -1.0f);
+		_up = prs.rotation * glm::vec3(0.0f, 1.0f, 0.0f);
+		_right = prs.rotation * glm::vec3(1.0f, 0.0f, 0.0f);
 		_isViewDirty = true;
 	}
 
 	// Called only by TransformSystem - does NOT set _wasExternallyModified
 	void _applyTransform(const glm::vec3& pos, const glm::quat& rot, const glm::vec3& scale)
 	{
-		_globalPosition = pos;
-		_globalRotation = rot;
-		_globalScale = scale;
+		prs.position = pos;
+		prs.rotation = rot;
+		prs.scale = scale;
 	}
 
 	void _clearPending()
