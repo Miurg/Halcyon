@@ -39,7 +39,7 @@ void AudioInit::initAudio(Orhescyon::GeneralManager& gm)
 {
 	DeletionQueue* dq = gm.getContextComponent<DeletionQueueContext, DeletionQueueComponent>()->queue;
 
-	Orhescyon::Entity audioManagerEntity = gm.createEntityImmediate();
+	Orhescyon::Entity audioManagerEntity = gm.createEntity();
 	AudioManager* audioManager = new AudioManager();
 	gm.addComponentImmediate<AudioManagerComponent>(audioManagerEntity, audioManager);
 	gm.registerContext<AudioManagerContext>(audioManagerEntity);

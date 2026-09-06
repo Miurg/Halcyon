@@ -48,7 +48,7 @@ void PlatformInit::initPlatform(Orhescyon::GeneralManager& gm)
 {
 	DeletionQueue* dq = gm.getContextComponent<DeletionQueueContext, DeletionQueueComponent>()->queue;
 
-	Orhescyon::Entity windowAndInputEntity = gm.createEntityImmediate();
+	Orhescyon::Entity windowAndInputEntity = gm.createEntity();
 	gm.registerContext<InputDataContext>(windowAndInputEntity);
 	gm.registerContext<MainWindowContext>(windowAndInputEntity);
 	Window* window = new Window("Halcyon");

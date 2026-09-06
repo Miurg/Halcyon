@@ -68,7 +68,7 @@ Orhescyon::Entity createEntityHierarchy(Orhescyon::Entity parentEntity, tinygltf
 		}
 	}
 
-	Orhescyon::Entity entity = gm.createEntityImmediate();
+	Orhescyon::Entity entity = gm.createEntity();
 	std::string nodeName = node.name.empty() ? "Node " + std::to_string(nodeIndex) : node.name;
 	gm.addComponentImmediate<NameComponent>(entity, nodeName);
 	gm.addComponentImmediate<GlobalTransformComponent>(entity);
@@ -219,7 +219,7 @@ Orhescyon::Entity ModelFactory::loadModel(const char path[MAX_PATH_LEN], int ver
 	}
 
 	// Create root entity for the model
-	Orhescyon::Entity modelRootEntity = gm.createEntityImmediate();
+	Orhescyon::Entity modelRootEntity = gm.createEntity();
 	std::string pathString = path;
 	size_t lastSlash = pathString.find_last_of("/\\");
 	std::string filename = (lastSlash == std::string::npos) ? pathString : pathString.substr(lastSlash + 1);

@@ -14,7 +14,7 @@
 
 App::App() : deletionQueue(&gm)
 {
-	Orhescyon::Entity dqEntity = gm.createEntityImmediate();
+	Orhescyon::Entity dqEntity = gm.createEntity();
 	gm.registerContext<DeletionQueueContext>(dqEntity);
 	gm.addComponentImmediate<DeletionQueueComponent>(dqEntity, &deletionQueue);
 
