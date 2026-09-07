@@ -69,20 +69,19 @@ ModelManager::~ModelManager()
 
 bool ModelManager::isModelLoaded(const char path[MAX_PATH_LEN]) const
 {
-	std::string pathStr(path);
-	return modelPaths.find(pathStr) != modelPaths.end();
+	return modelPaths.find(VulkanUtils::normalizePath(path)) != modelPaths.end();
 }
 
 ModelHandle ModelManager::getModelHandle(const char path[MAX_PATH_LEN]) const
 {
-	auto it = modelPaths.find(path);
+	auto it = modelPaths.find(VulkanUtils::normalizePath(path));
 	if (it == modelPaths.end()) return ModelHandle{};
 	return it->second;
 }
 
 void ModelManager::registerModelPath(const char path[MAX_PATH_LEN], ModelHandle handle)
 {
-	modelPaths[path] = handle;
+	modelPaths[VulkanUtils::normalizePath(path)] = handle;
 }
 
 void ModelManager::unregisterModelPath(ModelHandle handle)

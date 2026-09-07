@@ -45,6 +45,19 @@ std::string VulkanUtils::nameFromPath(const std::string& path)
 	return std::filesystem::path(path).stem().string(); // "shaders/mesh.slang" -> "mesh"
 }
 
+std::string VulkanUtils::normalizePath(const std::filesystem::path& path)
+{
+	if (path.empty()) return {};
+
+	std::error_code error;
+	std::filesystem::path absolutePath = std::filesystem::absolute(path, error);
+	if (error) return path.lexically_normal().generic_string();
+
+	std::filesystem::path normalizedPath = std::filesystem::weakly_canonical(absolutePath, error);
+	if (error) normalizedPath = absolutePath.lexically_normal();
+	return normalizedPath.generic_string();
+}
+
 std::string VulkanUtils::resolveShaderDir()
 {
 	if (std::string env = Platform::getEnv("HALCYON_SHADER_DIR"); !env.empty()) return env;

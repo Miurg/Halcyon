@@ -1,6 +1,7 @@
 #include "GltfLoader.hpp"
 #include "ImageConverter.hpp"
 #include "GraphicsCore/Resources/Factories/TextureFactory.hpp"
+#include "GraphicsCore/VulkanUtils.hpp"
 #include <filesystem>
 #include <algorithm>
 #include <stdexcept>
@@ -107,13 +108,11 @@ GltfLoader::loadMaterialTexture(tinygltf::Model& model, const std::map<std::stri
 	{
 		std::string decodedUri = img.uri;
 		tinygltf::URIDecode(img.uri, &decodedUri, nullptr);
-		texName = std::filesystem::absolute(std::filesystem::path(filePath).parent_path() / decodedUri)
-		              .lexically_normal()
-		              .generic_string();
+		texName = VulkanUtils::normalizePath(std::filesystem::path(filePath).parent_path() / decodedUri);
 	}
 	else
 	{
-		texName = std::string(filePath) + "#img" + std::to_string(sourceImageIndex);
+		texName = VulkanUtils::normalizePath(filePath) + "#img" + std::to_string(sourceImageIndex);
 	}
 	// The same bytes under sRGB vs UNORM are two different images.
 	texName += isSrgb ? "|srgb" : "|linear";

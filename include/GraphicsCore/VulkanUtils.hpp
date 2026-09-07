@@ -6,6 +6,8 @@
 #include "GraphicsCore/VulkanDevice.hpp"
 #include "GraphicsCore/SamplerDesc.hpp"
 #include "GraphicsCore/ImageDesc.hpp"
+#include <filesystem>
+#include <string>
 #include <vector>
 
 struct HALCYON_API StagingBuffer
@@ -25,6 +27,7 @@ class HALCYON_API VulkanUtils
 {
 public:
 	static std::string nameFromPath(const std::string& path);
+	static std::string normalizePath(const std::filesystem::path& path);
 	static std::string resolveShaderDir();
 	static std::pair<vk::raii::Buffer, vk::raii::DeviceMemory> createBuffer(vk::DeviceSize size,
 	                                                                        vk::BufferUsageFlags usage,
