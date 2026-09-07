@@ -12,10 +12,14 @@
 #include "GraphicsCore/Systems/RenderSystem.hpp"
 #include "GraphicsCore/Systems/BufferUpdateSystem.hpp"
 #include "GraphicsCore/Components/NameComponent.hpp"
+#include "GraphicsCore/Components/SceneManagerComponent.hpp"
 #include "GraphicsCore/Resources/Components/ModelComponent.hpp"
+#include "GraphicsCore/Resources/Components/SceneComponent.hpp"
 #include "GraphicsCore/Components/CurrentFrameComponent.hpp"
 #include "GraphicsCore/GraphicsContexts.hpp"
 #include <string>
+#include <unordered_map>
+#include <utility>
 #include "GraphicsCore/Components/PointLightComponent.hpp"
 #include "GraphicsCore/Systems/LightUpdateSystem.hpp"
 
@@ -31,9 +35,9 @@ glm::mat4 convertGLTFMatrix(const std::vector<double>& matrix)
 
 	return glm::make_mat4(m);
 }
-Orhescyon::Entity createEntityHierarchy(Orhescyon::Entity parentEntity, tinygltf::Model& model, GeneralManager& gm,
-                                        const std::vector<MeshHandle>& meshSlots, BufferManager& bufferManager,
-                                        int nodeIndex)
+
+SceneNodeHandle parseSceneHierarchy(SceneNodeHandle parentNode, tinygltf::Model& model, SceneManager& sceneManager,
+                                    Scene& scene, const std::vector<MeshHandle>& meshSlots, int nodeIndex)
 {
 	tinygltf::Node& node = model.nodes[nodeIndex];
 
@@ -68,25 +72,16 @@ Orhescyon::Entity createEntityHierarchy(Orhescyon::Entity parentEntity, tinygltf
 		}
 	}
 
-	Orhescyon::Entity entity = gm.createEntity();
-	std::string nodeName = node.name.empty() ? "Node " + std::to_string(nodeIndex) : node.name;
-	gm.addComponentImmediate<NameComponent>(entity, nodeName);
-	gm.addComponentImmediate<GlobalTransformComponent>(entity);
-	gm.addComponentImmediate<LocalTransformComponent>(entity, localPosition, localRotation, localScale);
-	gm.addComponentImmediate<RelationshipComponent>(entity);
+	SceneTransformHandle transformHandle = sceneManager.addTransform(PRS{localPosition, localRotation, localScale});
+	scene.transforms.push_back(transformHandle);
+
+	SceneNode sceneNode;
+	sceneNode.name = node.name.empty() ? "Node " + std::to_string(nodeIndex) : node.name;
+	sceneNode.transform = transformHandle;
+	sceneNode.parent = parentNode;
 	if (node.mesh != -1)
 	{
-		gm.addComponentImmediate<MeshInfoComponent>(entity, meshSlots[node.mesh]);
-		gm.subscribeEntityImmediate<RenderSystem>(entity);
-		gm.subscribeEntityImmediate<BufferUpdateSystem>(entity);
-	}
-	gm.subscribeEntityImmediate<TransformSystem>(entity);
-
-	// Establish parent-child relationship
-	if (parentEntity != Orhescyon::Entity::invalid())
-	{
-		RelationshipComponent& relationship = *gm.getComponent<RelationshipComponent>(parentEntity);
-		relationship.addChild(parentEntity, entity, gm);
+		sceneNode.mesh = meshSlots[node.mesh];
 	}
 
 	auto nodeLightIt = node.extensions.find("KHR_lights_punctual");
@@ -101,53 +96,118 @@ Orhescyon::Entity createEntityHierarchy(Orhescyon::Entity parentEntity, tinygltf
 			if (lightIndex >= 0 && lightIndex < (int)lightsArr.ArrayLen())
 			{
 				auto& lightDef = lightsArr.Get(lightIndex);
-				auto* comp = gm.addComponentImmediate<PointLightComponent>(entity);
-				gm.subscribeEntityImmediate<LightUpdateSystem>(entity);
+				PointLightComponent light{};
 
-				comp->intensity = (lightDef.Has("intensity") ? (float)lightDef.Get("intensity").GetNumberAsDouble()
+				light.intensity = (lightDef.Has("intensity") ? (float)lightDef.Get("intensity").GetNumberAsDouble()
 				                                             : 1.0f); // cd (candela), as per KHR_lights_punctual spec
-				comp->radius = lightDef.Has("range") ? (float)lightDef.Get("range").GetNumberAsDouble() : 10.0f;
-				comp->innerConeAngle = glm::cos(glm::radians(15.0f));
-				comp->outerConeAngle = glm::cos(glm::radians(30.0f));
+				light.radius = lightDef.Has("range") ? (float)lightDef.Get("range").GetNumberAsDouble() : 10.0f;
+				light.innerConeAngle = glm::cos(glm::radians(15.0f));
+				light.outerConeAngle = glm::cos(glm::radians(30.0f));
 
 				if (lightDef.Has("color"))
 				{
 					auto& c = lightDef.Get("color");
-					comp->color = glm::vec3((float)c.Get(0).GetNumberAsDouble(), (float)c.Get(1).GetNumberAsDouble(),
+					light.color = glm::vec3((float)c.Get(0).GetNumberAsDouble(), (float)c.Get(1).GetNumberAsDouble(),
 					                        (float)c.Get(2).GetNumberAsDouble());
 				}
 
 				std::string typeStr = lightDef.Has("type") ? lightDef.Get("type").Get<std::string>() : "point";
 				if (typeStr == "spot")
 				{
-					comp->type = 1;
+					light.type = 1;
 					if (lightDef.Has("spot"))
 					{
 						auto& spot = lightDef.Get("spot");
 						if (spot.Has("innerConeAngle"))
-							comp->innerConeAngle = glm::cos((float)spot.Get("innerConeAngle").GetNumberAsDouble());
+							light.innerConeAngle = glm::cos((float)spot.Get("innerConeAngle").GetNumberAsDouble());
 						if (spot.Has("outerConeAngle"))
-							comp->outerConeAngle = glm::cos((float)spot.Get("outerConeAngle").GetNumberAsDouble());
+							light.outerConeAngle = glm::cos((float)spot.Get("outerConeAngle").GetNumberAsDouble());
 					}
 				}
 				else
-					comp->type = 0;
+					light.type = 0;
 
 				if (node.rotation.size() == 4)
 				{
 					glm::quat rot((float)node.rotation[3], (float)node.rotation[0], (float)node.rotation[1],
 					              (float)node.rotation[2]);
-					comp->direction = glm::normalize(rot * glm::vec3(0.0f, 0.0f, -1.0f));
+					light.direction = glm::normalize(rot * glm::vec3(0.0f, 0.0f, -1.0f));
 				}
+
+				sceneNode.light = sceneManager.addLight(light);
+				scene.lights.push_back(sceneNode.light);
 			}
 		}
 	}
 
+	SceneNodeHandle nodeHandle = sceneManager.addNode(std::move(sceneNode));
+	scene.nodes.push_back(nodeHandle);
+
 	for (int childIndex : node.children)
 	{
-		createEntityHierarchy(entity, model, gm, meshSlots, bufferManager, childIndex);
+		parseSceneHierarchy(nodeHandle, model, sceneManager, scene, meshSlots, childIndex);
 	}
-	return entity;
+	return nodeHandle;
+}
+
+Orhescyon::Entity instantiateScene(const char path[MAX_PATH_LEN], SceneHandle sceneHandle, GeneralManager& gm,
+                                   const SceneManager& sceneManager)
+{
+	const Scene& scene = sceneManager.getScene(sceneHandle);
+	if (scene.models.empty()) throw std::runtime_error("Cannot instantiate a scene without a model");
+
+	Orhescyon::Entity modelRootEntity = gm.createEntity();
+	std::string pathString = path;
+	size_t lastSlash = pathString.find_last_of("/\\");
+	std::string filename = (lastSlash == std::string::npos) ? pathString : pathString.substr(lastSlash + 1);
+	gm.addComponentImmediate<NameComponent>(modelRootEntity, filename);
+	gm.addComponentImmediate<GlobalTransformComponent>(modelRootEntity);
+	gm.addComponentImmediate<LocalTransformComponent>(modelRootEntity);
+	gm.addComponentImmediate<RelationshipComponent>(modelRootEntity);
+	gm.addComponentImmediate<ModelComponent>(modelRootEntity, scene.models.front());
+	gm.addComponentImmediate<SceneComponent>(modelRootEntity, sceneHandle);
+	gm.subscribeEntityImmediate<TransformSystem>(modelRootEntity);
+
+	std::unordered_map<int, Orhescyon::Entity> nodeEntities;
+	nodeEntities.reserve(scene.nodes.size());
+
+	for (SceneNodeHandle nodeHandle : scene.nodes)
+	{
+		const SceneNode& sceneNode = sceneManager.getNode(nodeHandle);
+		const PRS& transform = sceneManager.getTransform(sceneNode.transform);
+
+		Orhescyon::Entity entity = gm.createEntity();
+		gm.addComponentImmediate<NameComponent>(entity, sceneNode.name);
+		gm.addComponentImmediate<GlobalTransformComponent>(entity);
+		gm.addComponentImmediate<LocalTransformComponent>(entity, transform.position, transform.rotation,
+		                                                  transform.scale);
+		gm.addComponentImmediate<RelationshipComponent>(entity);
+
+		if (sceneNode.mesh.id != -1)
+		{
+			gm.addComponentImmediate<MeshInfoComponent>(entity, sceneNode.mesh);
+			gm.subscribeEntityImmediate<RenderSystem>(entity);
+			gm.subscribeEntityImmediate<BufferUpdateSystem>(entity);
+		}
+		if (sceneNode.light.id != -1)
+		{
+			gm.addComponentImmediate<PointLightComponent>(entity, sceneManager.getLight(sceneNode.light));
+			gm.subscribeEntityImmediate<LightUpdateSystem>(entity);
+		}
+		gm.subscribeEntityImmediate<TransformSystem>(entity);
+		nodeEntities.emplace(nodeHandle.id, entity);
+	}
+
+	for (SceneNodeHandle nodeHandle : scene.nodes)
+	{
+		const SceneNode& sceneNode = sceneManager.getNode(nodeHandle);
+		Orhescyon::Entity entity = nodeEntities.at(nodeHandle.id);
+		Orhescyon::Entity parentEntity =
+		    sceneNode.parent.id == -1 ? modelRootEntity : nodeEntities.at(sceneNode.parent.id);
+		gm.getComponent<RelationshipComponent>(parentEntity)->addChild(parentEntity, entity, gm);
+	}
+
+	return modelRootEntity;
 }
 
 Orhescyon::Entity ModelFactory::loadModel(const char path[MAX_PATH_LEN], int vertexIndexBInt,
@@ -157,6 +217,20 @@ Orhescyon::Entity ModelFactory::loadModel(const char path[MAX_PATH_LEN], int ver
                                           MaterialManager& materialManager, VulkanDevice& vulkanDevice,
                                           VmaAllocator allocator)
 {
+	SceneManager& sceneManager = *gm.getContextComponent<SceneManagerContext, SceneManagerComponent>()->sceneManager;
+	SceneHandle sceneHandle = sceneManager.getSceneHandle(path);
+	if (sceneHandle.id != -1)
+	{
+		const Scene& scene = sceneManager.getScene(sceneHandle);
+		if (scene.models.empty()) throw std::runtime_error("Cannot instantiate a scene without a model");
+		sceneManager.addSceneRef(sceneHandle);
+		modelManager.addModelRef(scene.models.front());
+
+		Orhescyon::Entity modelRootEntity = instantiateScene(path, sceneHandle, gm, sceneManager);
+		std::cout << "Loaded model: " << path << std::endl;
+		return modelRootEntity;
+	}
+
 	tinygltf::Model model;
 	tinygltf::TinyGLTF loader;
 	std::string err, warn;
@@ -218,26 +292,19 @@ Orhescyon::Entity ModelFactory::loadModel(const char path[MAX_PATH_LEN], int ver
 		                                  textureManager, modelManager, materialManager, vulkanDevice, allocator);
 	}
 
-	// Create root entity for the model
-	Orhescyon::Entity modelRootEntity = gm.createEntity();
-	std::string pathString = path;
-	size_t lastSlash = pathString.find_last_of("/\\");
-	std::string filename = (lastSlash == std::string::npos) ? pathString : pathString.substr(lastSlash + 1);
-	gm.addComponentImmediate<NameComponent>(modelRootEntity, filename);
-	gm.addComponentImmediate<GlobalTransformComponent>(modelRootEntity);
-	gm.addComponentImmediate<LocalTransformComponent>(modelRootEntity);
-	gm.addComponentImmediate<RelationshipComponent>(modelRootEntity);
-	gm.addComponentImmediate<ModelComponent>(modelRootEntity, modelHandle);
-	gm.subscribeEntityImmediate<TransformSystem>(modelRootEntity);
+	Scene scene;
+	scene.models.push_back(modelHandle);
 
 	const int sceneIndex = model.defaultScene > -1 ? model.defaultScene : 0;
-	const tinygltf::Scene& scene = model.scenes[sceneIndex];
-
-	for (int rootNodeIndex : scene.nodes)
+	const tinygltf::Scene& gltfScene = model.scenes[sceneIndex];
+	for (int rootNodeIndex : gltfScene.nodes)
 	{
-		createEntityHierarchy(modelRootEntity, model, gm, modelManager.getModel(modelHandle).meshes, bufferManager,
-		                      rootNodeIndex);
+		parseSceneHierarchy(SceneNodeHandle{}, model, sceneManager, scene, modelManager.getModel(modelHandle).meshes,
+		                    rootNodeIndex);
 	}
+	sceneHandle = sceneManager.addScene(path, std::move(scene));
+
+	Orhescyon::Entity modelRootEntity = instantiateScene(path, sceneHandle, gm, sceneManager);
 	std::cout << "Loaded model: " << path << std::endl;
 	return modelRootEntity;
 }
@@ -257,8 +324,11 @@ void collectSubtree(Orhescyon::Entity entity, GeneralManager& gm, std::vector<Or
 bool ModelFactory::unloadModel(Orhescyon::Entity modelRootEntity, GeneralManager& gm, ModelManager& modelManager,
                                TextureManager& textureManager, MaterialManager& materialManager)
 {
-	if (!gm.hasComponent<ModelComponent>(modelRootEntity)) return false;
+	if (!gm.hasComponent<ModelComponent>(modelRootEntity) || !gm.hasComponent<SceneComponent>(modelRootEntity))
+		return false;
 	ModelHandle modelHandle = gm.getComponent<ModelComponent>(modelRootEntity)->modelIndex;
+	SceneHandle sceneHandle = gm.getComponent<SceneComponent>(modelRootEntity)->scene;
+	SceneManager& sceneManager = *gm.getContextComponent<SceneManagerContext, SceneManagerComponent>()->sceneManager;
 
 	// Entity destruction does not repair neighbours — unlink the root from its parent's child list first.
 	RelationshipComponent* rootRel = gm.getComponent<RelationshipComponent>(modelRootEntity);
@@ -277,6 +347,7 @@ bool ModelFactory::unloadModel(Orhescyon::Entity modelRootEntity, GeneralManager
 	collectSubtree(modelRootEntity, gm, toDestroy);
 	for (Orhescyon::Entity entity : toDestroy) gm.destroyEntityImmediate(entity);
 
+	sceneManager.releaseSceneRef(sceneHandle);
 	if (!modelManager.releaseModelRef(modelHandle)) return true;
 	Model& model = modelManager.getModel(modelHandle);
 

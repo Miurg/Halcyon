@@ -37,3 +37,23 @@ struct HALCYON_API SamplerHandle
 {
 	int id = -1;
 };
+
+struct HALCYON_API SceneHandle
+{
+	int id = -1;
+};
+
+struct HALCYON_API SceneNodeHandle
+{
+	int id = -1;
+};
+
+struct HALCYON_API SceneTransformHandle
+{
+	int id = -1;
+};
+
+struct HALCYON_API SceneLightHandle
+{
+	int id = -1;
+};

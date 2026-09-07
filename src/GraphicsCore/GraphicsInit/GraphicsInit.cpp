@@ -12,6 +12,7 @@
 #include "GraphicsCore/Components/TextureManagerComponent.hpp"
 #include "GraphicsCore/Components/BufferManagerComponent.hpp"
 #include "GraphicsCore/Components/ModelManagerComponent.hpp"
+#include "GraphicsCore/Components/SceneManagerComponent.hpp"
 #include "GraphicsCore/Components/DescriptorManagerComponent.hpp"
 #include "GraphicsCore/Components/MaterialManagerComponent.hpp"
 #include "GraphicsCore/Components/FrameManagerComponent.hpp"
@@ -30,6 +31,7 @@
 #include "GraphicsCore/Resources/Managers/TextureManager.hpp"
 #include "GraphicsCore/Resources/Managers/BufferManager.hpp"
 #include "GraphicsCore/Resources/Managers/ModelManager.hpp"
+#include "GraphicsCore/Resources/Managers/SceneManager.hpp"
 #include "GraphicsCore/Resources/Managers/DescriptorManager.hpp"
 #include "../Managers/FrameManager.hpp"
 #include "GraphicsCore/GraphicsContexts.hpp"
@@ -231,6 +233,14 @@ void GraphicsInit::initManagers(GeneralManager& gm)
 	gm.addComponentImmediate<ModelManagerComponent>(modelManagerEntity, modelManager);
 	gm.addComponentImmediate<NameComponent>(modelManagerEntity, "SYSTEM Model Manager");
 	dq->push_function([modelManager]() { delete modelManager; });
+
+	// Scene Manager
+	Orhescyon::Entity sceneManagerEntity = gm.createEntity();
+	gm.registerContext<SceneManagerContext>(sceneManagerEntity);
+	SceneManager* sceneManager = new SceneManager();
+	gm.addComponentImmediate<SceneManagerComponent>(sceneManagerEntity, sceneManager);
+	gm.addComponentImmediate<NameComponent>(sceneManagerEntity, "SYSTEM Scene Manager");
+	dq->push_function([sceneManager]() { delete sceneManager; });
 
 	// Descriptor Manager
 	Orhescyon::Entity descriptorManagerEntity = gm.createEntity();
