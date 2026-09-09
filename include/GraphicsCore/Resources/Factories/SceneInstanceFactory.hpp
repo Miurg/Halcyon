@@ -20,7 +20,7 @@ public:
 	    const char path[MAX_PATH_LEN], int vertexIndexBInt, BufferManager& bufferManager,
 	    BindlessTextureDSetComponent& dSetComponent, DescriptorManager& descriptorManager, GeneralManager& gm,
 	    TextureManager& textureManager, RenderAssetManager& renderAssetManager, MaterialManager& materialManager,
-	    VulkanDevice& vulkanDevice, VmaAllocator allocator);
+	    VulkanDevice& vulkanDevice, VmaAllocator allocator, int sceneIndex = -1);
 	static bool unloadSceneInstance(Orhescyon::Entity sceneInstance, GeneralManager& gm,
 	                                RenderAssetManager& renderAssetManager, TextureManager& textureManager,
 	                                MaterialManager& materialManager);

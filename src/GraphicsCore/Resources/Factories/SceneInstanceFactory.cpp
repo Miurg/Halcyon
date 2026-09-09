@@ -157,7 +157,7 @@ Orhescyon::Entity instantiateSceneTemplate(const char path[MAX_PATH_LEN], SceneT
                                            const SceneTemplateManager& sceneTemplateManager)
 {
 	const SceneTemplate& sceneTemplate = sceneTemplateManager.getSceneTemplate(sceneTemplateHandle);
-	if (sceneTemplate.renderAssets.empty())
+	if (sceneTemplate.renderAsset.id == -1)
 		throw std::runtime_error("Cannot instantiate a scene template without a render asset");
 
 	Orhescyon::Entity sceneInstance = gm.createEntity();
@@ -168,7 +168,7 @@ Orhescyon::Entity instantiateSceneTemplate(const char path[MAX_PATH_LEN], SceneT
 	gm.addComponentImmediate<GlobalTransformComponent>(sceneInstance);
 	gm.addComponentImmediate<LocalTransformComponent>(sceneInstance);
 	gm.addComponentImmediate<RelationshipComponent>(sceneInstance);
-	gm.addComponentImmediate<RenderAssetComponent>(sceneInstance, sceneTemplate.renderAssets.front());
+	gm.addComponentImmediate<RenderAssetComponent>(sceneInstance, sceneTemplate.renderAsset);
 	gm.addComponentImmediate<SceneInstanceComponent>(sceneInstance, sceneTemplateHandle);
 	gm.subscribeEntityImmediate<TransformSystem>(sceneInstance);
 
@@ -218,24 +218,28 @@ Orhescyon::Entity SceneInstanceFactory::loadSceneInstance(
     const char path[MAX_PATH_LEN], int vertexIndexBInt, BufferManager& bufferManager,
     BindlessTextureDSetComponent& dSetComponent, DescriptorManager& descriptorManager, GeneralManager& gm,
     TextureManager& textureManager, RenderAssetManager& renderAssetManager, MaterialManager& materialManager,
-    VulkanDevice& vulkanDevice, VmaAllocator allocator)
+    VulkanDevice& vulkanDevice, VmaAllocator allocator, int sceneIndex)
 {
+	if (sceneIndex < -1) throw std::runtime_error("glTF scene index cannot be less than -1");
+
 	SceneTemplateManager& sceneTemplateManager =
 	    *gm.getContextComponent<SceneTemplateManagerContext, SceneTemplateManagerComponent>()->sceneTemplateManager;
-	SceneTemplateHandle sceneTemplateHandle = sceneTemplateManager.getSceneTemplateHandle(path);
-	if (sceneTemplateHandle.id != -1)
+	auto instantiateCachedTemplate = [&](SceneTemplateHandle cachedHandle)
 	{
-		const SceneTemplate& sceneTemplate = sceneTemplateManager.getSceneTemplate(sceneTemplateHandle);
-		if (sceneTemplate.renderAssets.empty())
+		const SceneTemplate& sceneTemplate = sceneTemplateManager.getSceneTemplate(cachedHandle);
+		if (sceneTemplate.renderAsset.id == -1)
 			throw std::runtime_error("Cannot instantiate a scene template without a render asset");
-		sceneTemplateManager.addSceneTemplateRef(sceneTemplateHandle);
-		renderAssetManager.addRenderAssetRef(sceneTemplate.renderAssets.front());
+		sceneTemplateManager.addSceneTemplateRef(cachedHandle);
+		renderAssetManager.addRenderAssetRef(sceneTemplate.renderAsset);
 
 		Orhescyon::Entity sceneInstance =
-		    instantiateSceneTemplate(path, sceneTemplateHandle, gm, sceneTemplateManager);
+		    instantiateSceneTemplate(path, cachedHandle, gm, sceneTemplateManager);
 		std::cout << "Loaded scene instance: " << path << std::endl;
 		return sceneInstance;
-	}
+	};
+
+	SceneTemplateHandle sceneTemplateHandle = sceneTemplateManager.getSceneTemplateHandle(path, sceneIndex);
+	if (sceneTemplateHandle.id != -1) return instantiateCachedTemplate(sceneTemplateHandle);
 
 	tinygltf::Model model;
 	tinygltf::TinyGLTF loader;
@@ -286,6 +290,45 @@ Orhescyon::Entity SceneInstanceFactory::loadSceneInstance(
 		throw std::runtime_error("Failed to load glTF asset");
 	}
 
+	int selectedSceneIndex = -1;
+	std::vector<int> rootNodeIndices;
+	if (model.scenes.empty())
+	{
+		if (sceneIndex != -1)
+			throw std::runtime_error("Cannot select a scene from a glTF asset without scenes");
+
+		std::vector<bool> childNodes(model.nodes.size(), false);
+		for (const tinygltf::Node& node : model.nodes)
+		{
+			for (int childIndex : node.children)
+			{
+				if (childIndex < 0 || childIndex >= static_cast<int>(model.nodes.size()))
+					throw std::runtime_error("glTF node contains an invalid child index");
+				childNodes[childIndex] = true;
+			}
+		}
+		for (int nodeIndex = 0; nodeIndex < static_cast<int>(model.nodes.size()); ++nodeIndex)
+		{
+			if (!childNodes[nodeIndex]) rootNodeIndices.push_back(nodeIndex);
+		}
+	}
+	else
+	{
+		selectedSceneIndex = sceneIndex;
+		if (selectedSceneIndex == -1)
+			selectedSceneIndex = model.defaultScene == -1 ? 0 : model.defaultScene;
+		if (selectedSceneIndex < 0 || selectedSceneIndex >= static_cast<int>(model.scenes.size()))
+			throw std::runtime_error("glTF scene index is out of range");
+		rootNodeIndices = model.scenes[selectedSceneIndex].nodes;
+	}
+
+	sceneTemplateHandle = sceneTemplateManager.getSceneTemplateHandle(path, selectedSceneIndex);
+	if (sceneTemplateHandle.id != -1)
+	{
+		if (sceneIndex == -1) sceneTemplateManager.setDefaultSceneTemplate(path, sceneTemplateHandle);
+		return instantiateCachedTemplate(sceneTemplateHandle);
+	}
+
 	RenderAssetHandle renderAssetHandle = renderAssetManager.getRenderAssetHandle(path);
 	if (renderAssetHandle.id != -1)
 	{
@@ -299,16 +342,16 @@ Orhescyon::Entity SceneInstanceFactory::loadSceneInstance(
 	}
 
 	SceneTemplate sceneTemplate;
-	sceneTemplate.renderAssets.push_back(renderAssetHandle);
+	sceneTemplate.renderAsset = renderAssetHandle;
 
-	const int sceneIndex = model.defaultScene > -1 ? model.defaultScene : 0;
-	const tinygltf::Scene& gltfScene = model.scenes[sceneIndex];
-	for (int rootNodeIndex : gltfScene.nodes)
+	for (int rootNodeIndex : rootNodeIndices)
 	{
 		parseSceneTemplateHierarchy(SceneTemplateNodeHandle{}, model, sceneTemplateManager, sceneTemplate,
 		                            renderAssetManager.getRenderAsset(renderAssetHandle).meshes, rootNodeIndex);
 	}
-	sceneTemplateHandle = sceneTemplateManager.addSceneTemplate(path, std::move(sceneTemplate));
+	sceneTemplateHandle =
+	    sceneTemplateManager.addSceneTemplate(path, selectedSceneIndex, std::move(sceneTemplate));
+	if (sceneIndex == -1) sceneTemplateManager.setDefaultSceneTemplate(path, sceneTemplateHandle);
 
 	Orhescyon::Entity sceneInstance =
 	    instantiateSceneTemplate(path, sceneTemplateHandle, gm, sceneTemplateManager);

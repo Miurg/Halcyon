@@ -45,11 +45,13 @@ SceneTemplateNodeHandle SceneTemplateManager::addNode(SceneTemplateNode node)
 	return SceneTemplateNodeHandle{static_cast<int>(nodes.size() - 1)};
 }
 
-SceneTemplateHandle SceneTemplateManager::addSceneTemplate(const char* path, SceneTemplate sceneTemplate)
+SceneTemplateHandle SceneTemplateManager::addSceneTemplate(const char* path, int sceneIndex,
+                                                            SceneTemplate sceneTemplate)
 {
 	std::string normalizedPath = path == nullptr ? std::string{} : VulkanUtils::normalizePath(path);
-	auto cached = sceneTemplateCache.find(normalizedPath);
-	if (cached != sceneTemplateCache.end()) return cached->second;
+	auto& cachedScenes = sceneTemplateCache[normalizedPath];
+	auto cached = cachedScenes.find(sceneIndex);
+	if (cached != cachedScenes.end()) return cached->second;
 
 	sceneTemplate.refCount = 1;
 	SceneTemplateHandle handle;
@@ -64,21 +66,32 @@ SceneTemplateHandle SceneTemplateManager::addSceneTemplate(const char* path, Sce
 		sceneTemplates.push_back(std::move(sceneTemplate));
 		handle.id = static_cast<int>(sceneTemplates.size() - 1);
 	}
-	sceneTemplateCache.emplace(std::move(normalizedPath), handle);
+	cachedScenes.emplace(sceneIndex, handle);
 	return handle;
 }
 
-bool SceneTemplateManager::isSceneTemplateLoaded(const char* path) const
+void SceneTemplateManager::setDefaultSceneTemplate(const char* path, SceneTemplateHandle handle)
 {
-	return getSceneTemplateHandle(path).id != -1;
+	if (handle.id < 0 || handle.id >= static_cast<int>(sceneTemplates.size())) return;
+	if (sceneTemplates[handle.id].refCount <= 0) return;
+
+	std::string normalizedPath = path == nullptr ? std::string{} : VulkanUtils::normalizePath(path);
+	sceneTemplateCache[normalizedPath][-1] = handle;
 }
 
-SceneTemplateHandle SceneTemplateManager::getSceneTemplateHandle(const char* path) const
+bool SceneTemplateManager::isSceneTemplateLoaded(const char* path, int sceneIndex) const
+{
+	return getSceneTemplateHandle(path, sceneIndex).id != -1;
+}
+
+SceneTemplateHandle SceneTemplateManager::getSceneTemplateHandle(const char* path, int sceneIndex) const
 {
 	const std::string normalizedPath = path == nullptr ? std::string{} : VulkanUtils::normalizePath(path);
-	auto it = sceneTemplateCache.find(normalizedPath);
-	if (it == sceneTemplateCache.end()) return SceneTemplateHandle{};
-	return it->second;
+	auto pathIt = sceneTemplateCache.find(normalizedPath);
+	if (pathIt == sceneTemplateCache.end()) return SceneTemplateHandle{};
+	auto sceneIt = pathIt->second.find(sceneIndex);
+	if (sceneIt == pathIt->second.end()) return SceneTemplateHandle{};
+	return sceneIt->second;
 }
 
 void SceneTemplateManager::addSceneTemplateRef(SceneTemplateHandle handle)
@@ -113,12 +126,21 @@ bool SceneTemplateManager::releaseSceneTemplateRef(SceneTemplateHandle handle)
 		_freeLightSlots.push_back(light.id);
 	}
 
-	for (auto it = sceneTemplateCache.begin(); it != sceneTemplateCache.end();)
+	for (auto pathIt = sceneTemplateCache.begin(); pathIt != sceneTemplateCache.end();)
 	{
-		if (it->second.id == handle.id)
-			it = sceneTemplateCache.erase(it);
+		auto& cachedScenes = pathIt->second;
+		for (auto sceneIt = cachedScenes.begin(); sceneIt != cachedScenes.end();)
+		{
+			if (sceneIt->second.id == handle.id)
+				sceneIt = cachedScenes.erase(sceneIt);
+			else
+				++sceneIt;
+		}
+
+		if (cachedScenes.empty())
+			pathIt = sceneTemplateCache.erase(pathIt);
 		else
-			++it;
+			++pathIt;
 	}
 
 	sceneTemplate = SceneTemplate{};

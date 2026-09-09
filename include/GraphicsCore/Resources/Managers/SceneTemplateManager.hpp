@@ -20,7 +20,7 @@ struct HALCYON_API SceneTemplateNode
 
 struct HALCYON_API SceneTemplate
 {
-	std::vector<RenderAssetHandle> renderAssets;
+	RenderAssetHandle renderAsset;
 	std::vector<SceneTemplateNodeHandle> nodes;
 	std::vector<SceneTemplateTransformHandle> transforms;
 	std::vector<SceneTemplateLightHandle> lights;
@@ -33,10 +33,11 @@ public:
 	SceneTemplateTransformHandle addTransform(PRS transform);
 	SceneTemplateLightHandle addLight(PointLightComponent light);
 	SceneTemplateNodeHandle addNode(SceneTemplateNode node);
-	SceneTemplateHandle addSceneTemplate(const char* path, SceneTemplate sceneTemplate);
+	SceneTemplateHandle addSceneTemplate(const char* path, int sceneIndex, SceneTemplate sceneTemplate);
+	void setDefaultSceneTemplate(const char* path, SceneTemplateHandle handle);
 
-	bool isSceneTemplateLoaded(const char* path) const;
-	SceneTemplateHandle getSceneTemplateHandle(const char* path) const;
+	bool isSceneTemplateLoaded(const char* path, int sceneIndex = -1) const;
+	SceneTemplateHandle getSceneTemplateHandle(const char* path, int sceneIndex = -1) const;
 	void addSceneTemplateRef(SceneTemplateHandle handle);
 	bool releaseSceneTemplateRef(SceneTemplateHandle handle);
 
@@ -55,7 +56,7 @@ private:
 	std::vector<PointLightComponent> lights;
 	std::vector<SceneTemplateNode> nodes;
 	std::vector<SceneTemplate> sceneTemplates;
-	std::unordered_map<std::string, SceneTemplateHandle> sceneTemplateCache;
+	std::unordered_map<std::string, std::unordered_map<int, SceneTemplateHandle>> sceneTemplateCache;
 	std::vector<int> _freeTransformSlots;
 	std::vector<int> _freeLightSlots;
 	std::vector<int> _freeNodeSlots;
