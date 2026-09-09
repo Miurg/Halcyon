@@ -27,7 +27,7 @@ struct HALCYON_API GeometryAllocation
 	int bufferIndex = 0;
 };
 
-struct HALCYON_API Model
+struct HALCYON_API RenderAsset
 {
 	GeometryAllocation allocation;
 	std::vector<MeshHandle> meshes;
@@ -37,15 +37,15 @@ struct HALCYON_API Model
 };
 
 // Stores loaded meshes and their GPU vertex/index buffers. Deduplicates by file path.
-class HALCYON_API ModelManager
+class HALCYON_API RenderAssetManager
 {
 public:
-	ModelManager(VulkanDevice& vulkanDevice, VmaAllocator allocator);
-	~ModelManager();
-	bool isModelLoaded(const char path[MAX_PATH_LEN]) const;
-	ModelHandle getModelHandle(const char path[MAX_PATH_LEN]) const;
-	void registerModelPath(const char path[MAX_PATH_LEN], ModelHandle handle);
-	void unregisterModelPath(ModelHandle handle);
+	RenderAssetManager(VulkanDevice& vulkanDevice, VmaAllocator allocator);
+	~RenderAssetManager();
+	bool isRenderAssetLoaded(const char path[MAX_PATH_LEN]) const;
+	RenderAssetHandle getRenderAssetHandle(const char path[MAX_PATH_LEN]) const;
+	void registerRenderAssetPath(const char path[MAX_PATH_LEN], RenderAssetHandle handle);
+	void unregisterRenderAssetPath(RenderAssetHandle handle);
 
 	std::optional<GeometryAllocation> allocateGeometry(int bufferIndex, uint32_t vertexCount, uint32_t indexCount);
 	void uploadVertices(int bufferIndex, uint32_t vertexBase, const Vertex* data, uint32_t count);
@@ -55,26 +55,26 @@ public:
 	void defragment(VertexIndexBuffer& buffer);
 
 	MeshHandle allocateMeshSlot();
-	ModelHandle allocateModelSlot();
-	void addModelRef(ModelHandle handle);
-	bool releaseModelRef(ModelHandle handle);
+	RenderAssetHandle allocateRenderAssetSlot();
+	void addRenderAssetRef(RenderAssetHandle handle);
+	bool releaseRenderAssetRef(RenderAssetHandle handle);
 	void freeMeshSlot(MeshHandle handle);
-	void freeModelSlot(ModelHandle handle);
+	void freeRenderAssetSlot(RenderAssetHandle handle);
 	size_t meshCount() const;
-	size_t modelCount() const;
+	size_t renderAssetCount() const;
 	size_t freeMeshSlotCount() const;
-	size_t freeModelSlotCount() const;
+	size_t freeRenderAssetSlotCount() const;
 	size_t pendingGeometryFreeCount() const;
 
 	VertexIndexBuffer& getVertexIndexBuffer(int index);
 	MeshInfo& getMesh(MeshHandle handle);
-	Model& getModel(ModelHandle handle);
+	RenderAsset& getRenderAsset(RenderAssetHandle handle);
 
 private:
 	std::vector<VertexIndexBuffer> vertexIndexBuffers;
-	std::unordered_map<std::string, ModelHandle> modelPaths;
+	std::unordered_map<std::string, RenderAssetHandle> renderAssetPaths;
 	std::vector<MeshInfo> meshes;
-	std::vector<Model> models;
+	std::vector<RenderAsset> renderAssets;
 
 	struct PendingGeometryFree
 	{
@@ -84,7 +84,7 @@ private:
 	std::vector<PendingGeometryFree> _pendingGeometryFrees;
 
 	std::vector<int> _freeMeshSlots;
-	std::vector<int> _freeModelSlots;
+	std::vector<int> _freeRenderAssetSlots;
 
 	VulkanDevice& vulkanDevice;
 	VmaAllocator allocator = {};

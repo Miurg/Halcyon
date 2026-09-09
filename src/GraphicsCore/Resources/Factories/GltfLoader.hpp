@@ -11,7 +11,7 @@
 #include "GraphicsCore/Resources/Managers/BufferManager.hpp"
 #include "GraphicsCore/Resources/Managers/TextureManager.hpp"
 #include "GraphicsCore/Resources/Managers/MaterialManager.hpp"
-#include "GraphicsCore/Resources/Managers/ModelManager.hpp"
+#include "GraphicsCore/Resources/Managers/RenderAssetManager.hpp"
 
 struct TextureData
 {
@@ -37,10 +37,11 @@ struct MaterialMaps
 class GltfLoader
 {
 public:
-	static ModelHandle loadModelFromFile(const char path[MAX_PATH_LEN], int vertexIndexBInt, BufferManager& bufferManager,
-	                             BindlessTextureDSetComponent& dSetComponent, DescriptorManager& descriptorManager,
-	                             tinygltf::Model& model, TextureManager& textureManager, ModelManager& modelManager,
-	                             MaterialManager& materialManager, VulkanDevice& vulkanDevice, VmaAllocator allocator);
+	static RenderAssetHandle loadRenderAssetFromFile(
+	    const char path[MAX_PATH_LEN], int vertexIndexBInt, BufferManager& bufferManager,
+	    BindlessTextureDSetComponent& dSetComponent, DescriptorManager& descriptorManager, tinygltf::Model& model,
+	    TextureManager& textureManager, RenderAssetManager& renderAssetManager, MaterialManager& materialManager,
+	    VulkanDevice& vulkanDevice, VmaAllocator allocator);
 	static MaterialMaps materialsParser(tinygltf::Model& model, TextureManager& textureManager,
 	                                    MaterialManager& materialManager, BindlessTextureDSetComponent& dSetComponent,
 	                                    DescriptorManager& descriptorManager, BufferManager& bufferManager,

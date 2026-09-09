@@ -18,7 +18,7 @@ struct HALCYON_API TextureHandle
 	int id = -1;
 };
 
-struct HALCYON_API ModelHandle
+struct HALCYON_API RenderAssetHandle
 {
 	int id = -1;
 };
@@ -38,22 +38,22 @@ struct HALCYON_API SamplerHandle
 	int id = -1;
 };
 
-struct HALCYON_API SceneHandle
+struct HALCYON_API SceneTemplateHandle
 {
 	int id = -1;
 };
 
-struct HALCYON_API SceneNodeHandle
+struct HALCYON_API SceneTemplateNodeHandle
 {
 	int id = -1;
 };
 
-struct HALCYON_API SceneTransformHandle
+struct HALCYON_API SceneTemplateTransformHandle
 {
 	int id = -1;
 };
 
-struct HALCYON_API SceneLightHandle
+struct HALCYON_API SceneTemplateLightHandle
 {
 	int id = -1;
 };

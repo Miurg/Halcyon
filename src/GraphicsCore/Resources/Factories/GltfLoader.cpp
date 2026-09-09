@@ -7,12 +7,11 @@
 #include <stdexcept>
 #include <utility>
 
-ModelHandle GltfLoader::loadModelFromFile(const char path[MAX_PATH_LEN], int vertexIndexBInt,
-                                          BufferManager& bufferManager, BindlessTextureDSetComponent& dSetComponent,
-                                          DescriptorManager& descriptorManager, tinygltf::Model& model,
-                                          TextureManager& textureManager, ModelManager& modelManager,
-                                          MaterialManager& materialManager, VulkanDevice& vulkanDevice,
-                                          VmaAllocator allocator)
+RenderAssetHandle GltfLoader::loadRenderAssetFromFile(
+    const char path[MAX_PATH_LEN], int vertexIndexBInt, BufferManager& bufferManager,
+    BindlessTextureDSetComponent& dSetComponent, DescriptorManager& descriptorManager, tinygltf::Model& model,
+    TextureManager& textureManager, RenderAssetManager& renderAssetManager, MaterialManager& materialManager,
+    VulkanDevice& vulkanDevice, VmaAllocator allocator)
 {
 	MaterialMaps materialMaps = materialsParser(model, textureManager, materialManager, dSetComponent, descriptorManager,
 	                                            bufferManager, path, vulkanDevice, allocator);
@@ -34,11 +33,12 @@ ModelHandle GltfLoader::loadModelFromFile(const char path[MAX_PATH_LEN], int ver
 	allocation.bufferIndex = vertexIndexBInt;
 	if (!localVertices.empty())
 	{
-		auto allocated = modelManager.allocateGeometry(vertexIndexBInt, static_cast<uint32_t>(localVertices.size()),
-		                                               static_cast<uint32_t>(localIndices.size()));
+		auto allocated =
+		    renderAssetManager.allocateGeometry(vertexIndexBInt, static_cast<uint32_t>(localVertices.size()),
+		                                         static_cast<uint32_t>(localIndices.size()));
 		if (!allocated)
 		{
-			throw std::runtime_error("Out of geometry buffer space while loading model");
+			throw std::runtime_error("Out of geometry buffer space while loading render asset");
 		}
 		allocation = *allocated;
 
@@ -51,18 +51,18 @@ ModelHandle GltfLoader::loadModelFromFile(const char path[MAX_PATH_LEN], int ver
 			}
 		}
 
-		modelManager.uploadVertices(vertexIndexBInt, allocation.vertexBase, localVertices.data(),
-		                            static_cast<uint32_t>(localVertices.size()));
-		modelManager.uploadIndices(vertexIndexBInt, allocation.indexBase, localIndices.data(),
-		                           static_cast<uint32_t>(localIndices.size()));
+		renderAssetManager.uploadVertices(vertexIndexBInt, allocation.vertexBase, localVertices.data(),
+		                                  static_cast<uint32_t>(localVertices.size()));
+		renderAssetManager.uploadIndices(vertexIndexBInt, allocation.indexBase, localIndices.data(),
+		                                 static_cast<uint32_t>(localIndices.size()));
 	}
 
 	std::vector<MeshHandle> meshSlots;
 	meshSlots.reserve(loadedMeshes.size());
 	for (auto& loadedMesh : loadedMeshes)
 	{
-		MeshHandle slot = modelManager.allocateMeshSlot();
-		modelManager.getMesh(slot) = std::move(loadedMesh);
+		MeshHandle slot = renderAssetManager.allocateMeshSlot();
+		renderAssetManager.getMesh(slot) = std::move(loadedMesh);
 		meshSlots.push_back(slot);
 	}
 
@@ -70,14 +70,14 @@ ModelHandle GltfLoader::loadModelFromFile(const char path[MAX_PATH_LEN], int ver
 	ownedMaterials.reserve(materialMaps.materials.size());
 	for (const auto& [gltfIndex, materialSlot] : materialMaps.materials) ownedMaterials.push_back(materialSlot);
 
-	ModelHandle modelHandle = modelManager.allocateModelSlot();
-	modelManager.getModel(modelHandle).allocation = allocation;
-	modelManager.getModel(modelHandle).meshes = std::move(meshSlots);
-	modelManager.getModel(modelHandle).textures = std::move(materialMaps.ownedTextures);
-	modelManager.getModel(modelHandle).materials = std::move(ownedMaterials);
-	modelManager.registerModelPath(path, modelHandle);
+	RenderAssetHandle renderAssetHandle = renderAssetManager.allocateRenderAssetSlot();
+	renderAssetManager.getRenderAsset(renderAssetHandle).allocation = allocation;
+	renderAssetManager.getRenderAsset(renderAssetHandle).meshes = std::move(meshSlots);
+	renderAssetManager.getRenderAsset(renderAssetHandle).textures = std::move(materialMaps.ownedTextures);
+	renderAssetManager.getRenderAsset(renderAssetHandle).materials = std::move(ownedMaterials);
+	renderAssetManager.registerRenderAssetPath(path, renderAssetHandle);
 
-	return modelHandle;
+	return renderAssetHandle;
 }
 
 TextureHandle
@@ -101,7 +101,7 @@ GltfLoader::loadMaterialTexture(tinygltf::Model& model, const std::map<std::stri
 	if (sourceImageIndex < 0 || sourceImageIndex >= static_cast<int>(model.images.size())) return fallback;
 
 	tinygltf::Image& img = model.images[sourceImageIndex];
-	// External files key by their resolved on-disk path so models can share them;
+	// External files key by their resolved on-disk path so render assets can share them;
 	// embedded images have no identity outside their model file.
 	std::string texName;
 	if (!img.uri.empty() && img.uri.find("data:") != 0)

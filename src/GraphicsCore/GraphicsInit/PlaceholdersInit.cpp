@@ -24,7 +24,7 @@
 #include "GraphicsCore/Resources/Factories/TextureFactory.hpp"
 #include "GraphicsCore/Resources/Factories/BufferFactory.hpp"
 #include "GraphicsCore/Resources/Managers/BufferManager.hpp"
-#include "GraphicsCore/Resources/Managers/ModelManager.hpp"
+#include "GraphicsCore/Resources/Managers/RenderAssetManager.hpp"
 #include "GraphicsCore/Resources/Managers/DescriptorManager.hpp"
 #include "GraphicsCore/VulkanUtils.hpp"
 #include "GraphicsCore/GraphicsContexts.hpp"

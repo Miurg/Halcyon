@@ -8,7 +8,7 @@
 #include "GraphicsCore/SwapChain.hpp"
 #include "GraphicsCore/Components/SwapChainComponent.hpp"
 #include "GraphicsCore/Components/BufferManagerComponent.hpp"
-#include "GraphicsCore/Components/ModelManagerComponent.hpp"
+#include "GraphicsCore/Components/RenderAssetManagerComponent.hpp"
 #include "GraphicsCore/Components/TextureManagerComponent.hpp"
 #include "GraphicsCore/Components/DescriptorManagerComponent.hpp"
 #include "GraphicsCore/Components/PipelineManagerComponent.hpp"
@@ -19,7 +19,7 @@
 #include "GraphicsCore/Resources/Components/ModelDSetComponent.hpp"
 #include "GraphicsCore/Resources/Components/BindlessTextureDSetComponent.hpp"
 #include "GraphicsCore/Resources/Managers/BufferManager.hpp"
-#include "GraphicsCore/Resources/Managers/ModelManager.hpp"
+#include "GraphicsCore/Resources/Managers/RenderAssetManager.hpp"
 #include "GraphicsCore/Resources/Managers/TextureManager.hpp"
 #include "GraphicsCore/Resources/Managers/DescriptorManager.hpp"
 #include "GraphicsCore/Resources/Managers/Vertex.hpp"
@@ -103,7 +103,8 @@ void DepthPrepass::onSettingsChanged(Orhescyon::GeneralManager& gm)
 void DepthPrepass::draw(vk::raii::CommandBuffer& cmd, uint32_t frame, SwapChain& swapChain,
                         DescriptorManagerComponent& descriptorManager, GlobalDSetComponent& globalDSetComponent,
                         BufferManager& bufferManager, ModelDSetComponent& objectDSetComponent,
-                        BindlessTextureDSetComponent& bindlessTextureDSetComponent, ModelManager& modelManager,
+                        BindlessTextureDSetComponent& bindlessTextureDSetComponent,
+                        RenderAssetManager& renderAssetManager,
                         const DrawInfoComponent& drawInfo, PipelineManager& pipelineManager)
 {
 	auto& firstLayout = pipelineManager.pipelines["standard_opaque_depth"].layout;
@@ -118,8 +119,8 @@ void DepthPrepass::draw(vk::raii::CommandBuffer& cmd, uint32_t frame, SwapChain&
 	                                static_cast<float>(swapChain.swapChainExtent.height), 0.0f, 1.0f));
 	cmd.setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), swapChain.swapChainExtent));
 
-	cmd.bindVertexBuffers(0, modelManager.getVertexIndexBuffer(0).vertexBuffer, {0});
-	cmd.bindIndexBuffer(modelManager.getVertexIndexBuffer(0).indexBuffer, 0,
+	cmd.bindVertexBuffers(0, renderAssetManager.getVertexIndexBuffer(0).vertexBuffer, {0});
+	cmd.bindIndexBuffer(renderAssetManager.getVertexIndexBuffer(0).indexBuffer, 0,
 	                    vk::IndexType::eUint32);
 
 	DrawCursor cursor{bufferManager.getBuffer(objectDSetComponent.compactedDrawBuffer, frame),
@@ -147,7 +148,8 @@ void DepthPrepass::addToGraph(Orhescyon::GeneralManager& gm, RenderGraph& rg, ui
 	auto& globalDSetComponent = *gm.getContextComponent<MainDSetsContext, GlobalDSetComponent>();
 	auto& bufferManager = *gm.getContextComponent<BufferManagerContext, BufferManagerComponent>()->bufferManager;
 	auto& objectDSetComponent = *gm.getContextComponent<MainDSetsContext, ModelDSetComponent>();
-	auto& modelManager = *gm.getContextComponent<ModelManagerContext, ModelManagerComponent>()->modelManager;
+	auto& renderAssetManager =
+	    *gm.getContextComponent<RenderAssetManagerContext, RenderAssetManagerComponent>()->renderAssetManager;
 	auto& drawInfo = *gm.getContextComponent<CurrentFrameContext, DrawInfoComponent>();
 	auto& pipelineManager = *gm.getContextComponent<PipelineManagerContext, PipelineManagerComponent>()->pipelineManager;
 	auto& graphicsSettings = *gm.getContextComponent<GraphicsSettingsContext, GraphicsSettingsComponent>();
@@ -188,6 +190,6 @@ void DepthPrepass::addToGraph(Orhescyon::GeneralManager& gm, RenderGraph& rg, ui
 	           [&, frame](vk::raii::CommandBuffer& cmd)
 	           {
 		           draw(cmd, frame, swapChain, descriptorManager, globalDSetComponent, bufferManager, objectDSetComponent,
-		                bindlessTextureDSetComponent, modelManager, drawInfo, pipelineManager);
+		                bindlessTextureDSetComponent, renderAssetManager, drawInfo, pipelineManager);
 	           });
 }

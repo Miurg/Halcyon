@@ -8,7 +8,8 @@ static BakeContext gatherContext(GeneralManager& gm)
 	ctx.device = gm.getContextComponent<MainVulkanDeviceContext, VulkanDeviceComponent>()->vulkanDeviceInstance;
 	ctx.bufferManager = gm.getContextComponent<BufferManagerContext, BufferManagerComponent>()->bufferManager;
 	ctx.textureManager = gm.getContextComponent<TextureManagerContext, TextureManagerComponent>()->textureManager;
-	ctx.modelManager = gm.getContextComponent<ModelManagerContext, ModelManagerComponent>()->modelManager;
+	ctx.renderAssetManager =
+	    gm.getContextComponent<RenderAssetManagerContext, RenderAssetManagerComponent>()->renderAssetManager;
 	ctx.descriptorManagerComponent = gm.getContextComponent<DescriptorManagerContext, DescriptorManagerComponent>();
 	ctx.pipelineManager = gm.getContextComponent<PipelineManagerContext, PipelineManagerComponent>()->pipelineManager;
 	ctx.globalDSet = gm.getContextComponent<MainDSetsContext, GlobalDSetComponent>();

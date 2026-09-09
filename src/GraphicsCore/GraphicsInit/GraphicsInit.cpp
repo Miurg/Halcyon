@@ -11,8 +11,8 @@
 #include "GraphicsCore/Components/VMAllocatorComponent.hpp"
 #include "GraphicsCore/Components/TextureManagerComponent.hpp"
 #include "GraphicsCore/Components/BufferManagerComponent.hpp"
-#include "GraphicsCore/Components/ModelManagerComponent.hpp"
-#include "GraphicsCore/Components/SceneManagerComponent.hpp"
+#include "GraphicsCore/Components/RenderAssetManagerComponent.hpp"
+#include "GraphicsCore/Components/SceneTemplateManagerComponent.hpp"
 #include "GraphicsCore/Components/DescriptorManagerComponent.hpp"
 #include "GraphicsCore/Components/MaterialManagerComponent.hpp"
 #include "GraphicsCore/Components/FrameManagerComponent.hpp"
@@ -30,8 +30,8 @@
 #include "GraphicsCore/SwapChain.hpp"
 #include "GraphicsCore/Resources/Managers/TextureManager.hpp"
 #include "GraphicsCore/Resources/Managers/BufferManager.hpp"
-#include "GraphicsCore/Resources/Managers/ModelManager.hpp"
-#include "GraphicsCore/Resources/Managers/SceneManager.hpp"
+#include "GraphicsCore/Resources/Managers/RenderAssetManager.hpp"
+#include "GraphicsCore/Resources/Managers/SceneTemplateManager.hpp"
 #include "GraphicsCore/Resources/Managers/DescriptorManager.hpp"
 #include "../Managers/FrameManager.hpp"
 #include "GraphicsCore/GraphicsContexts.hpp"
@@ -226,21 +226,21 @@ void GraphicsInit::initManagers(GeneralManager& gm)
 	gm.addComponentImmediate<NameComponent>(bufferManagerEntity, "SYSTEM Buffer Manager");
 	dq->push_function([bufferManager]() { delete bufferManager; });
 
-	// Model Manager
-	Orhescyon::Entity modelManagerEntity = gm.createEntity();
-	gm.registerContext<ModelManagerContext>(modelManagerEntity);
-	ModelManager* modelManager = new ModelManager(*vulkanDevice, allocator);
-	gm.addComponentImmediate<ModelManagerComponent>(modelManagerEntity, modelManager);
-	gm.addComponentImmediate<NameComponent>(modelManagerEntity, "SYSTEM Model Manager");
-	dq->push_function([modelManager]() { delete modelManager; });
+	// Render Asset Manager
+	Orhescyon::Entity renderAssetManagerEntity = gm.createEntity();
+	gm.registerContext<RenderAssetManagerContext>(renderAssetManagerEntity);
+	RenderAssetManager* renderAssetManager = new RenderAssetManager(*vulkanDevice, allocator);
+	gm.addComponentImmediate<RenderAssetManagerComponent>(renderAssetManagerEntity, renderAssetManager);
+	gm.addComponentImmediate<NameComponent>(renderAssetManagerEntity, "SYSTEM Render Asset Manager");
+	dq->push_function([renderAssetManager]() { delete renderAssetManager; });
 
-	// Scene Manager
-	Orhescyon::Entity sceneManagerEntity = gm.createEntity();
-	gm.registerContext<SceneManagerContext>(sceneManagerEntity);
-	SceneManager* sceneManager = new SceneManager();
-	gm.addComponentImmediate<SceneManagerComponent>(sceneManagerEntity, sceneManager);
-	gm.addComponentImmediate<NameComponent>(sceneManagerEntity, "SYSTEM Scene Manager");
-	dq->push_function([sceneManager]() { delete sceneManager; });
+	// Scene Template Manager
+	Orhescyon::Entity sceneTemplateManagerEntity = gm.createEntity();
+	gm.registerContext<SceneTemplateManagerContext>(sceneTemplateManagerEntity);
+	SceneTemplateManager* sceneTemplateManager = new SceneTemplateManager();
+	gm.addComponentImmediate<SceneTemplateManagerComponent>(sceneTemplateManagerEntity, sceneTemplateManager);
+	gm.addComponentImmediate<NameComponent>(sceneTemplateManagerEntity, "SYSTEM Scene Template Manager");
+	dq->push_function([sceneTemplateManager]() { delete sceneTemplateManager; });
 
 	// Descriptor Manager
 	Orhescyon::Entity descriptorManagerEntity = gm.createEntity();

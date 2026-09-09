@@ -19,8 +19,8 @@
 #include "GraphicsCore/Resources/Managers/TextureManager.hpp"
 #include "GraphicsCore/Components/MaterialManagerComponent.hpp"
 #include "GraphicsCore/Resources/Managers/MaterialManager.hpp"
-#include "GraphicsCore/Components/ModelManagerComponent.hpp"
-#include "GraphicsCore/Resources/Managers/ModelManager.hpp"
+#include "GraphicsCore/Components/RenderAssetManagerComponent.hpp"
+#include "GraphicsCore/Resources/Managers/RenderAssetManager.hpp"
 
 #ifdef TRACY_ENABLE
 #include <tracy/Tracy.hpp>
@@ -91,9 +91,9 @@ void FrameBeginSystem::update(GeneralManager& gm)
 	    *gm.getContextComponent<MaterialManagerContext, MaterialManagerComponent>()->materialManager;
 	materialManager.collectMaterialFrees(currentFrameComp->frameNumber);
 
-	ModelManager& modelManager =
-	    *gm.getContextComponent<ModelManagerContext, ModelManagerComponent>()->modelManager;
-	modelManager.collectGeometryFrees(currentFrameComp->frameNumber);
+	RenderAssetManager& renderAssetManager =
+	    *gm.getContextComponent<RenderAssetManagerContext, RenderAssetManagerComponent>()->renderAssetManager;
+	renderAssetManager.collectGeometryFrees(currentFrameComp->frameNumber);
 
 	// Handle window resize
 	if (window.framebufferResized)

@@ -10,8 +10,8 @@
 #include "GraphicsCore/Resources/Components/ModelDSetComponent.hpp"
 #include "GraphicsCore/Resources/Components/MeshInfoComponent.hpp"
 #include <map>
-#include "GraphicsCore/Resources/Managers/ModelManager.hpp"
-#include "GraphicsCore/Components/ModelManagerComponent.hpp"
+#include "GraphicsCore/Resources/Managers/RenderAssetManager.hpp"
+#include "GraphicsCore/Components/RenderAssetManagerComponent.hpp"
 #include "GraphicsCore/Components/TextureManagerComponent.hpp"
 #include "GraphicsCore/Resources/Managers/TextureManager.hpp"
 #include "Shared/GpuStructs.h"
@@ -42,7 +42,8 @@ void LightUpdateSystem::update(GeneralManager& gm)
 	SwapChain& swapChain = *gm.getContextComponent<MainSwapChainContext, SwapChainComponent>()->swapChainInstance;
 	BufferManager& bufferManager =
 	    *gm.getContextComponent<BufferManagerContext, BufferManagerComponent>()->bufferManager;
-	ModelManager& modelManager = *gm.getContextComponent<ModelManagerContext, ModelManagerComponent>()->modelManager;
+	RenderAssetManager& renderAssetManager =
+	    *gm.getContextComponent<RenderAssetManagerContext, RenderAssetManagerComponent>()->renderAssetManager;
 	TextureManager& textureManager =
 	    *gm.getContextComponent<TextureManagerContext, TextureManagerComponent>()->textureManager;
 	ModelDSetComponent* objectDSetComponent = gm.getContextComponent<MainDSetsContext, ModelDSetComponent>();

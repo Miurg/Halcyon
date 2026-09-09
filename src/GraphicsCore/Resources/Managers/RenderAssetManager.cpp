@@ -1,4 +1,4 @@
-#include "GraphicsCore/Resources/Managers/ModelManager.hpp"
+#include "GraphicsCore/Resources/Managers/RenderAssetManager.hpp"
 #include <algorithm>
 #include <stdexcept>
 #include "GraphicsCore/VulkanUtils.hpp"
@@ -33,7 +33,7 @@ void createDeviceLocalBuffer(VmaAllocator allocator, vk::DeviceSize size, vk::Bu
 }
 } // namespace
 
-ModelManager::ModelManager(VulkanDevice& vulkanDevice, VmaAllocator allocator)
+RenderAssetManager::RenderAssetManager(VulkanDevice& vulkanDevice, VmaAllocator allocator)
     : vulkanDevice(vulkanDevice), allocator(allocator)
 {
 	vertexIndexBuffers.push_back(VertexIndexBuffer());
@@ -52,7 +52,7 @@ ModelManager::ModelManager(VulkanDevice& vulkanDevice, VmaAllocator allocator)
 	buffer.indexAllocator.reset(static_cast<uint32_t>(INDEX_BUFFER_BYTES / sizeof(uint32_t)));
 }
 
-ModelManager::~ModelManager()
+RenderAssetManager::~RenderAssetManager()
 {
 	for (auto& meshBuffer : vertexIndexBuffers)
 	{
@@ -67,36 +67,36 @@ ModelManager::~ModelManager()
 	}
 }
 
-bool ModelManager::isModelLoaded(const char path[MAX_PATH_LEN]) const
+bool RenderAssetManager::isRenderAssetLoaded(const char path[MAX_PATH_LEN]) const
 {
-	return modelPaths.find(VulkanUtils::normalizePath(path)) != modelPaths.end();
+	return renderAssetPaths.find(VulkanUtils::normalizePath(path)) != renderAssetPaths.end();
 }
 
-ModelHandle ModelManager::getModelHandle(const char path[MAX_PATH_LEN]) const
+RenderAssetHandle RenderAssetManager::getRenderAssetHandle(const char path[MAX_PATH_LEN]) const
 {
-	auto it = modelPaths.find(VulkanUtils::normalizePath(path));
-	if (it == modelPaths.end()) return ModelHandle{};
+	auto it = renderAssetPaths.find(VulkanUtils::normalizePath(path));
+	if (it == renderAssetPaths.end()) return RenderAssetHandle{};
 	return it->second;
 }
 
-void ModelManager::registerModelPath(const char path[MAX_PATH_LEN], ModelHandle handle)
+void RenderAssetManager::registerRenderAssetPath(const char path[MAX_PATH_LEN], RenderAssetHandle handle)
 {
-	modelPaths[VulkanUtils::normalizePath(path)] = handle;
+	renderAssetPaths[VulkanUtils::normalizePath(path)] = handle;
 }
 
-void ModelManager::unregisterModelPath(ModelHandle handle)
+void RenderAssetManager::unregisterRenderAssetPath(RenderAssetHandle handle)
 {
-	for (auto it = modelPaths.begin(); it != modelPaths.end();)
+	for (auto it = renderAssetPaths.begin(); it != renderAssetPaths.end();)
 	{
 		if (it->second.id == handle.id)
-			it = modelPaths.erase(it);
+			it = renderAssetPaths.erase(it);
 		else
 			++it;
 	}
 }
 
-std::optional<GeometryAllocation> ModelManager::allocateGeometry(int bufferIndex, uint32_t vertexCount,
-                                                                 uint32_t indexCount)
+std::optional<GeometryAllocation> RenderAssetManager::allocateGeometry(int bufferIndex, uint32_t vertexCount,
+                                                                       uint32_t indexCount)
 {
 	VertexIndexBuffer& buffer = vertexIndexBuffers[bufferIndex];
 
@@ -114,7 +114,7 @@ std::optional<GeometryAllocation> ModelManager::allocateGeometry(int bufferIndex
 	return GeometryAllocation{*vertexBase, vertexCount, *indexBase, indexCount, bufferIndex};
 }
 
-void ModelManager::uploadVertices(int bufferIndex, uint32_t vertexBase, const Vertex* data, uint32_t count)
+void RenderAssetManager::uploadVertices(int bufferIndex, uint32_t vertexBase, const Vertex* data, uint32_t count)
 {
 	if (count == 0) return;
 	VertexIndexBuffer& buffer = vertexIndexBuffers[bufferIndex];
@@ -130,7 +130,7 @@ void ModelManager::uploadVertices(int bufferIndex, uint32_t vertexBase, const Ve
 	VulkanUtils::destroyStagingBuffer(staging, allocator);
 }
 
-void ModelManager::uploadIndices(int bufferIndex, uint32_t indexBase, const uint32_t* data, uint32_t count)
+void RenderAssetManager::uploadIndices(int bufferIndex, uint32_t indexBase, const uint32_t* data, uint32_t count)
 {
 	if (count == 0) return;
 	VertexIndexBuffer& buffer = vertexIndexBuffers[bufferIndex];
@@ -146,12 +146,12 @@ void ModelManager::uploadIndices(int bufferIndex, uint32_t indexBase, const uint
 	VulkanUtils::destroyStagingBuffer(staging, allocator);
 }
 
-void ModelManager::freeGeometry(const GeometryAllocation& allocation, uint64_t frameNumber)
+void RenderAssetManager::freeGeometry(const GeometryAllocation& allocation, uint64_t frameNumber)
 {
 	_pendingGeometryFrees.push_back({allocation, frameNumber + MAX_FRAMES_IN_FLIGHT});
 }
 
-void ModelManager::collectGeometryFrees(uint64_t frameNumber)
+void RenderAssetManager::collectGeometryFrees(uint64_t frameNumber)
 {
 	for (auto it = _pendingGeometryFrees.begin(); it != _pendingGeometryFrees.end();)
 	{
@@ -167,7 +167,7 @@ void ModelManager::collectGeometryFrees(uint64_t frameNumber)
 	}
 }
 
-void ModelManager::defragment(VertexIndexBuffer& buffer)
+void RenderAssetManager::defragment(VertexIndexBuffer& buffer)
 {
 	int bufferIndex = -1;
 	for (size_t i = 0; i < vertexIndexBuffers.size(); ++i)
@@ -183,7 +183,7 @@ void ModelManager::defragment(VertexIndexBuffer& buffer)
 	vulkanDevice.device.waitIdle();
 
 	// Superseded by the arena rebuild below; kept entries would later free ranges
-	// that by then belong to live models.
+	// that by then belong to live render assets.
 	for (auto it = _pendingGeometryFrees.begin(); it != _pendingGeometryFrees.end();)
 	{
 		if (it->allocation.bufferIndex == bufferIndex)
@@ -192,23 +192,23 @@ void ModelManager::defragment(VertexIndexBuffer& buffer)
 			++it;
 	}
 
-	std::vector<int> liveModels;
-	for (size_t i = 0; i < models.size(); ++i)
+	std::vector<int> liveRenderAssets;
+	for (size_t i = 0; i < renderAssets.size(); ++i)
 	{
-		if (models[i].refCount > 0 && models[i].allocation.bufferIndex == bufferIndex)
-			liveModels.push_back(static_cast<int>(i));
+		if (renderAssets[i].refCount > 0 && renderAssets[i].allocation.bufferIndex == bufferIndex)
+			liveRenderAssets.push_back(static_cast<int>(i));
 	}
 
 	auto compact = [&](RangeAllocator& arena, vk::Buffer gpuBuffer, vk::DeviceSize elementSize,
 	                   uint32_t GeometryAllocation::* base, uint32_t GeometryAllocation::* count,
 	                   uint32_t PrimitivesInfo::* offset)
 	{
-		std::sort(liveModels.begin(), liveModels.end(),
-		          [&](int a, int b) { return models[a].allocation.*base < models[b].allocation.*base; });
+		std::sort(liveRenderAssets.begin(), liveRenderAssets.end(),
+		          [&](int a, int b) { return renderAssets[a].allocation.*base < renderAssets[b].allocation.*base; });
 
 		struct Relocation
 		{
-			int model;
+			int renderAsset;
 			uint32_t oldBase;
 			uint32_t newBase;
 			uint32_t count;
@@ -216,13 +216,13 @@ void ModelManager::defragment(VertexIndexBuffer& buffer)
 		std::vector<Relocation> relocations;
 
 		arena.reset(arena.capacity());
-		for (int modelIndex : liveModels)
+		for (int renderAssetIndex : liveRenderAssets)
 		{
-			uint32_t elementCount = models[modelIndex].allocation.*count;
+			uint32_t elementCount = renderAssets[renderAssetIndex].allocation.*count;
 			if (elementCount == 0) continue;
-			uint32_t oldBase = models[modelIndex].allocation.*base;
+			uint32_t oldBase = renderAssets[renderAssetIndex].allocation.*base;
 			uint32_t newBase = *arena.allocate(elementCount);
-			relocations.push_back({modelIndex, oldBase, newBase, elementCount});
+			relocations.push_back({renderAssetIndex, oldBase, newBase, elementCount});
 		}
 
 		uint32_t usedElements = arena.capacity() - arena.totalFree();
@@ -265,9 +265,9 @@ void ModelManager::defragment(VertexIndexBuffer& buffer)
 
 		for (const Relocation& relocation : relocations)
 		{
-			models[relocation.model].allocation.*base = relocation.newBase;
+			renderAssets[relocation.renderAsset].allocation.*base = relocation.newBase;
 			if (relocation.newBase == relocation.oldBase) continue;
-			for (MeshHandle meshSlot : models[relocation.model].meshes)
+			for (MeshHandle meshSlot : renderAssets[relocation.renderAsset].meshes)
 			{
 				for (PrimitivesInfo& primitive : meshes[meshSlot.id].primitives)
 				{
@@ -283,7 +283,7 @@ void ModelManager::defragment(VertexIndexBuffer& buffer)
 	        &GeometryAllocation::indexCount, &PrimitivesInfo::indexOffset);
 }
 
-MeshHandle ModelManager::allocateMeshSlot()
+MeshHandle RenderAssetManager::allocateMeshSlot()
 {
 	if (!_freeMeshSlots.empty())
 	{
@@ -296,82 +296,82 @@ MeshHandle ModelManager::allocateMeshSlot()
 	return MeshHandle{static_cast<int>(meshes.size() - 1)};
 }
 
-ModelHandle ModelManager::allocateModelSlot()
+RenderAssetHandle RenderAssetManager::allocateRenderAssetSlot()
 {
-	if (!_freeModelSlots.empty())
+	if (!_freeRenderAssetSlots.empty())
 	{
-		int slot = _freeModelSlots.back();
-		_freeModelSlots.pop_back();
-		models[slot] = Model();
-		models[slot].refCount = 1;
-		return ModelHandle{slot};
+		int slot = _freeRenderAssetSlots.back();
+		_freeRenderAssetSlots.pop_back();
+		renderAssets[slot] = RenderAsset();
+		renderAssets[slot].refCount = 1;
+		return RenderAssetHandle{slot};
 	}
-	models.push_back(Model());
-	models.back().refCount = 1;
-	return ModelHandle{static_cast<int>(models.size() - 1)};
+	renderAssets.push_back(RenderAsset());
+	renderAssets.back().refCount = 1;
+	return RenderAssetHandle{static_cast<int>(renderAssets.size() - 1)};
 }
 
-void ModelManager::addModelRef(ModelHandle handle)
+void RenderAssetManager::addRenderAssetRef(RenderAssetHandle handle)
 {
-	if (handle.id < 0 || handle.id >= static_cast<int>(models.size())) return;
+	if (handle.id < 0 || handle.id >= static_cast<int>(renderAssets.size())) return;
 
-	models[handle.id].refCount++;
+	renderAssets[handle.id].refCount++;
 }
 
-bool ModelManager::releaseModelRef(ModelHandle handle)
+bool RenderAssetManager::releaseRenderAssetRef(RenderAssetHandle handle)
 {
-	if (handle.id < 0 || handle.id >= static_cast<int>(models.size())) return false;
-	if (models[handle.id].refCount <= 0) return false;
+	if (handle.id < 0 || handle.id >= static_cast<int>(renderAssets.size())) return false;
+	if (renderAssets[handle.id].refCount <= 0) return false;
 
-	return --models[handle.id].refCount == 0;
+	return --renderAssets[handle.id].refCount == 0;
 }
 
-void ModelManager::freeMeshSlot(MeshHandle handle)
+void RenderAssetManager::freeMeshSlot(MeshHandle handle)
 {
 	_freeMeshSlots.push_back(handle.id);
 }
 
-void ModelManager::freeModelSlot(ModelHandle handle)
+void RenderAssetManager::freeRenderAssetSlot(RenderAssetHandle handle)
 {
-	_freeModelSlots.push_back(handle.id);
+	_freeRenderAssetSlots.push_back(handle.id);
 }
 
-size_t ModelManager::meshCount() const
+size_t RenderAssetManager::meshCount() const
 {
 	return meshes.size();
 }
 
-size_t ModelManager::modelCount() const
+size_t RenderAssetManager::renderAssetCount() const
 {
-	return models.size();
+	return renderAssets.size();
 }
 
-size_t ModelManager::freeMeshSlotCount() const
+size_t RenderAssetManager::freeMeshSlotCount() const
 {
 	return _freeMeshSlots.size();
 }
 
-size_t ModelManager::freeModelSlotCount() const
+size_t RenderAssetManager::freeRenderAssetSlotCount() const
 {
-	return _freeModelSlots.size();
+	return _freeRenderAssetSlots.size();
 }
 
-size_t ModelManager::pendingGeometryFreeCount() const
+size_t RenderAssetManager::pendingGeometryFreeCount() const
 {
 	return _pendingGeometryFrees.size();
 }
 
-VertexIndexBuffer& ModelManager::getVertexIndexBuffer(int index)
+VertexIndexBuffer& RenderAssetManager::getVertexIndexBuffer(int index)
 {
 	return vertexIndexBuffers[index];
 }
 
-MeshInfo& ModelManager::getMesh(MeshHandle handle)
+MeshInfo& RenderAssetManager::getMesh(MeshHandle handle)
 {
 	return meshes[handle.id];
 }
 
-Model& ModelManager::getModel(ModelHandle handle)
+RenderAsset& RenderAssetManager::getRenderAsset(RenderAssetHandle handle)
 {
-	return models[handle.id];
+	return renderAssets[handle.id];
 }

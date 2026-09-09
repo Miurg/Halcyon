@@ -11,7 +11,7 @@
 #include <GraphicsCore/GraphicsContexts.hpp>
 #include <GraphicsCore/Components/BufferManagerComponent.hpp>
 #include <GraphicsCore/Components/TextureManagerComponent.hpp>
-#include <GraphicsCore/Components/ModelManagerComponent.hpp>
+#include <GraphicsCore/Components/RenderAssetManagerComponent.hpp>
 #include <GraphicsCore/Components/DescriptorManagerComponent.hpp>
 #include <GraphicsCore/Components/NameComponent.hpp>
 #include <GraphicsCore/Components/RelationshipComponent.hpp>
@@ -19,7 +19,7 @@
 #include <GraphicsCore/Components/VulkanDeviceComponent.hpp>
 #include <GraphicsCore/Components/MaterialManagerComponent.hpp>
 #include <GraphicsCore/Components/VMAllocatorComponent.hpp>
-#include <GraphicsCore/Resources/Factories/ModelFactory.hpp>
+#include <GraphicsCore/Resources/Factories/SceneInstanceFactory.hpp>
 #include <SmithCore/Renderables.hpp>
 
 void GameInit::Run(GeneralManager& gm)
@@ -32,11 +32,12 @@ void GameInit::Run(GeneralManager& gm)
 	    .writes<GlobalTransformComponent, CursorPositionComponent>();
 	gm.addComponentImmediate<ControlComponent>(gm.getContext<MainCameraContext>());
 
-	// Managers the model loader needs.
+	// Managers the scene instance loader needs.
 	BufferManager* bufferManager = gm.getContextComponent<BufferManagerContext, BufferManagerComponent>()->bufferManager;
 	TextureManager* textureManager =
 	    gm.getContextComponent<TextureManagerContext, TextureManagerComponent>()->textureManager;
-	ModelManager* modelManager = gm.getContextComponent<ModelManagerContext, ModelManagerComponent>()->modelManager;
+	RenderAssetManager* renderAssetManager =
+	    gm.getContextComponent<RenderAssetManagerContext, RenderAssetManagerComponent>()->renderAssetManager;
 	DescriptorManager* descriptorManager =
 	    gm.getContextComponent<DescriptorManagerContext, DescriptorManagerComponent>()->descriptorManager;
 	BindlessTextureDSetComponent* dSetComponent =
@@ -51,7 +52,8 @@ void GameInit::Run(GeneralManager& gm)
 	gm.addComponentImmediate<NameComponent>(cube, "Cube");
 	Smith::Renderables::forgeTransform(gm, cube, glm::vec3(0.0f, 0.0f, -5.0f), glm::quat{1.0f, 0.0f, 0.0f, 0.0f});
 
-	Orhescyon::Entity mesh = ModelFactory::loadModel("assets/models/cube.gltf", 0, *bufferManager, *dSetComponent,
-	                                                 *descriptorManager, gm, *textureManager, *modelManager, *materialManager, vulkanDevice, allocator);
-	gm.getComponent<RelationshipComponent>(cube)->addChild(cube, mesh, gm);
+	Orhescyon::Entity sceneInstance = SceneInstanceFactory::loadSceneInstance(
+	    "assets/models/cube.gltf", 0, *bufferManager, *dSetComponent, *descriptorManager, gm, *textureManager,
+	    *renderAssetManager, *materialManager, vulkanDevice, allocator);
+	gm.getComponent<RelationshipComponent>(cube)->addChild(cube, sceneInstance, gm);
 }

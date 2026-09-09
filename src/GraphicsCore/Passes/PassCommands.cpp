@@ -8,7 +8,7 @@
 #include "GraphicsCore/Resources/Components/ModelDSetComponent.hpp"
 #include "GraphicsCore/Resources/Components/BindlessTextureDSetComponent.hpp"
 #include "GraphicsCore/Resources/Managers/BufferManager.hpp"
-#include "GraphicsCore/Resources/Managers/ModelManager.hpp"
+#include "GraphicsCore/Resources/Managers/RenderAssetManager.hpp"
 #include "GraphicsCore/Resources/Managers/TextureManager.hpp"
 #include "GraphicsCore/Resources/Managers/DescriptorManager.hpp"
 #include "GraphicsCore/Managers/PipelineManager.hpp"
@@ -86,7 +86,8 @@ void drawResetInstancePass(vk::raii::CommandBuffer& cmd, uint32_t frame, Descrip
 
 void drawCullPass(vk::raii::CommandBuffer& cmd, uint32_t frame, DescriptorManagerComponent& descriptorManager,
                   GlobalDSetComponent& globalDSetComponent, ModelDSetComponent& objectDSetComponent,
-                  ModelManager& modelManager, BufferManager& bufferManager, const DrawInfoComponent& drawInfo,
+                  RenderAssetManager& renderAssetManager, BufferManager& bufferManager,
+                  const DrawInfoComponent& drawInfo,
                   PipelineManager& pipelineManager)
 {
 	cmd.bindPipeline(vk::PipelineBindPoint::eCompute, *pipelineManager.pipelines["frustum_culling"].pipeline);
@@ -174,7 +175,8 @@ void drawCullPass(vk::raii::CommandBuffer& cmd, uint32_t frame, DescriptorManage
 
 void drawShadowCullPass(vk::raii::CommandBuffer& cmd, uint32_t frame, DescriptorManagerComponent& descriptorManager,
                         GlobalDSetComponent& globalDSetComponent, ModelDSetComponent& objectDSetComponent,
-                        ModelManager& modelManager, BufferManager& bufferManager, const DrawInfoComponent& drawInfo,
+                        RenderAssetManager& renderAssetManager, BufferManager& bufferManager,
+                        const DrawInfoComponent& drawInfo,
                         PipelineManager& pipelineManager)
 {
 	cmd.bindPipeline(vk::PipelineBindPoint::eCompute, *pipelineManager.pipelines["shadow_frustum_culling"].pipeline);
@@ -269,7 +271,8 @@ void drawShadowCullPass(vk::raii::CommandBuffer& cmd, uint32_t frame, Descriptor
 void drawShadowPass(vk::raii::CommandBuffer& cmd, uint32_t frame, DirectLightComponent& lightTexture,
                     DescriptorManagerComponent& descriptorManager, GlobalDSetComponent& globalDSetComponent,
                     ModelDSetComponent& objectDSetComponent, BindlessTextureDSetComponent& bTextureDSet,
-                    TextureManager& textureManager, ModelManager& modelManager, BufferManager& bufferManager,
+                    TextureManager& textureManager, RenderAssetManager& renderAssetManager,
+                    BufferManager& bufferManager,
                     const DrawInfoComponent& drawInfo, PipelineManager& pipelineManager)
 {
 	auto& firstLayout = pipelineManager.pipelines["standard_opaque_shadow"].layout;
@@ -282,8 +285,8 @@ void drawShadowPass(vk::raii::CommandBuffer& cmd, uint32_t frame, DirectLightCom
 	cmd.setViewport(0, vk::Viewport(0.0f, 0.0f, lightTexture.sizeX, lightTexture.sizeY, 0.0f, 1.0f));
 	cmd.setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), vk::Extent2D(lightTexture.sizeX, lightTexture.sizeY)));
 
-	cmd.bindVertexBuffers(0, modelManager.getVertexIndexBuffer(0).vertexBuffer, {0});
-	cmd.bindIndexBuffer(modelManager.getVertexIndexBuffer(0).indexBuffer, 0,
+	cmd.bindVertexBuffers(0, renderAssetManager.getVertexIndexBuffer(0).vertexBuffer, {0});
+	cmd.bindIndexBuffer(renderAssetManager.getVertexIndexBuffer(0).indexBuffer, 0,
 	                    vk::IndexType::eUint32);
 
 	DrawCursor cursor{bufferManager.getBuffer(objectDSetComponent.compactedDrawBuffer, frame),

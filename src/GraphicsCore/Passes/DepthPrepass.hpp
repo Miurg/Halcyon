@@ -4,7 +4,7 @@
 
 class SwapChain;
 class BufferManager;
-class ModelManager;
+class RenderAssetManager;
 class PipelineManager;
 struct DescriptorManagerComponent;
 struct GlobalDSetComponent;
@@ -22,7 +22,7 @@ public:
 private:
 	void draw(vk::raii::CommandBuffer& cmd, uint32_t frame, SwapChain& swapChain, DescriptorManagerComponent& descriptorManager,
 	          GlobalDSetComponent& globalDSetComponent, BufferManager& bufferManager, ModelDSetComponent& objectDSetComponent,
-	          BindlessTextureDSetComponent& bindlessTextureDSetComponent, ModelManager& modelManager,
+	          BindlessTextureDSetComponent& bindlessTextureDSetComponent, RenderAssetManager& renderAssetManager,
 	          const DrawInfoComponent& drawInfo, PipelineManager& pipelineManager);
 
 	void buildPipelines(Orhescyon::GeneralManager& gm, vk::SampleCountFlagBits samples, bool rebuild);

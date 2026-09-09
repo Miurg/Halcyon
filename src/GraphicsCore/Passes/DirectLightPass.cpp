@@ -5,7 +5,7 @@
 
 #include "GraphicsCore/GraphicsContexts.hpp"
 #include "GraphicsCore/Components/BufferManagerComponent.hpp"
-#include "GraphicsCore/Components/ModelManagerComponent.hpp"
+#include "GraphicsCore/Components/RenderAssetManagerComponent.hpp"
 #include "GraphicsCore/Components/TextureManagerComponent.hpp"
 #include "GraphicsCore/Components/DescriptorManagerComponent.hpp"
 #include "GraphicsCore/Components/PipelineManagerComponent.hpp"
@@ -16,7 +16,7 @@
 #include "GraphicsCore/Resources/Components/ModelDSetComponent.hpp"
 #include "GraphicsCore/Resources/Components/BindlessTextureDSetComponent.hpp"
 #include "GraphicsCore/Resources/Managers/BufferManager.hpp"
-#include "GraphicsCore/Resources/Managers/ModelManager.hpp"
+#include "GraphicsCore/Resources/Managers/RenderAssetManager.hpp"
 #include "GraphicsCore/Resources/Managers/TextureManager.hpp"
 #include "GraphicsCore/Resources/Managers/Vertex.hpp"
 #include "GraphicsCore/Managers/PipelineManager.hpp"
@@ -75,7 +75,8 @@ void DirectLightPass::addToGraph(Orhescyon::GeneralManager& gm, RenderGraph& rg,
 	auto& globalDSetComponent = *gm.getContextComponent<MainDSetsContext, GlobalDSetComponent>();
 	auto& bufferManager = *gm.getContextComponent<BufferManagerContext, BufferManagerComponent>()->bufferManager;
 	auto& objectDSetComponent = *gm.getContextComponent<MainDSetsContext, ModelDSetComponent>();
-	auto& modelManager = *gm.getContextComponent<ModelManagerContext, ModelManagerComponent>()->modelManager;
+	auto& renderAssetManager =
+	    *gm.getContextComponent<RenderAssetManagerContext, RenderAssetManagerComponent>()->renderAssetManager;
 	auto& drawInfo = *gm.getContextComponent<CurrentFrameContext, DrawInfoComponent>();
 	auto& pipelineManager = *gm.getContextComponent<PipelineManagerContext, PipelineManagerComponent>()->pipelineManager;
 	auto& textureManager = *gm.getContextComponent<TextureManagerContext, TextureManagerComponent>()->textureManager;
@@ -86,8 +87,8 @@ void DirectLightPass::addToGraph(Orhescyon::GeneralManager& gm, RenderGraph& rg,
 	rg.addPass("ShadowCull", {.isCompute = true}, {}, {},
 	           [&, frame](vk::raii::CommandBuffer& cmd)
 	           {
-		           drawShadowCullPass(cmd, frame, descriptorManager, globalDSetComponent, objectDSetComponent, modelManager,
-		                              bufferManager, drawInfo, pipelineManager);
+		           drawShadowCullPass(cmd, frame, descriptorManager, globalDSetComponent, objectDSetComponent,
+		                              renderAssetManager, bufferManager, drawInfo, pipelineManager);
 	           });
 
 	rg.addPass("Shadow",
@@ -99,6 +100,7 @@ void DirectLightPass::addToGraph(Orhescyon::GeneralManager& gm, RenderGraph& rg,
 	           [&, frame](vk::raii::CommandBuffer& cmd)
 	           {
 		           drawShadowPass(cmd, frame, lightTexture, descriptorManager, globalDSetComponent, objectDSetComponent,
-		                          bindlessTextureDSetComponent, textureManager, modelManager, bufferManager, drawInfo, pipelineManager);
+		                          bindlessTextureDSetComponent, textureManager, renderAssetManager, bufferManager,
+		                          drawInfo, pipelineManager);
 	           });
 }

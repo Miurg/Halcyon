@@ -67,8 +67,8 @@ void LightProbeGIBaking::bakeShadowMap(const BakeContext& ctx)
 	auto cmd = VulkanUtils::beginSingleTimeCommands(*ctx.device);
 
 	drawResetInstancePass(cmd, 0, *ctx.descriptorManagerComponent, *ctx.modelDSet, *ctx.drawInfo, *ctx.pipelineManager);
-	drawShadowCullPass(cmd, 0, *ctx.descriptorManagerComponent, *ctx.globalDSet, *ctx.modelDSet, *ctx.modelManager,
-	                   *ctx.bufferManager, *ctx.drawInfo, *ctx.pipelineManager);
+	drawShadowCullPass(cmd, 0, *ctx.descriptorManagerComponent, *ctx.globalDSet, *ctx.modelDSet,
+	                   *ctx.renderAssetManager, *ctx.bufferManager, *ctx.drawInfo, *ctx.pipelineManager);
 
 	// Transition shadow map: UNDEFINED -> DEPTH_ATTACHMENT_OPTIMAL
 	vk::Image shadowImage = ctx.textureManager->getTexture(ctx.lightComponent->textureShadowImage).textureImage;
@@ -93,7 +93,7 @@ void LightProbeGIBaking::bakeShadowMap(const BakeContext& ctx)
 
 	cmd.beginRendering(renderInfo);
 	drawShadowPass(cmd, 0, *ctx.lightComponent, *ctx.descriptorManagerComponent, *ctx.globalDSet, *ctx.modelDSet,
-	               *ctx.bindlessDSet, *ctx.textureManager, *ctx.modelManager, *ctx.bufferManager, *ctx.drawInfo,
+	               *ctx.bindlessDSet, *ctx.textureManager, *ctx.renderAssetManager, *ctx.bufferManager, *ctx.drawInfo,
 	               *ctx.pipelineManager);
 	cmd.endRendering();
 

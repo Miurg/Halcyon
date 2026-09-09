@@ -10,14 +10,14 @@
 #include "GraphicsCore/Components/DescriptorManagerComponent.hpp"
 #include "GraphicsCore/Components/PipelineManagerComponent.hpp"
 #include "GraphicsCore/Components/GraphicsSettingsComponent.hpp"
-#include "GraphicsCore/Components/ModelManagerComponent.hpp"
+#include "GraphicsCore/Components/RenderAssetManagerComponent.hpp"
 #include "GraphicsCore/Components/LightProbeGridComponent.hpp"
 #include "GraphicsCore/Components/RelationshipComponent.hpp"
 #include "GraphicsCore/Components/GlobalTransformComponent.hpp"
 #include "GraphicsCore/Resources/Components/GlobalDSetComponent.hpp"
 #include "GraphicsCore/Resources/Components/MeshInfoComponent.hpp"
 #include "GraphicsCore/Components/ReflectionProbeComponent.hpp"
-#include "GraphicsCore/Resources/Managers/ModelManager.hpp"
+#include "GraphicsCore/Resources/Managers/RenderAssetManager.hpp"
 #include "GraphicsCore/Resources/Managers/TextureManager.hpp"
 #include "GraphicsCore/Managers/PipelineManager.hpp"
 #include "GraphicsCore/Factories/PipelineFactory.hpp"
@@ -94,7 +94,8 @@ void DebugPass::addToGraph(Orhescyon::GeneralManager& gm, RenderGraph& rg, uint3
 	auto& globalDSetComponent = *gm.getContextComponent<MainDSetsContext, GlobalDSetComponent>();
 	auto& pipelineManager = *gm.getContextComponent<PipelineManagerContext, PipelineManagerComponent>()->pipelineManager;
 	auto& graphicsSettings = *gm.getContextComponent<GraphicsSettingsContext, GraphicsSettingsComponent>();
-	auto& modelManager = *gm.getContextComponent<ModelManagerContext, ModelManagerComponent>()->modelManager;
+	auto& renderAssetManager =
+	    *gm.getContextComponent<RenderAssetManagerContext, RenderAssetManagerComponent>()->renderAssetManager;
 
 	std::function<void(Orhescyon::Entity, std::vector<AABBPush>&)> draw =
 	    [&](Orhescyon::Entity e, std::vector<AABBPush>& pushData)
@@ -105,7 +106,7 @@ void DebugPass::addToGraph(Orhescyon::GeneralManager& gm, RenderGraph& rg, uint3
 			{
 				AABBPush pd;
 				pd.model = globalTransform->getGlobalModelMatrix();
-				for (const auto& primitive : modelManager.getMesh(meshComponent->mesh).primitives)
+				for (const auto& primitive : renderAssetManager.getMesh(meshComponent->mesh).primitives)
 				{
 					pd.aabbMin = primitive.AABBMin;
 					pd.aabbMax = primitive.AABBMax;

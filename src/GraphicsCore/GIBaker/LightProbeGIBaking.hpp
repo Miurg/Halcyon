@@ -6,7 +6,7 @@
 #include "GraphicsCore/Components/VulkanDeviceComponent.hpp"
 #include "GraphicsCore/Components/BufferManagerComponent.hpp"
 #include "GraphicsCore/Components/TextureManagerComponent.hpp"
-#include "GraphicsCore/Components/ModelManagerComponent.hpp"
+#include "GraphicsCore/Components/RenderAssetManagerComponent.hpp"
 #include "GraphicsCore/Components/DescriptorManagerComponent.hpp"
 #include "GraphicsCore/Components/PipelineManagerComponent.hpp"
 #include "GraphicsCore/Components/DrawInfoComponent.hpp"
@@ -58,7 +58,7 @@ struct BakeContext
 	VulkanDevice* device;
 	BufferManager* bufferManager;
 	TextureManager* textureManager;
-	ModelManager* modelManager;
+	RenderAssetManager* renderAssetManager;
 	DescriptorManagerComponent* descriptorManagerComponent;
 	PipelineManager* pipelineManager;
 	GlobalDSetComponent* globalDSet;

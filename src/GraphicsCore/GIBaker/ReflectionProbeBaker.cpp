@@ -8,7 +8,7 @@
 #include "GraphicsCore/Components/VulkanDeviceComponent.hpp"
 #include "GraphicsCore/Components/BufferManagerComponent.hpp"
 #include "GraphicsCore/Components/TextureManagerComponent.hpp"
-#include "GraphicsCore/Components/ModelManagerComponent.hpp"
+#include "GraphicsCore/Components/RenderAssetManagerComponent.hpp"
 #include "GraphicsCore/Components/DescriptorManagerComponent.hpp"
 #include "GraphicsCore/Components/PipelineManagerComponent.hpp"
 #include "GraphicsCore/Components/DrawInfoComponent.hpp"
@@ -22,7 +22,7 @@
 #include "GraphicsCore/Resources/Managers/TextureManager.hpp"
 #include "GraphicsCore/Resources/Managers/DescriptorManager.hpp"
 #include "Shared/Bindings.h"
-#include "GraphicsCore/Resources/Managers/ModelManager.hpp"
+#include "GraphicsCore/Resources/Managers/RenderAssetManager.hpp"
 #include "GraphicsCore/Managers/PipelineManager.hpp"
 #include "GraphicsCore/Passes/PassCommands.hpp"
 #include "GraphicsCore/VulkanUtils.hpp"
@@ -41,7 +41,7 @@ struct RefBakeContext
 	VulkanDevice* device;
 	BufferManager* bufferManager;
 	TextureManager* textureManager;
-	ModelManager* modelManager;
+	RenderAssetManager* renderAssetManager;
 	DescriptorManagerComponent* descriptorManagerComponent;
 	PipelineManager* pipelineManager;
 	GlobalDSetComponent* globalDSet;
@@ -75,7 +75,8 @@ RefBakeContext gather(GeneralManager& gm)
 	c.device = gm.getContextComponent<MainVulkanDeviceContext, VulkanDeviceComponent>()->vulkanDeviceInstance;
 	c.bufferManager = gm.getContextComponent<BufferManagerContext, BufferManagerComponent>()->bufferManager;
 	c.textureManager = gm.getContextComponent<TextureManagerContext, TextureManagerComponent>()->textureManager;
-	c.modelManager = gm.getContextComponent<ModelManagerContext, ModelManagerComponent>()->modelManager;
+	c.renderAssetManager =
+	    gm.getContextComponent<RenderAssetManagerContext, RenderAssetManagerComponent>()->renderAssetManager;
 	c.descriptorManagerComponent = gm.getContextComponent<DescriptorManagerContext, DescriptorManagerComponent>();
 	c.pipelineManager = gm.getContextComponent<PipelineManagerContext, PipelineManagerComponent>()->pipelineManager;
 	c.globalDSet = gm.getContextComponent<MainDSetsContext, GlobalDSetComponent>();
@@ -147,8 +148,8 @@ void drawScene(vk::raii::CommandBuffer& cmd, const RefBakeContext& ctx, glm::vec
 	const BakeFacePush push{origin, static_cast<uint32_t>(faceIdx)};
 	DescriptorManager& dm = *ctx.descriptorManagerComponent->descriptorManager;
 
-	cmd.bindVertexBuffers(0, ctx.modelManager->getVertexIndexBuffer(0).vertexBuffer, {0});
-	cmd.bindIndexBuffer(ctx.modelManager->getVertexIndexBuffer(0).indexBuffer, 0, vk::IndexType::eUint32);
+	cmd.bindVertexBuffers(0, ctx.renderAssetManager->getVertexIndexBuffer(0).vertexBuffer, {0});
+	cmd.bindIndexBuffer(ctx.renderAssetManager->getVertexIndexBuffer(0).indexBuffer, 0, vk::IndexType::eUint32);
 
 	auto& firstLayout = ctx.pipelineManager->pipelines["standard_opaque_gi"].layout;
 	cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *firstLayout, 0, dm.getSet(ctx.globalDSet->globalDSets, 0),
@@ -229,7 +230,7 @@ void wholeImageBarrier(vk::raii::CommandBuffer& cmd, vk::Image image, vk::ImageL
 void ReflectionProbeBaker::bake(GeneralManager& gm, ReflectionProbeComponent& probe, int cubemapSlot)
 {
 	RefBakeContext ctx = gather(gm);
-	if (ctx.modelManager->meshCount() == 0) return;
+	if (ctx.renderAssetManager->meshCount() == 0) return;
 
 	ctx.device->device.waitIdle();
 
@@ -256,7 +257,7 @@ void ReflectionProbeBaker::bake(GeneralManager& gm, ReflectionProbeComponent& pr
 	auto cmd = VulkanUtils::beginSingleTimeCommands(*ctx.device);
 
 	drawResetInstancePass(cmd, 0, *ctx.descriptorManagerComponent, *ctx.modelDSet, *ctx.drawInfo, *ctx.pipelineManager);
-	drawCullPass(cmd, 0, *ctx.descriptorManagerComponent, *ctx.globalDSet, *ctx.modelDSet, *ctx.modelManager,
+	drawCullPass(cmd, 0, *ctx.descriptorManagerComponent, *ctx.globalDSet, *ctx.modelDSet, *ctx.renderAssetManager,
 	             *ctx.bufferManager, *ctx.drawInfo, *ctx.pipelineManager);
 	{
 		vk::MemoryBarrier2 b;

@@ -8,7 +8,7 @@
 #include "GraphicsCore/SwapChain.hpp"
 #include "GraphicsCore/Components/SwapChainComponent.hpp"
 #include "GraphicsCore/Components/BufferManagerComponent.hpp"
-#include "GraphicsCore/Components/ModelManagerComponent.hpp"
+#include "GraphicsCore/Components/RenderAssetManagerComponent.hpp"
 #include "GraphicsCore/Components/TextureManagerComponent.hpp"
 #include "GraphicsCore/Components/DescriptorManagerComponent.hpp"
 #include "GraphicsCore/Components/PipelineManagerComponent.hpp"
@@ -20,7 +20,7 @@
 #include "GraphicsCore/Resources/Components/ModelDSetComponent.hpp"
 #include "GraphicsCore/Resources/Components/BindlessTextureDSetComponent.hpp"
 #include "GraphicsCore/Resources/Managers/BufferManager.hpp"
-#include "GraphicsCore/Resources/Managers/ModelManager.hpp"
+#include "GraphicsCore/Resources/Managers/RenderAssetManager.hpp"
 #include "GraphicsCore/Resources/Managers/TextureManager.hpp"
 #include "Shared/Bindings.h"
 #include "GraphicsCore/Resources/Managers/DescriptorManager.hpp"
@@ -134,8 +134,8 @@ void MainPass::onSettingsChanged(Orhescyon::GeneralManager& gm)
 void MainPass::draw(vk::raii::CommandBuffer& cmd, SwapChain& swapChain, uint32_t frame,
                     BindlessTextureDSetComponent& bindlessTextureDSetComponent, DescriptorManagerComponent& descriptorManager,
                     GlobalDSetComponent& globalDSetComponent, BufferManager& bufferManager,
-                    ModelDSetComponent& objectDSetComponent, ModelManager& modelManager, const DrawInfoComponent& drawInfo,
-                    PipelineManager& pipelineManager, bool hasSkybox)
+                    ModelDSetComponent& objectDSetComponent, RenderAssetManager& renderAssetManager,
+                    const DrawInfoComponent& drawInfo, PipelineManager& pipelineManager, bool hasSkybox)
 {
 	cmd.setViewport(0, vk::Viewport(0.0f, 0.0f, static_cast<float>(swapChain.swapChainExtent.width),
 	                                static_cast<float>(swapChain.swapChainExtent.height), 0.0f, 1.0f));
@@ -151,8 +151,8 @@ void MainPass::draw(vk::raii::CommandBuffer& cmd, SwapChain& swapChain, uint32_t
 	cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *firstLayout, 2,
 	                       descriptorManager.descriptorManager->getSet(bindlessTextureDSetComponent.bindlessTextureSet), nullptr);
 
-	cmd.bindVertexBuffers(0, modelManager.getVertexIndexBuffer(0).vertexBuffer, {0});
-	cmd.bindIndexBuffer(modelManager.getVertexIndexBuffer(0).indexBuffer, 0,
+	cmd.bindVertexBuffers(0, renderAssetManager.getVertexIndexBuffer(0).vertexBuffer, {0});
+	cmd.bindIndexBuffer(renderAssetManager.getVertexIndexBuffer(0).indexBuffer, 0,
 	                    vk::IndexType::eUint32);
 
 	if (hasSkybox)
@@ -186,7 +186,8 @@ void MainPass::addToGraph(Orhescyon::GeneralManager& gm, RenderGraph& rg, uint32
 	auto& globalDSetComponent = *gm.getContextComponent<MainDSetsContext, GlobalDSetComponent>();
 	auto& bufferManager = *gm.getContextComponent<BufferManagerContext, BufferManagerComponent>()->bufferManager;
 	auto& objectDSetComponent = *gm.getContextComponent<MainDSetsContext, ModelDSetComponent>();
-	auto& modelManager = *gm.getContextComponent<ModelManagerContext, ModelManagerComponent>()->modelManager;
+	auto& renderAssetManager =
+	    *gm.getContextComponent<RenderAssetManagerContext, RenderAssetManagerComponent>()->renderAssetManager;
 	auto& drawInfo = *gm.getContextComponent<CurrentFrameContext, DrawInfoComponent>();
 	auto& pipelineManager = *gm.getContextComponent<PipelineManagerContext, PipelineManagerComponent>()->pipelineManager;
 	auto& bindlessTextureDSetComponent = *gm.getContextComponent<MainDSetsContext, BindlessTextureDSetComponent>();
@@ -228,7 +229,7 @@ void MainPass::addToGraph(Orhescyon::GeneralManager& gm, RenderGraph& rg, uint32
 	    [&, frame, hasSkybox](vk::raii::CommandBuffer& cmd)
 	    {
 		    draw(cmd, swapChain, frame, bindlessTextureDSetComponent, descriptorManager, globalDSetComponent, bufferManager,
-		         objectDSetComponent, modelManager, drawInfo, pipelineManager, hasSkybox);
+		         objectDSetComponent, renderAssetManager, drawInfo, pipelineManager, hasSkybox);
 	    },
 	    [&descriptorManager, &globalDSetComponent, &graphicsSettings](const RenderGraph& graph, const RGPass& pass)
 	    {

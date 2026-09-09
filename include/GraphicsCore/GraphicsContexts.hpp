@@ -46,10 +46,10 @@ class HALCYON_API TextureManagerContext
 class HALCYON_API VMAllocatorContext
 {
 };
-class HALCYON_API ModelManagerContext
+class HALCYON_API RenderAssetManagerContext
 {
 };
-class HALCYON_API SceneManagerContext
+class HALCYON_API SceneTemplateManagerContext
 {
 };
 class HALCYON_API MaterialManagerContext

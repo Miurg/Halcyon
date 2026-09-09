@@ -6,7 +6,7 @@
 #include <cstdint>
 
 class BufferManager;
-class ModelManager;
+class RenderAssetManager;
 class TextureManager;
 class PipelineManager;
 class DescriptorManager;
@@ -49,12 +49,14 @@ HALCYON_API void drawResetInstancePass(vk::raii::CommandBuffer& cmd, uint32_t fr
 
 HALCYON_API void drawCullPass(vk::raii::CommandBuffer& cmd, uint32_t frame, DescriptorManagerComponent& descriptorManager,
                   GlobalDSetComponent& globalDSetComponent, ModelDSetComponent& objectDSetComponent,
-                  ModelManager& modelManager, BufferManager& bufferManager, const DrawInfoComponent& drawInfo,
+                  RenderAssetManager& renderAssetManager, BufferManager& bufferManager,
+                  const DrawInfoComponent& drawInfo,
                   PipelineManager& pipelineManager);
 
 HALCYON_API void drawShadowCullPass(vk::raii::CommandBuffer& cmd, uint32_t frame, DescriptorManagerComponent& descriptorManager,
                         GlobalDSetComponent& globalDSetComponent, ModelDSetComponent& objectDSetComponent,
-                        ModelManager& modelManager, BufferManager& bufferManager, const DrawInfoComponent& drawInfo,
+                        RenderAssetManager& renderAssetManager, BufferManager& bufferManager,
+                        const DrawInfoComponent& drawInfo,
                         PipelineManager& pipelineManager);
 
 HALCYON_API void recordSHProjection(vk::raii::CommandBuffer& cmd, int cubemapResolution, int probeSlot,
@@ -64,5 +66,6 @@ HALCYON_API void recordSHProjection(vk::raii::CommandBuffer& cmd, int cubemapRes
 HALCYON_API void drawShadowPass(vk::raii::CommandBuffer& cmd, uint32_t frame, DirectLightComponent& lightTexture,
                     DescriptorManagerComponent& descriptorManager, GlobalDSetComponent& globalDSetComponent,
                     ModelDSetComponent& objectDSetComponent, BindlessTextureDSetComponent& bTextureDSet,
-                    TextureManager& textureManager, ModelManager& modelManager, BufferManager& bufferManager,
+                    TextureManager& textureManager, RenderAssetManager& renderAssetManager,
+                    BufferManager& bufferManager,
                     const DrawInfoComponent& drawInfo, PipelineManager& pipelineManager);

@@ -14,9 +14,9 @@ static void drawGeometry(vk::raii::CommandBuffer& cmd, const BakeContext& ctx, g
 	const BakeFacePush facePush{probePos, static_cast<uint32_t>(faceIdx)};
 
 	cmd.bindVertexBuffers(
-	    0, ctx.modelManager->getVertexIndexBuffer(0).vertexBuffer, {0});
+	    0, ctx.renderAssetManager->getVertexIndexBuffer(0).vertexBuffer, {0});
 	cmd.bindIndexBuffer(
-	    ctx.modelManager->getVertexIndexBuffer(0).indexBuffer, 0,
+	    ctx.renderAssetManager->getVertexIndexBuffer(0).indexBuffer, 0,
 	    vk::IndexType::eUint32);
 
 	auto& firstLayout = ctx.pipelineManager->pipelines["standard_opaque_gi"].layout;

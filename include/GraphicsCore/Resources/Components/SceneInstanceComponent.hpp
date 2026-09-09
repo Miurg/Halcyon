@@ -3,7 +3,7 @@
 #include "HalcyonExport.hpp"
 #include "GraphicsCore/Resources/Managers/ResourceHandles.hpp"
 
-struct HALCYON_API SceneComponent
+struct HALCYON_API SceneInstanceComponent
 {
-	SceneHandle scene;
+	SceneTemplateHandle sceneTemplate;
 };

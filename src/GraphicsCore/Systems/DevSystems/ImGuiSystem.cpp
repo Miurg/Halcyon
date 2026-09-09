@@ -34,14 +34,14 @@
 #include "PhysicsCore/Components/PhysManagerComponent.hpp"
 #include "PhysicsCore/Components/PhysBodyComponent.hpp"
 #include "PhysicsCore/JoltGlm.hpp"
-#include "GraphicsCore/Components/ModelManagerComponent.hpp"
+#include "GraphicsCore/Components/RenderAssetManagerComponent.hpp"
 #include "GraphicsCore/Components/TextureManagerComponent.hpp"
 #include "GraphicsCore/Components/MaterialManagerComponent.hpp"
 #include "GraphicsCore/Resources/Managers/MaterialManager.hpp"
-#include "GraphicsCore/Resources/Managers/ModelManager.hpp"
+#include "GraphicsCore/Resources/Managers/RenderAssetManager.hpp"
 #include "GraphicsCore/Resources/Managers/TextureManager.hpp"
-#include "GraphicsCore/Resources/Components/ModelComponent.hpp"
-#include "GraphicsCore/Resources/Factories/ModelFactory.hpp"
+#include "GraphicsCore/Resources/Components/RenderAssetComponent.hpp"
+#include "GraphicsCore/Resources/Factories/SceneInstanceFactory.hpp"
 #include "GraphicsCore/Systems/DevSystems/ComponentInspector.hpp"
 
 #ifdef TRACY_ENABLE
@@ -81,7 +81,8 @@ void drawArenaBar(const RangeAllocator& arena, const char* label, size_t element
 
 void drawMemoryWindow(GeneralManager& gm)
 {
-	ModelManager* modelManager = gm.getContextComponent<ModelManagerContext, ModelManagerComponent>()->modelManager;
+	RenderAssetManager* renderAssetManager =
+	    gm.getContextComponent<RenderAssetManagerContext, RenderAssetManagerComponent>()->renderAssetManager;
 	TextureManager* textureManager =
 	    gm.getContextComponent<TextureManagerContext, TextureManagerComponent>()->textureManager;
 	MaterialManager* materialManager =
@@ -89,37 +90,39 @@ void drawMemoryWindow(GeneralManager& gm)
 
 	ImGui::Begin("Memory");
 
-	ImGui::SeparatorText("Model instances");
+	ImGui::SeparatorText("Scene instances");
 	// Snapshot first: unloading destroys entities and would invalidate iteration of the active set.
-	std::vector<Orhescyon::Entity> modelRoots;
+	std::vector<Orhescyon::Entity> sceneInstances;
 	gm.forEachActiveEntity(
 	    [&](Orhescyon::Entity entity)
 	    {
-		    if (gm.hasComponent<ModelComponent>(entity)) modelRoots.push_back(entity);
+		    if (gm.hasComponent<RenderAssetComponent>(entity)) sceneInstances.push_back(entity);
 	    });
-	for (Orhescyon::Entity root : modelRoots)
+	for (Orhescyon::Entity sceneInstance : sceneInstances)
 	{
-		ImGui::PushID(static_cast<int>(root.slot));
-		ModelHandle modelHandle = gm.getComponent<ModelComponent>(root)->modelIndex;
-		auto* nameComp = gm.getComponent<NameComponent>(root);
-		ImGui::Text("%u  %s (model %d, refs %d)", root.slot, nameComp ? nameComp->name : "?",
-		            modelHandle.id, modelManager->getModel(modelHandle).refCount);
+		ImGui::PushID(static_cast<int>(sceneInstance.slot));
+		RenderAssetHandle renderAssetHandle =
+		    gm.getComponent<RenderAssetComponent>(sceneInstance)->renderAsset;
+		auto* nameComp = gm.getComponent<NameComponent>(sceneInstance);
+		ImGui::Text("%u  %s (render asset %d, refs %d)", sceneInstance.slot, nameComp ? nameComp->name : "?",
+		            renderAssetHandle.id, renderAssetManager->getRenderAsset(renderAssetHandle).refCount);
 		ImGui::SameLine();
 		if (ImGui::Button("Unload"))
 		{
-			ModelFactory::unloadModel(root, gm, *modelManager, *textureManager, *materialManager);
+			SceneInstanceFactory::unloadSceneInstance(sceneInstance, gm, *renderAssetManager, *textureManager,
+			                                          *materialManager);
 		}
 		ImGui::PopID();
 	}
 
 	ImGui::SeparatorText("Geometry arenas");
-	VertexIndexBuffer& geometryBuffer = modelManager->getVertexIndexBuffer(0);
+	VertexIndexBuffer& geometryBuffer = renderAssetManager->getVertexIndexBuffer(0);
 	drawArenaBar(geometryBuffer.vertexAllocator, "Vertices", sizeof(Vertex));
 	drawArenaBar(geometryBuffer.indexAllocator, "Indices", sizeof(uint32_t));
-	ImGui::Text("Pending geometry frees: %zu", modelManager->pendingGeometryFreeCount());
+	ImGui::Text("Pending geometry frees: %zu", renderAssetManager->pendingGeometryFreeCount());
 	if (ImGui::Button("Defragment"))
 	{
-		modelManager->defragment(geometryBuffer);
+		renderAssetManager->defragment(geometryBuffer);
 	}
 
 	ImGui::SeparatorText("Slot pools");
@@ -127,17 +130,20 @@ void drawMemoryWindow(GeneralManager& gm)
 	            textureManager->freeTextureSlotCount(), textureManager->pendingTextureFreeCount());
 	ImGui::Text("Materials: %zu total, %zu free, %zu pending free", materialManager->materialCount(),
 	            materialManager->freeMaterialSlotCount(), materialManager->pendingMaterialFreeCount());
-	ImGui::Text("Meshes   : %zu total, %zu free", modelManager->meshCount(), modelManager->freeMeshSlotCount());
-	ImGui::Text("Models   : %zu total, %zu free", modelManager->modelCount(), modelManager->freeModelSlotCount());
+	ImGui::Text("Meshes       : %zu total, %zu free", renderAssetManager->meshCount(),
+	            renderAssetManager->freeMeshSlotCount());
+	ImGui::Text("Render assets: %zu total, %zu free", renderAssetManager->renderAssetCount(),
+	            renderAssetManager->freeRenderAssetSlotCount());
 
-	ImGui::SeparatorText("Loaded models");
-	for (size_t i = 0; i < modelManager->modelCount(); ++i)
+	ImGui::SeparatorText("Loaded render assets");
+	for (size_t i = 0; i < renderAssetManager->renderAssetCount(); ++i)
 	{
-		const Model& model = modelManager->getModel(ModelHandle{static_cast<int>(i)});
-		if (model.refCount <= 0) continue;
-		ImGui::Text("[%zu] refs %d | meshes %zu | vtx %u | idx %u | tex %zu | mat %zu", i, model.refCount,
-		            model.meshes.size(), model.allocation.vertexCount, model.allocation.indexCount,
-		            model.textures.size(), model.materials.size());
+		const RenderAsset& renderAsset =
+		    renderAssetManager->getRenderAsset(RenderAssetHandle{static_cast<int>(i)});
+		if (renderAsset.refCount <= 0) continue;
+		ImGui::Text("[%zu] refs %d | meshes %zu | vtx %u | idx %u | tex %zu | mat %zu", i, renderAsset.refCount,
+		            renderAsset.meshes.size(), renderAsset.allocation.vertexCount, renderAsset.allocation.indexCount,
+		            renderAsset.textures.size(), renderAsset.materials.size());
 	}
 
 	ImGui::End();
