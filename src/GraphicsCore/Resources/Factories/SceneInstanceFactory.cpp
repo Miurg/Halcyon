@@ -5,23 +5,10 @@
 #include <glm/gtc/type_ptr.hpp>
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/matrix_decompose.hpp>
-#include "GraphicsCore/Components/GlobalTransformComponent.hpp"
-#include "GraphicsCore/Components/LocalTransformComponent.hpp"
-#include "GraphicsCore/Components/RelationshipComponent.hpp"
-#include "GraphicsCore/Systems/TransformSystem.hpp"
-#include "GraphicsCore/Systems/RenderSystem.hpp"
-#include "GraphicsCore/Systems/BufferUpdateSystem.hpp"
-#include "GraphicsCore/Components/NameComponent.hpp"
-#include "GraphicsCore/Components/SceneTemplateManagerComponent.hpp"
-#include "GraphicsCore/Resources/Components/RenderAssetComponent.hpp"
-#include "GraphicsCore/Resources/Components/SceneInstanceComponent.hpp"
-#include "GraphicsCore/Components/CurrentFrameComponent.hpp"
-#include "GraphicsCore/GraphicsContexts.hpp"
+#include <stdexcept>
 #include <string>
-#include <unordered_map>
 #include <utility>
 #include "GraphicsCore/Components/PointLightComponent.hpp"
-#include "GraphicsCore/Systems/LightUpdateSystem.hpp"
 
 #include "GraphicsCore/Resources/Factories/GltfLoader.hpp"
 
@@ -152,94 +139,26 @@ SceneTemplateNodeHandle parseSceneTemplateHierarchy(
 	return nodeHandle;
 }
 
-Orhescyon::Entity instantiateSceneTemplate(const char path[MAX_PATH_LEN], SceneTemplateHandle sceneTemplateHandle,
-                                           GeneralManager& gm,
-                                           const SceneTemplateManager& sceneTemplateManager)
-{
-	const SceneTemplate& sceneTemplate = sceneTemplateManager.getSceneTemplate(sceneTemplateHandle);
-	if (sceneTemplate.renderAsset.id == -1)
-		throw std::runtime_error("Cannot instantiate a scene template without a render asset");
-
-	Orhescyon::Entity sceneInstance = gm.createEntity();
-	std::string pathString = path;
-	size_t lastSlash = pathString.find_last_of("/\\");
-	std::string filename = (lastSlash == std::string::npos) ? pathString : pathString.substr(lastSlash + 1);
-	gm.addComponentImmediate<NameComponent>(sceneInstance, filename);
-	gm.addComponentImmediate<GlobalTransformComponent>(sceneInstance);
-	gm.addComponentImmediate<LocalTransformComponent>(sceneInstance);
-	gm.addComponentImmediate<RelationshipComponent>(sceneInstance);
-	gm.addComponentImmediate<RenderAssetComponent>(sceneInstance, sceneTemplate.renderAsset);
-	gm.addComponentImmediate<SceneInstanceComponent>(sceneInstance, sceneTemplateHandle);
-	gm.subscribeEntityImmediate<TransformSystem>(sceneInstance);
-
-	std::unordered_map<int, Orhescyon::Entity> nodeEntities;
-	nodeEntities.reserve(sceneTemplate.nodes.size());
-
-	for (SceneTemplateNodeHandle nodeHandle : sceneTemplate.nodes)
-	{
-		const SceneTemplateNode& sceneTemplateNode = sceneTemplateManager.getNode(nodeHandle);
-		const PRS& transform = sceneTemplateManager.getTransform(sceneTemplateNode.transform);
-
-		Orhescyon::Entity entity = gm.createEntity();
-		gm.addComponentImmediate<NameComponent>(entity, sceneTemplateNode.name);
-		gm.addComponentImmediate<GlobalTransformComponent>(entity);
-		gm.addComponentImmediate<LocalTransformComponent>(entity, transform.position, transform.rotation,
-		                                                  transform.scale);
-		gm.addComponentImmediate<RelationshipComponent>(entity);
-
-		if (sceneTemplateNode.mesh.id != -1)
-		{
-			gm.addComponentImmediate<MeshInfoComponent>(entity, sceneTemplateNode.mesh);
-			gm.subscribeEntityImmediate<RenderSystem>(entity);
-			gm.subscribeEntityImmediate<BufferUpdateSystem>(entity);
-		}
-		if (sceneTemplateNode.light.id != -1)
-		{
-			gm.addComponentImmediate<PointLightComponent>(entity, sceneTemplateManager.getLight(sceneTemplateNode.light));
-			gm.subscribeEntityImmediate<LightUpdateSystem>(entity);
-		}
-		gm.subscribeEntityImmediate<TransformSystem>(entity);
-		nodeEntities.emplace(nodeHandle.id, entity);
-	}
-
-	for (SceneTemplateNodeHandle nodeHandle : sceneTemplate.nodes)
-	{
-		const SceneTemplateNode& sceneTemplateNode = sceneTemplateManager.getNode(nodeHandle);
-		Orhescyon::Entity entity = nodeEntities.at(nodeHandle.id);
-		Orhescyon::Entity parentEntity =
-		    sceneTemplateNode.parent.id == -1 ? sceneInstance : nodeEntities.at(sceneTemplateNode.parent.id);
-		gm.getComponent<RelationshipComponent>(parentEntity)->addChild(parentEntity, entity, gm);
-	}
-
-	return sceneInstance;
-}
-
-Orhescyon::Entity SceneInstanceFactory::loadSceneInstance(
+SceneTemplateHandle SceneInstanceFactory::loadSceneInstance(
     const char path[MAX_PATH_LEN], int vertexIndexBInt, BufferManager& bufferManager,
-    BindlessTextureDSetComponent& dSetComponent, DescriptorManager& descriptorManager, GeneralManager& gm,
-    TextureManager& textureManager, RenderAssetManager& renderAssetManager, MaterialManager& materialManager,
-    VulkanDevice& vulkanDevice, VmaAllocator allocator, int sceneIndex)
+    BindlessTextureDSetComponent& dSetComponent, DescriptorManager& descriptorManager, TextureManager& textureManager,
+    RenderAssetManager& renderAssetManager, SceneTemplateManager& sceneTemplateManager,
+    MaterialManager& materialManager, VulkanDevice& vulkanDevice, VmaAllocator allocator, int sceneIndex)
 {
 	if (sceneIndex < -1) throw std::runtime_error("glTF scene index cannot be less than -1");
 
-	SceneTemplateManager& sceneTemplateManager =
-	    *gm.getContextComponent<SceneTemplateManagerContext, SceneTemplateManagerComponent>()->sceneTemplateManager;
-	auto instantiateCachedTemplate = [&](SceneTemplateHandle cachedHandle)
+	auto retainCachedTemplate = [&](SceneTemplateHandle cachedHandle)
 	{
 		const SceneTemplate& sceneTemplate = sceneTemplateManager.getSceneTemplate(cachedHandle);
 		if (sceneTemplate.renderAsset.id == -1)
-			throw std::runtime_error("Cannot instantiate a scene template without a render asset");
+			throw std::runtime_error("Cannot load a scene template without a render asset");
 		sceneTemplateManager.addSceneTemplateRef(cachedHandle);
 		renderAssetManager.addRenderAssetRef(sceneTemplate.renderAsset);
-
-		Orhescyon::Entity sceneInstance =
-		    instantiateSceneTemplate(path, cachedHandle, gm, sceneTemplateManager);
-		std::cout << "Loaded scene instance: " << path << std::endl;
-		return sceneInstance;
+		return cachedHandle;
 	};
 
 	SceneTemplateHandle sceneTemplateHandle = sceneTemplateManager.getSceneTemplateHandle(path, sceneIndex);
-	if (sceneTemplateHandle.id != -1) return instantiateCachedTemplate(sceneTemplateHandle);
+	if (sceneTemplateHandle.id != -1) return retainCachedTemplate(sceneTemplateHandle);
 
 	tinygltf::Model model;
 	tinygltf::TinyGLTF loader;
@@ -326,7 +245,7 @@ Orhescyon::Entity SceneInstanceFactory::loadSceneInstance(
 	if (sceneTemplateHandle.id != -1)
 	{
 		if (sceneIndex == -1) sceneTemplateManager.setDefaultSceneTemplate(path, sceneTemplateHandle);
-		return instantiateCachedTemplate(sceneTemplateHandle);
+		return retainCachedTemplate(sceneTemplateHandle);
 	}
 
 	RenderAssetHandle renderAssetHandle = renderAssetManager.getRenderAssetHandle(path);
@@ -352,64 +271,20 @@ Orhescyon::Entity SceneInstanceFactory::loadSceneInstance(
 	sceneTemplateHandle =
 	    sceneTemplateManager.addSceneTemplate(path, selectedSceneIndex, std::move(sceneTemplate));
 	if (sceneIndex == -1) sceneTemplateManager.setDefaultSceneTemplate(path, sceneTemplateHandle);
-
-	Orhescyon::Entity sceneInstance =
-	    instantiateSceneTemplate(path, sceneTemplateHandle, gm, sceneTemplateManager);
-	std::cout << "Loaded scene instance: " << path << std::endl;
-	return sceneInstance;
+	return sceneTemplateHandle;
 }
 
-void collectSubtree(Orhescyon::Entity entity, GeneralManager& gm, std::vector<Orhescyon::Entity>& out)
-{
-	out.push_back(entity);
-	RelationshipComponent* rel = gm.getComponent<RelationshipComponent>(entity);
-	for (Orhescyon::Entity child = rel->firstChild; child != NULL_ENTITY;)
-	{
-		Orhescyon::Entity next = gm.getComponent<RelationshipComponent>(child)->nextSibling;
-		collectSubtree(child, gm, out);
-		child = next;
-	}
-}
-
-bool SceneInstanceFactory::unloadSceneInstance(Orhescyon::Entity sceneInstance, GeneralManager& gm,
+bool SceneInstanceFactory::unloadSceneInstance(SceneTemplateHandle sceneTemplateHandle,
+                                               RenderAssetHandle renderAssetHandle,
+                                               SceneTemplateManager& sceneTemplateManager,
                                                RenderAssetManager& renderAssetManager,
-                                               TextureManager& textureManager, MaterialManager& materialManager)
+                                               TextureManager& textureManager, MaterialManager& materialManager,
+                                               uint32_t frameNumber)
 {
-	if (!gm.hasComponent<RenderAssetComponent>(sceneInstance) ||
-	    !gm.hasComponent<SceneInstanceComponent>(sceneInstance))
-		return false;
-	RenderAssetHandle renderAssetHandle = gm.getComponent<RenderAssetComponent>(sceneInstance)->renderAsset;
-	SceneTemplateHandle sceneTemplateHandle =
-	    gm.getComponent<SceneInstanceComponent>(sceneInstance)->sceneTemplate;
-	SceneTemplateManager& sceneTemplateManager =
-	    *gm.getContextComponent<SceneTemplateManagerContext, SceneTemplateManagerComponent>()->sceneTemplateManager;
-
-	// Entity destruction does not repair neighbours — unlink the instance from its parent's child list first.
-	RelationshipComponent* sceneInstanceRelationship = gm.getComponent<RelationshipComponent>(sceneInstance);
-	if (sceneInstanceRelationship->parent != NULL_ENTITY)
-	{
-		RelationshipComponent* parentRel =
-		    gm.getComponent<RelationshipComponent>(sceneInstanceRelationship->parent);
-		if (parentRel->firstChild == sceneInstance)
-			parentRel->firstChild = sceneInstanceRelationship->nextSibling;
-		if (sceneInstanceRelationship->prevSibling != NULL_ENTITY)
-			gm.getComponent<RelationshipComponent>(sceneInstanceRelationship->prevSibling)->nextSibling =
-			    sceneInstanceRelationship->nextSibling;
-		if (sceneInstanceRelationship->nextSibling != NULL_ENTITY)
-			gm.getComponent<RelationshipComponent>(sceneInstanceRelationship->nextSibling)->prevSibling =
-			    sceneInstanceRelationship->prevSibling;
-	}
-
-	// Snapshot the subtree before destroying — entity destruction erases RelationshipComponent.
-	std::vector<Orhescyon::Entity> toDestroy;
-	collectSubtree(sceneInstance, gm, toDestroy);
-	for (Orhescyon::Entity entity : toDestroy) gm.destroyEntityImmediate(entity);
-
 	sceneTemplateManager.releaseSceneTemplateRef(sceneTemplateHandle);
 	if (!renderAssetManager.releaseRenderAssetRef(renderAssetHandle)) return true;
 	RenderAsset& renderAsset = renderAssetManager.getRenderAsset(renderAssetHandle);
 
-	uint32_t frameNumber = gm.getContextComponent<CurrentFrameContext, CurrentFrameComponent>()->frameNumber;
 	renderAssetManager.freeGeometry(renderAsset.allocation, frameNumber);
 	for (MeshHandle slot : renderAsset.meshes) renderAssetManager.freeMeshSlot(slot);
 	for (TextureHandle textureId : renderAsset.textures) textureManager.freeTexture(textureId, frameNumber);

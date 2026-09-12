@@ -41,7 +41,7 @@
 #include "GraphicsCore/Resources/Managers/RenderAssetManager.hpp"
 #include "GraphicsCore/Resources/Managers/TextureManager.hpp"
 #include "GraphicsCore/Resources/Components/RenderAssetComponent.hpp"
-#include "GraphicsCore/Resources/Factories/SceneInstanceFactory.hpp"
+#include "SmithCore/Renderables.hpp"
 #include "GraphicsCore/Systems/DevSystems/ComponentInspector.hpp"
 
 #ifdef TRACY_ENABLE
@@ -109,8 +109,7 @@ void drawMemoryWindow(GeneralManager& gm)
 		ImGui::SameLine();
 		if (ImGui::Button("Unload"))
 		{
-			SceneInstanceFactory::unloadSceneInstance(sceneInstance, gm, *renderAssetManager, *textureManager,
-			                                          *materialManager);
+			Smith::Renderables::destroySceneInstance(gm, sceneInstance);
 		}
 		ImGui::PopID();
 	}

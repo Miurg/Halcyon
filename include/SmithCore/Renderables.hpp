@@ -9,4 +9,7 @@
 namespace Smith::Renderables
 {
 HALCYON_API void forgeTransform(Orhescyon::GeneralManager& gm, Orhescyon::Entity e, glm::vec3 pos, glm::quat rot);
+HALCYON_API Orhescyon::Entity forgeSceneInstance(Orhescyon::GeneralManager& gm, const char* path,
+                                                 int sceneIndex = -1);
+HALCYON_API bool destroySceneInstance(Orhescyon::GeneralManager& gm, Orhescyon::Entity sceneInstance);
 } // namespace Smith::Renderables

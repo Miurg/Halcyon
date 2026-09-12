@@ -9,17 +9,8 @@
 #include <GraphicsCore/Systems/DeltaTimeSystem.hpp>
 #include <GraphicsCore/Systems/FrameBeginSystem.hpp>
 #include <GraphicsCore/GraphicsContexts.hpp>
-#include <GraphicsCore/Components/BufferManagerComponent.hpp>
-#include <GraphicsCore/Components/TextureManagerComponent.hpp>
-#include <GraphicsCore/Components/RenderAssetManagerComponent.hpp>
-#include <GraphicsCore/Components/DescriptorManagerComponent.hpp>
 #include <GraphicsCore/Components/NameComponent.hpp>
 #include <GraphicsCore/Components/RelationshipComponent.hpp>
-#include <GraphicsCore/Resources/Components/BindlessTextureDSetComponent.hpp>
-#include <GraphicsCore/Components/VulkanDeviceComponent.hpp>
-#include <GraphicsCore/Components/MaterialManagerComponent.hpp>
-#include <GraphicsCore/Components/VMAllocatorComponent.hpp>
-#include <GraphicsCore/Resources/Factories/SceneInstanceFactory.hpp>
 #include <SmithCore/Renderables.hpp>
 
 void GameInit::Run(GeneralManager& gm)
@@ -32,28 +23,11 @@ void GameInit::Run(GeneralManager& gm)
 	    .writes<GlobalTransformComponent, CursorPositionComponent>();
 	gm.addComponentImmediate<ControlComponent>(gm.getContext<MainCameraContext>());
 
-	// Managers the scene instance loader needs.
-	BufferManager* bufferManager = gm.getContextComponent<BufferManagerContext, BufferManagerComponent>()->bufferManager;
-	TextureManager* textureManager =
-	    gm.getContextComponent<TextureManagerContext, TextureManagerComponent>()->textureManager;
-	RenderAssetManager* renderAssetManager =
-	    gm.getContextComponent<RenderAssetManagerContext, RenderAssetManagerComponent>()->renderAssetManager;
-	DescriptorManager* descriptorManager =
-	    gm.getContextComponent<DescriptorManagerContext, DescriptorManagerComponent>()->descriptorManager;
-	BindlessTextureDSetComponent* dSetComponent =
-	    gm.getContextComponent<MainDSetsContext, BindlessTextureDSetComponent>();
-	VulkanDevice& vulkanDevice =
-	    *gm.getContextComponent<MainVulkanDeviceContext, VulkanDeviceComponent>()->vulkanDeviceInstance;
-	VmaAllocator allocator = gm.getContextComponent<VMAllocatorContext, VMAllocatorComponent>()->allocator;
-	MaterialManager* materialManager =
-	    gm.getContextComponent<MaterialManagerContext, MaterialManagerComponent>()->materialManager;
-
 	Orhescyon::Entity cube = gm.createEntityImmediate();
 	gm.addComponentImmediate<NameComponent>(cube, "Cube");
 	Smith::Renderables::forgeTransform(gm, cube, glm::vec3(0.0f, 0.0f, -5.0f), glm::quat{1.0f, 0.0f, 0.0f, 0.0f});
 
-	Orhescyon::Entity sceneInstance = SceneInstanceFactory::loadSceneInstance(
-	    "assets/models/cube.gltf", 0, *bufferManager, *dSetComponent, *descriptorManager, gm, *textureManager,
-	    *renderAssetManager, *materialManager, vulkanDevice, allocator);
+	Orhescyon::Entity sceneInstance =
+	    Smith::Renderables::forgeSceneInstance(gm, "assets/models/cube.gltf");
 	gm.getComponent<RelationshipComponent>(cube)->addChild(cube, sceneInstance, gm);
 }
