@@ -23,7 +23,7 @@ void GameInit::Run(GeneralManager& gm)
 	    .writes<GlobalTransformComponent, CursorPositionComponent>();
 	gm.addComponentImmediate<ControlComponent>(gm.getContext<MainCameraContext>());
 
-	Orhescyon::Entity cube = gm.createEntityImmediate();
+	Orhescyon::Entity cube = gm.createEntity();
 	gm.addComponentImmediate<NameComponent>(cube, "Cube");
 	Smith::Renderables::forgeTransform(gm, cube, glm::vec3(0.0f, 0.0f, -5.0f), glm::quat{1.0f, 0.0f, 0.0f, 0.0f});
 
