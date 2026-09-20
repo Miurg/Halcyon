@@ -3,6 +3,7 @@
 #include "HalcyonExport.hpp"
 #include <Orhescyon/GeneralManager.hpp>
 #include <Orhescyon/Systems/SystemCore.hpp>
+#include <memory>
 #include <vector>
 #include "GraphicsCore/Components/NameComponent.hpp"
 #include "GraphicsCore/Components/RelationshipComponent.hpp"
@@ -19,9 +20,13 @@
 #include "PhysicsCore/Components/PhysBodyComponent.hpp"
 
 using Orhescyon::GeneralManager;
+class FileInspector;
 class HALCYON_API ImGuiSystem : public Orhescyon::SystemCore<ImGuiSystem>
 {
 public:
+	ImGuiSystem();
+	~ImGuiSystem() override;
+
 	void update(GeneralManager& gm) override;
 	void onRegistered(GeneralManager& gm) override;
 	void onShutdown(GeneralManager& gm) override;
@@ -36,6 +41,7 @@ public:
 	float onePercentLowFrameTime = 0.0f;
 
 private:
+	std::unique_ptr<FileInspector> fileInspector;
 	bool autoShaderReload = false;
 	void drawEntityNode(Orhescyon::Entity entity, GeneralManager& gm);
 };

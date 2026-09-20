@@ -6,6 +6,8 @@
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/matrix_decompose.hpp>
 #include <stdexcept>
+#include <algorithm>
+#include <cctype>
 #include <string>
 #include <utility>
 #include "GraphicsCore/Components/PointLightComponent.hpp"
@@ -191,6 +193,8 @@ SceneTemplateHandle SceneInstanceFactory::loadSceneInstance(
 	    nullptr);
 
 	std::string pathStr = path;
+	std::transform(pathStr.begin(), pathStr.end(), pathStr.begin(),
+	               [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
 	if (pathStr.size() >= 4 && pathStr.substr(pathStr.size() - 4) == ".glb")
 	{
 		ret = loader.LoadBinaryFromFile(&model, &err, &warn, path);

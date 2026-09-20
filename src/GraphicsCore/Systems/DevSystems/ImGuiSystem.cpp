@@ -43,6 +43,8 @@
 #include "GraphicsCore/Resources/Components/RenderAssetComponent.hpp"
 #include "SmithCore/Renderables.hpp"
 #include "GraphicsCore/Systems/DevSystems/ComponentInspector.hpp"
+#include "GraphicsCore/Systems/DevSystems/FileInspector.hpp"
+#include <exception>
 
 #ifdef TRACY_ENABLE
 #include <tracy/Tracy.hpp>
@@ -149,13 +151,18 @@ void drawMemoryWindow(GeneralManager& gm)
 }
 } // namespace
 
+ImGuiSystem::ImGuiSystem() = default;
+ImGuiSystem::~ImGuiSystem() = default;
+
 void ImGuiSystem::onRegistered(GeneralManager& gm)
 {
+	fileInspector = std::make_unique<FileInspector>();
 	std::cout << "ImGuiSystem registered!" << std::endl;
 }
 
 void ImGuiSystem::onShutdown(GeneralManager& gm)
 {
+	fileInspector.reset();
 	std::cout << "ImGuiSystem shutdown!" << std::endl;
 }
 
@@ -310,6 +317,22 @@ void ImGuiSystem::update(GeneralManager& gm)
 	}
 
 	ImGui::End();
+
+	if (const auto path = fileInspector->draw())
+	{
+		try
+		{
+			const auto utf8Path = path->u8string();
+			const std::string modelPath(utf8Path.begin(), utf8Path.end());
+			selectedEntity = Smith::Renderables::forgeSceneInstance(gm, modelPath.c_str());
+			if (auto* settings = gm.getContextComponent<GraphicsSettingsContext, GraphicsSettingsComponent>())
+				settings->selectedEntity = selectedEntity;
+		}
+		catch (const std::exception& error)
+		{
+			fileInspector->setError(error.what());
+		}
+	}
 
 	// Entity Inspector Window
 	ImGui::Begin("Entity Inspector");
