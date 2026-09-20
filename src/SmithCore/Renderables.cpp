@@ -117,7 +117,7 @@ Orhescyon::Entity Smith::Renderables::forgeSceneInstance(Orhescyon::GeneralManag
 	gm.addComponentImmediate<RelationshipComponent>(sceneInstance);
 	gm.addComponentImmediate<RenderAssetComponent>(sceneInstance, sceneTemplate.renderAsset);
 	gm.addComponentImmediate<SceneInstanceComponent>(sceneInstance, sceneTemplateHandle);
-	gm.subscribeEntityImmediate<TransformSystem>(sceneInstance);
+	gm.subscribeEntityDeferred<TransformSystem>(sceneInstance);
 
 	std::unordered_map<int, Orhescyon::Entity> nodeEntities;
 	nodeEntities.reserve(sceneTemplate.nodes.size());
@@ -137,15 +137,15 @@ Orhescyon::Entity Smith::Renderables::forgeSceneInstance(Orhescyon::GeneralManag
 		if (sceneTemplateNode.mesh.id != -1)
 		{
 			gm.addComponentImmediate<MeshInfoComponent>(entity, sceneTemplateNode.mesh);
-			gm.subscribeEntityImmediate<RenderSystem>(entity);
-			gm.subscribeEntityImmediate<BufferUpdateSystem>(entity);
+			gm.subscribeEntityDeferred<RenderSystem>(entity);
+			gm.subscribeEntityDeferred<BufferUpdateSystem>(entity);
 		}
 		if (sceneTemplateNode.light.id != -1)
 		{
 			gm.addComponentImmediate<PointLightComponent>(entity, sceneTemplateManager.getLight(sceneTemplateNode.light));
-			gm.subscribeEntityImmediate<LightUpdateSystem>(entity);
+			gm.subscribeEntityDeferred<LightUpdateSystem>(entity);
 		}
-		gm.subscribeEntityImmediate<TransformSystem>(entity);
+		gm.subscribeEntityDeferred<TransformSystem>(entity);
 		nodeEntities.emplace(nodeHandle.id, entity);
 	}
 
