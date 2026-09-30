@@ -1,6 +1,7 @@
 #include "Shared/GpuStructs.h"
 #include "Shared/Bindings.h"
 
+// Threads per group, an occupancy knob only: every thread processes one whole cluster alone.
 static const uint CLUSTER_THREAD_COUNT = 64u;
 static const uint CLUSTER_PLANE_COUNT  = 6u;
 
@@ -51,24 +52,6 @@ struct PushConstants
 [[vk::push_constant]]
 PushConstants push;
 
-// The planes are directed towards the inside of the cluster.
-groupshared float4 sharedClusterPlanes[CLUSTER_PLANE_COUNT];
-
-groupshared uint sharedLightHits[MAX_POINT_LIGHTS];
-groupshared uint sharedProbeHits[MAX_REFLECTION_PROBES];
-
-groupshared uint sharedLightIndices[MAX_POINT_LIGHTS];
-groupshared uint sharedProbeIndices[MAX_REFLECTION_PROBES];
-
-// Ping-pong storage for a stable, group-wide inclusive scan.
-// x contains light counts, y contains reflection-probe counts.
-groupshared uint2 sharedPrefixCounts[CLUSTER_THREAD_COUNT * 2u];
-
-groupshared uint sharedLightCount;
-groupshared uint sharedProbeCount;
-groupshared uint sharedBaseOffset;
-groupshared uint sharedWriteAccepted;
-
 float getSliceDepth(
 	uint boundary,
 	float cameraNear,
@@ -113,7 +96,9 @@ float4 makeInwardPlane(
 	return plane;
 }
 
-void buildClusterPlanes(uint3 clusterCoord)
+void buildClusterPlanes(
+	uint3 clusterCoord,
+	out float4 planes[CLUSTER_PLANE_COUNT])
 {
 	float p22 = camera[0].projMatrix[2][2];
 	float absP32 = abs(camera[0].projMatrix[3][2]);
@@ -208,32 +193,35 @@ void buildClusterPlanes(uint3 clusterCoord)
 
 	insidePoint *= 1.0f / 8.0f;
 
-	sharedClusterPlanes[0] =
+	planes[0] =
 		makeInwardPlane(corners[0], corners[2], corners[6], insidePoint); // left
 
-	sharedClusterPlanes[1] =
+	planes[1] =
 		makeInwardPlane(corners[1], corners[5], corners[7], insidePoint); // right
 
-	sharedClusterPlanes[2] =
+	planes[2] =
 		makeInwardPlane(corners[0], corners[4], corners[5], insidePoint); // top
 
-	sharedClusterPlanes[3] =
+	planes[3] =
 		makeInwardPlane(corners[2], corners[3], corners[7], insidePoint); // bottom
 
-	sharedClusterPlanes[4] =
+	planes[4] =
 		makeInwardPlane(corners[0], corners[1], corners[3], insidePoint); // near
 
-	sharedClusterPlanes[5] =
+	planes[5] =
 		makeInwardPlane(corners[4], corners[6], corners[7], insidePoint); // far
 }
 
-bool sphereIntersectsCluster(float3 center, float radius)
+bool sphereIntersectsCluster(
+	float3 center,
+	float radius,
+	float4 planes[CLUSTER_PLANE_COUNT])
 {
 	[unroll]
 	for (uint i = 0u; i < CLUSTER_PLANE_COUNT; ++i)
 	{
 		float signedDistance =
-			dot(sharedClusterPlanes[i], float4(center, 1.0f));
+			dot(planes[i], float4(center, 1.0f));
 
 		if (signedDistance < -radius - CULL_EPSILON)
 			return false;
@@ -242,12 +230,15 @@ bool sphereIntersectsCluster(float3 center, float radius)
 	return true;
 }
 
-bool aabbIntersectsCluster(float3 boxMin, float3 boxMax)
+bool aabbIntersectsCluster(
+	float3 boxMin,
+	float3 boxMax,
+	float4 planes[CLUSTER_PLANE_COUNT])
 {
 	[unroll]
 	for (uint i = 0u; i < CLUSTER_PLANE_COUNT; ++i)
 	{
-		float4 plane = sharedClusterPlanes[i];
+		float4 plane = planes[i];
 
 		float3 supportPoint = float3(
 			plane.x >= 0.0f ? boxMax.x : boxMin.x,
@@ -263,9 +254,7 @@ bool aabbIntersectsCluster(float3 boxMin, float3 boxMax)
 
 [shader("compute")]
 [numthreads(CLUSTER_THREAD_COUNT, 1, 1)]
-void computeMain(
-	uint3 groupID : SV_GroupID,
-	uint groupIndex : SV_GroupIndex)
+void computeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
 {
 	if (push.widthScreen == 0u || push.heightScreen == 0u)
 		return;
@@ -275,17 +264,20 @@ void computeMain(
 		uint2(TILE_SIZE - 1u, TILE_SIZE - 1u)) /
 		TILE_SIZE;
 
-	if (groupID.x >= tileCount.x ||
-	    groupID.y >= tileCount.y ||
-	    groupID.z >= Z_SLICES)
-	{
-		return;
-	}
+	uint tileXYCount = tileCount.x * tileCount.y;
+	uint clusterCount = tileXYCount * Z_SLICES;
 
-	uint clusterIndex =
-		groupID.x +
-		groupID.y * tileCount.x +
-		groupID.z * tileCount.x * tileCount.y;
+	uint clusterIndex = dispatchThreadID.x;
+	if (clusterIndex >= clusterCount)
+		return;
+
+	// Decompose the flat index back into the
+	// x + y * tileCount.x + z * tileCount.x * tileCount.y layout
+	// that standard_forward uses to fetch the cluster.
+	uint sliceZ = clusterIndex / tileXYCount;
+	uint tileRemainder = clusterIndex - sliceZ * tileXYCount;
+	uint tileY = tileRemainder / tileCount.x;
+	uint tileX = tileRemainder - tileY * tileCount.x;
 
 	uint gridElementCount;
 	uint gridElementStride;
@@ -304,14 +296,11 @@ void computeMain(
 
 	if (infoElementCount < INFO_HEADER_WORDS)
 	{
-		if (groupIndex == 0u)
-		{
-			ForwardCluster emptyCluster;
-			emptyCluster.offset = INVALID_FORWARD_CLUSTER_OFFSET;
-			emptyCluster.countLights = 0u;
-			emptyCluster.countReflectProbes = 0u;
-			forwardClusteredGrid[clusterIndex] = emptyCluster;
-		}
+		ForwardCluster emptyCluster;
+		emptyCluster.offset = INVALID_FORWARD_CLUSTER_OFFSET;
+		emptyCluster.countLights = 0u;
+		emptyCluster.countReflectProbes = 0u;
+		forwardClusteredGrid[clusterIndex] = emptyCluster;
 
 		return;
 	}
@@ -348,247 +337,105 @@ void computeMain(
 		reflectionProbeCountBuffer[0],
 		min(probeBufferCapacity, MAX_REFLECTION_PROBES));
 
-	if (groupIndex == 0u)
+	float4 planes[CLUSTER_PLANE_COUNT];
+	buildClusterPlanes(uint3(tileX, tileY, sliceZ), planes);
+
+	// The thread owns the whole cluster, so compaction is a plain local append;
+	// hits beyond MAX_FORWARD_CLUSTER_REFERENCES are only counted to keep the fallback logic intact.
+	uint lightRefs[MAX_FORWARD_CLUSTER_REFERENCES];
+	uint probeRefs[MAX_FORWARD_CLUSTER_REFERENCES];
+	uint lightHitCount = 0u;
+	uint probeHitCount = 0u;
+
+	for (uint i = 0u; i < lightCount; ++i)
 	{
-		buildClusterPlanes(groupID);
+		uint lightIndex = visiblePointLightIndices[1u + i];
+		PointLightData light = pointLights[lightIndex];
 
-		sharedBaseOffset = 0u;
-		sharedWriteAccepted = 1u;
-	}
-
-	GroupMemoryBarrierWithGroupSync();
-
-	for (uint i = groupIndex;
-	     i < lightCount;
-	     i += CLUSTER_THREAD_COUNT)
-	{
-		uint lightIndex =
-			visiblePointLightIndices[1u + i];
-		PointLightData light =
-			pointLights[lightIndex];
-
-		sharedLightIndices[i] = lightIndex;
-		sharedLightHits[i] =
+		bool hit =
 			light.radius > 0.0f &&
-			sphereIntersectsCluster(light.position, light.radius)
-				? 1u
-				: 0u;
+			sphereIntersectsCluster(light.position, light.radius, planes);
+
+		if (hit)
+		{
+			if (lightHitCount < MAX_FORWARD_CLUSTER_REFERENCES)
+				lightRefs[lightHitCount] = lightIndex;
+
+			++lightHitCount;
+		}
 	}
 
-	for (uint i = groupIndex;
-	     i < probeCount;
-	     i += CLUSTER_THREAD_COUNT)
+	for (uint i = 0u; i < probeCount; ++i)
 	{
 		ReflectionProbeData probe = reflectionProbes[i];
 
 		float3 boxMin = min(probe.boxMin, probe.boxMax);
 		float3 boxMax = max(probe.boxMin, probe.boxMax);
 
-		sharedProbeHits[i] =
-			aabbIntersectsCluster(boxMin, boxMax)
-				? 1u
-				: 0u;
-	}
-
-	GroupMemoryBarrierWithGroupSync();
-
-	// Split each input into ordered, contiguous ranges
-	uint lightItemsPerThread = lightCount / CLUSTER_THREAD_COUNT;
-	uint lightRemainder =
-		lightCount - lightItemsPerThread * CLUSTER_THREAD_COUNT;
-	uint lightRangeBegin =
-		groupIndex * lightItemsPerThread +
-		min(groupIndex, lightRemainder);
-	uint lightRangeEnd =
-		lightRangeBegin +
-		lightItemsPerThread +
-		(groupIndex < lightRemainder ? 1u : 0u);
-
-	uint probeItemsPerThread = probeCount / CLUSTER_THREAD_COUNT;
-	uint probeRemainder =
-		probeCount - probeItemsPerThread * CLUSTER_THREAD_COUNT;
-	uint probeRangeBegin =
-		groupIndex * probeItemsPerThread +
-		min(groupIndex, probeRemainder);
-	uint probeRangeEnd =
-		probeRangeBegin +
-		probeItemsPerThread +
-		(groupIndex < probeRemainder ? 1u : 0u);
-
-	uint localLightCount = 0u;
-	for (uint i = lightRangeBegin; i < lightRangeEnd; ++i)
-	{
-		if (sharedLightHits[i] != 0u)
+		if (aabbIntersectsCluster(boxMin, boxMax, planes))
 		{
-			sharedLightHits[lightRangeBegin + localLightCount] =
-				sharedLightIndices[i];
-			++localLightCount;
+			if (probeHitCount < MAX_FORWARD_CLUSTER_REFERENCES)
+				probeRefs[probeHitCount] = i;
+
+			++probeHitCount;
 		}
 	}
 
-	uint localProbeCount = 0u;
-	for (uint i = probeRangeBegin; i < probeRangeEnd; ++i)
+	uint totalCount = lightHitCount + probeHitCount;
+
+	ForwardCluster cluster;
+	cluster.offset = 0u;
+	cluster.countLights = lightHitCount;
+	cluster.countReflectProbes = probeHitCount;
+
+	bool writeAccepted = true;
+
+	if (totalCount > MAX_FORWARD_CLUSTER_REFERENCES)
 	{
-		if (sharedProbeHits[i] != 0u)
+		writeAccepted = false;
+		InterlockedAdd(forwardClusteredInfo[1], 1u);
+	}
+	else if (totalCount != 0u)
+	{
+		uint reservation;
+		InterlockedAdd(
+			forwardClusteredInfo[0],
+			totalCount,
+			reservation);
+
+		uint payloadCapacity =
+			infoElementCount - INFO_HEADER_WORDS;
+
+		bool fits = false;
+
+		if (reservation <= payloadCapacity)
+			fits = totalCount <= payloadCapacity - reservation;
+
+		if (fits)
 		{
-			sharedProbeHits[probeRangeBegin + localProbeCount] = i;
-			++localProbeCount;
-		}
-	}
+			uint baseOffset =
+				INFO_HEADER_WORDS + reservation;
 
-	// Stable inclusive scan of the per-lane hit counts.
-	sharedPrefixCounts[groupIndex] =
-		uint2(localLightCount, localProbeCount);
-	GroupMemoryBarrierWithGroupSync();
+			// Lights first, then probes, matching what standard_forward reads back.
+			for (uint i = 0u; i < lightHitCount; ++i)
+				forwardClusteredInfo[baseOffset + i] = lightRefs[i];
 
-	uint prefixReadOffset = 0u;
-	uint prefixWriteOffset = CLUSTER_THREAD_COUNT;
+			for (uint i = 0u; i < probeHitCount; ++i)
+				forwardClusteredInfo[baseOffset + lightHitCount + i] = probeRefs[i];
 
-	[unroll]
-	for (uint offset = 1u;
-	     offset < CLUSTER_THREAD_COUNT;
-	     offset <<= 1u)
-	{
-		uint2 prefix =
-			sharedPrefixCounts[prefixReadOffset + groupIndex];
-
-		if (groupIndex >= offset)
-		{
-			prefix += sharedPrefixCounts[
-				prefixReadOffset + groupIndex - offset];
-		}
-
-		sharedPrefixCounts[prefixWriteOffset + groupIndex] =
-			prefix;
-
-		GroupMemoryBarrierWithGroupSync();
-
-		uint oldReadOffset = prefixReadOffset;
-		prefixReadOffset = prefixWriteOffset;
-		prefixWriteOffset = oldReadOffset;
-	}
-
-	uint2 inclusiveCounts =
-		sharedPrefixCounts[prefixReadOffset + groupIndex];
-	uint2 localOffsets =
-		inclusiveCounts - uint2(localLightCount, localProbeCount);
-	uint2 totalCounts = sharedPrefixCounts[
-		prefixReadOffset + CLUSTER_THREAD_COUNT - 1u];
-
-	for (uint i = 0u; i < localLightCount; ++i)
-	{
-		sharedLightIndices[localOffsets.x + i] =
-			sharedLightHits[lightRangeBegin + i];
-	}
-
-	for (uint i = 0u; i < localProbeCount; ++i)
-	{
-		sharedProbeIndices[localOffsets.y + i] =
-			sharedProbeHits[probeRangeBegin + i];
-	}
-
-	if (groupIndex == 0u)
-	{
-		sharedLightCount = totalCounts.x;
-		sharedProbeCount = totalCounts.y;
-	}
-
-	GroupMemoryBarrierWithGroupSync();
-
-	if (groupIndex == 0u)
-	{
-		uint totalCount =
-			sharedLightCount +
-			sharedProbeCount;
-
-		if (totalCount > MAX_FORWARD_CLUSTER_REFERENCES)
-		{
-			sharedWriteAccepted = 0u;
-			InterlockedAdd(forwardClusteredInfo[1], 1u);
-		}
-		else if (totalCount != 0u)
-		{
-			uint reservation;
-			InterlockedAdd(
-				forwardClusteredInfo[0],
-				totalCount,
-				reservation);
-
-			uint payloadCapacity =
-				infoElementCount - INFO_HEADER_WORDS;
-
-			bool fits = false;
-
-			if (reservation <= payloadCapacity)
-				fits = totalCount <= payloadCapacity - reservation;
-
-			if (fits)
-			{
-				sharedBaseOffset =
-					INFO_HEADER_WORDS + reservation;
-			}
-			else
-			{
-				sharedWriteAccepted = 0u;
-				InterlockedOr(
-					forwardClusteredInfo[1],
-					FORWARD_CLUSTER_GLOBAL_OVERFLOW_BIT);
-			}
-		}
-	}
-
-	GroupMemoryBarrierWithGroupSync();
-
-	if (sharedWriteAccepted != 0u)
-	{
-		uint totalCount =
-			sharedLightCount +
-			sharedProbeCount;
-
-		for (uint i = groupIndex;
-		     i < totalCount;
-		     i += CLUSTER_THREAD_COUNT)
-		{
-			uint referenceIndex =
-				i < sharedLightCount
-					? sharedLightIndices[i]
-					: sharedProbeIndices[i - sharedLightCount];
-
-			forwardClusteredInfo[sharedBaseOffset + i] =
-				referenceIndex;
-		}
-	}
-
-	DeviceMemoryBarrierWithGroupSync();
-
-	if (groupIndex == 0u)
-	{
-		ForwardCluster cluster;
-
-		if (sharedWriteAccepted != 0u)
-		{
-			uint totalCount =
-				sharedLightCount +
-				sharedProbeCount;
-
-			cluster.offset =
-				totalCount != 0u
-					? sharedBaseOffset
-					: 0u;
-
-			cluster.countLights =
-				sharedLightCount;
-
-			cluster.countReflectProbes =
-				sharedProbeCount;
+			cluster.offset = baseOffset;
 		}
 		else
 		{
-			cluster.offset = INVALID_FORWARD_CLUSTER_OFFSET;
-			cluster.countLights = sharedLightCount;
-			cluster.countReflectProbes = sharedProbeCount;
+			writeAccepted = false;
+			InterlockedOr(
+				forwardClusteredInfo[1],
+				FORWARD_CLUSTER_GLOBAL_OVERFLOW_BIT);
 		}
-
-		forwardClusteredGrid[clusterIndex] = cluster;
 	}
+
+	if (!writeAccepted)
+		cluster.offset = INVALID_FORWARD_CLUSTER_OFFSET;
+
+	forwardClusteredGrid[clusterIndex] = cluster;
 }

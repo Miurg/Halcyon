@@ -83,7 +83,15 @@ void ClusteredComputePass::computeClustered(vk::raii::CommandBuffer& cmd, uint32
 	push.heightScreen = heightScreen;
 
 	cmd.pushConstants<PushConsts>(*clusteredPipeline.layout, vk::ShaderStageFlagBits::eCompute, 0, push);
-	cmd.dispatch((widthScreen + TILE_SIZE - 1) / TILE_SIZE, (heightScreen + TILE_SIZE - 1) / TILE_SIZE, Z_SLICES);
+
+	// Must match numthreads in clustered_compute.slang; each thread processes one whole cluster.
+	constexpr uint32_t clusterThreadCount = 64u;
+
+	const uint32_t clusterTilesX = (widthScreen + TILE_SIZE - 1u) / TILE_SIZE;
+	const uint32_t clusterTilesY = (heightScreen + TILE_SIZE - 1u) / TILE_SIZE;
+	const uint32_t clusterCount = clusterTilesX * clusterTilesY * Z_SLICES;
+
+	cmd.dispatch((clusterCount + clusterThreadCount - 1u) / clusterThreadCount, 1, 1);
 
 	vk::BufferMemoryBarrier2 clusteredReadBarriers[2];
 	for (vk::BufferMemoryBarrier2& barrier : clusteredReadBarriers)
