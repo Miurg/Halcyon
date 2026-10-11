@@ -6,8 +6,13 @@
 #include "GraphicsCore/Components/DrawInfoComponent.hpp"
 #include "GraphicsCore/Resources/Components/TextureInfoComponent.hpp"
 #include "GraphicsCore/Resources/Components/MeshInfoComponent.hpp"
+#include "Shared/GpuStructs.h"
 #include <Orhescyon/GeneralManager.hpp>
 #include <Orhescyon/Systems/SystemCore.hpp>
+#include <vector>
+
+class RenderAssetManager;
+class MaterialManager;
 
 using Orhescyon::GeneralManager;
 class HALCYON_API BufferUpdateSystem : public Orhescyon::SystemCore<BufferUpdateSystem, GlobalTransformComponent, MeshInfoComponent>
@@ -16,4 +21,19 @@ public:
 	void update(GeneralManager& gm) override;
 	void onRegistered(GeneralManager& gm) override;
 	void onShutdown(GeneralManager& gm) override;
+
+private:
+	void writePrimitivesForPass(int categoryPass, bool isDoubleSidedPass, RenderAssetManager& renderAssetManager,
+	                            MaterialManager& materialManager, ModelData* primitivePtr,
+	                            IndirectDrawIndexedCommand* indirectBufferPtr, int& globalPrimitiveIndex,
+	                            int& localPrimitiveIndex, int& globalCullIndex);
+
+	struct Agent
+	{
+		GlobalTransformComponent* transform;
+		MeshInfoComponent* meshInfo;
+	};
+
+	std::vector<std::vector<Agent>> batch;
+	std::vector<int> baseTransformPerBatch;
 };

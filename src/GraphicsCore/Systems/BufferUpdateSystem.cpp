@@ -50,14 +50,11 @@ void BufferUpdateSystem::update(GeneralManager& gm)
 	ModelDSetComponent* objectDSetComponent = gm.getContextComponent<MainDSetsContext, ModelDSetComponent>();
 	DrawInfoComponent* drawInfo = gm.getContextComponent<CurrentFrameContext, DrawInfoComponent>();
 
-	struct Agent
-	{
-		GlobalTransformComponent* transform;
-		MeshInfoComponent* meshInfo;
-	};
-
-	std::vector<std::vector<Agent>> batch;
 	batch.resize(renderAssetManager.meshCount());
+	for (auto& group : batch)
+	{
+		group.clear();
+	}
 
 	forEachSubscribedEntity(gm, [&](Orhescyon::Entity, GlobalTransformComponent& transform, MeshInfoComponent& meshInfo)
 	                        { batch[meshInfo.mesh.id].push_back({&transform, &meshInfo}); });
@@ -78,7 +75,7 @@ void BufferUpdateSystem::update(GeneralManager& gm)
 
 	// same for both passes
 	int globalTransformIndex = 0;
-	std::vector<int> baseTransformPerBatch(batch.size(), 0);
+	baseTransformPerBatch.resize(batch.size());
 
 	for (size_t b = 0; b < batch.size(); ++b)
 	{
@@ -93,58 +90,6 @@ void BufferUpdateSystem::update(GeneralManager& gm)
 	int globalPrimitiveIndex = 0;
 	int localPrimitiveIndex = 0;
 	int globalCullIndex = 0;
-	IndirectDrawIndexedCommand currentDraw{};
-
-	auto writePrimitivesForPass = [&](int categoryPass, bool isDoubleSidedPass)
-	{
-		for (size_t b = 0; b < batch.size(); ++b)
-		{
-			const auto& agentsInBatch = batch[b];
-			if (agentsInBatch.empty()) continue;
-
-			MeshInfoComponent& meshBaseInfo = *agentsInBatch[0].meshInfo;
-			MeshHandle meshIdx = meshBaseInfo.mesh;
-			int primitiveCount = renderAssetManager.getMesh(meshIdx).primitives.size();
-
-			for (int i = 0; i < primitiveCount; i++)
-			{
-				MaterialHandle matIdx = renderAssetManager.getMesh(meshIdx).primitives[i].materialIndex;
-				int category = materialManager.getMaterial(matIdx).alphaMode; // 0=opaque, 1=mask, 2=blend
-				bool isDoubleSided = (materialManager.getMaterial(matIdx).doubleSided == 1);
-
-				if (categoryPass != category || isDoubleSidedPass != isDoubleSided) continue;
-
-				// Write indirect draw command
-				currentDraw.indexCount = renderAssetManager.getMesh(meshIdx).primitives[i].indexCount;
-				currentDraw.firstIndex = renderAssetManager.getMesh(meshIdx).primitives[i].indexOffset;
-				currentDraw.vertexOffset = renderAssetManager.getMesh(meshIdx).primitives[i].vertexOffset;
-				currentDraw.instanceCount = 0;
-				currentDraw.firstInstance = globalCullIndex;
-				indirectBufferPtr[globalPrimitiveIndex] = currentDraw;
-
-				// Write per entity primitive data
-				int currentEntityTransformIndex = baseTransformPerBatch[b];
-				globalCullIndex += renderAssetManager.getMesh(meshIdx).entitiesSubscribed;
-				for (const auto& agent : agentsInBatch)
-				{
-					MeshHandle agentMeshIndex = agent.meshInfo->mesh;
-
-					primitivePtr[localPrimitiveIndex].materialIndex =
-					    renderAssetManager.getMesh(agentMeshIndex).primitives[i].materialIndex.id;
-					primitivePtr[localPrimitiveIndex].transformIndex = currentEntityTransformIndex;
-					primitivePtr[localPrimitiveIndex].AABBMax =
-					    renderAssetManager.getMesh(agentMeshIndex).primitives[i].AABBMax;
-					primitivePtr[localPrimitiveIndex].AABBMin =
-					    renderAssetManager.getMesh(agentMeshIndex).primitives[i].AABBMin;
-					primitivePtr[localPrimitiveIndex].drawCommandIndex = globalPrimitiveIndex;
-
-					localPrimitiveIndex++;
-					currentEntityTransformIndex++;
-				}
-				globalPrimitiveIndex++;
-			}
-		}
-	};
 
 	constexpr int kCategoryMap[] = {0, 0, 1, 1, 2, 2};
 
@@ -154,11 +99,65 @@ void BufferUpdateSystem::update(GeneralManager& gm)
 	for (uint32_t i = 0; i < kDrawVariantCount; ++i)
 	{
 		bool doubleSided = (kDrawVariants[i].cullMode == vk::CullModeFlagBits::eNone);
-		writePrimitivesForPass(kCategoryMap[i], doubleSided);
+		writePrimitivesForPass(kCategoryMap[i], doubleSided, renderAssetManager, materialManager, primitivePtr,
+		                       indirectBufferPtr, globalPrimitiveIndex, localPrimitiveIndex, globalCullIndex);
 		drawInfo->segments[i] = {static_cast<uint32_t>(globalPrimitiveIndex - prevTotal), i};
 		prevTotal = globalPrimitiveIndex;
 	}
 
 	drawInfo->totalDrawCount = globalPrimitiveIndex;
 	drawInfo->totalObjectCount = localPrimitiveIndex;
+}
+
+void BufferUpdateSystem::writePrimitivesForPass(int categoryPass, bool isDoubleSidedPass,
+                                                RenderAssetManager& renderAssetManager, MaterialManager& materialManager,
+                                                ModelData* primitivePtr, IndirectDrawIndexedCommand* indirectBufferPtr,
+                                                int& globalPrimitiveIndex, int& localPrimitiveIndex, int& globalCullIndex)
+{
+	IndirectDrawIndexedCommand currentDraw{};
+
+	for (size_t b = 0; b < batch.size(); ++b)
+	{
+		const auto& agentsInBatch = batch[b];
+		if (agentsInBatch.empty()) continue;
+
+		MeshInfoComponent& meshBaseInfo = *agentsInBatch[0].meshInfo;
+		MeshHandle meshIdx = meshBaseInfo.mesh;
+		const auto& mesh = renderAssetManager.getMesh(meshIdx);
+		int primitiveCount = mesh.primitives.size();
+
+		for (int i = 0; i < primitiveCount; i++)
+		{
+			const auto& primitive = mesh.primitives[i];
+			const auto& material = materialManager.getMaterial(primitive.materialIndex);
+			int category = material.alphaMode; // 0=opaque, 1=mask, 2=blend
+			bool isDoubleSided = (material.doubleSided == 1);
+
+			if (categoryPass != category || isDoubleSidedPass != isDoubleSided) continue;
+
+			// Write indirect draw command
+			currentDraw.indexCount = primitive.indexCount;
+			currentDraw.firstIndex = primitive.indexOffset;
+			currentDraw.vertexOffset = primitive.vertexOffset;
+			currentDraw.instanceCount = 0;
+			currentDraw.firstInstance = globalCullIndex;
+			indirectBufferPtr[globalPrimitiveIndex] = currentDraw;
+
+			// Write per entity primitive data
+			int currentEntityTransformIndex = baseTransformPerBatch[b];
+			globalCullIndex += mesh.entitiesSubscribed;
+			for (size_t entityIndex = 0; entityIndex < agentsInBatch.size(); ++entityIndex)
+			{
+				primitivePtr[localPrimitiveIndex].materialIndex = primitive.materialIndex.id;
+				primitivePtr[localPrimitiveIndex].transformIndex = currentEntityTransformIndex;
+				primitivePtr[localPrimitiveIndex].AABBMax = primitive.AABBMax;
+				primitivePtr[localPrimitiveIndex].AABBMin = primitive.AABBMin;
+				primitivePtr[localPrimitiveIndex].drawCommandIndex = globalPrimitiveIndex;
+
+				localPrimitiveIndex++;
+				currentEntityTransformIndex++;
+			}
+			globalPrimitiveIndex++;
+		}
+	}
 }
