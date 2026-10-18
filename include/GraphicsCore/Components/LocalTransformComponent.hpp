@@ -147,8 +147,7 @@ public:
 
 	void setLocalScale(const glm::vec3& scale)
 	{
-		_pendingScale = scale;
-		_hasPendingScale = true;
+		_pendingScaleDelta = scale - prs.scale;
 		_isModelDirty = true;
 	}
 
@@ -168,8 +167,7 @@ private:
 
 	glm::vec3 _pendingPositionDelta = {0.0f, 0.0f, 0.0f};
 	glm::quat _pendingRotationDelta = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
-	bool _hasPendingScale = false;
-	glm::vec3 _pendingScale = {1.0f, 1.0f, 1.0f};
+	glm::vec3 _pendingScaleDelta = {0.0f, 0.0f, 0.0f};
 
 	void _updateDirectionVectors()
 	{
@@ -184,7 +182,7 @@ private:
 	{
 		_pendingPositionDelta = {0.0f, 0.0f, 0.0f};
 		_pendingRotationDelta = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
-		_hasPendingScale = false;
+		_pendingScaleDelta = {0.0f, 0.0f, 0.0f};
 		_isModelDirty = false;
 	}
 

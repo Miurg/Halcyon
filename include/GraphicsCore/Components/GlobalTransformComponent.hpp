@@ -161,8 +161,7 @@ public:
 
 	void setGlobalScale(const glm::vec3& scale)
 	{
-		_pendingScale = scale;
-		_hasPendingScale = true;
+		_pendingScaleDelta = scale - prs.scale;
 		_wasExternallyModified = true;
 	}
 
@@ -182,8 +181,7 @@ private:
 	// == Deltas ===
 	glm::vec3 _pendingPositionDelta = {0.0f, 0.0f, 0.0f};
 	glm::quat _pendingRotationDelta = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
-	bool _hasPendingScale = false;
-	glm::vec3 _pendingScale = {1.0f, 1.0f, 1.0f};
+	glm::vec3 _pendingScaleDelta = {0.0f, 0.0f, 0.0f};
 
 	bool _wasExternallyModified = false;
 
@@ -207,7 +205,7 @@ private:
 	{
 		_pendingPositionDelta = {0.0f, 0.0f, 0.0f};
 		_pendingRotationDelta = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
-		_hasPendingScale = false;
+		_pendingScaleDelta = {0.0f, 0.0f, 0.0f};
 		_wasExternallyModified = false;
 		// _isModelDirty and _isViewDirty stay true — rendering needs to recompute matrices
 	}
