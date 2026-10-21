@@ -15,6 +15,13 @@ class RenderAssetManager;
 class MaterialManager;
 
 using Orhescyon::GeneralManager;
+
+/**
+ * @brief Builds the per-frame GPU draw data: batches entities by mesh and
+ *        fills the transform, per-object and indirect-draw buffers that the
+ *        cull and render passes execute.
+ */
+
 class HALCYON_API BufferUpdateSystem : public Orhescyon::SystemCore<BufferUpdateSystem, GlobalTransformComponent, MeshInfoComponent>
 {
 public:

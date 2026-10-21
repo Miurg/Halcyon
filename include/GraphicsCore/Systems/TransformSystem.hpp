@@ -12,6 +12,23 @@
 #include "GraphicsCore/Components/RelationshipComponent.hpp"
 
 using Orhescyon::GeneralManager;
+
+/**
+ * @brief Keeps local (parent-relative) and global (world-space) transforms in sync across the scene hierarchy,
+ * resolving all edits once per frame.
+ *
+ * Transform setters on Local/GlobalTransformComponent never touch state directly: they only accumulate pending deltas
+ * and raise dirty flags. This system is the single place where those deltas are resolved.
+ *
+ * Per entity, resolution is two-phase:
+ *  - Phase 1 (global -> local): world-space edits are applied to the global transform, then local is back-computed from
+ * it. For roots local == global.
+ *  - Phase 2 (local -> global): local deltas are applied, then the final global is composed from the parent's global.
+ *
+ * Traversal is depth-first with an explicit stack: roots first, then each subtree parent-before-child, so the parent's
+ * global is always final by the time its children compose against it.
+ */
+
 class HALCYON_API TransformSystem : public Orhescyon::SystemCore<TransformSystem, GlobalTransformComponent,
                                                                  LocalTransformComponent, RelationshipComponent>
 {

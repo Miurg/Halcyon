@@ -122,11 +122,11 @@ void GraphicsInit::coreInit(GeneralManager& gm)
 #endif
 	gm.registerSystem<CameraMatrixSystem>()
 	    .after<FrameBeginSystem>()
-	    .before<BufferUpdateSystem>()
+	    .before<RenderSystem>()
 	    .reads<CameraComponent, GlobalTransformComponent, DirectLightComponent, CurrentFrameComponent>();
 	gm.registerSystem<LightUpdateSystem>()
 	    .after<FrameBeginSystem>()
-	    .before<BufferUpdateSystem>()
+	    .before<RenderSystem>()
 	    .reads<GlobalTransformComponent, PointLightComponent, CurrentFrameComponent>();
 	gm.registerSystem<LightProbeGIBakeSystem>().after<RenderSystem>().before<FrameEndSystem>();
 	gm.registerSystem<ReflectionProbeUpdateSystem>()

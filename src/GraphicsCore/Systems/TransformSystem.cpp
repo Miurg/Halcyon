@@ -75,31 +75,35 @@ void TransformSystem::update(GeneralManager& gm)
 
 		                        bool dirty = false;
 
-		                        // Phase 1: apply global pending → sync down into local
+		                        // Global -> local: apply global pending then sync with local.
 		                        if (global._wasExternallyModified)
 		                        {
 			                        applyPendingToGlobal(&global);
+
 			                        // Root: local == global in world space
 			                        local.prs.position = global.prs.position;
 			                        local.prs.rotation = global.prs.rotation;
 			                        local.prs.scale = global.prs.scale;
-			                        global._clearPending();
+
 			                        local._isModelDirty = true; // ensure phase 2 runs
+
+			                        global._clearPending();
 			                        dirty = true;
 		                        }
 
-		                        // Phase 2: apply local pending → push up into global
+		                        // Local -> global: apply local pending then sync back with global.
+								// Also compute view staff only once here and sync with global.
 		                        if (local._isModelDirty)
 		                        {
 			                        applyPendingToLocal(&local);
+
 			                        global.prs.position = local.prs.position;
 			                        global.prs.rotation = local.prs.rotation;
 			                        global.prs.scale = local.prs.scale;
-			                        global._front = local._front;
-			                        global._up = local._up;
-			                        global._right = local._right;
+
+									global._updateDirectionVectors();
 			                        global._isModelDirty = true;
-			                        global._isViewDirty = true;
+
 			                        local._clearPending();
 			                        dirty = true;
 		                        }
@@ -121,37 +125,45 @@ void TransformSystem::update(GeneralManager& gm)
 		    cached ? cached->global : gm.getComponent<GlobalTransformComponent>(item.entity);
 		RelationshipComponent* rel = cached ? cached->relationship : gm.getComponent<RelationshipComponent>(item.entity);
 
-		const bool dirty = global->_wasExternallyModified || local->_isModelDirty || item.isParentDirty;
+		bool dirty = global->_wasExternallyModified || local->_isModelDirty || item.isParentDirty;
+
 		if (dirty)
 		{
 			const CachedTransform* cachedParent = findCachedTransform(rel->parent);
-			GlobalTransformComponent* pg =
+			GlobalTransformComponent* parentGlobal =
 			    cachedParent ? cachedParent->global : gm.getComponent<GlobalTransformComponent>(rel->parent);
 
-			// Phase 1: apply global pending -> back-compute local from new global
+			// Global -> local: apply global pending then sync with local (with info from parent).
 			if (global->_wasExternallyModified)
 			{
 				applyPendingToGlobal(global);
-				const glm::quat inverseParentRotation = glm::inverse(pg->prs.rotation);
-				local->prs.scale = global->prs.scale / pg->prs.scale;
+				const glm::quat inverseParentRotation = glm::inverse(parentGlobal->prs.rotation);
+				
+				local->prs.scale = global->prs.scale / parentGlobal->prs.scale;
 				local->prs.rotation = glm::normalize(inverseParentRotation * global->prs.rotation);
-				local->prs.position = inverseParentRotation * ((global->prs.position - pg->prs.position) / pg->prs.scale);
-				global->_clearPending();
+				local->prs.position = inverseParentRotation * ((global->prs.position - parentGlobal->prs.position) / parentGlobal->prs.scale);
+				
 				local->_isModelDirty = true;
+				global->_clearPending();
 			}
 
-			// Phase 2: apply local pending -> propagate local -> global
+
+		    // Local -> global: apply local pending then sync back with global (again with info from parent).
+			// Also compute view staff only once here and sync with global.
 			if (local->_isModelDirty) applyPendingToLocal(local);
 
-			global->prs.scale = pg->prs.scale * local->prs.scale;
-			global->prs.rotation = glm::normalize(pg->prs.rotation * local->prs.rotation);
-			global->prs.position = pg->prs.position + (pg->prs.rotation * (pg->prs.scale * local->prs.position));
+			// Even if local not dirty - still need to sync with parent changes.
+			global->prs.scale = parentGlobal->prs.scale * local->prs.scale;
+			global->prs.rotation = glm::normalize(parentGlobal->prs.rotation * local->prs.rotation);
+			global->prs.position = parentGlobal->prs.position + (parentGlobal->prs.rotation * (parentGlobal->prs.scale * local->prs.position));
+			
 			global->_updateDirectionVectors();
 			global->_isModelDirty = true;
-			global->_isViewDirty = true;
-			local->_clearPending();
+			
+			if (local->_isModelDirty) local->_clearPending();
 		}
 
+		// Depth first, so add child last to take it first.
 		if (rel->nextSibling != NULL_ENTITY) _nodeStack.push_back({rel->nextSibling, item.isParentDirty});
 		if (rel->firstChild != NULL_ENTITY) _nodeStack.push_back({rel->firstChild, dirty});
 	}
