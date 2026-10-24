@@ -45,6 +45,8 @@
 #include "GraphicsCore/Systems/DevSystems/ComponentInspector.hpp"
 #include "GraphicsCore/Systems/DevSystems/FileInspector.hpp"
 #include <exception>
+#include <chrono>
+#include <unordered_set>
 
 #ifdef TRACY_ENABLE
 #include <tracy/Tracy.hpp>
@@ -80,9 +82,127 @@ void drawArenaBar(const RangeAllocator& arena, const char* label, size_t element
 	double capacityMb = arena.capacity() * static_cast<double>(elementSize) / (1024.0 * 1024.0);
 	ImGui::Text("%s: %.2f / %.2f MB used, %zu free block(s)", label, usedMb, capacityMb, arena.freeRanges().size());
 }
+}
 
-void drawMemoryWindow(GeneralManager& gm)
+struct ImGuiSystem::SceneCache
 {
+	struct TreeRow
+	{
+		Orhescyon::Entity entity;
+		uint32_t depth;
+		bool hasChildren = false;
+	};
+
+	struct HierarchyEntry
+	{
+		Orhescyon::Entity entity;
+		Orhescyon::Entity parent;
+		Orhescyon::Entity firstChild;
+		Orhescyon::Entity nextSibling;
+		bool operator==(const HierarchyEntry&) const = default;
+	};
+
+	std::vector<Orhescyon::Entity> roots;
+	std::vector<Orhescyon::Entity> sceneInstances;
+	std::vector<HierarchyEntry> hierarchy;
+	std::vector<TreeRow> rows;
+	std::vector<TreeRow> stack;
+	std::vector<uint64_t> visitedSlots;
+	std::unordered_set<Orhescyon::Entity> expandedEntities;
+	std::chrono::steady_clock::time_point nextCheck{};
+	uint32_t activeEntityCount = 0;
+	bool dirty = true;
+	bool treeDirty = true;
+
+	void refresh(GeneralManager& gm)
+	{
+		const auto now = std::chrono::steady_clock::now();
+		const uint32_t currentEntityCount = gm.activeEntityCount();
+		// Periodic polling catches direct ECS edits and slot reuse even when the entity count stays unchanged.
+		if (!dirty && currentEntityCount == activeEntityCount && now < nextCheck) return;
+
+		roots.clear();
+		sceneInstances.clear();
+		size_t hierarchyIndex = 0;
+		bool hierarchyChanged = false;
+		{
+			gm.forEachActiveEntity(
+			    [&](Orhescyon::Entity entity)
+			    {
+				    auto* relationship = gm.getComponent<RelationshipComponent>(entity);
+				    HierarchyEntry entry{entity, relationship ? relationship->parent : NULL_ENTITY,
+				                         relationship ? relationship->firstChild : NULL_ENTITY,
+				                         relationship ? relationship->nextSibling : NULL_ENTITY};
+				    if (hierarchyIndex == hierarchy.size())
+				    {
+					    hierarchy.push_back(entry);
+					    hierarchyChanged = true;
+				    }
+				    else if (!(hierarchy[hierarchyIndex] == entry))
+				    {
+					    hierarchy[hierarchyIndex] = entry;
+					    hierarchyChanged = true;
+				    }
+				    ++hierarchyIndex;
+				    if (!relationship || relationship->parent == NULL_ENTITY) roots.push_back(entity);
+				    if (gm.hasComponent<RenderAssetComponent>(entity)) sceneInstances.push_back(entity);
+			    });
+		}
+		if (hierarchyIndex != hierarchy.size())
+		{
+			hierarchy.resize(hierarchyIndex);
+			hierarchyChanged = true;
+		}
+		if (hierarchyChanged)
+			std::erase_if(expandedEntities, [&](Orhescyon::Entity entity) { return !gm.isActive(entity); });
+		activeEntityCount = currentEntityCount;
+		nextCheck = now + std::chrono::milliseconds(500);
+		dirty = false;
+		treeDirty = treeDirty || hierarchyChanged;
+	}
+
+	void rebuildTree(GeneralManager& gm)
+	{
+		rows.clear();
+		stack.clear();
+		std::fill(visitedSlots.begin(), visitedSlots.end(), uint64_t{0});
+		for (auto it = roots.rbegin(); it != roots.rend(); ++it) stack.push_back({*it, 0});
+		while (!stack.empty())
+		{
+			TreeRow row = stack.back();
+			stack.pop_back();
+			if (!gm.isActive(row.entity))
+			{
+				dirty = true;
+				continue;
+			}
+			const size_t wordIndex = row.entity.slot / 64;
+			const uint64_t mask = uint64_t{1} << (row.entity.slot % 64);
+			if (wordIndex >= visitedSlots.size()) visitedSlots.resize(wordIndex + 1);
+			if (visitedSlots[wordIndex] & mask) continue;
+			visitedSlots[wordIndex] |= mask;
+
+			auto* relationship = gm.getComponent<RelationshipComponent>(row.entity);
+			if (row.depth > 0 && relationship && relationship->nextSibling != NULL_ENTITY)
+				stack.push_back({relationship->nextSibling, row.depth});
+			row.hasChildren = relationship && relationship->firstChild != NULL_ENTITY;
+			rows.push_back(row);
+			if (row.hasChildren && expandedEntities.contains(row.entity))
+				stack.push_back({relationship->firstChild, row.depth + 1});
+		}
+		treeDirty = false;
+	}
+};
+
+void ImGuiSystem::drawMemoryWindow(GeneralManager& gm)
+{
+	if (!ImGui::Begin("Memory"))
+	{
+		ImGui::End();
+		return;
+	}
+	sceneCache->refresh(gm);
+
 	RenderAssetManager* renderAssetManager =
 	    gm.getContextComponent<RenderAssetManagerContext, RenderAssetManagerComponent>()->renderAssetManager;
 	TextureManager* textureManager =
@@ -90,135 +210,138 @@ void drawMemoryWindow(GeneralManager& gm)
 	MaterialManager* materialManager =
 	    gm.getContextComponent<MaterialManagerContext, MaterialManagerComponent>()->materialManager;
 
-	ImGui::Begin("Memory");
-
 	ImGui::SeparatorText("Scene instances");
-	// Snapshot first: unloading destroys entities and would invalidate iteration of the active set.
-	std::vector<Orhescyon::Entity> sceneInstances;
-	gm.forEachActiveEntity(
-	    [&](Orhescyon::Entity entity)
-	    {
-		    if (gm.hasComponent<RenderAssetComponent>(entity)) sceneInstances.push_back(entity);
-	    });
-	for (Orhescyon::Entity sceneInstance : sceneInstances)
 	{
-		ImGui::PushID(static_cast<int>(sceneInstance.slot));
-		RenderAssetHandle renderAssetHandle =
-		    gm.getComponent<RenderAssetComponent>(sceneInstance)->renderAsset;
-		auto* nameComp = gm.getComponent<NameComponent>(sceneInstance);
-		ImGui::Text("%u  %s (render asset %d, refs %d)", sceneInstance.slot, nameComp ? nameComp->name : "?",
-		            renderAssetHandle.id, renderAssetManager->getRenderAsset(renderAssetHandle).refCount);
-		ImGui::SameLine();
-		if (ImGui::Button("Unload"))
+		for (Orhescyon::Entity sceneInstance : sceneCache->sceneInstances)
 		{
-			Smith::Renderables::destroySceneInstance(gm, sceneInstance);
+			if (!gm.isActive(sceneInstance) || !gm.hasComponent<RenderAssetComponent>(sceneInstance))
+			{
+				sceneCache->dirty = true;
+				continue;
+			}
+			ImGui::PushID(static_cast<int>(sceneInstance.slot));
+			RenderAssetHandle renderAssetHandle = gm.getComponent<RenderAssetComponent>(sceneInstance)->renderAsset;
+			auto* nameComp = gm.getComponent<NameComponent>(sceneInstance);
+			ImGui::Text("%u  %s (render asset %d, refs %d)", sceneInstance.slot, nameComp ? nameComp->name : "?",
+			            renderAssetHandle.id, renderAssetManager->getRenderAsset(renderAssetHandle).refCount);
+			ImGui::SameLine();
+			if (ImGui::Button("Unload"))
+			{
+				sceneCache->dirty = true;
+				Smith::Renderables::destroySceneInstance(gm, sceneInstance);
+			}
+			ImGui::PopID();
 		}
-		ImGui::PopID();
 	}
 
-	ImGui::SeparatorText("Geometry arenas");
-	VertexIndexBuffer& geometryBuffer = renderAssetManager->getVertexIndexBuffer(0);
-	drawArenaBar(geometryBuffer.vertexAllocator, "Vertices", sizeof(Vertex));
-	drawArenaBar(geometryBuffer.indexAllocator, "Indices", sizeof(uint32_t));
-	ImGui::Text("Pending geometry frees: %zu", renderAssetManager->pendingGeometryFreeCount());
-	if (ImGui::Button("Defragment"))
 	{
-		renderAssetManager->defragment(geometryBuffer);
+		ImGui::SeparatorText("Geometry arenas");
+		VertexIndexBuffer& geometryBuffer = renderAssetManager->getVertexIndexBuffer(0);
+		drawArenaBar(geometryBuffer.vertexAllocator, "Vertices", sizeof(Vertex));
+		drawArenaBar(geometryBuffer.indexAllocator, "Indices", sizeof(uint32_t));
+		ImGui::Text("Pending geometry frees: %zu", renderAssetManager->pendingGeometryFreeCount());
+		if (ImGui::Button("Defragment"))
+		{
+			renderAssetManager->defragment(geometryBuffer);
+		}
 	}
 
-	ImGui::SeparatorText("Slot pools");
-	ImGui::Text("Textures : %zu total, %zu free, %zu pending free", textureManager->textureCount(),
-	            textureManager->freeTextureSlotCount(), textureManager->pendingTextureFreeCount());
-	ImGui::Text("Materials: %zu total, %zu free, %zu pending free", materialManager->materialCount(),
-	            materialManager->freeMaterialSlotCount(), materialManager->pendingMaterialFreeCount());
-	ImGui::Text("Meshes       : %zu total, %zu free", renderAssetManager->meshCount(),
-	            renderAssetManager->freeMeshSlotCount());
-	ImGui::Text("Render assets: %zu total, %zu free", renderAssetManager->renderAssetCount(),
-	            renderAssetManager->freeRenderAssetSlotCount());
-
-	ImGui::SeparatorText("Loaded render assets");
-	for (size_t i = 0; i < renderAssetManager->renderAssetCount(); ++i)
 	{
-		const RenderAsset& renderAsset =
-		    renderAssetManager->getRenderAsset(RenderAssetHandle{static_cast<int>(i)});
-		if (renderAsset.refCount <= 0) continue;
-		ImGui::Text("[%zu] refs %d | meshes %zu | vtx %u | idx %u | tex %zu | mat %zu", i, renderAsset.refCount,
-		            renderAsset.meshes.size(), renderAsset.allocation.vertexCount, renderAsset.allocation.indexCount,
-		            renderAsset.textures.size(), renderAsset.materials.size());
+		ImGui::SeparatorText("Slot pools");
+		ImGui::Text("Textures : %zu total, %zu free, %zu pending free", textureManager->textureCount(),
+		            textureManager->freeTextureSlotCount(), textureManager->pendingTextureFreeCount());
+		ImGui::Text("Materials: %zu total, %zu free, %zu pending free", materialManager->materialCount(),
+		            materialManager->freeMaterialSlotCount(), materialManager->pendingMaterialFreeCount());
+		ImGui::Text("Meshes       : %zu total, %zu free", renderAssetManager->meshCount(),
+		            renderAssetManager->freeMeshSlotCount());
+		ImGui::Text("Render assets: %zu total, %zu free", renderAssetManager->renderAssetCount(),
+		            renderAssetManager->freeRenderAssetSlotCount());
+	}
+
+	{
+		ImGui::SeparatorText("Loaded render assets");
+		for (size_t i = 0; i < renderAssetManager->renderAssetCount(); ++i)
+		{
+			const RenderAsset& renderAsset = renderAssetManager->getRenderAsset(RenderAssetHandle{static_cast<int>(i)});
+			if (renderAsset.refCount <= 0) continue;
+			ImGui::Text("[%zu] refs %d | meshes %zu | vtx %u | idx %u | tex %zu | mat %zu", i, renderAsset.refCount,
+			            renderAsset.meshes.size(), renderAsset.allocation.vertexCount, renderAsset.allocation.indexCount,
+			            renderAsset.textures.size(), renderAsset.materials.size());
+		}
 	}
 
 	ImGui::End();
 }
-} // namespace
 
 ImGuiSystem::ImGuiSystem() = default;
 ImGuiSystem::~ImGuiSystem() = default;
 
 void ImGuiSystem::onRegistered(GeneralManager& gm)
 {
+	sceneCache = std::make_unique<SceneCache>();
 	fileInspector = std::make_unique<FileInspector>();
 	std::cout << "ImGuiSystem registered!" << std::endl;
 }
 
 void ImGuiSystem::onShutdown(GeneralManager& gm)
 {
+	sceneCache.reset();
 	fileInspector.reset();
 	std::cout << "ImGuiSystem shutdown!" << std::endl;
 }
 
-void ImGuiSystem::drawEntityNode(Orhescyon::Entity entity, GeneralManager& gm)
+void ImGuiSystem::drawEntityTree(GeneralManager& gm)
 {
-	std::string entityName = "Entity " + std::to_string(entity.slot);
-	auto* nameComp = gm.getComponent<NameComponent>(entity);
-	if (nameComp)
-	{
-		entityName = nameComp->name;
-	}
+	sceneCache->refresh(gm);
+	if (sceneCache->treeDirty) sceneCache->rebuildTree(gm);
 
-	auto* relComp = gm.getComponent<RelationshipComponent>(entity);
-	bool isLeaf = (relComp == nullptr || relComp->firstChild == NULL_ENTITY);
-
-	ImGuiTreeNodeFlags flags =
-	    ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_SpanAvailWidth;
-	if (isLeaf)
+	const float indentSpacing = ImGui::GetStyle().IndentSpacing;
+	ImGuiListClipper clipper;
+	clipper.Begin(static_cast<int>(sceneCache->rows.size()), ImGui::GetTextLineHeightWithSpacing());
+	while (clipper.Step())
 	{
-		flags |= ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
-	}
-	if (selectedEntity == entity)
-	{
-		flags |= ImGuiTreeNodeFlags_Selected;
-	}
-
-	bool nodeOpen = ImGui::TreeNodeEx((void*)(intptr_t)entity.slot, flags, "%s", entityName.c_str());
-	if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen())
-	{
-		selectedEntity = entity;
-		if (auto* gs = gm.getContextComponent<GraphicsSettingsContext, GraphicsSettingsComponent>())
-			gs->selectedEntity = entity;
-	}
-
-	if (nodeOpen)
-	{
-		if (!isLeaf)
+		for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; ++i)
 		{
-			Orhescyon::Entity child = relComp->firstChild;
-			while (child != NULL_ENTITY)
+			const auto& row = sceneCache->rows[i];
+			if (!gm.isActive(row.entity))
 			{
-				if (gm.isActive(child))
-				{
-					drawEntityNode(child, gm);
-				}
-				auto* childRel = gm.getComponent<RelationshipComponent>(child);
-				if (childRel)
-				{
-					child = childRel->nextSibling;
-				}
-				else
-				{
-					child = NULL_ENTITY;
-				}
+				sceneCache->dirty = true;
+				ImGui::Dummy(ImVec2(0.0f, ImGui::GetTextLineHeight()));
+				continue;
 			}
-			ImGui::TreePop();
+
+			ImGui::PushID(static_cast<int>(row.entity.slot));
+			ImGui::PushID(static_cast<int>(row.entity.generation));
+			const float indent = row.depth * indentSpacing;
+			if (indent > 0.0f) ImGui::Indent(indent);
+
+			ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick |
+			                           ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_NoTreePushOnOpen;
+			if (!row.hasChildren) flags |= ImGuiTreeNodeFlags_Leaf;
+			if (selectedEntity == row.entity) flags |= ImGuiTreeNodeFlags_Selected;
+			ImGui::SetNextItemOpen(sceneCache->expandedEntities.contains(row.entity), ImGuiCond_Always);
+			auto* name = gm.getComponent<NameComponent>(row.entity);
+			const bool nodeOpen = name ? ImGui::TreeNodeEx("##Entity", flags, "%s", name->name)
+			                           : ImGui::TreeNodeEx("##Entity", flags, "Entity %u", row.entity.slot);
+			if (row.hasChildren && ImGui::IsItemToggledOpen())
+			{
+				if (nodeOpen)
+					sceneCache->expandedEntities.insert(row.entity);
+				else
+					sceneCache->expandedEntities.erase(row.entity);
+				// Keep the clipper's row indices stable until the next frame.
+				sceneCache->treeDirty = true;
+			}
+			if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen())
+			{
+				selectedEntity = row.entity;
+				if (auto* settings = gm.getContextComponent<GraphicsSettingsContext, GraphicsSettingsComponent>())
+					settings->selectedEntity = row.entity;
+			}
+
+			if (indent > 0.0f) ImGui::Unindent(indent);
+			ImGui::PopID();
+			ImGui::PopID();
 		}
 	}
 }
@@ -235,91 +358,111 @@ void ImGuiSystem::update(GeneralManager& gm)
 	{
 		return;
 	}
-	ImGui_ImplVulkan_NewFrame();
-	ImGui_ImplGlfw_NewFrame();
-	ImGui::NewFrame();
-	ImGui::Begin("Main Camera Info");
-
-	GlobalTransformComponent* mainCameraTransform =
-	    gm.getContextComponent<MainCameraContext, GlobalTransformComponent>();
-	CameraComponent* mainCamera = gm.getContextComponent<MainCameraContext, CameraComponent>();
-
-	if (mainCameraTransform && mainCamera)
+	if (selectedEntity != NULL_ENTITY && !gm.isActive(selectedEntity))
 	{
-		ImGui::SeparatorText("Transform");
-		glm::vec3 camPos   = mainCameraTransform->getGlobalPosition();
-		glm::vec3 camEuler = glm::degrees(glm::eulerAngles(mainCameraTransform->getGlobalRotation()));
-		bool camChanged = false;
-		if (ImGui::InputFloat3("Position", glm::value_ptr(camPos)))   camChanged = true;
-		if (ImGui::InputFloat3("Rotation", glm::value_ptr(camEuler))) camChanged = true;
-		if (camChanged)
-		{
-			mainCameraTransform->setGlobalPosition(camPos);
-			mainCameraTransform->setGlobalRotation(glm::quat(glm::radians(camEuler)));
-		}
-
-		ImGui::SeparatorText("Camera Parameters");
-		ImGui::DragFloat("FOV", &mainCamera->fov, 0.1f, 1.0f, 179.0f);
-		ImGui::DragFloat("Near Plane", &mainCamera->zNear, 0.01f, 0.001f, 10.0f);
-		ImGui::DragFloat("Far Plane", &mainCamera->zFar, 1.0f, 10.0f, 10000.0f);
-		ImGui::DragFloat("Ortho size", &mainCamera->orthoSize, 0.1f, 0.1f, 100.0f);
+		if (auto* settings = gm.getContextComponent<GraphicsSettingsContext, GraphicsSettingsComponent>())
+			if (settings->selectedEntity == selectedEntity) settings->selectedEntity = NULL_ENTITY;
+		selectedEntity = NULL_ENTITY;
 	}
-	float deltaTime = gm.getContextComponent<DeltaTimeContext, DeltaTimeComponent>()->deltaTime;
-
-	ImGui::Text("FPS: %d", fps);
-	ImGui::Text("Avg Frame time: %.2f ms", avgFrameTime * 1000.0f);
-	ImGui::Text("1%% Low: %.2f ms", onePercentLowFrameTime * 1000.0f);
-	frameCount++;
-	time += deltaTime;
-	frameTimes.push_back(deltaTime);
-
-	if (time >= 1.0f)
 	{
-		fps = frameCount;
+		ImGui_ImplVulkan_NewFrame();
+		ImGui_ImplGlfw_NewFrame();
+		ImGui::NewFrame();
+	}
+	{
+		const bool cameraVisible = ImGui::Begin("Main Camera Info");
 
-		if (!frameTimes.empty())
+		if (cameraVisible)
 		{
-			float sum = 0.0f;
-			for (float ft : frameTimes) sum += ft;
-			avgFrameTime = sum / frameTimes.size();
+			GlobalTransformComponent* mainCameraTransform =
+			    gm.getContextComponent<MainCameraContext, GlobalTransformComponent>();
+			CameraComponent* mainCamera = gm.getContextComponent<MainCameraContext, CameraComponent>();
 
-			std::vector<float> sortedTimes = frameTimes;
-			std::sort(sortedTimes.begin(), sortedTimes.end(), std::greater<float>());
-
-			size_t onePercentCount = std::max<size_t>(1, frameTimes.size() / 100);
-			float worstSum = 0.0f;
-			for (size_t i = 0; i < onePercentCount; ++i)
+			if (mainCameraTransform && mainCamera)
 			{
-				worstSum += sortedTimes[i];
+				ImGui::SeparatorText("Transform");
+				glm::vec3 camPos = mainCameraTransform->getGlobalPosition();
+				glm::vec3 camEuler = glm::degrees(glm::eulerAngles(mainCameraTransform->getGlobalRotation()));
+				bool camChanged = false;
+				if (ImGui::InputFloat3("Position", glm::value_ptr(camPos))) camChanged = true;
+				if (ImGui::InputFloat3("Rotation", glm::value_ptr(camEuler))) camChanged = true;
+				if (camChanged)
+				{
+					mainCameraTransform->setGlobalPosition(camPos);
+					mainCameraTransform->setGlobalRotation(glm::quat(glm::radians(camEuler)));
+				}
+
+				ImGui::SeparatorText("Camera Parameters");
+				ImGui::DragFloat("FOV", &mainCamera->fov, 0.1f, 1.0f, 179.0f);
+				ImGui::DragFloat("Near Plane", &mainCamera->zNear, 0.01f, 0.001f, 10.0f);
+				ImGui::DragFloat("Far Plane", &mainCamera->zFar, 1.0f, 10.0f, 10000.0f);
+				ImGui::DragFloat("Ortho size", &mainCamera->orthoSize, 0.1f, 0.1f, 100.0f);
 			}
-			onePercentLowFrameTime = worstSum / onePercentCount;
+		}
+		{
+			float deltaTime = gm.getContextComponent<DeltaTimeContext, DeltaTimeComponent>()->deltaTime;
+
+			if (cameraVisible)
+			{
+				ImGui::Text("FPS: %d", fps);
+				ImGui::Text("Avg Frame time: %.2f ms", avgFrameTime * 1000.0f);
+				ImGui::Text("1%% Low: %.2f ms", onePercentLowFrameTime * 1000.0f);
+			}
+			frameCount++;
+			time += deltaTime;
+			frameTimes.push_back(deltaTime);
+
+			if (time >= 1.0f)
+			{
+				fps = frameCount;
+
+				if (!frameTimes.empty())
+				{
+					float sum = 0.0f;
+					for (float ft : frameTimes) sum += ft;
+					avgFrameTime = sum / frameTimes.size();
+
+					std::vector<float> sortedTimes = frameTimes;
+					std::sort(sortedTimes.begin(), sortedTimes.end(), std::greater<float>());
+
+					size_t onePercentCount = std::max<size_t>(1, frameTimes.size() / 100);
+					float worstSum = 0.0f;
+					for (size_t i = 0; i < onePercentCount; ++i)
+					{
+						worstSum += sortedTimes[i];
+					}
+					onePercentLowFrameTime = worstSum / onePercentCount;
+				}
+
+				frameTimes.clear();
+				frameCount = 0;
+				time = 0;
+			}
 		}
 
-		frameTimes.clear();
-		frameCount = 0;
-		time = 0;
-	}
+		if (cameraVisible) ImGui::Checkbox("Enable shader auto reload", &autoShaderReload);
+		if (autoShaderReload)
+		{
+			ShaderReloader* sr = gm.getContextComponent<ShaderReloaderContext, ShaderReloaderComponent>()->shaderReloader;
+			PipelineManager* pipelineManager =
+			    gm.getContextComponent<PipelineManagerContext, PipelineManagerComponent>()->pipelineManager;
+			VulkanDevice* vulkanDevice =
+			    gm.getContextComponent<MainVulkanDeviceContext, VulkanDeviceComponent>()->vulkanDeviceInstance;
+			sr->update(*pipelineManager, *vulkanDevice);
+		}
 
-	ImGui::Checkbox("Enable shader auto reload", &autoShaderReload);
-	if (autoShaderReload)
-	{
-		ShaderReloader* sr = gm.getContextComponent<ShaderReloaderContext, ShaderReloaderComponent>()->shaderReloader;
-		PipelineManager* pipelineManager =
-		    gm.getContextComponent<PipelineManagerContext, PipelineManagerComponent>()->pipelineManager;
-		VulkanDevice* vulkanDevice =
-		    gm.getContextComponent<MainVulkanDeviceContext, VulkanDeviceComponent>()->vulkanDeviceInstance;
-		sr->update(*pipelineManager, *vulkanDevice);
-	}
+		if (cameraVisible)
+			if (auto* gs = gm.getContextComponent<GraphicsSettingsContext, GraphicsSettingsComponent>())
+			{
+				ImGui::Checkbox("Draw AABB boxes on top", &gs->aabbAlwaysOnTop);
+			}
 
-	if (auto* gs = gm.getContextComponent<GraphicsSettingsContext, GraphicsSettingsComponent>())
-	{
-		ImGui::Checkbox("Draw AABB boxes on top", &gs->aabbAlwaysOnTop);
+		ImGui::End();
 	}
-
-	ImGui::End();
 
 	if (const auto path = fileInspector->draw())
 	{
+		sceneCache->dirty = true;
 		try
 		{
 			const auto utf8Path = path->u8string();
@@ -334,53 +477,46 @@ void ImGuiSystem::update(GeneralManager& gm)
 		}
 	}
 
-	// Entity Inspector Window
-	ImGui::Begin("Entity Inspector");
-
-	// Left Pane: Entity List
-	ImGui::BeginChild("EntityList", ImVec2(350, 0), true);
-	ImGui::Text("Active Entities");
-	ImGui::Separator();
-
-	gm.forEachActiveEntity(
-	    [&](Orhescyon::Entity entity)
-	    {
-		    auto* relComp = gm.getComponent<RelationshipComponent>(entity);
-		    // Top-level entities are those with no parent or no relationship component
-		    if (relComp == nullptr || relComp->parent == NULL_ENTITY)
-		    {
-			    drawEntityNode(entity, gm);
-		    }
-	    });
-	ImGui::EndChild();
-
-	ImGui::SameLine();
-
-	// Right Pane: Component Details
-	ImGui::BeginChild("ComponentDetails", ImVec2(0, 0), true);
-	if (selectedEntity != Orhescyon::Entity::invalid() && gm.isActive(selectedEntity))
 	{
-		ImGui::Text("Inspecting Entity %u", selectedEntity.slot);
-		auto* nameComp = gm.getComponent<NameComponent>(selectedEntity);
-		if (nameComp)
+		if (ImGui::Begin("Entity Inspector"))
 		{
+			if (ImGui::BeginChild("EntityList", ImVec2(350, 0), true))
+			{
+				ImGui::Text("Active Entities");
+				ImGui::Separator();
+				drawEntityTree(gm);
+			}
+			ImGui::EndChild();
+
 			ImGui::SameLine();
-			ImGui::InputText("##NameEdit", nameComp->name, sizeof(nameComp->name));
+
+			if (ImGui::BeginChild("ComponentDetails", ImVec2(0, 0), true))
+			{
+				if (selectedEntity != Orhescyon::Entity::invalid() && gm.isActive(selectedEntity))
+				{
+					ImGui::Text("Inspecting Entity %u", selectedEntity.slot);
+					auto* nameComp = gm.getComponent<NameComponent>(selectedEntity);
+					if (nameComp)
+					{
+						ImGui::SameLine();
+						ImGui::InputText("##NameEdit", nameComp->name, sizeof(nameComp->name));
+					}
+
+					ImGui::Separator();
+
+					static InspectorRegistry inspectors = buildInspectorRegistry();
+					inspectors.inspectAll(gm, selectedEntity);
+				}
+				else
+				{
+					ImGui::Text("Select an entity to inspect.");
+				}
+			}
+			ImGui::EndChild();
 		}
 
-		ImGui::Separator();
-
-		static InspectorRegistry inspectors = buildInspectorRegistry();
-		inspectors.inspectAll(gm, selectedEntity);
-
+		ImGui::End();
 	}
-	else
-	{
-		ImGui::Text("Select an entity to inspect.");
-	}
-	ImGui::EndChild();
-
-	ImGui::End();
 
 	drawMemoryWindow(gm);
 

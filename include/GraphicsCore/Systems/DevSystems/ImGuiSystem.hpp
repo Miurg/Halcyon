@@ -41,7 +41,10 @@ public:
 	float onePercentLowFrameTime = 0.0f;
 
 private:
+	struct SceneCache;
+	std::unique_ptr<SceneCache> sceneCache;
 	std::unique_ptr<FileInspector> fileInspector;
 	bool autoShaderReload = false;
-	void drawEntityNode(Orhescyon::Entity entity, GeneralManager& gm);
+	void drawEntityTree(GeneralManager& gm);
+	void drawMemoryWindow(GeneralManager& gm);
 };
