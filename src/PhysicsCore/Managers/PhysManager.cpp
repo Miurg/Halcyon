@@ -7,20 +7,15 @@
 #include <Jolt/Physics/Collision/Shape/CylinderShape.h>
 #include <Jolt/Physics/Collision/Shape/ConvexHullShape.h>
 #include <stdexcept>
-#include <thread>
 #include "DeletionQueueComponent.hpp"
 #include "DeletionQueueContext.hpp"
 
-PhysManager::PhysManager(GeneralManager& gm) : gm(&gm)
+PhysManager::PhysManager(GeneralManager& gm, JPH::JobSystem& jobs) : jobSystem(&jobs), gm(&gm)
 {
 	DeletionQueue* dq = gm.getContextComponent<DeletionQueueContext, DeletionQueueComponent>()->queue;
 
 	tempAllocator = new JPH::TempAllocatorImpl(10 * 1024 * 1024);
 	dq->push_function([ta = tempAllocator]() { delete ta; });
-
-	jobSystem = new JPH::JobSystemThreadPool(JPH::cMaxPhysicsJobs, JPH::cMaxPhysicsBarriers,
-	                                         std::thread::hardware_concurrency() - 1);
-	dq->push_function([js = jobSystem]() { delete js; });
 
 	physicsSystem = new JPH::PhysicsSystem();
 	dq->push_function([ps = physicsSystem]() { delete ps; });

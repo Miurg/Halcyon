@@ -20,7 +20,7 @@ App::App(std::size_t workerCount) : jobRuntime(workerCount), ecsJobs(jobRuntime)
 
 	try
 	{
-		PhysicsInit::Run(gm);
+		PhysicsInit::Run(gm, jobRuntime);
 		PlatformInit::Run(gm);
 		GraphicsInit::Run(gm);
 		AudioInit::Run(gm);

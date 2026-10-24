@@ -26,13 +26,12 @@ void PhysUpdateSystem::update(GeneralManager& gm)
 	ZoneScopedN("PhysUpdateSystem");
 #endif
 
-	const float deltaTime =
-	    1.0f / gm.getContextComponent<PhysTickRateContext, PhysTickRateComponent>()->rate;
+	const float deltaTime = 1.0f / gm.getContextComponent<PhysTickRateContext, PhysTickRateComponent>()->rate;
 	JPH::PhysicsSystem* physicsSystem =
 	    gm.getContextComponent<PhysManagerContext, PhysManagerComponent>()->physManager->physicsSystem;
 	JPH::TempAllocatorImpl* tempAllocator =
 	    gm.getContextComponent<PhysManagerContext, PhysManagerComponent>()->physManager->tempAllocator;
-	JPH::JobSystemThreadPool* jobSystem =
+	JPH::JobSystem* jobSystem =
 	    gm.getContextComponent<PhysManagerContext, PhysManagerComponent>()->physManager->jobSystem;
 	physicsSystem->Update(deltaTime, 1, tempAllocator, jobSystem);
 }

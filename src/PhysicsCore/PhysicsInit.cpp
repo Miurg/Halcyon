@@ -8,8 +8,6 @@
 #include <Jolt/Physics/Collision/BroadPhase/BroadPhaseLayer.h>
 #include <Jolt/Physics/Collision/ObjectLayer.h>
 #include <Jolt/Core/TempAllocator.h>
-#include <Jolt/Core/JobSystemThreadPool.h>
-#include <thread>
 #include <Jolt/Physics/Body/BodyCreationSettings.h>
 #include <Jolt/Physics/Collision/Shape/BoxShape.h>
 #include <Jolt/Physics/Collision/Shape/SphereShape.h>
@@ -24,16 +22,17 @@
 
 #include "DeletionQueueComponent.hpp"
 #include "DeletionQueueContext.hpp"
+#include "JobsCore/JoltTaskflowAdapter.hpp"
 
 #pragma region Run
-void PhysicsInit::Run(Orhescyon::GeneralManager& gm)
+void PhysicsInit::Run(Orhescyon::GeneralManager& gm, JobRuntime& jobRuntime)
 {
 #ifdef _DEBUG
 	std::cout << "PHYSICSINIT::RUN::Start init" << std::endl;
 #endif //_DEBUG
 
 	coreInit(gm);
-	initPhysics(gm);
+	initPhysics(gm, jobRuntime);
 
 #ifdef _DEBUG
 	std::cout << "PHYSICSINIT::RUN::Succes!" << std::endl;
@@ -55,7 +54,7 @@ void PhysicsInit::coreInit(Orhescyon::GeneralManager& gm)
 #pragma endregion
 
 #pragma region initPhysics
-void PhysicsInit::initPhysics(Orhescyon::GeneralManager& gm)
+void PhysicsInit::initPhysics(Orhescyon::GeneralManager& gm, JobRuntime& jobRuntime)
 {
 	DeletionQueue* dq = gm.getContextComponent<DeletionQueueContext, DeletionQueueComponent>()->queue;
 
@@ -75,8 +74,11 @@ void PhysicsInit::initPhysics(Orhescyon::GeneralManager& gm)
 	    });
 
 	JPH::RegisterTypes();
+	JoltTaskflowAdapter* jobSystem = new JoltTaskflowAdapter(jobRuntime);
+	dq->push_function([jobSystem]() { delete jobSystem; });
+
 	Orhescyon::Entity physManagerEntity = gm.createEntity();
-	PhysManager* physManager = new PhysManager(gm);
+	PhysManager* physManager = new PhysManager(gm, *jobSystem);
 	gm.addComponentImmediate<PhysManagerComponent>(physManagerEntity, physManager);
 	gm.registerContext<PhysManagerContext>(physManagerEntity);
 
@@ -85,6 +87,5 @@ void PhysicsInit::initPhysics(Orhescyon::GeneralManager& gm)
 	gm.registerContext<PhysTickRateContext>(tickRateEntity);
 
 	dq->push_function([physManager]() { delete physManager; });
-
 }
 #pragma endregion

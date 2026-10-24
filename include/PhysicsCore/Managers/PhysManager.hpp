@@ -6,7 +6,7 @@
 #include <Jolt/Physics/PhysicsSystem.h>
 #include <Jolt/Physics/Collision/Shape/Shape.h>
 #include <Jolt/Core/TempAllocator.h>
-#include <Jolt/Core/JobSystemThreadPool.h>
+#include <Jolt/Core/JobSystem.h>
 #include "PhysicsCore/PhysLayers.hpp"
 #include "PhysicsCore/PhysShapes.hpp"
 #include <glm/ext/vector_float3.hpp>
@@ -22,7 +22,7 @@ using Orhescyon::GeneralManager;
 class HALCYON_API PhysManager
 {
 public:
-	PhysManager(GeneralManager& gm);
+	PhysManager(GeneralManager& gm, JPH::JobSystem& jobs);
 
 	MyBroadPhaseLayerInterface sBroadPhaseLayerInterface;
 	MyObjectVsBroadPhaseLayerFilter sObjectVsBroadPhaseLayerFilter;
@@ -30,8 +30,8 @@ public:
 
 	JPH::PhysicsSystem* physicsSystem = nullptr;
 	JPH::TempAllocatorImpl* tempAllocator = nullptr;
-	JPH::JobSystemThreadPool* jobSystem = nullptr;
-	
+	JPH::JobSystem* jobSystem = nullptr;
+
 	std::atomic<SnapshotIndices> physSnapshot{{0, 1, 2}};
 
 	JPH::BodyID createDynamicSphere(glm::vec3 pos, float radius);
