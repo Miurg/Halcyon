@@ -12,6 +12,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 include(FetchContent)
+include(GNUInstallDirs)
 
 # === Dependencies ===
 find_package(Vulkan REQUIRED)
@@ -53,13 +54,25 @@ endif()
 # === Options ===
 option(BUILD_SHARED_LIBS "Build Halcyon as a shared library" OFF)
 option(HALCYON_BUILD_EXAMPLES "Build Halcyon examples" ${PROJECT_IS_TOP_LEVEL})
-option(HALCYON_DEV_TOOLS "Build in-engine dev tools (ImGui debug UI, shader hot-reload)" ON)
+option(HALCYON_DEV_TOOLS "Build in-engine dev tools (ImGui debug UI, shader hot-reload)" OFF)
+option(ORHESCYON_HIGH_CHECK "Enable Orhescyon high checks" ON)
 
-set(HALCYON_SHADER_OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/shaders" CACHE PATH "Output directory for Halcyon compiled shaders")
+if(NOT DEFINED HALCYON_SHADER_OUTPUT_DIR)
+    set(HALCYON_SHADER_OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/shaders" CACHE PATH "Output directory for Halcyon compiled shaders")
+endif()
 file(TO_CMAKE_PATH "${HALCYON_SHADER_OUTPUT_DIR}" HALCYON_SHADER_OUTPUT_DIR)
 
-set(HALCYON_SHADER_SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/shaders" CACHE PATH "Source directory for Halcyon shaders")
+if(NOT DEFINED HALCYON_SHADER_SRC_DIR)
+    set(HALCYON_SHADER_SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/shaders" CACHE PATH "Source directory for Halcyon shaders")
+endif()
 file(TO_CMAKE_PATH "${HALCYON_SHADER_SRC_DIR}" HALCYON_SHADER_SRC_DIR)
+
+if(NOT DEFINED HALCYON_INSTALL_SHADERDIR)
+    set(HALCYON_INSTALL_SHADERDIR "${CMAKE_INSTALL_DATADIR}/Halcyon/shaders" CACHE PATH "Installation directory for Halcyon compiled shaders")
+endif()
+file(TO_CMAKE_PATH "${HALCYON_INSTALL_SHADERDIR}" HALCYON_INSTALL_SHADERDIR)
+get_filename_component(_HALCYON_INSTALL_SHADERDIR_ABSOLUTE "${HALCYON_INSTALL_SHADERDIR}"
+    ABSOLUTE BASE_DIR "${CMAKE_INSTALL_PREFIX}")
 
 set(Halcyon_SHADER_DIR "${HALCYON_SHADER_OUTPUT_DIR}" CACHE INTERNAL "Location of Halcyon compiled shaders")
 include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/HalcyonHelpers.cmake")
@@ -119,7 +132,9 @@ if(HALCYON_TRACY)
 endif()
 
 # === Defines and Compiler Options ===
-target_compile_definitions(${PROJECT_NAME} PUBLIC ORHESCYON_HIGH_CHECK)
+if(ORHESCYON_HIGH_CHECK)
+    target_compile_definitions(${PROJECT_NAME} PUBLIC ORHESCYON_HIGH_CHECK)
+endif()
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE
     HALCYON_SHADER_SRC_DIR="${HALCYON_SHADER_SRC_DIR}"
@@ -131,7 +146,7 @@ endif()
 
 target_compile_definitions(${PROJECT_NAME} PUBLIC
     "$<BUILD_INTERFACE:HALCYON_SHADER_OUT_DIR=\"${HALCYON_SHADER_OUTPUT_DIR}\">"
-    "$<INSTALL_INTERFACE:HALCYON_SHADER_OUT_DIR=\"${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_DATADIR}/Halcyon/shaders\">"
+    "$<INSTALL_INTERFACE:HALCYON_SHADER_OUT_DIR=\"${_HALCYON_INSTALL_SHADERDIR_ABSOLUTE}\">"
 )
 
 if(MSVC)
@@ -179,7 +194,7 @@ function(add_slang_shader_target TARGET_NAME)
                 -fvk-use-entrypoint-name
                 -capability SPV_KHR_non_semantic_info+SPV_GOOGLE_user_type+spvDerivativeControl+spvImageQuery+spvImageGatherExtended+spvSparseResidency+spvMinLod+spvFragmentFullyCoveredEXT+spvShaderNonUniformEXT
                 -I "${CMAKE_CURRENT_LIST_DIR}/include"
-                -I "${CMAKE_CURRENT_LIST_DIR}/shaders"
+                -I "${HALCYON_SHADER_SRC_DIR}"
                 ${ENTRY_FLAGS}
                 -depfile "${DEP_FILE}"
                 -o "${OUT_FILE}"
@@ -197,7 +212,7 @@ endfunction()
 set(HALCYON_SHADER_TARGETS "")
 
 # Auto gather shader files and create targets
-file(GLOB_RECURSE SLANG_SHADER_FILES CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/shaders/*.slang")
+file(GLOB_RECURSE SLANG_SHADER_FILES CONFIGURE_DEPENDS "${HALCYON_SHADER_SRC_DIR}/*.slang")
 foreach(SHADER_FILE ${SLANG_SHADER_FILES})
     get_filename_component(SHADER_NAME "${SHADER_FILE}" NAME_WE)
     string(TOLOWER "${SHADER_NAME}" SHADER_NAME_LOWER)
@@ -245,7 +260,6 @@ if(HALCYON_BUILD_EXAMPLES)
 endif()
 
 # === Installation ===
-include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
 
 install(TARGETS ${PROJECT_NAME}
@@ -276,7 +290,6 @@ install(EXPORT HalcyonTargets
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/Halcyon
 )
 
-set(HALCYON_INSTALL_SHADERDIR "${CMAKE_INSTALL_DATADIR}/Halcyon/shaders")
 configure_package_config_file(
     "${CMAKE_CURRENT_SOURCE_DIR}/cmake/HalcyonConfig.cmake.in"
     "${CMAKE_CURRENT_BINARY_DIR}/HalcyonConfig.cmake"
@@ -291,5 +304,5 @@ install(FILES
 )
 
 install(DIRECTORY "${HALCYON_SHADER_OUTPUT_DIR}/"
-    DESTINATION ${CMAKE_INSTALL_DATADIR}/Halcyon/shaders
+    DESTINATION "${HALCYON_INSTALL_SHADERDIR}"
 )

@@ -19,7 +19,9 @@ list(APPEND CMAKE_PREFIX_PATH "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}")
 set(HALCYON_SOURCE_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/..")
 
 # User-configurable: where compiled stock shaders should be written.
-set(HALCYON_SHADER_OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/shaders" CACHE PATH "Output directory for Halcyon compiled shaders")
+if(NOT DEFINED HALCYON_SHADER_OUTPUT_DIR)
+    set(HALCYON_SHADER_OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/shaders" CACHE PATH "Output directory for Halcyon compiled shaders")
+endif()
 
 if(NOT TARGET Halcyon::Halcyon)
     find_package(Halcyon CONFIG QUIET)
