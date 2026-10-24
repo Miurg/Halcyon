@@ -22,6 +22,7 @@ find_package(tinyobjloader CONFIG REQUIRED)
 find_package(VulkanMemoryAllocator CONFIG REQUIRED)
 find_package(imgui CONFIG REQUIRED)
 find_package(Jolt CONFIG REQUIRED)
+find_package(Taskflow 3.10 CONFIG REQUIRED)
 find_package(Ktx CONFIG REQUIRED)
 
 find_path(TINYGLTF_INCLUDE_BASE_DIR "tiny_gltf.h")
@@ -122,6 +123,7 @@ endif()
 
 # header-only impl-only deps must not leak into the export set
 target_link_libraries(${PROJECT_NAME} PRIVATE
+    $<BUILD_INTERFACE:Taskflow::Taskflow>
     $<BUILD_INTERFACE:tinygltf::tinygltf>
     $<BUILD_INTERFACE:stb::stb>
 )

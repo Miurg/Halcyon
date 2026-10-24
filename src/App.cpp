@@ -12,7 +12,7 @@
 #include "DeletionQueueContext.hpp"
 #include "AudioCore/AudioInit.hpp"
 
-App::App() : deletionQueue(&gm)
+App::App(std::size_t workerCount) : jobRuntime(workerCount), ecsJobs(jobRuntime), gm(&ecsJobs), deletionQueue(&gm)
 {
 	Orhescyon::Entity dqEntity = gm.createEntity();
 	gm.registerContext<DeletionQueueContext>(dqEntity);
@@ -31,7 +31,10 @@ App::App() : deletionQueue(&gm)
 		return;
 	}
 }
-App::~App() = default;
+App::~App()
+{
+	jobRuntime.waitForAll();
+}
 
 using Orhescyon::GeneralManager;
 
@@ -50,9 +53,9 @@ int App::run()
 	return EXIT_SUCCESS;
 }
 
-App App::create()
+App App::create(std::size_t workerCount)
 {
-	return App();
+	return App(workerCount);
 }
 
 App& App::addStartUp(IStartUp& startUp)

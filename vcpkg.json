@@ -7,6 +7,7 @@
     "vulkan-memory-allocator",
     "tinygltf",
     "joltphysics",
+    "taskflow",
     "ktx",
     {
       "name": "imgui",
