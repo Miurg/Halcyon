@@ -4,6 +4,7 @@
 #include "GraphicsCore/VulkanUtils.hpp"
 #include <filesystem>
 #include <algorithm>
+#include <cstring>
 #include <stdexcept>
 #include <utility>
 
@@ -386,6 +387,20 @@ std::vector<PrimitivesInfo> GltfLoader::primitiveParser(tinygltf::Mesh& mesh, st
 			    tangAccessor->ByteStride(*tangBufferView) ? tangAccessor->ByteStride(*tangBufferView) : sizeof(float) * 4;
 		}
 
+		const tinygltf::Accessor* colorAccessor = nullptr;
+		const unsigned char* colorDataStart = nullptr;
+		int colorByteStride = 0;
+		if (auto colorIt = primitive.attributes.find("COLOR_0"); colorIt != primitive.attributes.end())
+		{
+			colorAccessor = &model.accessors[colorIt->second];
+			if (colorAccessor->sparse.isSparse || colorAccessor->bufferView < 0)
+				throw std::runtime_error("Sparse glTF COLOR_0 is not supported");
+			const auto& colorView = model.bufferViews[colorAccessor->bufferView];
+			const auto& colorBuffer = model.buffers[colorView.buffer];
+			colorDataStart = &colorBuffer.data[colorView.byteOffset + colorAccessor->byteOffset];
+			colorByteStride = colorAccessor->ByteStride(colorView);
+		}
+
 		// Read vertices
 		size_t oldVertexSize = outVertices.size();
 		outVertices.resize(oldVertexSize + posAccessor.count);
@@ -439,6 +454,28 @@ std::vector<PrimitivesInfo> GltfLoader::primitiveParser(tinygltf::Mesh& mesh, st
 			}
 
 			v.color = {1.0f, 1.0f, 1.0f};
+			if (colorAccessor)
+			{
+				const auto* color = colorDataStart + i * colorByteStride;
+				switch (colorAccessor->componentType)
+				{
+				case TINYGLTF_COMPONENT_TYPE_FLOAT:
+					std::memcpy(&v.color.x, color, sizeof(float) * 3);
+					break;
+				case TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE:
+					v.color = glm::vec3(color[0], color[1], color[2]) * (1.0f / 255.0f);
+					break;
+				case TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT:
+				{
+					uint16_t components[3];
+					std::memcpy(components, color, sizeof(components));
+					v.color = glm::vec3(components[0], components[1], components[2]) * (1.0f / 65535.0f);
+					break;
+				}
+				default:
+					throw std::runtime_error("Unsupported glTF COLOR_0 component type");
+				}
+			}
 		}
 
 		// Read indices
