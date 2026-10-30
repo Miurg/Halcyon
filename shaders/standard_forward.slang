@@ -97,12 +97,18 @@ struct VSInput
 
 float4 PackTBNToQuaternion(float3 T, float3 N, float bitangentSign)
 {
+	// Orthonormalize T and N using Gram-Schmidt process
 	N = normalize(N);
 	T = normalize(T - N * dot(N, T));
+
+	// Quaternions can only represent pure rotations (det = +1)
+	// Force a right-handed basis here; handedness is encoded into q.w later
 	float3 B = cross(N, T);
 
+	// Construct rotation matrix with T, B, N as columns (Slang float3x3 is row-major)
 	float3x3 m = float3x3(T.x, B.x, N.x, T.y, B.y, N.y, T.z, B.z, N.z);
 
+	// Shepperd's method: branch on the largest diagonal element to avoid division by small numbers
 	float4 q;
 	float trace = m[0][0] + m[1][1] + m[2][2];
 
@@ -143,18 +149,24 @@ float4 PackTBNToQuaternion(float3 T, float3 N, float bitangentSign)
 		q.z = 0.25 * s;
 	}
 
-    q = normalize(q);
-    q = q.w < 0.0 ? -q : q;
+	q = normalize(q);
 
-    const float minW = 1e-6;
-    if (q.w < minW)
-    {
-        float scale = sqrt((1.0 - minW * minW) / dot(q.xyz, q.xyz));
-        q.xyz *= scale;
-        q.w = minW;
-    }
+	// Since q and -q represent the same rotation, force q.w >= 0
+	// to free up the sign bit of q.w for storing bitangent handedness
+	q = q.w < 0.0 ? -q : q;
 
-    return bitangentSign < 0.0 ? -q : q;
+	// Clamp q.w away from 0 (180-degree rotation) so the sign of q.w is never lost,
+	// and rescale xyz to keep the quaternion normalized
+	const float minW = 1e-6;
+	if (q.w < minW)
+	{
+		float scale = sqrt((1.0 - minW * minW) / dot(q.xyz, q.xyz));
+		q.xyz *= scale;
+		q.w = minW;
+	}
+
+	// Encode bitangent sign (reflection) into the sign of q.w
+	return bitangentSign < 0.0 ? -q : q;
 }
 
 struct VSOutput
@@ -177,6 +189,8 @@ VSOutput vertMain(VSInput input, uint instanceID: SV_InstanceID, uint baseInstan
 
 	float4 worldPos = mul(modelMatrix, float4(input.inPosition, 1.0));
 
+	// Compute the cofactor/adjugate matrix via cross products to correctly transform normals
+	// under non-uniform scaling without an expensive full matrix inverse (division by det is absorbed by normalize).
 	float3x3 normalMatrix =
 	    float3x3(cross(modelMatrix3x3[1], modelMatrix3x3[2]), cross(modelMatrix3x3[2], modelMatrix3x3[0]),
 	             cross(modelMatrix3x3[0], modelMatrix3x3[1]));
@@ -184,6 +198,8 @@ VSOutput vertMain(VSInput input, uint instanceID: SV_InstanceID, uint baseInstan
 
 	// Tangents transform with the model matrix itself, not the cofactor.
 	float3 worldTangent = normalize(mul(modelMatrix3x3, input.inTangent.xyz));
+
+	// Re-orthogonalize tangent against normal (Gram-Schmidt), as non-uniform scaling can shear the angle between them
 	float3 orthoTangent = worldTangent - dot(worldTangent, worldNormal) * worldNormal;
 	float orthoTangentLength = length(orthoTangent);
 
@@ -193,6 +209,8 @@ VSOutput vertMain(VSInput input, uint instanceID: SV_InstanceID, uint baseInstan
 	}
 	else
 	{
+		// Fallback for degenerate tangents:
+		// pick an arbitrary non-collinear axis to construct a valid orthogonal tangent
 		float3 fallbackUp = abs(worldNormal.y) < 0.9 ? float3(0.0, 1.0, 0.0) : float3(1.0, 0.0, 0.0);
 		worldTangent = normalize(cross(worldNormal, fallbackUp));
 	}
@@ -201,13 +219,12 @@ VSOutput vertMain(VSInput input, uint instanceID: SV_InstanceID, uint baseInstan
 	output.pos = mul(camera[0].cameraSpaceMatrix, worldPos);
 	output.fragColor = input.inColor;
 	output.fragTexCoord = input.inTexCoord;
+	// Pack orthonormalized TBN into a single quaternion for compact vertex-to-fragment interpolation
 	output.fragTBNQuaternion = PackTBNToQuaternion(worldTangent, worldNormal, input.inTangent.w);
 	output.materialIndex = model.materialIndex;
 
 	return output;
 }
-
-// === Texture sampling helpers ===
 
 // === IBL / Ambient ===
 
@@ -215,6 +232,7 @@ float3 sampleSHProbes(float3 worldPos, float3 N)
 {
 	SHGridInfo grid = shGridInfo[0];
 
+	// Slot 0 is reserved for the global fallback sky probe
 	var skyProbe = shProbes[0];
 
 	if (grid.probeCount <= 1)
@@ -223,23 +241,29 @@ float3 sampleSHProbes(float3 worldPos, float3 N)
 		return computeIrradiance(N, skySh);
 	}
 
-	float3 biasedPos = worldPos + N * (grid.spacing * PROBE_NORMAL_BIAS);
+	// Offset sample position along the surface normal to prevent self-occlusion and light leaking through thin geometry
+    float3 biasedPos = worldPos + N * (grid.spacing * PROBE_NORMAL_BIAS);
 
+    // Transform world position into probe-grid coordinates
 	float3 local = (biasedPos - grid.origin) / grid.spacing;
 
+    // Clamp to grid bounds and compute fade-out weight (skyW) based on distance outside the grid volume
 	float3 gridMax = float3(grid.count - 1);
 	float3 clamped = clamp(local, 0.0, gridMax);
 	float skyW = saturate(length(local - clamped));
 
+    // Find the base corner index of the 2x2x2 probe cell and the fractional trilinear interpolation factors
 	int3 base = min(int3(clamped), max(grid.count - 2, 0));
 	float3 f = clamped - float3(base);
 
 	float3 w0 = 1.0 - f;
 	float3 w1 = f;
 
+    // Precompute trilinear weights for the 8 surrounding probes of the cell
 	float weights[8] = { w0.x * w0.y * w0.z, w1.x * w0.y * w0.z, w0.x * w1.y * w0.z, w1.x * w1.y * w0.z,
 		                  w0.x * w0.y * w1.z, w1.x * w0.y * w1.z, w0.x * w1.y * w1.z, w1.x * w1.y * w1.z };
 
+    // 1D buffer strides along Y and Z axes (+1 offset accounts for the sky probe at index 0)
 	uint sy = grid.count.x;
 	uint sz = grid.count.x * grid.count.y;
 
@@ -256,6 +280,7 @@ float3 sampleSHProbes(float3 worldPos, float3 N)
 		uint slot = baseSlot + offsets[i];
 		var probe = shProbes[slot];
 
+        // Discard probes trapped inside geometry (high backface hit ratio stored in _p0) to prevent dark/invalid leaking
 		float valid = probe._p0 > PROBE_BACKFACE_THRESHOLD ? 0.0 : 1.0;
 		float actualW = weights[i] * valid;
 
@@ -266,12 +291,15 @@ float3 sampleSHProbes(float3 worldPos, float3 N)
 		totalW += actualW;
 	}
 
+    // Renormalize accumulated SH coefficients to compensate for any discarded invalid probes
 	float invW = totalW > 0.00001 ? (1.0 / totalW) : 0.0;
 	sh0 *= invW;
 	sh1 *= invW;
 	sh2 *= invW;
 	sh3 *= invW;
 
+    // Smoothly transition to the global sky probe when sampling outside the grid boundaries 
+	// (or if all 8 probes were invalid)
 	if (skyW > 0.0)
 	{
 		sh0 = lerp(sh0, skyProbe.sh0, skyW);
@@ -292,9 +320,8 @@ float sampleReflectionProbes(float3 worldPos, float3 R, float roughness, out flo
 {
 	color = float3(0.0, 0.0, 0.0);
 	float totalW = 0.0;
-	bool useClusterFallback =
-		cluster.offset == INVALID_FORWARD_CLUSTER_OFFSET ||
-		(forwardClusteredInfo[1] & FORWARD_CLUSTER_GLOBAL_OVERFLOW_BIT) != 0u;
+	bool useClusterFallback = cluster.offset == INVALID_FORWARD_CLUSTER_OFFSET ||
+	                          (forwardClusteredInfo[1] & FORWARD_CLUSTER_GLOBAL_OVERFLOW_BIT) != 0u;
 	uint count = cluster.countReflectProbes;
 
 	if (useClusterFallback)
@@ -309,8 +336,7 @@ float sampleReflectionProbes(float3 worldPos, float3 R, float roughness, out flo
 	{
 		uint probeIndex = i;
 		[branch]
-		if (!useClusterFallback)
-			probeIndex = forwardClusteredInfo[cluster.offset + cluster.countLights + i];
+		if (!useClusterFallback) probeIndex = forwardClusteredInfo[cluster.offset + cluster.countLights + i];
 
 		ReflectionProbeData p = reflectionProbes[probeIndex];
 		float3 center = (p.boxMin + p.boxMax) * 0.5;
@@ -347,7 +373,8 @@ float sampleReflectionProbes(float3 worldPos, float3 R, float roughness, out flo
 // split-sum IBL specular from prefiltered cubemap + BRDF LUT, plus a constant
 // ambient term from the directional light. Falls back to constant-only when
 // the skybox specialization constant is disabled.
-float3 ComputeAmbient(SurfaceContext surface, GpuMaterialData mat, float3 worldPos, float4 dirLightAmbient, float ao, ForwardCluster cluster)
+float3 ComputeAmbient(SurfaceContext surface, GpuMaterialData mat, float3 worldPos, float4 dirLightAmbient, float ao,
+                      ForwardCluster cluster)
 {
 	float3 F_ibl = F_SchlickRoughness(surface.NdotV, surface.F0, surface.roughness);
 	float3 startAmbient = dirLightAmbient.a * dirLightAmbient.rgb;
@@ -362,8 +389,8 @@ float3 ComputeAmbient(SurfaceContext surface, GpuMaterialData mat, float3 worldP
 		if (mat.alphaMode != 1 && mat.doubleSided != 1)
 		{
 			float3 R = reflect(-surface.viewVector, surface.normal);
-            float3 probeColor;
-            float coverage = sampleReflectionProbes(worldPos, R, surface.roughness, probeColor, cluster);
+			float3 probeColor;
+			float coverage = sampleReflectionProbes(worldPos, R, surface.roughness, probeColor, cluster);
 			float3 prefiltColor = probeColor;
 			[branch]
 			if (coverage < 1.0)
@@ -441,6 +468,7 @@ SurfaceContext SetupSurface(VSOutput input, bool isFrontFace)
 	float3 rawEmission;
 	float4 rawAlbedo;
 
+	// SampleGrad needs dx and dy, so better be two ways 
 	if (ALPHA_TEST_ENABLED == 1)
 	{
 		rawAlbedo = mat.baseColorFactor * float4(input.fragColor, 1.0);
@@ -471,7 +499,8 @@ SurfaceContext SetupSurface(VSOutput input, bool isFrontFace)
 		    textureArray[NonUniformResourceIndex(mat.metallicRoughnessIndex)].SampleGrad(input.fragTexCoord, dx, dy);
 
 		surface.emissive = mat.emissiveFactor * mat.emissiveStrength;
-		bool hasEmissiveContribution = any(surface.emissive > float3(0.0));
+        bool hasEmissiveContribution = any(surface.emissive > float3(0.0));
+        // Really most of models don't have emissive at all, so it's faster, I promise
 		if (hasEmissiveContribution && (mat.materialFlags & MaterialFlags.HasEmissiveTexture))
 		{
 			rawEmission =
@@ -486,6 +515,7 @@ SurfaceContext SetupSurface(VSOutput input, bool isFrontFace)
 
 		surface.emissive = mat.emissiveFactor * mat.emissiveStrength;
 		bool hasEmissiveContribution = any(surface.emissive > float3(0.0));
+		// Really most of models don't have emissive at all, so it's faster, I promise
 		if (hasEmissiveContribution && (mat.materialFlags & MaterialFlags.HasEmissiveTexture))
 		{
 			rawEmission = textureArray[NonUniformResourceIndex(mat.emissiveIndex)].Sample(input.fragTexCoord).rgb;
@@ -509,8 +539,8 @@ SurfaceContext SetupSurface(VSOutput input, bool isFrontFace)
 	float3 T;
 	float3 B;
 	UnpackQuaternionToTBN(input.fragTBNQuaternion, T, N);
-    if (!isFrontFace) N = -N;
-    B = cross(N, T) * (input.fragTBNQuaternion.w < 0.0 ? -1.0 : 1.0);
+	if (!isFrontFace) N = -N;
+	B = cross(N, T) * (input.fragTBNQuaternion.w < 0.0 ? -1.0 : 1.0);
 	N = normalize(N);
 	T = normalize(T);
 	float3 mapNormal = rawNormal * 2.0 - 1.0;
@@ -539,6 +569,7 @@ SurfaceContext SetupSurface(VSOutput input, bool isFrontFace)
 
 	surface.F0 = lerp(float3(0.04, 0.04, 0.04), surface.albedo, surface.metallic);
 
+	// Multiply because before we add here factor and strength
 	surface.emissive *= rawEmission;
 
 	return surface;
@@ -547,12 +578,12 @@ SurfaceContext SetupSurface(VSOutput input, bool isFrontFace)
 float3 SolveLight(SurfaceContext surface, VSOutput input)
 {
 
-    float ao = 1.0;
-    if (GTAO_ENABLED == 1 && surface.mat.alphaMode != 2)
-    {
-        float2 screenUV = input.pos.xy / camera[0].screenSize;
-        ao = gtaoTexture.SampleLevel(screenUV, 0).r;
-    }
+	float ao = 1.0;
+	if (GTAO_ENABLED == 1 && surface.mat.alphaMode != 2)
+	{
+		float2 screenUV = input.pos.xy / camera[0].screenSize;
+		ao = gtaoTexture.SampleLevel(screenUV, 0).r;
+	}
 
 	// === LIGHTING SETUP ===
 	float3 lightVector = normalize(directionalLight[0].direction.xyz);
@@ -562,18 +593,18 @@ float3 SolveLight(SurfaceContext surface, VSOutput input)
 	float4 worldPosUnscaled = mul(camera[0].invViewProj, clipPos);
 	float3 worldPosition = worldPosUnscaled.xyz / worldPosUnscaled.w;
 
-    // === SHADOW (PCF 3x3) ===
-    float NdotL = dot(surface.normal, lightVector);
-    float shadow = 1.0;
+	// === SHADOW (PCF 3x3) ===
+	float NdotL = dot(surface.normal, lightVector);
+	float shadow = 1.0;
 	if (NdotL > 0.0)
-        shadow = ComputeShadow(shadowMap, mul(directionalLight[0].lightSpaceMatrix, float4(worldPosition, 1.0)),
-                               directionalLight[0].shadowMapSize.zw, surface.normal, lightVector);
+		shadow = ComputeShadow(shadowMap, mul(directionalLight[0].lightSpaceMatrix, float4(worldPosition, 1.0)),
+		                       directionalLight[0].shadowMapSize.zw, surface.normal, lightVector);
 
 	// === DIRECTIONAL LIGHT ===
 	float3 directionalLightRadiance = directionalLight[0].color.rgb * directionalLight[0].color.a;
 
-    LightingVectors lv = ComputeLightingVectors(lightVector, surface.viewVector, surface.normal);
-    BRDFResult brdf = EvaluateBRDF(surface, lv, lightVector);
+	LightingVectors lv = ComputeLightingVectors(lightVector, surface.viewVector, surface.normal);
+	BRDFResult brdf = EvaluateBRDF(surface, lv, lightVector);
 
 	float3 directLight = (brdf.diffuse + brdf.specular) * directionalLightRadiance * lv.NdotL * shadow;
 
@@ -590,38 +621,30 @@ float3 SolveLight(SurfaceContext surface, VSOutput input)
 	float sliceF = log(max(linearZ, zNear) / zNear) / log(zFar / zNear);
 	uint slice = min(uint(sliceF * float(Z_SLICES)), Z_SLICES - 1u);
 
-    uint clusterIndex = tile.x + tile.y * tileCount.x + slice * tileCount.x * tileCount.y;
-    ForwardCluster cluster = forwardClusteredGrid[clusterIndex];
+	uint clusterIndex = tile.x + tile.y * tileCount.x + slice * tileCount.x * tileCount.y;
+	ForwardCluster cluster = forwardClusteredGrid[clusterIndex];
 
 	// === POINT / SPOT LIGHTS ===
 	float3 litColorFromLights = float3(0.0, 0.0, 0.0);
-	bool useClusterFallback =
-		cluster.offset == INVALID_FORWARD_CLUSTER_OFFSET ||
-		(forwardClusteredInfo[1] & FORWARD_CLUSTER_GLOBAL_OVERFLOW_BIT) != 0u;
+	bool useClusterFallback = cluster.offset == INVALID_FORWARD_CLUSTER_OFFSET ||
+	                          (forwardClusteredInfo[1] & FORWARD_CLUSTER_GLOBAL_OVERFLOW_BIT) != 0u;
 	uint currentLightCount = cluster.countLights;
 
 	if (useClusterFallback)
 	{
 		uint lightBufferCapacity;
 		uint lightBufferStride;
-		lights.GetDimensions(
-			lightBufferCapacity,
-			lightBufferStride);
+		lights.GetDimensions(lightBufferCapacity, lightBufferStride);
 
 		uint visibleLightBufferCapacity;
 		uint visibleLightBufferStride;
-		visiblePointLightIndices.GetDimensions(
-			visibleLightBufferCapacity,
-			visibleLightBufferStride);
+		visiblePointLightIndices.GetDimensions(visibleLightBufferCapacity, visibleLightBufferStride);
 
 		currentLightCount = 0u;
 		if (visibleLightBufferCapacity > 0u)
 		{
-			currentLightCount = min(
-				visiblePointLightIndices[0],
-				min(
-					visibleLightBufferCapacity - 1u,
-					min(lightBufferCapacity, MAX_POINT_LIGHTS)));
+			currentLightCount = min(visiblePointLightIndices[0],
+			                        min(visibleLightBufferCapacity - 1u, min(lightBufferCapacity, MAX_POINT_LIGHTS)));
 		}
 	}
 
@@ -631,13 +654,11 @@ float3 SolveLight(SurfaceContext surface, VSOutput input)
 		[branch]
 		if (useClusterFallback)
 		{
-			lightIndex =
-				visiblePointLightIndices[1u + i];
+			lightIndex = visiblePointLightIndices[1u + i];
 		}
 		else
 		{
-			lightIndex =
-				forwardClusteredInfo[cluster.offset + i];
+			lightIndex = forwardClusteredInfo[cluster.offset + i];
 		}
 
 		PointLightData light = lights[lightIndex];
@@ -646,8 +667,8 @@ float3 SolveLight(SurfaceContext surface, VSOutput input)
 		                          light.direction, light.innerConeAngle, light.outerConeAngle, light.type);
 	}
 
-    // === IBL / Ambient ===
-    float3 ambient = ComputeAmbient(surface, surface.mat, worldPosition, directionalLight[0].ambient, ao, cluster);
+	// === IBL / Ambient ===
+	float3 ambient = ComputeAmbient(surface, surface.mat, worldPosition, directionalLight[0].ambient, ao, cluster);
 
 	float3 litColor = directLight + litColorFromLights + ambient + surface.emissive;
 	return litColor;
