@@ -91,61 +91,19 @@ void BufferUpdateSystem::update(GeneralManager& gm)
 
 	for (uint32_t i = 0; i < kDrawVariantCount; ++i)
 	{
-		writePrimitivesForPass(static_cast<DrawVariantIndex>(i), renderAssetManager, primitivePtr, indirectBufferPtr,
-		                       globalPrimitiveIndex, localPrimitiveIndex, globalCullIndex);
+		for (size_t b = 0; b < batchMeshTransf.size(); ++b)
+		{
+			const auto& agentsInBatch = batchMeshTransf[b];
+			if (agentsInBatch.empty()) continue;
+
+			renderAssetManager.writePrimitivesForPass(agentsInBatch[0].meshInfo->mesh, static_cast<DrawVariantIndex>(i),
+			                                          baseTransformPerBatch[b], primitivePtr, indirectBufferPtr,
+			                                          globalPrimitiveIndex, localPrimitiveIndex, globalCullIndex);
+		}
 		drawInfo->segments[i] = {static_cast<uint32_t>(globalPrimitiveIndex - prevTotal), i};
 		prevTotal = globalPrimitiveIndex;
 	}
 
 	drawInfo->totalDrawCount = globalPrimitiveIndex;
 	drawInfo->totalObjectCount = localPrimitiveIndex;
-}
-
-void BufferUpdateSystem::writePrimitivesForPass(DrawVariantIndex drawVariant, RenderAssetManager& renderAssetManager,
-                                                ModelData* primitivePtr, IndirectDrawIndexedCommand* indirectBufferPtr,
-                                                int& globalPrimitiveIndex, int& localPrimitiveIndex,
-                                                int& globalCullIndex)
-{
-	IndirectDrawIndexedCommand currentDraw{};
-
-	for (size_t b = 0; b < batchMeshTransf.size(); ++b)
-	{
-		const auto& agentsInBatch = batchMeshTransf[b];
-		if (agentsInBatch.empty()) continue;
-
-		MeshInfoComponent& meshBaseInfo = *agentsInBatch[0].meshInfo;
-		MeshHandle meshIdx = meshBaseInfo.mesh;
-		const auto& mesh = renderAssetManager.getMesh(meshIdx);
-		int primitiveCount = mesh.primitives.size();
-
-		for (int i = 0; i < primitiveCount; i++)
-		{
-			const auto& primitive = mesh.primitives[i];
-			if (primitive.drawVariant != drawVariant) continue;
-
-			// Write indirect draw command
-			currentDraw.indexCount = primitive.indexCount;
-			currentDraw.firstIndex = primitive.indexOffset;
-			currentDraw.vertexOffset = primitive.vertexOffset;
-			currentDraw.instanceCount = 0; // nulling what gpu left here before each frame
-			currentDraw.firstInstance = globalCullIndex;
-			indirectBufferPtr[globalPrimitiveIndex] = currentDraw;
-
-			// Write per entity primitive data
-			int currentEntityTransformIndex = baseTransformPerBatch[b];
-			globalCullIndex += mesh.entitiesSubscribed;
-			for (size_t entityIndex = 0; entityIndex < agentsInBatch.size(); ++entityIndex)
-			{
-				primitivePtr[localPrimitiveIndex].materialIndex = primitive.materialIndex.id;
-				primitivePtr[localPrimitiveIndex].transformIndex = currentEntityTransformIndex;
-				primitivePtr[localPrimitiveIndex].AABBMax = primitive.AABBMax;
-				primitivePtr[localPrimitiveIndex].AABBMin = primitive.AABBMin;
-				primitivePtr[localPrimitiveIndex].drawCommandIndex = globalPrimitiveIndex;
-
-				localPrimitiveIndex++;
-				currentEntityTransformIndex++;
-			}
-			globalPrimitiveIndex++;
-		}
-	}
 }

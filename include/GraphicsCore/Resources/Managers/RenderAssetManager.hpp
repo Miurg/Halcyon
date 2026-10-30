@@ -17,6 +17,7 @@
 #include "GraphicsCore/Resources/Managers/DescriptorManager.hpp"
 #include "GraphicsCore/Resources/Managers/MeshInfo.hpp"
 #include "GraphicsCore/Resources/Managers/ResourceHandles.hpp"
+#include "Shared/GpuStructs.h"
 
 struct HALCYON_API GeometryAllocation
 {
@@ -53,6 +54,9 @@ public:
 	void freeGeometry(const GeometryAllocation& allocation, uint64_t frameNumber);
 	void collectGeometryFrees(uint64_t frameNumber);
 	void defragment(VertexIndexBuffer& buffer);
+	void writePrimitivesForPass(MeshHandle meshHandle, DrawVariantIndex drawVariant, int baseTransformIndex,
+	                            ModelData* primitivePtr, IndirectDrawIndexedCommand* indirectBufferPtr,
+	                            int& globalPrimitiveIndex, int& localPrimitiveIndex, int& globalCullIndex) const;
 
 	MeshHandle allocateMeshSlot();
 	RenderAssetHandle allocateRenderAssetSlot();

@@ -283,6 +283,43 @@ void RenderAssetManager::defragment(VertexIndexBuffer& buffer)
 	        &GeometryAllocation::indexCount, &PrimitivesInfo::indexOffset);
 }
 
+void RenderAssetManager::writePrimitivesForPass(MeshHandle meshHandle, DrawVariantIndex drawVariant,
+                                                int baseTransformIndex, ModelData* primitivePtr,
+                                                IndirectDrawIndexedCommand* indirectBufferPtr,
+                                                int& globalPrimitiveIndex, int& localPrimitiveIndex,
+                                                int& globalCullIndex) const
+{
+	const auto& mesh = meshes[meshHandle.id];
+	IndirectDrawIndexedCommand currentDraw{};
+
+	for (const auto& primitive : mesh.primitives)
+	{
+		if (primitive.drawVariant != drawVariant) continue;
+
+		currentDraw.indexCount = primitive.indexCount;
+		currentDraw.firstIndex = primitive.indexOffset;
+		currentDraw.vertexOffset = primitive.vertexOffset;
+		currentDraw.instanceCount = 0; // nulling what gpu left here before each frame
+		currentDraw.firstInstance = globalCullIndex;
+		indirectBufferPtr[globalPrimitiveIndex] = currentDraw;
+
+		int currentEntityTransformIndex = baseTransformIndex;
+		globalCullIndex += mesh.entitiesSubscribed;
+		for (uint32_t entityIndex = 0; entityIndex < mesh.entitiesSubscribed; ++entityIndex)
+		{
+			primitivePtr[localPrimitiveIndex].materialIndex = primitive.materialIndex.id;
+			primitivePtr[localPrimitiveIndex].transformIndex = currentEntityTransformIndex;
+			primitivePtr[localPrimitiveIndex].AABBMax = primitive.AABBMax;
+			primitivePtr[localPrimitiveIndex].AABBMin = primitive.AABBMin;
+			primitivePtr[localPrimitiveIndex].drawCommandIndex = globalPrimitiveIndex;
+
+			localPrimitiveIndex++;
+			currentEntityTransformIndex++;
+		}
+		globalPrimitiveIndex++;
+	}
+}
+
 MeshHandle RenderAssetManager::allocateMeshSlot()
 {
 	if (!_freeMeshSlots.empty())

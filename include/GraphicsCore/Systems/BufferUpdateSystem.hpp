@@ -11,8 +11,6 @@
 #include <Orhescyon/Systems/SystemCore.hpp>
 #include <vector>
 
-class RenderAssetManager;
-
 using Orhescyon::GeneralManager;
 
 /**
@@ -30,10 +28,6 @@ public:
 	void onShutdown(GeneralManager& gm) override;
 
 private:
-	void writePrimitivesForPass(DrawVariantIndex drawVariant, RenderAssetManager& renderAssetManager,
-	                            ModelData* primitivePtr, IndirectDrawIndexedCommand* indirectBufferPtr,
-	                            int& globalPrimitiveIndex, int& localPrimitiveIndex, int& globalCullIndex);
-
 	struct Agent
 	{
 		GlobalTransformComponent* transform;
