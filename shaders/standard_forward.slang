@@ -143,8 +143,18 @@ float4 PackTBNToQuaternion(float3 T, float3 N, float bitangentSign)
 		q.z = 0.25 * s;
 	}
 
-	q = normalize(q);
-	return q;
+    q = normalize(q);
+    q = q.w < 0.0 ? -q : q;
+
+    const float minW = 1e-6;
+    if (q.w < minW)
+    {
+        float scale = sqrt((1.0 - minW * minW) / dot(q.xyz, q.xyz));
+        q.xyz *= scale;
+        q.w = minW;
+    }
+
+    return bitangentSign < 0.0 ? -q : q;
 }
 
 struct VSOutput
@@ -152,7 +162,6 @@ struct VSOutput
 	float4 pos : SV_Position;
 	float3 fragColor;
 	float4 fragTBNQuaternion;
-	float bitangentSign;
 	float2 fragTexCoord;
 
 	nointerpolation uint materialIndex;
@@ -193,7 +202,6 @@ VSOutput vertMain(VSInput input, uint instanceID: SV_InstanceID, uint baseInstan
 	output.fragColor = input.inColor;
 	output.fragTexCoord = input.inTexCoord;
 	output.fragTBNQuaternion = PackTBNToQuaternion(worldTangent, worldNormal, input.inTangent.w);
-	output.bitangentSign = input.inTangent.w;
 	output.materialIndex = model.materialIndex;
 
 	return output;
@@ -381,8 +389,6 @@ float3 ComputeAmbient(SurfaceContext surface, GpuMaterialData mat, float3 worldP
 
 void UnpackQuaternionToTBN(float4 q, out float3 T, out float3 N)
 {
-	float bitangentSign = q.w < 0.0 ? -1.0 : 1.0;
-
 	q = normalize(q);
 
 	float x2 = q.x + q.x;
@@ -503,8 +509,8 @@ SurfaceContext SetupSurface(VSOutput input, bool isFrontFace)
 	float3 T;
 	float3 B;
 	UnpackQuaternionToTBN(input.fragTBNQuaternion, T, N);
-	if (!isFrontFace) N = -N;
-	B = cross(N, T) * input.bitangentSign;
+    if (!isFrontFace) N = -N;
+    B = cross(N, T) * (input.fragTBNQuaternion.w < 0.0 ? -1.0 : 1.0);
 	N = normalize(N);
 	T = normalize(T);
 	float3 mapNormal = rawNormal * 2.0 - 1.0;
