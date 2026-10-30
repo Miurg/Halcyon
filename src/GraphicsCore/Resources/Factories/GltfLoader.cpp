@@ -8,11 +8,12 @@
 #include <stdexcept>
 #include <utility>
 
-RenderAssetHandle GltfLoader::loadRenderAssetFromFile(
-    const char path[MAX_PATH_LEN], int vertexIndexBInt, BufferManager& bufferManager,
-    BindlessTextureDSetComponent& dSetComponent, DescriptorManager& descriptorManager, tinygltf::Model& model,
-    TextureManager& textureManager, RenderAssetManager& renderAssetManager, MaterialManager& materialManager,
-    VulkanDevice& vulkanDevice, VmaAllocator allocator)
+RenderAssetHandle
+GltfLoader::loadRenderAssetFromFile(const char path[MAX_PATH_LEN], int vertexIndexBInt, BufferManager& bufferManager,
+                                    BindlessTextureDSetComponent& dSetComponent, DescriptorManager& descriptorManager,
+                                    tinygltf::Model& model, TextureManager& textureManager,
+                                    RenderAssetManager& renderAssetManager, MaterialManager& materialManager,
+                                    VulkanDevice& vulkanDevice, VmaAllocator allocator)
 {
 	MaterialMaps materialMaps = materialsParser(model, textureManager, materialManager, dSetComponent, descriptorManager,
 	                                            bufferManager, path, vulkanDevice, allocator);
@@ -24,7 +25,8 @@ RenderAssetHandle GltfLoader::loadRenderAssetFromFile(
 	loadedMeshes.resize(model.meshes.size());
 	for (int i = 0; i < model.meshes.size(); ++i)
 	{
-		auto newPrims = primitiveParser(model.meshes[i], localVertices, localIndices, model, 0, materialMaps);
+		auto newPrims =
+		    primitiveParser(model.meshes[i], localVertices, localIndices, model, 0, materialMaps, materialManager);
 		loadedMeshes[i].primitives = newPrims;
 		loadedMeshes[i].vertexIndexBufferID = vertexIndexBInt;
 		model.meshes[i].name.copy(loadedMeshes[i].path, sizeof(loadedMeshes[i].path) - 1); // Copy name
@@ -34,9 +36,8 @@ RenderAssetHandle GltfLoader::loadRenderAssetFromFile(
 	allocation.bufferIndex = vertexIndexBInt;
 	if (!localVertices.empty())
 	{
-		auto allocated =
-		    renderAssetManager.allocateGeometry(vertexIndexBInt, static_cast<uint32_t>(localVertices.size()),
-		                                         static_cast<uint32_t>(localIndices.size()));
+		auto allocated = renderAssetManager.allocateGeometry(vertexIndexBInt, static_cast<uint32_t>(localVertices.size()),
+		                                                     static_cast<uint32_t>(localIndices.size()));
 		if (!allocated)
 		{
 			throw std::runtime_error("Out of geometry buffer space while loading render asset");
@@ -310,7 +311,8 @@ MaterialMaps GltfLoader::materialsParser(tinygltf::Model& model, TextureManager&
 
 std::vector<PrimitivesInfo> GltfLoader::primitiveParser(tinygltf::Mesh& mesh, std::vector<Vertex>& outVertices,
                                                         std::vector<uint32_t>& outIndices, tinygltf::Model& model,
-                                                        int32_t globalVertexOffset, const MaterialMaps& materialMaps)
+                                                        int32_t globalVertexOffset, const MaterialMaps& materialMaps,
+                                                        const MaterialManager& materialManager)
 {
 	std::vector<PrimitivesInfo> loadedPrimitives;
 	for (const auto& primitive : mesh.primitives)
@@ -528,6 +530,21 @@ std::vector<PrimitivesInfo> GltfLoader::primitiveParser(tinygltf::Mesh& mesh, st
 			// Fallback to the default material we created at index -1
 			auto itDefault = materialMaps.materials.find(static_cast<uint32_t>(-1));
 			result.materialIndex = (itDefault != materialMaps.materials.end()) ? itDefault->second : MaterialHandle{0};
+		}
+
+		const auto& material = materialManager.getMaterial(result.materialIndex);
+		const bool isDoubleSided = material.doubleSided == 1;
+		switch (material.alphaMode)
+		{
+		case 1:
+			result.drawVariant = isDoubleSided ? DrawVariantIndex::MaskDoubleSided : DrawVariantIndex::Mask;
+			break;
+		case 2:
+			result.drawVariant = isDoubleSided ? DrawVariantIndex::BlendDoubleSided : DrawVariantIndex::Blend;
+			break;
+		default:
+			result.drawVariant = isDoubleSided ? DrawVariantIndex::OpaqueDoubleSided : DrawVariantIndex::Opaque;
+			break;
 		}
 
 		loadedPrimitives.push_back(result);

@@ -12,7 +12,6 @@
 #include <vector>
 
 class RenderAssetManager;
-class MaterialManager;
 
 using Orhescyon::GeneralManager;
 
@@ -22,7 +21,8 @@ using Orhescyon::GeneralManager;
  *        cull and render passes execute.
  */
 
-class HALCYON_API BufferUpdateSystem : public Orhescyon::SystemCore<BufferUpdateSystem, GlobalTransformComponent, MeshInfoComponent>
+class HALCYON_API BufferUpdateSystem
+    : public Orhescyon::SystemCore<BufferUpdateSystem, GlobalTransformComponent, MeshInfoComponent>
 {
 public:
 	void update(GeneralManager& gm) override;
@@ -30,10 +30,9 @@ public:
 	void onShutdown(GeneralManager& gm) override;
 
 private:
-	void writePrimitivesForPass(int categoryPass, bool isDoubleSidedPass, RenderAssetManager& renderAssetManager,
-	                            MaterialManager& materialManager, ModelData* primitivePtr,
-	                            IndirectDrawIndexedCommand* indirectBufferPtr, int& globalPrimitiveIndex,
-	                            int& localPrimitiveIndex, int& globalCullIndex);
+	void writePrimitivesForPass(DrawVariantIndex drawVariant, RenderAssetManager& renderAssetManager,
+	                            ModelData* primitivePtr, IndirectDrawIndexedCommand* indirectBufferPtr,
+	                            int& globalPrimitiveIndex, int& localPrimitiveIndex, int& globalCullIndex);
 
 	struct Agent
 	{
@@ -41,6 +40,6 @@ private:
 		MeshInfoComponent* meshInfo;
 	};
 
-	std::vector<std::vector<Agent>> batch;
+	std::vector<std::vector<Agent>> batchMeshTransf;
 	std::vector<int> baseTransformPerBatch;
 };

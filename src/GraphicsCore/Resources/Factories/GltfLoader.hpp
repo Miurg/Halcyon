@@ -37,26 +37,29 @@ struct MaterialMaps
 class GltfLoader
 {
 public:
-	static RenderAssetHandle loadRenderAssetFromFile(
-	    const char path[MAX_PATH_LEN], int vertexIndexBInt, BufferManager& bufferManager,
-	    BindlessTextureDSetComponent& dSetComponent, DescriptorManager& descriptorManager, tinygltf::Model& model,
-	    TextureManager& textureManager, RenderAssetManager& renderAssetManager, MaterialManager& materialManager,
-	    VulkanDevice& vulkanDevice, VmaAllocator allocator);
+	static RenderAssetHandle
+	loadRenderAssetFromFile(const char path[MAX_PATH_LEN], int vertexIndexBInt, BufferManager& bufferManager,
+	                        BindlessTextureDSetComponent& dSetComponent, DescriptorManager& descriptorManager,
+	                        tinygltf::Model& model, TextureManager& textureManager,
+	                        RenderAssetManager& renderAssetManager, MaterialManager& materialManager,
+	                        VulkanDevice& vulkanDevice, VmaAllocator allocator);
 	static MaterialMaps materialsParser(tinygltf::Model& model, TextureManager& textureManager,
 	                                    MaterialManager& materialManager, BindlessTextureDSetComponent& dSetComponent,
 	                                    DescriptorManager& descriptorManager, BufferManager& bufferManager,
 	                                    const char* filePath, VulkanDevice& vulkanDevice, VmaAllocator allocator);
 	static std::vector<PrimitivesInfo> primitiveParser(tinygltf::Mesh& mesh, std::vector<Vertex>& outVertices,
 	                                                   std::vector<uint32_t>& outIndices, tinygltf::Model& model,
-	                                                   int32_t globalVertexOffset, const MaterialMaps& materialMaps);
+	                                                   int32_t globalVertexOffset, const MaterialMaps& materialMaps,
+	                                                   const MaterialManager& materialManager);
 	static std::vector<MeshInfo> modelParser(tinygltf::Model model);
 	static std::shared_ptr<TextureData> createDefaultWhiteTexture();
 
 private:
 	static TextureHandle loadMaterialTexture(tinygltf::Model& model,
-	                               const std::map<std::string, tinygltf::Parameter>& params,
-	                               const char* paramName, bool isSrgb, TextureHandle fallback, const char* filePath,
-	                               std::vector<TextureHandle>& ownedTextures, TextureManager& textureManager,
-	                               BindlessTextureDSetComponent& dSetComponent, DescriptorManager& descriptorManager,
-	                               VulkanDevice& vulkanDevice, VmaAllocator allocator);
+	                                         const std::map<std::string, tinygltf::Parameter>& params,
+	                                         const char* paramName, bool isSrgb, TextureHandle fallback,
+	                                         const char* filePath, std::vector<TextureHandle>& ownedTextures,
+	                                         TextureManager& textureManager, BindlessTextureDSetComponent& dSetComponent,
+	                                         DescriptorManager& descriptorManager, VulkanDevice& vulkanDevice,
+	                                         VmaAllocator allocator);
 };

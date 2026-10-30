@@ -14,8 +14,6 @@
 #include "GraphicsCore/Components/RenderAssetManagerComponent.hpp"
 #include "GraphicsCore/Components/TextureManagerComponent.hpp"
 #include "GraphicsCore/Resources/Managers/TextureManager.hpp"
-#include "GraphicsCore/Components/MaterialManagerComponent.hpp"
-#include "GraphicsCore/Resources/Managers/MaterialManager.hpp"
 #include "Shared/GpuStructs.h"
 
 #ifdef TRACY_ENABLE
@@ -45,42 +43,39 @@ void BufferUpdateSystem::update(GeneralManager& gm)
 	    *gm.getContextComponent<BufferManagerContext, BufferManagerComponent>()->bufferManager;
 	RenderAssetManager& renderAssetManager =
 	    *gm.getContextComponent<RenderAssetManagerContext, RenderAssetManagerComponent>()->renderAssetManager;
-	MaterialManager& materialManager =
-	    *gm.getContextComponent<MaterialManagerContext, MaterialManagerComponent>()->materialManager;
 	ModelDSetComponent* objectDSetComponent = gm.getContextComponent<MainDSetsContext, ModelDSetComponent>();
 	DrawInfoComponent* drawInfo = gm.getContextComponent<CurrentFrameContext, DrawInfoComponent>();
 
-	batch.resize(renderAssetManager.meshCount());
-	for (auto& group : batch)
+	batchMeshTransf.resize(renderAssetManager.meshCount());
+	for (auto& group : batchMeshTransf)
 	{
 		group.clear();
 	}
 
 	forEachSubscribedEntity(gm, [&](Orhescyon::Entity, GlobalTransformComponent& transform, MeshInfoComponent& meshInfo)
-	                        { batch[meshInfo.mesh.id].push_back({&transform, &meshInfo}); });
+	                        { batchMeshTransf[meshInfo.mesh.id].push_back({&transform, &meshInfo}); });
 
-	for (size_t i = 0; i < batch.size(); ++i)
+	for (size_t i = 0; i < batchMeshTransf.size(); ++i)
 	{
-		if (!batch[i].empty())
+		if (!batchMeshTransf[i].empty())
 		{
-			renderAssetManager.getMesh(MeshHandle{static_cast<int>(i)}).entitiesSubscribed = batch[i].size();
+			renderAssetManager.getMesh(MeshHandle{static_cast<int>(i)}).entitiesSubscribed = batchMeshTransf[i].size();
 		}
 	}
 
 	auto* primitivePtr = bufferManager.getMapped<ModelData>(objectDSetComponent->primitiveBuffer, currentFrame);
-	auto* transfromMeshPtr =
-	    bufferManager.getMapped<TransformData>(objectDSetComponent->transformBuffer, currentFrame);
+	auto* transfromMeshPtr = bufferManager.getMapped<TransformData>(objectDSetComponent->transformBuffer, currentFrame);
 	auto* indirectBufferPtr =
 	    bufferManager.getMapped<IndirectDrawIndexedCommand>(objectDSetComponent->indirectDrawBuffer, currentFrame);
 
 	// same for both passes
 	int globalTransformIndex = 0;
-	baseTransformPerBatch.resize(batch.size());
+	baseTransformPerBatch.resize(batchMeshTransf.size());
 
-	for (size_t b = 0; b < batch.size(); ++b)
+	for (size_t b = 0; b < batchMeshTransf.size(); ++b)
 	{
 		baseTransformPerBatch[b] = globalTransformIndex;
-		for (const auto& agent : batch[b])
+		for (const auto& agent : batchMeshTransf[b])
 		{
 			transfromMeshPtr[globalTransformIndex].model = agent.transform->getGlobalModelMatrix();
 			globalTransformIndex++;
@@ -91,16 +86,13 @@ void BufferUpdateSystem::update(GeneralManager& gm)
 	int localPrimitiveIndex = 0;
 	int globalCullIndex = 0;
 
-	constexpr int kCategoryMap[] = {0, 0, 1, 1, 2, 2};
-
 	drawInfo->segments.resize(kDrawVariantCount);
 	uint32_t prevTotal = 0;
 
 	for (uint32_t i = 0; i < kDrawVariantCount; ++i)
 	{
-		bool doubleSided = (kDrawVariants[i].cullMode == vk::CullModeFlagBits::eNone);
-		writePrimitivesForPass(kCategoryMap[i], doubleSided, renderAssetManager, materialManager, primitivePtr,
-		                       indirectBufferPtr, globalPrimitiveIndex, localPrimitiveIndex, globalCullIndex);
+		writePrimitivesForPass(static_cast<DrawVariantIndex>(i), renderAssetManager, primitivePtr, indirectBufferPtr,
+		                       globalPrimitiveIndex, localPrimitiveIndex, globalCullIndex);
 		drawInfo->segments[i] = {static_cast<uint32_t>(globalPrimitiveIndex - prevTotal), i};
 		prevTotal = globalPrimitiveIndex;
 	}
@@ -109,16 +101,16 @@ void BufferUpdateSystem::update(GeneralManager& gm)
 	drawInfo->totalObjectCount = localPrimitiveIndex;
 }
 
-void BufferUpdateSystem::writePrimitivesForPass(int categoryPass, bool isDoubleSidedPass,
-                                                RenderAssetManager& renderAssetManager, MaterialManager& materialManager,
+void BufferUpdateSystem::writePrimitivesForPass(DrawVariantIndex drawVariant, RenderAssetManager& renderAssetManager,
                                                 ModelData* primitivePtr, IndirectDrawIndexedCommand* indirectBufferPtr,
-                                                int& globalPrimitiveIndex, int& localPrimitiveIndex, int& globalCullIndex)
+                                                int& globalPrimitiveIndex, int& localPrimitiveIndex,
+                                                int& globalCullIndex)
 {
 	IndirectDrawIndexedCommand currentDraw{};
 
-	for (size_t b = 0; b < batch.size(); ++b)
+	for (size_t b = 0; b < batchMeshTransf.size(); ++b)
 	{
-		const auto& agentsInBatch = batch[b];
+		const auto& agentsInBatch = batchMeshTransf[b];
 		if (agentsInBatch.empty()) continue;
 
 		MeshInfoComponent& meshBaseInfo = *agentsInBatch[0].meshInfo;
@@ -129,17 +121,13 @@ void BufferUpdateSystem::writePrimitivesForPass(int categoryPass, bool isDoubleS
 		for (int i = 0; i < primitiveCount; i++)
 		{
 			const auto& primitive = mesh.primitives[i];
-			const auto& material = materialManager.getMaterial(primitive.materialIndex);
-			int category = material.alphaMode; // 0=opaque, 1=mask, 2=blend
-			bool isDoubleSided = (material.doubleSided == 1);
-
-			if (categoryPass != category || isDoubleSidedPass != isDoubleSided) continue;
+			if (primitive.drawVariant != drawVariant) continue;
 
 			// Write indirect draw command
 			currentDraw.indexCount = primitive.indexCount;
 			currentDraw.firstIndex = primitive.indexOffset;
 			currentDraw.vertexOffset = primitive.vertexOffset;
-			currentDraw.instanceCount = 0;
+			currentDraw.instanceCount = 0; // nulling what gpu left here before each frame
 			currentDraw.firstInstance = globalCullIndex;
 			indirectBufferPtr[globalPrimitiveIndex] = currentDraw;
 
