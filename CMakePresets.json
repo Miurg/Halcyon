@@ -10,6 +10,7 @@
           "cacheVariables": {
             "CMAKE_C_COMPILER": "cl.exe",
             "CMAKE_CXX_COMPILER": "cl.exe",
+            "CMAKE_CXX_FLAGS": "/DWIN32 /D_WINDOWS",
             "CMAKE_TOOLCHAIN_FILE": {
               "value": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
               "type": "FILEPATH"
