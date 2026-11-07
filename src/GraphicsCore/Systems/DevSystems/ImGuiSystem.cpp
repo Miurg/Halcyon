@@ -129,7 +129,9 @@ struct ImGuiSystem::SceneCache
 			gm.forEachActiveEntity(
 			    [&](Orhescyon::Entity entity)
 			    {
-				    auto* relationship = gm.getComponent<RelationshipComponent>(entity);
+				    auto* relationship = gm.hasComponent<RelationshipComponent>(entity)
+				                             ? gm.getComponent<RelationshipComponent>(entity)
+				                             : nullptr;
 				    HierarchyEntry entry{entity, relationship ? relationship->parent : NULL_ENTITY,
 				                         relationship ? relationship->firstChild : NULL_ENTITY,
 				                         relationship ? relationship->nextSibling : NULL_ENTITY};
@@ -182,7 +184,9 @@ struct ImGuiSystem::SceneCache
 			if (visitedSlots[wordIndex] & mask) continue;
 			visitedSlots[wordIndex] |= mask;
 
-			auto* relationship = gm.getComponent<RelationshipComponent>(row.entity);
+			auto* relationship = gm.hasComponent<RelationshipComponent>(row.entity)
+			                         ? gm.getComponent<RelationshipComponent>(row.entity)
+			                         : nullptr;
 			if (row.depth > 0 && relationship && relationship->nextSibling != NULL_ENTITY)
 				stack.push_back({relationship->nextSibling, row.depth});
 			row.hasChildren = relationship && relationship->firstChild != NULL_ENTITY;
@@ -221,7 +225,8 @@ void ImGuiSystem::drawMemoryWindow(GeneralManager& gm)
 			}
 			ImGui::PushID(static_cast<int>(sceneInstance.slot));
 			RenderAssetHandle renderAssetHandle = gm.getComponent<RenderAssetComponent>(sceneInstance)->renderAsset;
-			auto* nameComp = gm.getComponent<NameComponent>(sceneInstance);
+			auto* nameComp =
+			    gm.hasComponent<NameComponent>(sceneInstance) ? gm.getComponent<NameComponent>(sceneInstance) : nullptr;
 			ImGui::Text("%u  %s (render asset %d, refs %d)", sceneInstance.slot, nameComp ? nameComp->name : "?",
 			            renderAssetHandle.id, renderAssetManager->getRenderAsset(renderAssetHandle).refCount);
 			ImGui::SameLine();
@@ -320,7 +325,7 @@ void ImGuiSystem::drawEntityTree(GeneralManager& gm)
 			if (!row.hasChildren) flags |= ImGuiTreeNodeFlags_Leaf;
 			if (selectedEntity == row.entity) flags |= ImGuiTreeNodeFlags_Selected;
 			ImGui::SetNextItemOpen(sceneCache->expandedEntities.contains(row.entity), ImGuiCond_Always);
-			auto* name = gm.getComponent<NameComponent>(row.entity);
+			auto* name = gm.hasComponent<NameComponent>(row.entity) ? gm.getComponent<NameComponent>(row.entity) : nullptr;
 			const bool nodeOpen = name ? ImGui::TreeNodeEx("##Entity", flags, "%s", name->name)
 			                           : ImGui::TreeNodeEx("##Entity", flags, "Entity %u", row.entity.slot);
 			if (row.hasChildren && ImGui::IsItemToggledOpen())
@@ -495,7 +500,9 @@ void ImGuiSystem::update(GeneralManager& gm)
 				if (selectedEntity != Orhescyon::Entity::invalid() && gm.isActive(selectedEntity))
 				{
 					ImGui::Text("Inspecting Entity %u", selectedEntity.slot);
-					auto* nameComp = gm.getComponent<NameComponent>(selectedEntity);
+					auto* nameComp = gm.hasComponent<NameComponent>(selectedEntity)
+					                     ? gm.getComponent<NameComponent>(selectedEntity)
+					                     : nullptr;
 					if (nameComp)
 					{
 						ImGui::SameLine();

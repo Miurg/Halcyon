@@ -101,26 +101,28 @@ void DebugPass::addToGraph(Orhescyon::GeneralManager& gm, RenderGraph& rg, uint3
 	    [&](Orhescyon::Entity e, std::vector<AABBPush>& pushData)
 	{
 		if (!gm.isActive(e)) return;
-		if (auto* meshComponent = gm.getComponent<MeshInfoComponent>(e))
-			if (auto* globalTransform = gm.getComponent<GlobalTransformComponent>(e))
-			{
-				AABBPush pd;
-				pd.model = globalTransform->getGlobalModelMatrix();
-				for (const auto& primitive : renderAssetManager.getMesh(meshComponent->mesh).primitives)
-				{
-					pd.aabbMin = primitive.AABBMin;
-					pd.aabbMax = primitive.AABBMax;
-				}
-				pushData.push_back(pd);
-			}
-		if (auto* rel = gm.getComponent<RelationshipComponent>(e))
+		if (gm.hasComponent<MeshInfoComponent>(e) && gm.hasComponent<GlobalTransformComponent>(e))
 		{
+			auto* meshComponent = gm.getComponent<MeshInfoComponent>(e);
+			auto* globalTransform = gm.getComponent<GlobalTransformComponent>(e);
+			AABBPush pd;
+			pd.model = globalTransform->getGlobalModelMatrix();
+			for (const auto& primitive : renderAssetManager.getMesh(meshComponent->mesh).primitives)
+			{
+				pd.aabbMin = primitive.AABBMin;
+				pd.aabbMax = primitive.AABBMax;
+			}
+			pushData.push_back(pd);
+		}
+		if (gm.hasComponent<RelationshipComponent>(e))
+		{
+			auto* rel = gm.getComponent<RelationshipComponent>(e);
 			Orhescyon::Entity child = rel->firstChild;
 			while (child != NULL_ENTITY)
 			{
 				draw(child, pushData);
-				auto* childRel = gm.getComponent<RelationshipComponent>(child);
-				child = childRel ? childRel->nextSibling : NULL_ENTITY;
+				if (!gm.isActive(child) || !gm.hasComponent<RelationshipComponent>(child)) break;
+				child = gm.getComponent<RelationshipComponent>(child)->nextSibling;
 			}
 		}
 	};
@@ -129,9 +131,10 @@ void DebugPass::addToGraph(Orhescyon::GeneralManager& gm, RenderGraph& rg, uint3
 
 	// Reflection probe debug: only for the selected probe, so it toggles with selection.
 	// Read from the component (not the GPU buffer) so it also shows before the first bake.
-	if (gm.isActive(graphicsSettings.selectedEntity))
-	if (auto* refl = gm.getComponent<ReflectionProbeComponent>(graphicsSettings.selectedEntity))
+	if (gm.isActive(graphicsSettings.selectedEntity) &&
+	    gm.hasComponent<ReflectionProbeComponent>(graphicsSettings.selectedEntity))
 	{
+		auto* refl = gm.getComponent<ReflectionProbeComponent>(graphicsSettings.selectedEntity);
 		AABBPush box;
 		box.model = glm::mat4(1.0f);
 		box.aabbMin = refl->origin - refl->halfExtent;

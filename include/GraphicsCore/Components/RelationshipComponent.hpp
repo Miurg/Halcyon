@@ -14,12 +14,9 @@ struct HALCYON_API RelationshipComponent
 
 	void addChild(Orhescyon::Entity myEntity, Orhescyon::Entity childEntity, Orhescyon::GeneralManager& gm)
 	{
-		auto* childRel = gm.getComponent<RelationshipComponent>(childEntity);
-		if (childRel == nullptr)
-		{
-			childRel = gm.addComponentImmediate<RelationshipComponent>(
-			    childEntity); // If the child entity does not have a RelationshipComponent, add one
-		}
+		auto* childRel = gm.hasComponent<RelationshipComponent>(childEntity)
+		                     ? gm.getComponent<RelationshipComponent>(childEntity)
+		                     : gm.addComponentImmediate<RelationshipComponent>(childEntity);
 		childRel->parent = myEntity;
 		childRel->nextSibling = firstChild;
 		childRel->prevSibling = NULL_ENTITY;

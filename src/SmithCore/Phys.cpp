@@ -91,10 +91,9 @@ void Smith::Phys::forgeBody(Orhescyon::GeneralManager& gm, Orhescyon::Entity e, 
 		physBody->bodyID = bodyID;
 	}
 
-	PhysTransformSnapshotComponent* snapshot = gm.getComponent<PhysTransformSnapshotComponent>(e);
-	if (!snapshot)
+	if (!gm.hasComponent<PhysTransformSnapshotComponent>(e))
 	{
-		snapshot = gm.addComponentImmediate<PhysTransformSnapshotComponent>(e);
+		gm.addComponentImmediate<PhysTransformSnapshotComponent>(e);
 	}
 
 	gm.subscribeEntityImmediate<PhysSnapshotSystem>(e);

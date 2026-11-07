@@ -43,12 +43,12 @@ public:
 	template <typename Component, typename InspectFn>
 	void add(const char* name, InspectFn inspectFn)
 	{
-		_inspectors.push_back({name,
-		                       [name, inspectFn](GeneralManager& gm, Entity entity)
+		_inspectors.push_back({name, [name, inspectFn](GeneralManager& gm, Entity entity)
 		                       {
-			                       if (auto* component = gm.getComponent<Component>(entity))
-				                       if (ImGui::CollapsingHeader(name, ImGuiTreeNodeFlags_DefaultOpen))
-					                       inspectFn(gm, entity, *component);
+			                       if (!gm.isActive(entity) || !gm.hasComponent<Component>(entity)) return;
+			                       auto* component = gm.getComponent<Component>(entity);
+			                       if (ImGui::CollapsingHeader(name, ImGuiTreeNodeFlags_DefaultOpen))
+				                       inspectFn(gm, entity, *component);
 		                       }});
 	}
 
@@ -63,8 +63,9 @@ private:
 
 inline void pushTransformToBody(GeneralManager& gm, Entity entity, glm::vec3 worldPosition, glm::quat worldRotation)
 {
+	if (!gm.isActive(entity) || !gm.hasComponent<PhysBodyComponent>(entity)) return;
+
 	auto* physBody = gm.getComponent<PhysBodyComponent>(entity);
-	if (!physBody) return;
 
 	auto& bodyInterface = gm.getContextComponent<PhysManagerContext, PhysManagerComponent>()
 	                          ->physManager->physicsSystem->GetBodyInterface();
@@ -112,8 +113,9 @@ inline void inspectLocalTransform(GeneralManager& gm, Entity entity, LocalTransf
 
 	glm::vec3 worldPosition = position;
 	glm::quat worldRotation = rotation;
-	if (auto* relationship = gm.getComponent<RelationshipComponent>(entity))
+	if (gm.hasComponent<RelationshipComponent>(entity))
 	{
+		auto* relationship = gm.getComponent<RelationshipComponent>(entity);
 		if (relationship->parent != NULL_ENTITY)
 		{
 			auto* parent = gm.getComponent<GlobalTransformComponent>(relationship->parent);

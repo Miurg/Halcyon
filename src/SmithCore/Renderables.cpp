@@ -39,8 +39,9 @@ void collectSubtree(Orhescyon::Entity entity, Orhescyon::GeneralManager& gm,
                     std::vector<Orhescyon::Entity>& entities)
 {
 	entities.push_back(entity);
+	if (!gm.isActive(entity) || !gm.hasComponent<RelationshipComponent>(entity)) return;
+
 	RelationshipComponent* relationship = gm.getComponent<RelationshipComponent>(entity);
-	if (!relationship) return;
 
 	for (Orhescyon::Entity child = relationship->firstChild; child != NULL_ENTITY;)
 	{

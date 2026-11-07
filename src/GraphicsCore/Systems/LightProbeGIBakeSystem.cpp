@@ -38,7 +38,7 @@ void LightProbeGIBakeSystem::update(GeneralManager& gm)
 	gm.forEachActiveEntity(
 	    [&](Orhescyon::Entity entity)
 	    {
-		    if (auto* reflectionProbe = gm.getComponent<ReflectionProbeComponent>(entity))
-			    reflectionProbe->needBake = true;
+		    if (gm.hasComponent<ReflectionProbeComponent>(entity))
+			    gm.getComponent<ReflectionProbeComponent>(entity)->needBake = true;
 	    });
 }
