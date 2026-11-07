@@ -47,7 +47,6 @@ void FrameEndSystem::update(GeneralManager& gm)
 
 	if (!currentFrameComp->frameValid) return;
 
-
 	{
 #ifdef TRACY_ENABLE
 		ZoneScopedN("RenderGraph");
@@ -55,7 +54,6 @@ void FrameEndSystem::update(GeneralManager& gm)
 		RenderGraph* rg = gm.getContextComponent<RenderGraphContext, RenderGraphComponent>()->renderGraph;
 		rg->compile();
 		rg->execute(frameManager->frames[currentFrameComp->currentFrame].commandBuffer);
-
 	}
 
 	vk::PipelineStageFlags waitDestinationStageMask(vk::PipelineStageFlagBits::eColorAttachmentOutput);
@@ -68,21 +66,10 @@ void FrameEndSystem::update(GeneralManager& gm)
 	vulkanDevice.graphicsQueue.submit(submitInfo, *frameManager->frames[currentFrameComp->currentFrame].inFlightFence);
 
 	// Present the image
-	const vk::PresentInfoKHR presentInfoKHR(*swapChain.renderFinishedSemaphores[imageIndex],
-	                                        *swapChain.swapChainHandle, imageIndex);
+	const vk::PresentInfoKHR presentInfoKHR(*swapChain.renderFinishedSemaphores[imageIndex], *swapChain.swapChainHandle,
+	                                        imageIndex);
 	vk::Result presentResult;
-	try
-	{
-		presentResult = vulkanDevice.presentQueue.presentKHR(presentInfoKHR);
-	}
-	catch (vk::OutOfDateKHRError&)
-	{
-		presentResult = vk::Result::eErrorOutOfDateKHR;
-	}
-	catch (vk::SystemError& e)
-	{
-		throw std::runtime_error("failed to present swap chain image!");
-	}
+	presentResult = vulkanDevice.presentQueue.presentKHR(presentInfoKHR);
 
 	// Check the result of the presentation
 	if (presentResult == vk::Result::eErrorOutOfDateKHR || presentResult == vk::Result::eSuboptimalKHR)

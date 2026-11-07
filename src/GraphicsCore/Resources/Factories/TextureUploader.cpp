@@ -194,30 +194,14 @@ void TextureUploader::uploadKtxTextureData(const unsigned char* ktxData, size_t 
 	desc.format = vkFmt;
 	desc.usage = vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled;
 	desc.mipLevels = mipLevels;
-	try
-	{
-		textureManager.createImage(texture, desc);
-	}
-	catch (...)
-	{
-		ktxTexture_Destroy(ktxTexture(ktxTex));
-		throw;
-	}
+	textureManager.createImage(texture, desc);
 
 	// Staging buffer — copy the full KTX data blob (all mip levels contiguous)
 	ktx_size_t totalSize = ktxTexture_GetDataSize(ktxTexture(ktxTex));
 	ktx_uint8_t* dataPtr = ktxTexture_GetData(ktxTexture(ktxTex));
 
 	StagingBuffer staging;
-	try
-	{
-		staging = VulkanUtils::createStagingBuffer(dataPtr, totalSize, allocator);
-	}
-	catch (...)
-	{
-		ktxTexture_Destroy(ktxTexture(ktxTex));
-		throw;
-	}
+	staging = VulkanUtils::createStagingBuffer(dataPtr, totalSize, allocator);
 
 	auto cmd = VulkanUtils::beginSingleTimeCommands(vulkanDevice);
 

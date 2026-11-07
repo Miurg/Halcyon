@@ -18,19 +18,12 @@ App::App(std::size_t workerCount) : jobRuntime(workerCount), ecsJobs(jobRuntime)
 	gm.registerContext<DeletionQueueContext>(dqEntity);
 	gm.addComponentImmediate<DeletionQueueComponent>(dqEntity, &deletionQueue);
 
-	try
-	{
-		PhysicsInit::Run(gm, jobRuntime);
-		PlatformInit::Run(gm);
-		GraphicsInit::Run(gm);
-		AudioInit::Run(gm);
-	}
-	catch (const std::exception& e)
-	{
-		std::cerr << "ERROR::APP::INIT::Exception: " << e.what() << std::endl;
-		return;
-	}
+	PhysicsInit::Run(gm, jobRuntime);
+	PlatformInit::Run(gm);
+	GraphicsInit::Run(gm);
+	AudioInit::Run(gm);
 }
+
 App::~App()
 {
 	jobRuntime.waitForAll();
@@ -40,16 +33,7 @@ using Orhescyon::GeneralManager;
 
 int App::run()
 {
-	try
-	{
-		MainLoop::startLoop(gm);
-	}
-	catch (const std::exception& e)
-	{
-		std::cerr << "ERROR::APP::MAINLOOP::Exception: " << e.what() << std::endl;
-		return EXIT_FAILURE;
-	}
-
+	MainLoop::startLoop(gm);
 	return EXIT_SUCCESS;
 }
 
@@ -60,14 +44,6 @@ App App::create(std::size_t workerCount)
 
 App& App::addStartUp(IStartUp& startUp)
 {
-	try
-	{
-		startUp.Run(gm);
-	}
-	catch (const std::exception& e)
-	{
-		std::cerr << "ERROR::APP::INIT::Exception: " << e.what() << std::endl;
-		return *this;
-	}
+	startUp.Run(gm);
 	return *this;
 }

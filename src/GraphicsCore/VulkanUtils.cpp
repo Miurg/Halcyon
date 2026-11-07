@@ -192,7 +192,8 @@ AllocatedImage VulkanUtils::createImage(VmaAllocator allocator, const ImageDesc&
 {
 	if (desc.width == 0 || desc.height == 0)
 	{
-		throw std::runtime_error("failed to create VMA image: invalid image dimensions (width or height is 0)!");
+		std::cout << "failed to create VMA image: invalid image dimensions (width or height is 0)!" << std::endl;
+		std::abort();
 	}
 
 	VkImageCreateInfo imageInfo = {VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO};
@@ -218,7 +219,8 @@ AllocatedImage VulkanUtils::createImage(VmaAllocator allocator, const ImageDesc&
 	VkResult res = vmaCreateImage(allocator, &imageInfo, &allocInfo, &rawImage, &result.allocation, nullptr);
 	if (res != VK_SUCCESS)
 	{
-		throw std::runtime_error("failed to create VMA image!");
+		std::cout << "failed to create VMA image!" << std::endl;
+		std::abort();
 	}
 	result.image = vk::Image(rawImage);
 	return result;

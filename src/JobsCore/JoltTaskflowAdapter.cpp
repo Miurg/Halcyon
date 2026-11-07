@@ -69,22 +69,13 @@ void JoltTaskflowAdapter::QueueJob(Job* job)
 	job->AddRef();
 	pendingJobs->fetch_add(1, std::memory_order_relaxed);
 
-	try
-	{
-		_runtime.executor().silent_async(
-		    [job, pendingJobs]() noexcept
-		    {
-			    job->Execute();
-			    job->Release();
-			    if (pendingJobs->fetch_sub(1, std::memory_order_acq_rel) == 1) pendingJobs->notify_all();
-		    });
-	}
-	catch (...)
-	{
-		job->Release();
-		if (pendingJobs->fetch_sub(1, std::memory_order_acq_rel) == 1) pendingJobs->notify_all();
-		throw;
-	}
+	_runtime.executor().silent_async(
+	    [job, pendingJobs]() noexcept
+	    {
+		    job->Execute();
+		    job->Release();
+		    if (pendingJobs->fetch_sub(1, std::memory_order_acq_rel) == 1) pendingJobs->notify_all();
+	    });
 }
 
 void JoltTaskflowAdapter::QueueJobs(Job** jobs, JPH::uint count)

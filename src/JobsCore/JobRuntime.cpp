@@ -12,7 +12,12 @@ std::size_t JobRuntime::defaultWorkerCount() noexcept
 
 JobRuntime::JobRuntime(std::size_t workerCount)
 {
-	if (workerCount == 0) throw std::invalid_argument("JobRuntime: workerCount must be at least 1");
+	if (workerCount == 0)
+	{
+		std::cout << "JobRuntime: workerCount must be at least 1" << std::endl;
+		std::abort();
+	}
+
 	_executor = std::make_unique<tf::Executor>(workerCount);
 }
 
@@ -32,7 +37,8 @@ void JobRuntime::waitForAll()
 {
 	if (_executor->this_worker_id() >= 0)
 	{
-		throw std::logic_error("JobRuntime: waitForAll must be called outside its workers");
+		std::cout << "JobRuntime: waitForAll must be called outside its workers" << std::endl;
+		std::abort();
 	}
 	_executor->wait_for_all();
 }

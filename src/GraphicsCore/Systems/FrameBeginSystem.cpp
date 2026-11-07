@@ -55,31 +55,25 @@ void FrameBeginSystem::update(GeneralManager& gm)
 #ifdef TRACY_ENABLE
 		ZoneScopedN("waitForFences");
 #endif
-		try
+		vk::Result fenceResult = vulkanDevice.device.waitForFences(
+		    *frameManager->frames[currentFrameComp->currentFrame].inFlightFence, vk::True, UINT64_MAX);
+
+		switch (fenceResult)
 		{
-			vk::Result fenceResult = vulkanDevice.device.waitForFences(
-			    *frameManager->frames[currentFrameComp->currentFrame].inFlightFence, vk::True, UINT64_MAX);
+		case vk::Result::eSuccess:
+			break;
 
-			switch (fenceResult)
-			{
-				case vk::Result::eSuccess:
-					break;
+		case vk::Result::eTimeout:
+			std::cerr << "[FrameBeginSystem] waitForFences timed out. Skipping frame." << std::endl;
+			return;
 
-				case vk::Result::eTimeout:
-					std::cerr << "[FrameBeginSystem] waitForFences timed out. Skipping frame." << std::endl;
-					return;
+		case vk::Result::eErrorDeviceLost:
+			std::cerr << "[FrameBeginSystem] Device lost while waiting for fence!" << std::endl;
+			std::abort();
 
-				case vk::Result::eErrorDeviceLost:
-					throw std::runtime_error("[FrameBeginSystem] Device lost while waiting for fence!");
-
-				default:
-					throw std::runtime_error("[FrameBeginSystem] waitForFences returned unexpected error!");
-			}
-		}
-		catch (vk::SystemError& e)
-		{
-			throw std::runtime_error(
-			    std::string("[FrameBeginSystem] waitForFences failed with exception: ") + e.what());
+		default:
+			std::cerr << "[FrameBeginSystem] waitForFences returned unexpected error!" << std::endl;
+			std::abort();
 		}
 	}
 
@@ -111,23 +105,25 @@ void FrameBeginSystem::update(GeneralManager& gm)
 		auto [result, imageIndex] = swapChain.swapChainHandle.acquireNextImage(
 		    UINT64_MAX, *frameManager->frames[currentFrameComp->currentFrame].presentCompleteSemaphore, nullptr);
 
-		try
+		if (result == vk::Result::eSuccess || result == vk::Result::eSuboptimalKHR)
 		{
-			if (result == vk::Result::eErrorOutOfDateKHR)
-			{
-				window.framebufferResized = false;
-				SwapChainFactory::recreateSwapChain(swapChain, vulkanDevice, window);
-				return;
-			}
+			currentFrameComp->frameValid = true;
 		}
-		catch (vk::OutOfDateKHRError&)
+		else if (result == vk::Result::eErrorOutOfDateKHR)
 		{
+			window.framebufferResized = false;
 			SwapChainFactory::recreateSwapChain(swapChain, vulkanDevice, window);
 			return;
 		}
-		catch (vk::SystemError& e)
+		else if (result == vk::Result::eTimeout || result == vk::Result::eNotReady)
 		{
-			throw std::runtime_error("failed to acquire swap chain image!");
+			currentFrameComp->frameValid = false;
+			return;
+		}
+		else
+		{
+			std::cout << "failed to acquire swap chain image!" << std::endl;
+			std::abort();
 		}
 
 		vulkanDevice.device.resetFences(*frameManager->frames[currentFrameComp->currentFrame].inFlightFence);

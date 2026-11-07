@@ -232,7 +232,8 @@ void RenderGraph::compile()
 		auto it = logicalStreams.find(logicalName);
 		if (it == logicalStreams.end() && physicalName != logicalName)
 		{
-			throw std::runtime_error("RenderGraph: Logical stream not declared: " + logicalName);
+			std::cout << "RenderGraph: Logical stream not declared: " << logicalName << std::endl;
+			std::abort();
 		}
 		RGImageDesc desc = (it != logicalStreams.end()) ? it->second : RGImageDesc{};
 
@@ -704,16 +705,10 @@ void RenderGraph::allocateTransientImage(RGResourceEntry& res)
 	imageDesc.usage = usage;
 	imageDesc.mipLevels = mips;
 	imageDesc.samples = res.desc.samples;
-	try
-	{
-		AllocatedImage allocated = VulkanUtils::createImage(allocator, imageDesc);
-		res.image = allocated.image;
-		res.allocation = allocated.allocation;
-	}
-	catch (const std::exception&)
-	{
-		throw std::runtime_error("RenderGraph: failed to create VMA image for '" + res.name + "'");
-	}
+
+	AllocatedImage allocated = VulkanUtils::createImage(allocator, imageDesc);
+	res.image = allocated.image;
+	res.allocation = allocated.allocation;
 
 	vk::ImageViewCreateInfo viewInfo;
 	viewInfo.image = res.image;
