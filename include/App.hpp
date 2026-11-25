@@ -6,7 +6,6 @@
 #include "DeletionQueue.hpp"
 #include "IStartUp.hpp"
 #include "JobsCore/JobRuntime.hpp"
-#include "JobsCore/OrhescyonTaskflowAdapter.hpp"
 
 class HALCYON_API App
 {
@@ -26,7 +25,6 @@ public:
 
 private:
 	JobRuntime jobRuntime;
-	OrhescyonTaskflowAdapter ecsJobs;
 	Orhescyon::GeneralManager gm;
 	DeletionQueue deletionQueue;
 };

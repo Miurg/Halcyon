@@ -15,7 +15,7 @@
 #include "JobsCore/JobsContexts.hpp"
 #include "JobsCore/JobsInit.hpp"
 
-App::App(std::size_t workerCount) : jobRuntime(workerCount), ecsJobs(jobRuntime), gm(&ecsJobs), deletionQueue(&gm)
+App::App(std::size_t workerCount) : jobRuntime(workerCount), gm(nullptr), deletionQueue(&gm)
 {
 	Orhescyon::Entity dqEntity = gm.createEntity();
 	gm.registerContext<DeletionQueueContext>(dqEntity);

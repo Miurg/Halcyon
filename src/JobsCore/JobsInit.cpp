@@ -7,6 +7,7 @@
 #include "JobsCore/Components/JobManagerComponent.hpp"
 #include "JobsCore/JobsContexts.hpp"
 #include "JobsCore/Managers/JobManager.hpp"
+#include "JobsCore/OrhescyonTaskflowAdapter.hpp"
 
 void JobsInit::Run(Orhescyon::GeneralManager& gm, JobRuntime& jobRuntime)
 {
@@ -29,6 +30,9 @@ void JobsInit::initJobs(Orhescyon::GeneralManager& gm, JobRuntime& jobRuntime)
 	JobManager* jobManager = new JobManager(jobRuntime);
 	gm.addComponentImmediate<JobManagerComponent>(jobManagerEntity, jobManager);
 	gm.registerContext<JobManagerContext>(jobManagerEntity);
-
 	dq->push_function([jobManager]() { delete jobManager; });
+
+	OrhescyonTaskflowAdapter* ecsJobs = new OrhescyonTaskflowAdapter(*jobManager);
+	gm.setJobSystem(ecsJobs);
+	dq->push_function([ecsJobs]() { delete ecsJobs; });
 }
