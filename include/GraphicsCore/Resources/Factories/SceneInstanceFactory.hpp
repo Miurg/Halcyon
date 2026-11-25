@@ -12,17 +12,19 @@
 #include "GraphicsCore/Resources/Managers/SceneTemplateManager.hpp"
 #include <cstdint>
 
+class JobManager;
+
 class HALCYON_API SceneInstanceFactory
 {
 public:
-	static SceneTemplateHandle loadSceneInstance(
-	    const char path[MAX_PATH_LEN], int vertexIndexBInt, BufferManager& bufferManager,
-	    BindlessTextureDSetComponent& dSetComponent, DescriptorManager& descriptorManager,
-	    TextureManager& textureManager, RenderAssetManager& renderAssetManager,
-	    SceneTemplateManager& sceneTemplateManager, MaterialManager& materialManager, VulkanDevice& vulkanDevice,
-	    VmaAllocator allocator, int sceneIndex = -1);
+	static SceneTemplateHandle
+	loadSceneInstance(const char path[MAX_PATH_LEN], int vertexIndexBInt, BufferManager& bufferManager,
+	                  BindlessTextureDSetComponent& dSetComponent, DescriptorManager& descriptorManager,
+	                  TextureManager& textureManager, RenderAssetManager& renderAssetManager,
+	                  SceneTemplateManager& sceneTemplateManager, MaterialManager& materialManager,
+	                  VulkanDevice& vulkanDevice, VmaAllocator allocator, JobManager& jobManager, int sceneIndex = -1);
 	static bool unloadSceneInstance(SceneTemplateHandle sceneTemplateHandle, RenderAssetHandle renderAssetHandle,
-	                                SceneTemplateManager& sceneTemplateManager,
-	                                RenderAssetManager& renderAssetManager, TextureManager& textureManager,
-	                                MaterialManager& materialManager, uint32_t frameNumber);
+	                                SceneTemplateManager& sceneTemplateManager, RenderAssetManager& renderAssetManager,
+	                                TextureManager& textureManager, MaterialManager& materialManager,
+	                                uint32_t frameNumber);
 };

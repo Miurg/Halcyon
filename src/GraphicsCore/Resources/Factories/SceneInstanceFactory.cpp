@@ -25,9 +25,10 @@ glm::mat4 convertGLTFMatrix(const std::vector<double>& matrix)
 	return glm::make_mat4(m);
 }
 
-SceneTemplateNodeHandle parseSceneTemplateHierarchy(
-    SceneTemplateNodeHandle parentNode, tinygltf::Model& model, SceneTemplateManager& sceneTemplateManager,
-    SceneTemplate& sceneTemplate, const std::vector<MeshHandle>& meshSlots, int nodeIndex)
+SceneTemplateNodeHandle parseSceneTemplateHierarchy(SceneTemplateNodeHandle parentNode, tinygltf::Model& model,
+                                                    SceneTemplateManager& sceneTemplateManager,
+                                                    SceneTemplate& sceneTemplate,
+                                                    const std::vector<MeshHandle>& meshSlots, int nodeIndex)
 {
 	tinygltf::Node& node = model.nodes[nodeIndex];
 
@@ -145,7 +146,8 @@ SceneTemplateHandle SceneInstanceFactory::loadSceneInstance(
     const char path[MAX_PATH_LEN], int vertexIndexBInt, BufferManager& bufferManager,
     BindlessTextureDSetComponent& dSetComponent, DescriptorManager& descriptorManager, TextureManager& textureManager,
     RenderAssetManager& renderAssetManager, SceneTemplateManager& sceneTemplateManager,
-    MaterialManager& materialManager, VulkanDevice& vulkanDevice, VmaAllocator allocator, int sceneIndex)
+    MaterialManager& materialManager, VulkanDevice& vulkanDevice, VmaAllocator allocator, JobManager& jobManager,
+    int sceneIndex)
 {
 	if (sceneIndex < -1) throw std::runtime_error("glTF scene index cannot be less than -1");
 
@@ -217,8 +219,7 @@ SceneTemplateHandle SceneInstanceFactory::loadSceneInstance(
 	std::vector<int> rootNodeIndices;
 	if (model.scenes.empty())
 	{
-		if (sceneIndex != -1)
-			throw std::runtime_error("Cannot select a scene from a glTF asset without scenes");
+		if (sceneIndex != -1) throw std::runtime_error("Cannot select a scene from a glTF asset without scenes");
 
 		std::vector<bool> childNodes(model.nodes.size(), false);
 		for (const tinygltf::Node& node : model.nodes)
@@ -238,8 +239,7 @@ SceneTemplateHandle SceneInstanceFactory::loadSceneInstance(
 	else
 	{
 		selectedSceneIndex = sceneIndex;
-		if (selectedSceneIndex == -1)
-			selectedSceneIndex = model.defaultScene == -1 ? 0 : model.defaultScene;
+		if (selectedSceneIndex == -1) selectedSceneIndex = model.defaultScene == -1 ? 0 : model.defaultScene;
 		if (selectedSceneIndex < 0 || selectedSceneIndex >= static_cast<int>(model.scenes.size()))
 			throw std::runtime_error("glTF scene index is out of range");
 		rootNodeIndices = model.scenes[selectedSceneIndex].nodes;
@@ -261,7 +261,7 @@ SceneTemplateHandle SceneInstanceFactory::loadSceneInstance(
 	{
 		renderAssetHandle = GltfLoader::loadRenderAssetFromFile(
 		    path, vertexIndexBInt, bufferManager, dSetComponent, descriptorManager, model, textureManager,
-		    renderAssetManager, materialManager, vulkanDevice, allocator);
+		    renderAssetManager, materialManager, vulkanDevice, allocator, jobManager);
 	}
 
 	SceneTemplate sceneTemplate;
@@ -272,8 +272,7 @@ SceneTemplateHandle SceneInstanceFactory::loadSceneInstance(
 		parseSceneTemplateHierarchy(SceneTemplateNodeHandle{}, model, sceneTemplateManager, sceneTemplate,
 		                            renderAssetManager.getRenderAsset(renderAssetHandle).meshes, rootNodeIndex);
 	}
-	sceneTemplateHandle =
-	    sceneTemplateManager.addSceneTemplate(path, selectedSceneIndex, std::move(sceneTemplate));
+	sceneTemplateHandle = sceneTemplateManager.addSceneTemplate(path, selectedSceneIndex, std::move(sceneTemplate));
 	if (sceneIndex == -1) sceneTemplateManager.setDefaultSceneTemplate(path, sceneTemplateHandle);
 	return sceneTemplateHandle;
 }
@@ -281,9 +280,8 @@ SceneTemplateHandle SceneInstanceFactory::loadSceneInstance(
 bool SceneInstanceFactory::unloadSceneInstance(SceneTemplateHandle sceneTemplateHandle,
                                                RenderAssetHandle renderAssetHandle,
                                                SceneTemplateManager& sceneTemplateManager,
-                                               RenderAssetManager& renderAssetManager,
-                                               TextureManager& textureManager, MaterialManager& materialManager,
-                                               uint32_t frameNumber)
+                                               RenderAssetManager& renderAssetManager, TextureManager& textureManager,
+                                               MaterialManager& materialManager, uint32_t frameNumber)
 {
 	sceneTemplateManager.releaseSceneTemplateRef(sceneTemplateHandle);
 	if (!renderAssetManager.releaseRenderAssetRef(renderAssetHandle)) return true;
@@ -292,8 +290,7 @@ bool SceneInstanceFactory::unloadSceneInstance(SceneTemplateHandle sceneTemplate
 	renderAssetManager.freeGeometry(renderAsset.allocation, frameNumber);
 	for (MeshHandle slot : renderAsset.meshes) renderAssetManager.freeMeshSlot(slot);
 	for (TextureHandle textureId : renderAsset.textures) textureManager.freeTexture(textureId, frameNumber);
-	for (MaterialHandle materialSlot : renderAsset.materials)
-		materialManager.freeMaterial(materialSlot, frameNumber);
+	for (MaterialHandle materialSlot : renderAsset.materials) materialManager.freeMaterial(materialSlot, frameNumber);
 	renderAssetManager.unregisterRenderAssetPath(renderAssetHandle);
 	renderAssetManager.freeRenderAssetSlot(renderAssetHandle);
 

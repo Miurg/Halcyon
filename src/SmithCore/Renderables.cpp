@@ -23,6 +23,9 @@
 #include "GraphicsCore/Resources/Components/SceneInstanceComponent.hpp"
 #include "GraphicsCore/Resources/Factories/SceneInstanceFactory.hpp"
 #include "GraphicsCore/GraphicsContexts.hpp"
+#include "JobsCore/Components/JobManagerComponent.hpp"
+#include "JobsCore/JobsContexts.hpp"
+#include "JobsCore/Managers/JobManager.hpp"
 #include <cstdint>
 #include <filesystem>
 #include <iostream>
@@ -35,8 +38,7 @@ namespace
 {
 constexpr int DEFAULT_VERTEX_INDEX_BUFFER = 0;
 
-void collectSubtree(Orhescyon::Entity entity, Orhescyon::GeneralManager& gm,
-                    std::vector<Orhescyon::Entity>& entities)
+void collectSubtree(Orhescyon::Entity entity, Orhescyon::GeneralManager& gm, std::vector<Orhescyon::Entity>& entities)
 {
 	entities.push_back(entity);
 	if (!gm.isActive(entity) || !gm.hasComponent<RelationshipComponent>(entity)) return;
@@ -101,10 +103,11 @@ Orhescyon::Entity Smith::Renderables::forgeSceneInstance(Orhescyon::GeneralManag
 	VulkanDevice& vulkanDevice =
 	    *gm.getContextComponent<MainVulkanDeviceContext, VulkanDeviceComponent>()->vulkanDeviceInstance;
 	VmaAllocator allocator = gm.getContextComponent<VMAllocatorContext, VMAllocatorComponent>()->allocator;
+	JobManager& jobManager = *gm.getContextComponent<JobManagerContext, JobManagerComponent>()->jobManager;
 
 	SceneTemplateHandle sceneTemplateHandle = SceneInstanceFactory::loadSceneInstance(
 	    path, DEFAULT_VERTEX_INDEX_BUFFER, bufferManager, dSetComponent, descriptorManager, textureManager,
-	    renderAssetManager, sceneTemplateManager, materialManager, vulkanDevice, allocator, sceneIndex);
+	    renderAssetManager, sceneTemplateManager, materialManager, vulkanDevice, allocator, jobManager, sceneIndex);
 
 	const SceneTemplate& sceneTemplate = sceneTemplateManager.getSceneTemplate(sceneTemplateHandle);
 	if (sceneTemplate.renderAsset.id == -1)
@@ -163,16 +166,13 @@ Orhescyon::Entity Smith::Renderables::forgeSceneInstance(Orhescyon::GeneralManag
 	return sceneInstance;
 }
 
-bool Smith::Renderables::destroySceneInstance(Orhescyon::GeneralManager& gm,
-                                              Orhescyon::Entity sceneInstance)
+bool Smith::Renderables::destroySceneInstance(Orhescyon::GeneralManager& gm, Orhescyon::Entity sceneInstance)
 {
-	if (!gm.hasComponent<RenderAssetComponent>(sceneInstance) ||
-	    !gm.hasComponent<SceneInstanceComponent>(sceneInstance))
+	if (!gm.hasComponent<RenderAssetComponent>(sceneInstance) || !gm.hasComponent<SceneInstanceComponent>(sceneInstance))
 		return false;
 
 	RenderAssetHandle renderAssetHandle = gm.getComponent<RenderAssetComponent>(sceneInstance)->renderAsset;
-	SceneTemplateHandle sceneTemplateHandle =
-	    gm.getComponent<SceneInstanceComponent>(sceneInstance)->sceneTemplate;
+	SceneTemplateHandle sceneTemplateHandle = gm.getComponent<SceneInstanceComponent>(sceneInstance)->sceneTemplate;
 	SceneTemplateManager& sceneTemplateManager =
 	    *gm.getContextComponent<SceneTemplateManagerContext, SceneTemplateManagerComponent>()->sceneTemplateManager;
 	RenderAssetManager& renderAssetManager =
@@ -202,7 +202,6 @@ bool Smith::Renderables::destroySceneInstance(Orhescyon::GeneralManager& gm,
 	collectSubtree(sceneInstance, gm, entities);
 	for (Orhescyon::Entity entity : entities) gm.destroyEntityImmediate(entity);
 
-	return SceneInstanceFactory::unloadSceneInstance(
-	    sceneTemplateHandle, renderAssetHandle, sceneTemplateManager, renderAssetManager, textureManager,
-	    materialManager, frameNumber);
+	return SceneInstanceFactory::unloadSceneInstance(sceneTemplateHandle, renderAssetHandle, sceneTemplateManager,
+	                                                 renderAssetManager, textureManager, materialManager, frameNumber);
 }

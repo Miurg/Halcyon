@@ -14,6 +14,9 @@
 #include "GraphicsCore/Components/RenderAssetManagerComponent.hpp"
 #include "GraphicsCore/Components/TextureManagerComponent.hpp"
 #include "GraphicsCore/Resources/Managers/TextureManager.hpp"
+#include "JobsCore/Components/JobManagerComponent.hpp"
+#include "JobsCore/JobsContexts.hpp"
+#include "JobsCore/Managers/JobManager.hpp"
 #include "Shared/GpuStructs.h"
 
 #ifdef TRACY_ENABLE
@@ -69,18 +72,29 @@ void BufferUpdateSystem::update(GeneralManager& gm)
 	    bufferManager.getMapped<IndirectDrawIndexedCommand>(objectDSetComponent->indirectDrawBuffer, currentFrame);
 
 	// same for both passes
-	int globalTransformIndex = 0;
+	_orderedTransforms.clear();
 	baseTransformPerBatch.resize(batchMeshTransf.size());
 
 	for (size_t b = 0; b < batchMeshTransf.size(); ++b)
 	{
-		baseTransformPerBatch[b] = globalTransformIndex;
+		baseTransformPerBatch[b] = static_cast<int>(_orderedTransforms.size());
 		for (const auto& agent : batchMeshTransf[b])
 		{
-			transfromMeshPtr[globalTransformIndex].model = agent.transform->getGlobalModelMatrix();
-			globalTransformIndex++;
+			_orderedTransforms.push_back(agent.transform);
 		}
 	}
+
+	JobManager& jobManager = *gm.getContextComponent<JobManagerContext, JobManagerComponent>()->jobManager;
+	jobManager.parallelFor(
+	    _orderedTransforms.size(),
+	    [this, transfromMeshPtr](std::size_t begin, std::size_t end)
+	    {
+		    for (std::size_t index = begin; index < end; ++index)
+		    {
+			    transfromMeshPtr[index].model = _orderedTransforms[index]->getGlobalModelMatrix();
+		    }
+	    },
+	    64, "BufferUpdateSystem::transforms");
 
 	int globalPrimitiveIndex = 0;
 	int localPrimitiveIndex = 0;

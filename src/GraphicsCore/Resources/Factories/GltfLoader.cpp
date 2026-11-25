@@ -13,10 +13,10 @@ GltfLoader::loadRenderAssetFromFile(const char path[MAX_PATH_LEN], int vertexInd
                                     BindlessTextureDSetComponent& dSetComponent, DescriptorManager& descriptorManager,
                                     tinygltf::Model& model, TextureManager& textureManager,
                                     RenderAssetManager& renderAssetManager, MaterialManager& materialManager,
-                                    VulkanDevice& vulkanDevice, VmaAllocator allocator)
+                                    VulkanDevice& vulkanDevice, VmaAllocator allocator, JobManager& jobManager)
 {
 	MaterialMaps materialMaps = materialsParser(model, textureManager, materialManager, dSetComponent, descriptorManager,
-	                                            bufferManager, path, vulkanDevice, allocator);
+	                                            bufferManager, path, vulkanDevice, allocator, jobManager);
 
 	std::vector<Vertex> localVertices;
 	std::vector<uint32_t> localIndices;
@@ -87,7 +87,7 @@ GltfLoader::loadMaterialTexture(tinygltf::Model& model, const std::map<std::stri
                                 const char* paramName, bool isSrgb, TextureHandle fallback, const char* filePath,
                                 std::vector<TextureHandle>& ownedTextures, TextureManager& textureManager,
                                 BindlessTextureDSetComponent& dSetComponent, DescriptorManager& descriptorManager,
-                                VulkanDevice& vulkanDevice, VmaAllocator allocator)
+                                VulkanDevice& vulkanDevice, VmaAllocator allocator, JobManager& jobManager)
 {
 	auto paramIt = params.find(paramName);
 	if (paramIt == params.end()) return fallback;
@@ -136,7 +136,7 @@ GltfLoader::loadMaterialTexture(tinygltf::Model& model, const std::map<std::stri
 	}
 	if (!img.image.empty() && img.width > 0 && img.height > 0)
 	{
-		auto rgbaPixels = ImageConverter::convertToRGBA(img);
+		auto rgbaPixels = ImageConverter::convertToRGBA(img, jobManager);
 		if (!rgbaPixels.empty())
 		{
 			TextureHandle handle = TextureFactory::createBindlessTexture(
@@ -152,7 +152,8 @@ GltfLoader::loadMaterialTexture(tinygltf::Model& model, const std::map<std::stri
 MaterialMaps GltfLoader::materialsParser(tinygltf::Model& model, TextureManager& textureManager,
                                          MaterialManager& materialManager, BindlessTextureDSetComponent& dSetComponent,
                                          DescriptorManager& descriptorManager, BufferManager& bufferManager,
-                                         const char* filePath, VulkanDevice& vulkanDevice, VmaAllocator allocator)
+                                         const char* filePath, VulkanDevice& vulkanDevice, VmaAllocator allocator,
+                                         JobManager& jobManager)
 {
 	MaterialMaps maps;
 	glm::vec4 colorFactor = {1.0f, 1.0f, 1.0f, 1.0f}; // Default white
@@ -210,7 +211,7 @@ MaterialMaps GltfLoader::materialsParser(tinygltf::Model& model, TextureManager&
 
 		material.textureIndex = loadMaterialTexture(model, model.materials[i].values, "baseColorTexture", /*isSrgb*/ true,
 		                                            whiteTexture, filePath, maps.ownedTextures, textureManager,
-		                                            dSetComponent, descriptorManager, vulkanDevice, allocator)
+		                                            dSetComponent, descriptorManager, vulkanDevice, allocator, jobManager)
 		                            .id;
 		if (material.textureIndex != ~0u)
 		{
@@ -219,7 +220,7 @@ MaterialMaps GltfLoader::materialsParser(tinygltf::Model& model, TextureManager&
 		material.normalMapIndex =
 		    loadMaterialTexture(model, model.materials[i].additionalValues, "normalTexture", /*isSrgb*/ false,
 		                        defaultNormalTexture, filePath, maps.ownedTextures, textureManager, dSetComponent,
-		                        descriptorManager, vulkanDevice, allocator)
+		                        descriptorManager, vulkanDevice, allocator, jobManager)
 		        .id;
 		if (material.normalMapIndex != ~0u)
 		{
@@ -229,7 +230,7 @@ MaterialMaps GltfLoader::materialsParser(tinygltf::Model& model, TextureManager&
 		material.metallicRoughnessIndex =
 		    loadMaterialTexture(model, model.materials[i].values, "metallicRoughnessTexture", /*isSrgb*/ false,
 		                        defaultMRTexture, filePath, maps.ownedTextures, textureManager, dSetComponent,
-		                        descriptorManager, vulkanDevice, allocator)
+		                        descriptorManager, vulkanDevice, allocator, jobManager)
 		        .id;
 		if (material.metallicRoughnessIndex != ~0u)
 		{
@@ -251,7 +252,7 @@ MaterialMaps GltfLoader::materialsParser(tinygltf::Model& model, TextureManager&
 		material.emissiveIndex =
 		    loadMaterialTexture(model, model.materials[i].additionalValues, "emissiveTexture", /*isSrgb*/ true,
 		                        defaultEmissiveTexture, filePath, maps.ownedTextures, textureManager, dSetComponent,
-		                        descriptorManager, vulkanDevice, allocator)
+		                        descriptorManager, vulkanDevice, allocator, jobManager)
 		        .id;
 		if (material.emissiveIndex != ~0u)
 		{

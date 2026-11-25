@@ -8,8 +8,10 @@
 #include "GraphicsCore/Resources/Managers/PrimitivesInfo.hpp"
 #include <tiny_gltf.h>
 
+class JobManager;
+
 class ImageConverter
 {
 public:
-	static std::vector<unsigned char> convertToRGBA(const tinygltf::Image& img);
+	static std::vector<unsigned char> convertToRGBA(const tinygltf::Image& img, JobManager& jobManager);
 };

@@ -33,6 +33,8 @@ struct MaterialMaps
 	std::vector<TextureHandle> ownedTextures;
 };
 
+class JobManager;
+
 // Parses glTF files — extracts materials, primitives, and mesh hierarchy into engine resources.
 class GltfLoader
 {
@@ -42,11 +44,12 @@ public:
 	                        BindlessTextureDSetComponent& dSetComponent, DescriptorManager& descriptorManager,
 	                        tinygltf::Model& model, TextureManager& textureManager,
 	                        RenderAssetManager& renderAssetManager, MaterialManager& materialManager,
-	                        VulkanDevice& vulkanDevice, VmaAllocator allocator);
+	                        VulkanDevice& vulkanDevice, VmaAllocator allocator, JobManager& jobManager);
 	static MaterialMaps materialsParser(tinygltf::Model& model, TextureManager& textureManager,
 	                                    MaterialManager& materialManager, BindlessTextureDSetComponent& dSetComponent,
 	                                    DescriptorManager& descriptorManager, BufferManager& bufferManager,
-	                                    const char* filePath, VulkanDevice& vulkanDevice, VmaAllocator allocator);
+	                                    const char* filePath, VulkanDevice& vulkanDevice, VmaAllocator allocator,
+	                                    JobManager& jobManager);
 	static std::vector<PrimitivesInfo> primitiveParser(tinygltf::Mesh& mesh, std::vector<Vertex>& outVertices,
 	                                                   std::vector<uint32_t>& outIndices, tinygltf::Model& model,
 	                                                   int32_t globalVertexOffset, const MaterialMaps& materialMaps,
@@ -61,5 +64,5 @@ private:
 	                                         const char* filePath, std::vector<TextureHandle>& ownedTextures,
 	                                         TextureManager& textureManager, BindlessTextureDSetComponent& dSetComponent,
 	                                         DescriptorManager& descriptorManager, VulkanDevice& vulkanDevice,
-	                                         VmaAllocator allocator);
+	                                         VmaAllocator allocator, JobManager& jobManager);
 };

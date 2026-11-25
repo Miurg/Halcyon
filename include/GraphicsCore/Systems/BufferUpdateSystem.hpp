@@ -36,4 +36,5 @@ private:
 
 	std::vector<std::vector<Agent>> batchMeshTransf;
 	std::vector<int> baseTransformPerBatch;
+	std::vector<GlobalTransformComponent*> _orderedTransforms;
 };
