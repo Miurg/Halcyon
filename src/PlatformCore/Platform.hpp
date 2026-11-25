@@ -4,6 +4,7 @@
 
 namespace Platform
 {
-	std::string executableDir();
-	std::string getEnv(const char* name);
-}
+std::string executableDir();
+std::string getEnv(const char* name);
+void lowerCurrentThreadPriority() noexcept;
+} // namespace Platform
