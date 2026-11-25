@@ -14,8 +14,8 @@ public:
 	explicit App(std::size_t workerCount = JobRuntime::defaultWorkerCount());
 	~App();
 
-	App(App&&) = default;
-	App& operator=(App&&) = default;
+	App(App&&) = delete;
+	App& operator=(App&&) = delete;
 
 	App(const App&) = delete;
 	App& operator=(const App&) = delete;

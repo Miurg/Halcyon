@@ -11,6 +11,9 @@
 #include "DeletionQueueComponent.hpp"
 #include "DeletionQueueContext.hpp"
 #include "AudioCore/AudioInit.hpp"
+#include "JobsCore/Components/JobManagerComponent.hpp"
+#include "JobsCore/JobsContexts.hpp"
+#include "JobsCore/JobsInit.hpp"
 
 App::App(std::size_t workerCount) : jobRuntime(workerCount), ecsJobs(jobRuntime), gm(&ecsJobs), deletionQueue(&gm)
 {
@@ -18,6 +21,7 @@ App::App(std::size_t workerCount) : jobRuntime(workerCount), ecsJobs(jobRuntime)
 	gm.registerContext<DeletionQueueContext>(dqEntity);
 	gm.addComponentImmediate<DeletionQueueComponent>(dqEntity, &deletionQueue);
 
+	JobsInit::Run(gm, jobRuntime);
 	PhysicsInit::Run(gm, jobRuntime);
 	PlatformInit::Run(gm);
 	GraphicsInit::Run(gm);
@@ -26,6 +30,11 @@ App::App(std::size_t workerCount) : jobRuntime(workerCount), ecsJobs(jobRuntime)
 
 App::~App()
 {
+	if (auto* jobManagerComp = gm.getContextComponent<JobManagerContext, JobManagerComponent>();
+	    jobManagerComp && jobManagerComp->jobManager)
+	{
+		jobManagerComp->jobManager->shutdown();
+	}
 	jobRuntime.waitForAll();
 }
 
