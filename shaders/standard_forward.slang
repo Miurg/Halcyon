@@ -465,7 +465,7 @@ SurfaceContext SetupSurface(VSOutput input, bool isFrontFace)
 
 	float3 rawNormal;
 	float4 rawMetalRough;
-	float3 rawEmission;
+	float3 rawEmission = float3(1.0, 1.0, 1.0);
 	float4 rawAlbedo;
 
 	// SampleGrad needs dx and dy, so better be two ways 

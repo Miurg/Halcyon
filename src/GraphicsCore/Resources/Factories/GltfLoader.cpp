@@ -213,7 +213,7 @@ MaterialMaps GltfLoader::materialsParser(tinygltf::Model& model, TextureManager&
 		                                            whiteTexture, filePath, maps.ownedTextures, textureManager,
 		                                            dSetComponent, descriptorManager, vulkanDevice, allocator, jobManager)
 		                            .id;
-		if (material.textureIndex != ~0u)
+		if (material.textureIndex != ~0u && material.textureIndex != static_cast<uint32_t>(whiteTexture.id))
 		{
 			material.materialFlags |= MaterialFlags::HasBaseColorTexture;
 		}
@@ -222,7 +222,7 @@ MaterialMaps GltfLoader::materialsParser(tinygltf::Model& model, TextureManager&
 		                        defaultNormalTexture, filePath, maps.ownedTextures, textureManager, dSetComponent,
 		                        descriptorManager, vulkanDevice, allocator, jobManager)
 		        .id;
-		if (material.normalMapIndex != ~0u)
+		if (material.normalMapIndex != ~0u && material.normalMapIndex != static_cast<uint32_t>(defaultNormalTexture.id))
 		{
 			material.materialFlags |= MaterialFlags::HasNormalTexture;
 		}
@@ -232,7 +232,8 @@ MaterialMaps GltfLoader::materialsParser(tinygltf::Model& model, TextureManager&
 		                        defaultMRTexture, filePath, maps.ownedTextures, textureManager, dSetComponent,
 		                        descriptorManager, vulkanDevice, allocator, jobManager)
 		        .id;
-		if (material.metallicRoughnessIndex != ~0u)
+		if (material.metallicRoughnessIndex != ~0u &&
+		    material.metallicRoughnessIndex != static_cast<uint32_t>(defaultMRTexture.id))
 		{
 			material.materialFlags |= MaterialFlags::HasMetallicRoughnessTexture;
 		}
@@ -254,12 +255,11 @@ MaterialMaps GltfLoader::materialsParser(tinygltf::Model& model, TextureManager&
 		                        defaultEmissiveTexture, filePath, maps.ownedTextures, textureManager, dSetComponent,
 		                        descriptorManager, vulkanDevice, allocator, jobManager)
 		        .id;
-		if (material.emissiveIndex != ~0u)
+		if (material.emissiveIndex != ~0u && material.emissiveIndex != static_cast<uint32_t>(defaultEmissiveTexture.id))
 		{
 			material.materialFlags |= MaterialFlags::HasEmissiveTexture;
 		}
 		// Emissive Factor
-		bool hasEmissiveTexture = (material.emissiveIndex != static_cast<uint32_t>(defaultEmissiveTexture.id));
 		auto emissiveFactorIt = model.materials[i].additionalValues.find("emissiveFactor");
 		if (emissiveFactorIt != model.materials[i].additionalValues.end())
 		{
