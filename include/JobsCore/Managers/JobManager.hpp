@@ -4,9 +4,12 @@
 #include <concepts>
 #include <cstddef>
 #include <functional>
+#include <span>
 #include <thread>
 
 #include "HalcyonExport.hpp"
+#include "JobsCore/JobHandle.hpp"
+#include "JobsCore/JobTypes.hpp"
 
 class JobRuntime;
 
@@ -20,6 +23,10 @@ public:
 	JobManager& operator=(const JobManager&) = delete;
 	JobManager(JobManager&&) = delete;
 	JobManager& operator=(JobManager&&) = delete;
+
+	JobHandle submit(std::function<void()> work, const JobDesc& desc = {});
+	void wait(const JobHandle& handle);
+	void waitAll(std::span<const JobHandle> handles);
 
 	template <typename Func>
 	   requires(std::invocable<Func&, std::size_t, std::size_t> || std::invocable<Func&, std::size_t>)

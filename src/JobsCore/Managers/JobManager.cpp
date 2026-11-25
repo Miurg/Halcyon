@@ -4,8 +4,10 @@
 #include <cstdlib>
 #include <iostream>
 #include <memory>
+#include <utility>
 #include <taskflow/taskflow.hpp>
 
+#include "JobsCore/JobNode.hpp"
 #include "JobsCore/JobRuntime.hpp"
 
 #ifdef TRACY_ENABLE
@@ -19,6 +21,89 @@ JobManager::~JobManager()
 	if (!_shuttingDown.load(std::memory_order_acquire) && _runtime.currentWorkerSlot() < 0)
 	{
 		shutdown();
+	}
+}
+
+JobHandle JobManager::submit(std::function<void()> work, const JobDesc& desc)
+{
+	if (!work)
+	{
+		std::cerr << "JobManager: cannot submit empty task" << std::endl;
+		std::abort();
+	}
+
+	auto node = std::make_shared<JobNode>();
+	node->lane = desc.lane;
+	node->name = desc.name;
+	node->work = std::move(work);
+
+	if (_shuttingDown.load(std::memory_order_acquire))
+	{
+		node->work = nullptr;
+		node->finish(JobStatus::Cancelled);
+		return JobHandle(std::move(node));
+	}
+
+	tf::Executor& targetExecutor =
+	    (desc.lane == JobLane::Background) ? _runtime.backgroundExecutor() : _runtime.executor();
+
+	targetExecutor.silent_async(
+	    [this, node]()
+	    {
+		    if (_shuttingDown.load(std::memory_order_acquire))
+		    {
+			    node->work = nullptr;
+			    node->finish(JobStatus::Cancelled);
+			    return;
+		    }
+
+		    node->status.store(JobStatus::Running, std::memory_order_relaxed);
+		    {
+#ifdef TRACY_ENABLE
+			    ZoneTransientN(zone, node->name ? node->name : "JobManager::job", true);
+#endif
+			    node->work();
+		    }
+		    node->work = nullptr;
+		    node->finish(JobStatus::Completed);
+	    });
+
+	return JobHandle(std::move(node));
+}
+
+void JobManager::wait(const JobHandle& handle)
+{
+	if (!handle._node) return;
+	if (JobNode::isTerminal(handle._node->status.load(std::memory_order_acquire))) return;
+
+	tf::Executor& workerExecutor = _runtime.executor();
+	if (workerExecutor.this_worker_id() >= 0)
+	{
+		workerExecutor.corun_until([&handle]()
+		                           { return JobNode::isTerminal(handle._node->status.load(std::memory_order_acquire)); });
+		return;
+	}
+
+	tf::Executor& bgExecutor = _runtime.backgroundExecutor();
+	if (bgExecutor.this_worker_id() >= 0)
+	{
+		bgExecutor.corun_until([&handle]()
+		                       { return JobNode::isTerminal(handle._node->status.load(std::memory_order_acquire)); });
+		return;
+	}
+
+	for (JobStatus current = handle._node->status.load(std::memory_order_acquire); !JobNode::isTerminal(current);
+	     current = handle._node->status.load(std::memory_order_acquire))
+	{
+		handle._node->status.wait(current, std::memory_order_acquire);
+	}
+}
+
+void JobManager::waitAll(std::span<const JobHandle> handles)
+{
+	for (const JobHandle& handle : handles)
+	{
+		wait(handle);
 	}
 }
 

@@ -2,9 +2,12 @@
 #include "ImageConverter.hpp"
 #include "GraphicsCore/Resources/Factories/TextureFactory.hpp"
 #include "GraphicsCore/VulkanUtils.hpp"
+#include "JobsCore/Managers/JobManager.hpp"
 #include <filesystem>
 #include <algorithm>
 #include <cstring>
+#include <exception>
+#include <mutex>
 #include <stdexcept>
 #include <utility>
 
@@ -23,13 +26,85 @@ GltfLoader::loadRenderAssetFromFile(const char path[MAX_PATH_LEN], int vertexInd
 
 	std::vector<MeshInfo> loadedMeshes;
 	loadedMeshes.resize(model.meshes.size());
-	for (int i = 0; i < model.meshes.size(); ++i)
+	if (model.meshes.size() <= 1)
 	{
-		auto newPrims =
-		    primitiveParser(model.meshes[i], localVertices, localIndices, model, 0, materialMaps, materialManager);
-		loadedMeshes[i].primitives = newPrims;
-		loadedMeshes[i].vertexIndexBufferID = vertexIndexBInt;
-		model.meshes[i].name.copy(loadedMeshes[i].path, sizeof(loadedMeshes[i].path) - 1); // Copy name
+		for (size_t i = 0; i < model.meshes.size(); ++i)
+		{
+			loadedMeshes[i].primitives =
+			    primitiveParser(model.meshes[i], localVertices, localIndices, model, 0, materialMaps, materialManager);
+			loadedMeshes[i].vertexIndexBufferID = vertexIndexBInt;
+			model.meshes[i].name.copy(loadedMeshes[i].path, sizeof(loadedMeshes[i].path) - 1);
+		}
+	}
+	else
+	{
+		struct ParsedMeshChunk
+		{
+			MeshInfo mesh;
+			std::vector<Vertex> vertices;
+			std::vector<uint32_t> indices;
+		};
+
+		std::vector<ParsedMeshChunk> parsedChunks(model.meshes.size());
+		std::vector<JobHandle> meshJobs;
+		meshJobs.reserve(model.meshes.size());
+
+		std::mutex errorMutex;
+		std::exception_ptr firstError;
+
+		for (size_t i = 0; i < model.meshes.size(); ++i)
+		{
+			meshJobs.push_back(jobManager.submit(
+			    [&, i]()
+			    {
+				    try
+				    {
+					    ParsedMeshChunk& chunk = parsedChunks[i];
+					    chunk.mesh.primitives = primitiveParser(model.meshes[i], chunk.vertices, chunk.indices, model, 0,
+					                                            materialMaps, materialManager);
+					    chunk.mesh.vertexIndexBufferID = vertexIndexBInt;
+					    model.meshes[i].name.copy(chunk.mesh.path, sizeof(chunk.mesh.path) - 1);
+				    }
+				    catch (...)
+				    {
+					    std::lock_guard<std::mutex> lock(errorMutex);
+					    if (!firstError) firstError = std::current_exception();
+				    }
+			    },
+			    JobDesc{JobLane::Worker, "GltfLoader::parseMesh"}));
+		}
+
+		jobManager.waitAll(meshJobs);
+		if (firstError) std::rethrow_exception(firstError);
+
+		size_t totalVertices = 0;
+		size_t totalIndices = 0;
+		for (const auto& chunk : parsedChunks)
+		{
+			totalVertices += chunk.vertices.size();
+			totalIndices += chunk.indices.size();
+		}
+
+		localVertices.reserve(totalVertices);
+		localIndices.reserve(totalIndices);
+
+		for (size_t i = 0; i < parsedChunks.size(); ++i)
+		{
+			auto& chunk = parsedChunks[i];
+			const uint32_t meshVertexBase = static_cast<uint32_t>(localVertices.size());
+			const uint32_t meshIndexBase = static_cast<uint32_t>(localIndices.size());
+
+			localVertices.insert(localVertices.end(), chunk.vertices.begin(), chunk.vertices.end());
+			localIndices.insert(localIndices.end(), chunk.indices.begin(), chunk.indices.end());
+
+			for (auto& primitive : chunk.mesh.primitives)
+			{
+				primitive.vertexOffset += meshVertexBase;
+				primitive.indexOffset += meshIndexBase;
+			}
+
+			loadedMeshes[i] = std::move(chunk.mesh);
+		}
 	}
 
 	GeometryAllocation allocation{};
